@@ -67,6 +67,34 @@ New types go in `lib/types.ts`. Do not create `src/` directories.
 
 ---
 
+## Styling approach — Tailwind utility classes only
+
+**All styling is done exclusively with Tailwind CSS utility classes.**
+
+- Do not create `.css` or `.module.css` files (beyond the existing `globals.css`
+  which contains only the three Tailwind base directives)
+- Do not use CSS-in-JS (no `style` props for layout/colour, no styled-components)
+- Do not add any third-party component libraries (no MUI, Chakra, Ant Design, etc.)
+- Conditional or merged classes must use the `cn()` helper from `lib/utils.ts`,
+  which combines `clsx` and `tailwind-merge` to handle conflicts correctly:
+
+```ts
+import { cn } from '@/lib/utils'
+
+// good
+<div className={cn('rounded-lg border', isOpen && 'border-slate-600')} />
+
+// bad — string concatenation breaks tailwind-merge deduplication
+<div className={`rounded-lg border ${isOpen ? 'border-slate-600' : ''}`} />
+```
+
+shadcn/ui is the reference for component patterns and Radix UI primitive
+usage, but components are written by hand using Tailwind classes rather than
+copied wholesale from the shadcn registry. Follow the same patterns already
+established in `components/` when adding new components.
+
+---
+
 ## TypeScript types — use these exactly
 
 Defined in `lib/types.ts`. Never redefine or shadow them locally.
