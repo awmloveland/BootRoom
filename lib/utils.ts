@@ -42,10 +42,10 @@ export function getMonthKey(date: string): string {
   return `${mon} ${yr}`
 }
 
-/** Returns a human-readable month + year label, e.g. 'March 2026'. */
+/** Returns a month + year label, e.g. 'Mar 2026'. */
 export function formatMonthYear(date: string): string {
   const [, mon, yr] = date.split(' ')
-  return `${MONTH_LONG[mon] ?? mon} ${yr}`
+  return `${mon} ${yr}`
 }
 
 /**
