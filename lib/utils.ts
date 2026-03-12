@@ -30,6 +30,24 @@ export function formatWinner(winner: Winner): string {
   }
 }
 
+const MONTH_LONG: Record<string, string> = {
+  Jan: 'January',  Feb: 'February', Mar: 'March',    Apr: 'April',
+  May: 'May',      Jun: 'June',     Jul: 'July',      Aug: 'August',
+  Sep: 'September', Oct: 'October', Nov: 'November', Dec: 'December',
+}
+
+/** Returns a short month-year key used to detect group boundaries, e.g. 'Mar 2026'. */
+export function getMonthKey(date: string): string {
+  const [, mon, yr] = date.split(' ')
+  return `${mon} ${yr}`
+}
+
+/** Returns a human-readable month + year label, e.g. 'March 2026'. */
+export function formatMonthYear(date: string): string {
+  const [, mon, yr] = date.split(' ')
+  return `${MONTH_LONG[mon] ?? mon} ${yr}`
+}
+
 /**
  * Derive a season string like "2025–26" from the played weeks.
  * Uses the calendar year of the first and last played game.

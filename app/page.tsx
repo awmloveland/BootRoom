@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { Week } from '@/lib/types'
-import { sortWeeks, getPlayedWeeks, deriveSeason } from '@/lib/utils'
+import { sortWeeks, getPlayedWeeks, deriveSeason, getMonthKey, formatMonthYear } from '@/lib/utils'
 import { Header } from '@/components/Header'
 import { MatchCard } from '@/components/MatchCard'
+import { MonthDivider } from '@/components/MonthDivider'
 import bootRoomData from '@/data/boot_room.json'
 
 export default function Home() {
@@ -50,14 +51,22 @@ export default function Home() {
       {/* Match list */}
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
         <div className="flex flex-col gap-3">
-          {displayWeeks.map((week) => (
-            <MatchCard
-              key={week.week}
-              week={week}
-              isOpen={openWeek === week.week}
-              onToggle={() => handleToggle(week.week)}
-            />
-          ))}
+          {displayWeeks.map((week, index) => {
+            const monthChanged =
+              index > 0 &&
+              getMonthKey(week.date) !== getMonthKey(displayWeeks[index - 1].date)
+
+            return (
+              <Fragment key={week.week}>
+                {monthChanged && <MonthDivider label={formatMonthYear(week.date)} />}
+                <MatchCard
+                  week={week}
+                  isOpen={openWeek === week.week}
+                  onToggle={() => handleToggle(week.week)}
+                />
+              </Fragment>
+            )
+          })}
         </div>
       </main>
     </div>
