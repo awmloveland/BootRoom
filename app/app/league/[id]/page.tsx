@@ -1,0 +1,187 @@
+'use client'
+
+import { Fragment, useEffect, useMemo, useState } from 'react'
+import { useParams } from 'next/navigation'
+import Link from 'next/link'
+import { Week } from '@/lib/types'
+import { sortWeeks, getPlayedWeeks, deriveSeason, getMonthKey, formatMonthYear } from '@/lib/utils'
+import { fetchWeeks, fetchGames } from '@/lib/data'
+import { Header } from '@/components/Header'
+import { BootRoomMatchHistory } from '@/components/BootRoomMatchHistory'
+import { MatchCard } from '@/components/MatchCard'
+import { MonthDivider } from '@/components/MonthDivider'
+import bootRoomData from '@/data/boot_room.json'
+
+const LEGACY_BOOT_ROOM_ID = '00000000-0000-0000-0000-000000000001'
+
+function getBootRoomWeeks(): Week[] {
+  const raw = (bootRoomData.weeks ?? []) as Week[]
+  const filtered = raw.filter((w) => (w.status as string) !== 'scheduled')
+  return sortWeeks(filtered)
+}
+
+export default function LeaguePage() {
+  const params = useParams()
+  const leagueId = (params?.id as string) ?? ''
+  const isLegacyId = leagueId === LEGACY_BOOT_ROOM_ID
+  const bootRoomWeeks = useMemo(() => getBootRoomWeeks(), [])
+
+  const [leagueName, setLeagueName] = useState('')
+  const [weeks, setWeeks] = useState<Week[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [openWeek, setOpenWeek] = useState<number | null>(null)
+  const [isBootRoom, setIsBootRoom] = useState(false)
+  const [hasAccess, setHasAccess] = useState(false)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [games, weeksData] = await Promise.all([
+          fetchGames(),
+          fetchWeeks(leagueId),
+        ])
+        const game = games.find((g) => g.id === leagueId)
+        if (!game) {
+          setHasAccess(false)
+          setLoading(false)
+          return
+        }
+        setHasAccess(true)
+        const name = game.name
+        const bootRoom = isLegacyId || name === 'The Boot Room'
+        setIsBootRoom(bootRoom)
+        setLeagueName(name)
+        const displayWeeks = bootRoom ? bootRoomWeeks : sortWeeks(weeksData)
+        const playedWeeks = getPlayedWeeks(displayWeeks)
+        const mostRecentPlayed =
+          playedWeeks.length > 0
+            ? playedWeeks.reduce((a, b) => (a.week > b.week ? a : b))
+            : null
+
+        setWeeks(displayWeeks)
+        setOpenWeek(mostRecentPlayed?.week ?? null)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [leagueId, isLegacyId, bootRoomWeeks])
+
+  const handleToggle = (weekNum: number) => {
+    setOpenWeek((prev) => (prev === weekNum ? null : weekNum))
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <p className="text-slate-400">Loading…</p>
+      </div>
+    )
+  }
+
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen bg-slate-900">
+        <Header />
+        <main className="max-w-md mx-auto px-4 sm:px-6 py-12 text-center">
+          <h1 className="text-xl font-semibold text-slate-100 mb-2">League</h1>
+          <p className="text-slate-400 text-sm mb-6">
+            You need an invite to view this league. Ask an admin to send you an invite link.
+          </p>
+          <Link
+            href="/"
+            className="inline-block px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium"
+          >
+            Your leagues
+          </Link>
+        </main>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-900">
+        <Header />
+        <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+          <p className="text-red-400 mb-4">{error}</p>
+          <Link href="/" className="text-sky-400 hover:underline">Back to leagues</Link>
+        </main>
+      </div>
+    )
+  }
+
+  if (isBootRoom) {
+    const season = deriveSeason(weeks)
+    return (
+      <div className="min-h-screen bg-slate-900">
+        <Header />
+        <BootRoomMatchHistory
+          weeks={weeks}
+          season={season}
+          openWeek={openWeek}
+          onToggle={handleToggle}
+        />
+      </div>
+    )
+  }
+
+  const season = deriveSeason(weeks)
+  const SEASON_LENGTH = 52
+  const totalWeeks = weeks.length
+  const pctComplete = Math.round((totalWeeks / SEASON_LENGTH) * 100)
+
+  return (
+    <div className="min-h-screen bg-slate-900">
+      <Header />
+
+      <div className="bg-slate-800/50 border-b border-slate-700">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
+          <Link href="/" className="text-xs text-slate-400 hover:text-slate-300">← Leagues</Link>
+          <span className="text-xs text-slate-400">
+            {totalWeeks} of {SEASON_LENGTH} Weeks ({pctComplete}% complete)
+          </span>
+        </div>
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 pb-2">
+          <h2 className="text-lg font-semibold text-slate-100">{leagueName}</h2>
+          <p className="text-xs text-slate-400">Season {season}</p>
+        </div>
+      </div>
+
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
+        <div className="flex gap-2 mb-4">
+          <Link
+            href={`/league/${leagueId}/players`}
+            className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
+          >
+            Players
+          </Link>
+        </div>
+        <div className="flex flex-col gap-3">
+          {weeks.length === 0 ? (
+            <p className="text-slate-400 text-sm">No match data yet. Add game data to get started.</p>
+          ) : (
+            weeks.map((week, index) => {
+              const monthChanged =
+                index > 0 &&
+                getMonthKey(week.date) !== getMonthKey(weeks[index - 1].date)
+              return (
+                <Fragment key={week.week}>
+                  {monthChanged && <MonthDivider label={formatMonthYear(week.date)} />}
+                  <MatchCard
+                    week={week}
+                    isOpen={openWeek === week.week}
+                    onToggle={() => handleToggle(week.week)}
+                  />
+                </Fragment>
+              )
+            })
+          )}
+        </div>
+      </main>
+    </div>
+  )
+}

@@ -1,6 +1,16 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+function getSupabaseUrl(): string | undefined {
+  return process.env.NEXT_PUBLIC_SUPABASE_URL
+}
+function getSupabaseAnonKey(): string | undefined {
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  )
+}
+
 const SIGN_IN_PATH = '/sign-in'
 const AUTH_CALLBACK_PATH = '/auth/callback'
 const ACCESS_KEY_COOKIE = 'app_access'
@@ -16,7 +26,7 @@ function isAppHost(host: string | null): boolean {
 
 function isWebsiteHost(host: string | null): boolean {
   if (!host) return false
-  return host === WEBSITE_HOST || host === 'localhost' || host.startsWith('localhost:')
+  return host === WEBSITE_HOST || host === `www.${WEBSITE_HOST}` || host === 'localhost' || host.startsWith('localhost:')
 }
 
 function isMobile(userAgent: string): boolean {
@@ -42,6 +52,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request })
   }
 
+  // Supabase magic link sometimes redirects to /?code= instead of /auth/callback?code= - fix it
+  const code = request.nextUrl.searchParams.get('code')
+  if (code && (pathname === '/' || pathname === '')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/callback'
+    return NextResponse.redirect(url)
+  }
+
   // 1. craft-football.com + mobile → redirect to m.craft-football.com
   if (isWebsiteHost(host) && host !== 'localhost' && !host.startsWith('localhost:') && isMobile(userAgent)) {
     const url = request.nextUrl.clone()
@@ -50,31 +68,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 2. craft-football.com (desktop) + path / → rewrite to /website
-  if (isWebsiteHost(host) && (pathname === '/' || pathname === '')) {
+  // 2. craft-football.com (desktop) → show marketing website
+  if (isWebsiteHost(host) && host !== 'localhost' && !host.startsWith('localhost:')) {
     return NextResponse.rewrite(new URL('/website', request.url))
   }
 
-  // 3. craft-football.com + app paths (/players, /sign-in) → redirect to m
-  if (isWebsiteHost(host) && host !== 'localhost' && !host.startsWith('localhost:') && (pathname === '/players' || pathname === '/sign-in')) {
-    const url = request.nextUrl.clone()
-    url.host = APP_HOST
-    url.protocol = 'https'
-    return NextResponse.redirect(url)
-  }
-
-  // 4. localhost + /website → rewrite (to test website locally)
+  // 3. localhost + /website → rewrite (to test website locally)
   if ((host === 'localhost' || host.startsWith('localhost:')) && pathname === '/website') {
     return NextResponse.rewrite(new URL('/website', request.url))
   }
 
-  // 5. App host or localhost: run auth, then rewrite to /app
+  // 4. App host or localhost: run auth, then rewrite to /app
   const isAppRequest = (isAppHost(host) || host === 'localhost' || host.startsWith('localhost:')) &&
-    (pathname === '/' || pathname === '' || pathname === '/players' || pathname === '/sign-in' || pathname === '/settings' || pathname.startsWith('/invite'))
+    (pathname === '/' || pathname === '' || pathname === '/sign-in' || pathname === '/reset-password' || pathname === '/profile-required' || pathname === '/settings' || pathname === '/add-game' || pathname.startsWith('/invite') || pathname.startsWith('/league/'))
 
   if (isAppRequest) {
     let response = NextResponse.next({ request })
     const isSignIn = pathname === '/sign-in'
+    const isResetPassword = pathname === '/reset-password'
     const isAuthCallback = pathname.startsWith(AUTH_CALLBACK_PATH)
 
     // Access key only required on production (m.craft-football.com), not localhost
@@ -95,10 +106,27 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(redirectUrl)
       }
       if (hasValidAccessKey(request)) {
-        const rewritePath = pathname === '/' || pathname === '' ? '/app' : `/app${pathname}`
+        const rewritePath = (pathname === '/' || pathname === '') ? '/app' : `/app${pathname}`
         return NextResponse.rewrite(new URL(rewritePath, request.url))
       }
-      if (!isSignIn) {
+      // Fall through to auth check: logged-in users can access app routes without the key
+      if (!isSignIn && !isResetPassword) {
+        // Check auth before redirecting to locked sign-in
+        const supabaseAuth = createServerClient(
+          getSupabaseUrl()!,
+          getSupabaseAnonKey()!,
+          {
+            cookies: {
+              getAll: () => request.cookies.getAll(),
+              setAll: () => {},
+            },
+          }
+        )
+        const { data } = await supabaseAuth.auth.getUser()
+        if (data.user) {
+          const rewritePath = pathname === '/' || pathname === '' ? '/app' : `/app${pathname}`
+          return NextResponse.rewrite(new URL(rewritePath, request.url))
+        }
         const redirectUrl = request.nextUrl.clone()
         redirectUrl.pathname = SIGN_IN_PATH
         redirectUrl.searchParams.set('locked', '1')
@@ -108,9 +136,16 @@ export async function middleware(request: NextRequest) {
       return NextResponse.rewrite(new URL(rewritePath, request.url))
     }
 
+    const supabaseUrl = getSupabaseUrl()
+    const supabaseAnonKey = getSupabaseAnonKey()
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY/PUBLISHABLE_KEY')
+      return new NextResponse('Server misconfigured', { status: 503 })
+    }
+
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      supabaseUrl,
+      supabaseAnonKey,
       {
         cookies: {
           getAll() {
@@ -125,11 +160,16 @@ export async function middleware(request: NextRequest) {
       }
     )
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    let user = null
+    try {
+      const { data } = await supabase.auth.getUser()
+      user = data.user
+    } catch (err) {
+      console.error('Middleware auth error:', err)
+      return new NextResponse('Auth error', { status: 503 })
+    }
 
-    if (!user && !isSignIn && !isAuthCallback) {
+    if (!user && !isSignIn && !isResetPassword && !isAuthCallback) {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = SIGN_IN_PATH
       redirectUrl.searchParams.set('redirect', pathname)
@@ -139,6 +179,22 @@ export async function middleware(request: NextRequest) {
     if (user && isSignIn) {
       const redirectTo = request.nextUrl.searchParams.get('redirect') || '/'
       return NextResponse.redirect(new URL(redirectTo, request.url))
+    }
+
+    // profile-required: user exists but no profile (show sign-out + message)
+    if (pathname === '/profile-required' && user) {
+      return NextResponse.rewrite(new URL('/app/profile-required', request.url))
+    }
+
+    // Protected routes require profile; redirect if missing
+    const isProtectedRoute = pathname !== '/reset-password' && pathname !== '/profile-required'
+    if (user && isProtectedRoute) {
+      const { data: profile } = await supabase.from('profiles').select('id').eq('id', user.id).maybeSingle()
+      if (!profile) {
+        const redirectUrl = request.nextUrl.clone()
+        redirectUrl.pathname = '/profile-required'
+        return NextResponse.redirect(redirectUrl)
+      }
     }
 
     const rewritePath = pathname === '/' || pathname === '' ? '/app' : `/app${pathname}`

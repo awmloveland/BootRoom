@@ -5,8 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "deploy": "npx vercel deploy --prod --yes",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "supabase:setup": "open 'https://supabase.com/dashboard/project/okkmnluglygrbtcawljr/settings/api' || xdg-open 'https://supabase.com/dashboard/project/okkmnluglygrbtcawljr/settings/api'",
+    "supabase:auth": "open 'https://supabase.com/dashboard/project/okkmnluglygrbtcawljr/auth/providers' || xdg-open 'https://supabase.com/dashboard/project/okkmnluglygrbtcawljr/auth/providers'",
+    "supabase:vercel": "open 'https://supabase.com/dashboard/integrations/vercel/install' || xdg-open 'https://supabase.com/dashboard/integrations/vercel/install'"
   },
   "dependencies": {
     "@radix-ui/react-collapsible": "^1.1.2",

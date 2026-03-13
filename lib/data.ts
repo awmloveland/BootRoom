@@ -8,9 +8,22 @@ import type { Week } from '@/lib/types'
 
 const USE_ACCESS_KEY = process.env.NEXT_PUBLIC_ACCESS_KEY_MODE === 'true'
 
-export async function fetchWeeks(): Promise<Week[]> {
+export interface Game {
+  id: string
+  name: string
+  created_at: string
+}
+
+export async function fetchGames(): Promise<Game[]> {
+  const res = await fetch('/api/games', { credentials: 'include' })
+  if (!res.ok) throw new Error(await res.text())
+  const data = await res.json()
+  return (data ?? []) as Game[]
+}
+
+export async function fetchWeeks(gameId: string): Promise<Week[]> {
   if (USE_ACCESS_KEY) {
-    const res = await fetch('/api/weeks', { credentials: 'include' })
+    const res = await fetch(`/api/weeks?gameId=${gameId}`, { credentials: 'include' })
     if (!res.ok) throw new Error(await res.text())
     const data = await res.json()
     return (data ?? []).map((row: Record<string, unknown>) => ({
@@ -28,6 +41,7 @@ export async function fetchWeeks(): Promise<Week[]> {
   const { data, error } = await supabase
     .from('weeks')
     .select('week, date, status, format, team_a, team_b, winner, notes')
+    .eq('game_id', gameId)
     .in('status', ['played', 'cancelled'])
     .order('week', { ascending: false })
   if (error) throw error
@@ -43,9 +57,26 @@ export async function fetchWeeks(): Promise<Week[]> {
   })) as Week[]
 }
 
-export async function fetchPlayers(): Promise<Awaited<ReturnType<typeof fetchPlayersFromSupabase>>> {
+export type PlayerStat = {
+  name: string
+  played: number
+  won: number
+  drew: number
+  lost: number
+  timesTeamA: number
+  timesTeamB: number
+  winRate: number
+  qualified: boolean
+  points: number
+  goalkeeper: boolean
+  mentality: string
+  rating: number
+  recentForm: string
+}
+
+export async function fetchPlayers(gameId: string): Promise<PlayerStat[]> {
   if (USE_ACCESS_KEY) {
-    const res = await fetch('/api/players', { credentials: 'include' })
+    const res = await fetch(`/api/players?gameId=${gameId}`, { credentials: 'include' })
     if (!res.ok) throw new Error(await res.text())
     const data = await res.json()
     return (data ?? []).map((row: Record<string, unknown>) => ({
@@ -65,27 +96,23 @@ export async function fetchPlayers(): Promise<Awaited<ReturnType<typeof fetchPla
       recentForm: row.recentForm ?? '',
     }))
   }
-  return fetchPlayersFromSupabase()
-}
-
-async function fetchPlayersFromSupabase() {
   const supabase = createClient()
-  const { data, error } = await supabase.from('player_stats').select('*')
+  const { data, error } = await supabase.rpc('get_player_stats', { p_game_id: gameId })
   if (error) throw error
-  return (data ?? []).map((row) => ({
+  return (data ?? []).map((row: Record<string, unknown>) => ({
     name: row.name,
-    played: row.played,
-    won: row.won,
-    drew: row.drew,
-    lost: row.lost,
-    timesTeamA: row.timesTeamA,
-    timesTeamB: row.timesTeamB,
-    winRate: row.winRate,
-    qualified: row.qualified,
-    points: row.points,
-    goalkeeper: row.goalkeeper,
-    mentality: row.mentality,
-    rating: row.rating,
-    recentForm: row.recentForm ?? '',
+    played: Number(row.played),
+    won: Number(row.won),
+    drew: Number(row.drew),
+    lost: Number(row.lost),
+    timesTeamA: Number(row.timesTeamA),
+    timesTeamB: Number(row.timesTeamB),
+    winRate: Number(row.winRate),
+    qualified: Boolean(row.qualified),
+    points: Number(row.points),
+    goalkeeper: Boolean(row.goalkeeper),
+    mentality: String(row.mentality ?? 'balanced'),
+    rating: Number(row.rating ?? 0),
+    recentForm: String(row.recentForm ?? ''),
   }))
 }

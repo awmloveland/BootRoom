@@ -2,7 +2,6 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 
-const LEGACY_GAME_ID = '00000000-0000-0000-0000-000000000001'
 const TOKEN_BYTES = 32
 const EXPIRY_DAYS = 7
 
@@ -16,15 +15,18 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : null
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ error: 'Valid email required' }, { status: 400 })
+  const rawEmail = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
+  const gameId = typeof body?.gameId === 'string' ? body.gameId : null
+  // Use '*' for open invite (anyone with the link can accept); otherwise require valid email
+  const email = rawEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) ? rawEmail : '*'
+  if (!gameId) {
+    return NextResponse.json({ error: 'gameId required' }, { status: 400 })
   }
 
   const { data: member } = await supabase
     .from('game_members')
     .select('game_id')
-    .eq('game_id', LEGACY_GAME_ID)
+    .eq('game_id', gameId)
     .eq('user_id', user.id)
     .single()
 
@@ -38,7 +40,7 @@ export async function POST(request: Request) {
 
   const { error } = await supabase.from('game_invites').upsert(
     {
-      game_id: LEGACY_GAME_ID,
+      game_id: gameId,
       email,
       invited_by: user.id,
       token,

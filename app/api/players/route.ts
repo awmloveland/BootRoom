@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 
 const ACCESS_KEY_COOKIE = 'app_access'
 
-export async function GET() {
+export async function GET(request: Request) {
   const key = process.env.APP_ACCESS_KEY
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!key || !serviceKey) {
@@ -15,13 +15,16 @@ export async function GET() {
   if (cookieKey !== key) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const { searchParams } = new URL(request.url)
+  const gameId = searchParams.get('gameId')
+  if (!gameId) {
+    return NextResponse.json({ error: 'gameId required' }, { status: 400 })
+  }
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     serviceKey
   )
-  const { data, error } = await supabase
-    .from('player_stats')
-    .select('*')
+  const { data, error } = await supabase.rpc('get_player_stats', { p_game_id: gameId })
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

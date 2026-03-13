@@ -1,16 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Header } from '@/components/Header'
+import { fetchGames } from '@/lib/data'
 
 export default function SettingsPage() {
-  const [email, setEmail] = useState('')
+  const [games, setGames] = useState<{ id: string; name: string }[]>([])
+  const [selectedGameId, setSelectedGameId] = useState('')
   const [link, setLink] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  useEffect(() => {
+    fetchGames().then(setGames).catch(() => setGames([]))
+  }, [])
+
   async function handleCreateInvite(e: React.FormEvent) {
     e.preventDefault()
+    if (!selectedGameId) {
+      setError('Select a league')
+      return
+    }
     setLoading(true)
     setError(null)
     setLink(null)
@@ -18,13 +28,12 @@ export default function SettingsPage() {
       const res = await fetch('/api/invites', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ gameId: selectedGameId }),
         credentials: 'include',
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to create invite')
       setLink(data.link)
-      setEmail('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -44,24 +53,26 @@ export default function SettingsPage() {
       <main className="max-w-md mx-auto px-4 sm:px-6 py-8">
         <h1 className="text-xl font-semibold text-slate-100 mb-6">Invite admin</h1>
         <p className="text-slate-400 text-sm mb-6">
-          Send this link to someone so they can sign up and view the stats as an admin.
+          Create a link to share. Anyone who follows it can sign up and get admin access to the league.
         </p>
 
         <form onSubmit={handleCreateInvite} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm text-slate-400 mb-1">
-              Their email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="friend@example.com"
-              className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
-            />
-          </div>
+          {games.length > 0 && (
+            <div>
+              <label htmlFor="league" className="block text-sm text-slate-400 mb-1">League</label>
+              <select
+                id="league"
+                value={selectedGameId}
+                onChange={(e) => setSelectedGameId(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100"
+              >
+                <option value="">Select a league</option>
+                {games.map((g) => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           {error && <p className="text-sm text-red-400">{error}</p>}
           <button
             type="submit"
