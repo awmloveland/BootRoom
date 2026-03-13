@@ -169,10 +169,13 @@ export async function middleware(request: NextRequest) {
       return new NextResponse('Auth error', { status: 503 })
     }
 
-    if (!user && !isSignIn && !isResetPassword && !isAuthCallback) {
+    const isInvite = pathname.startsWith('/invite')
+    if (!user && !isSignIn && !isResetPassword && !isAuthCallback && !isInvite) {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = SIGN_IN_PATH
-      redirectUrl.searchParams.set('redirect', pathname)
+      // Preserve full path + query (e.g. /invite?token=xxx) so invite token isn't lost
+      const redirectTo = pathname + (request.nextUrl.search || '')
+      redirectUrl.searchParams.set('redirect', redirectTo)
       return NextResponse.redirect(redirectUrl)
     }
 

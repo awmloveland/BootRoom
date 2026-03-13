@@ -32,8 +32,9 @@ export async function POST(request: Request) {
     } else if (code?.includes('email not confirmed')) {
       msg = 'Check your email and click the confirmation link first.'
     }
-    console.error('[sign-in] Auth error:', error.message, '| code:', error.code)
-    return NextResponse.json({ error: msg }, { status: 401 })
+    // Log full details for debugging (visible in Vercel Functions logs)
+    console.error('[sign-in] Auth error:', { message: error.message, code: error.code, status: error.status, email })
+    return NextResponse.json({ error: msg, code: error.code }, { status: 401 })
   }
 
   const { error: claimError } = await supabase.rpc('claim_profile')

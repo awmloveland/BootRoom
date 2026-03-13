@@ -50,9 +50,9 @@ If using `supabase start` for local dev, `supabase/config.toml` already includes
 supabase stop && supabase start
 ```
 
-## 5. Disable email confirmation (optional)
+## 5. Disable email confirmation (recommended)
 
-If you want users to sign in immediately after sign-up (no confirmation email):
+**Required for new users to sign in immediately.** With confirmation ON, sign-up succeeds but sign-in returns 401 until they click the email link.
 
 1. Supabase Dashboard → **Authentication** → **Providers** → **Email**
 2. Turn off **Confirm email**

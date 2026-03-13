@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Header } from '@/components/Header'
+import { createClient } from '@/lib/supabase/client'
 
 function SignInForm() {
   const router = useRouter()
@@ -61,66 +62,73 @@ function SignInForm() {
     setLoading(true)
     setMessage(null)
 
+    const supabase = createClient()
+
     try {
       if (mode === 'signup') {
-        const res = await fetch('/api/auth/sign-up', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email,
-            password,
-            display_name: username.trim() || email.split('@')[0],
-          }),
-          credentials: 'include',
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              display_name: username.trim() || email.split('@')[0],
+              name: username.trim() || email.split('@')[0],
+            },
+          },
         })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) {
-          const errMsg = data.error ?? `Request failed (${res.status})`
+        if (error) {
+          const errMsg = error.message
           if (/already exists|already registered/i.test(errMsg)) {
             setMessage({ type: 'error', text: errMsg })
             setMode('forgot')
           } else {
             throw new Error(errMsg)
           }
-        } else if (data.signed_in) {
+          return
+        }
+        if (data.session) {
+          const { error: claimErr } = await supabase.rpc('claim_profile')
+          if (claimErr) {
+            setMessage({ type: 'error', text: `Profile setup failed: ${claimErr.message}` })
+            return
+          }
           router.push(redirect)
           router.refresh()
           return
-        } else {
-          // Sign-up succeeded but no session. Auto sign-in with same credentials so user doesn't have to re-enter.
-          const signInRes = await fetch('/api/auth/sign-in', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-            credentials: 'include',
-          })
-          const signInData = await signInRes.json().catch(() => ({}))
-          if (signInRes.ok) {
+        }
+        // No session (email confirmation required). Try sign-in to give user a chance.
+        const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
+        if (!signInErr) {
+          const { error: claimErr } = await supabase.rpc('claim_profile')
+          if (!claimErr) {
             router.push(redirect)
             router.refresh()
             return
           }
-          const signInErr = signInData?.error ?? ''
-          const needsConfirm = /confirm|verify|check your email/i.test(signInErr)
-          setMessage({
-            type: 'success',
-            text: needsConfirm
-              ? 'Account created. Check your email and click the confirmation link, then sign in below.'
-              : data.message ?? 'Account created. Sign in with your email and password below.',
-          })
-          setMode('signin')
-          setUsername('')
-          setPassword('')
         }
-      } else {
-        const res = await fetch('/api/auth/sign-in', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-          credentials: 'include',
+        setMessage({
+          type: 'success',
+          text: 'Account created. Check your email and click the confirmation link, then sign in below.',
         })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(data.error ?? `Request failed (${res.status})`)
+        setMode('signin')
+        setUsername('')
+        setPassword('')
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) {
+          let msg = error.message
+          if (/invalid|credentials/i.test(msg)) {
+            msg = 'Invalid email or password. Use "Forgot password?" to set a new one.'
+          } else if (/email not confirmed/i.test(msg)) {
+            msg = 'Check your email and click the confirmation link first.'
+          }
+          throw new Error(msg)
+        }
+        const { error: claimErr } = await supabase.rpc('claim_profile')
+        if (claimErr) {
+          setMessage({ type: 'error', text: `Profile setup failed: ${claimErr.message}` })
+          return
+        }
         router.push(redirect)
         router.refresh()
       }
