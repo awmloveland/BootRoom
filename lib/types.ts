@@ -20,6 +20,8 @@ export interface Player {
   won: number;
   drew: number;
   lost: number;
+  timesTeamA: number;
+  timesTeamB: number;
   winRate: number;
   qualified: boolean;
   points: number;
