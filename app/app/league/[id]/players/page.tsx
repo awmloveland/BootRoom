@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Player, Week } from '@/lib/types'
@@ -11,6 +11,46 @@ import { PlayerCard } from '@/components/PlayerCard'
 import bootRoomData from '@/data/boot_room.json'
 
 const LEGACY_BOOT_ROOM_ID = '00000000-0000-0000-0000-000000000001'
+
+type SortKey = 'name' | 'played' | 'won' | 'drew' | 'lost' | 'winRate' | 'timesTeamA' | 'timesTeamB' | 'recentForm'
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: 'name', label: 'Name' },
+  { value: 'played', label: 'Games Played' },
+  { value: 'won', label: 'Won' },
+  { value: 'drew', label: 'Drawn' },
+  { value: 'lost', label: 'Lost' },
+  { value: 'winRate', label: 'Win Rate' },
+  { value: 'timesTeamA', label: 'Team A Appearances' },
+  { value: 'timesTeamB', label: 'Team B Appearances' },
+  { value: 'recentForm', label: 'Recent Form' },
+]
+
+function formScore(form: string): number {
+  let score = 0
+  for (const c of form) {
+    if (c === 'W') score += 3
+    else if (c === 'D') score += 1
+  }
+  return score
+}
+
+function sortPlayers(players: Player[], sortBy: SortKey, ascending: boolean): Player[] {
+  const dir = ascending ? 1 : -1
+  return [...players].sort((a, b) => {
+    let cmp = 0
+    if (sortBy === 'name') {
+      cmp = a.name.localeCompare(b.name)
+    } else if (sortBy === 'recentForm') {
+      cmp = formScore(a.recentForm) - formScore(b.recentForm)
+    } else {
+      const aVal = a[sortBy] as number
+      const bVal = b[sortBy] as number
+      cmp = aVal - bVal
+    }
+    return cmp * dir
+  })
+}
 
 const bootRoomPlayersData = (() => {
   const weeks = (bootRoomData.weeks ?? []) as Week[]
@@ -30,6 +70,17 @@ export default function LeaguePlayersPage() {
   const [error, setError] = useState<string | null>(null)
   const [openPlayer, setOpenPlayer] = useState<string | null>(null)
   const [hasAccess, setHasAccess] = useState(false)
+  const [sortBy, setSortBy] = useState<SortKey>('name')
+  const [sortAsc, setSortAsc] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const filteredAndSortedPlayers = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    const filtered = q
+      ? players.filter((p) => p.name.toLowerCase().includes(q))
+      : players
+    return sortPlayers(filtered, sortBy, sortAsc)
+  }, [players, searchQuery, sortBy, sortAsc])
 
   useEffect(() => {
     if (!leagueId) return
@@ -58,8 +109,7 @@ export default function LeaguePlayersPage() {
         } else {
           setLeagueName(name)
           setSeason(deriveSeason(weeksData))
-          const sorted = [...playersData].sort((a, b) => a.name.localeCompare(b.name))
-          setPlayers(sorted as Player[])
+          setPlayers(playersData as Player[])
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load')
@@ -131,15 +181,56 @@ export default function LeaguePlayersPage() {
       </div>
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
+        <div className="flex flex-col gap-3 mb-4">
+          <input
+            type="search"
+            placeholder="Search players…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+            aria-label="Search players"
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <label htmlFor="sort" className="text-xs text-slate-400">Sort by</label>
+          <select
+            id="sort"
+            value={sortBy}
+            onChange={(e) => {
+              const key = e.target.value as SortKey
+              setSortBy(key)
+              setSortAsc(key === 'name')
+            }}
+            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm"
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => setSortAsc((a) => !a)}
+            className="text-xs text-slate-400 hover:text-slate-300"
+            title={sortAsc ? 'Ascending (click for descending)' : 'Descending (click for ascending)'}
+          >
+            {sortAsc ? '↑ Low to high' : '↓ High to low'}
+          </button>
+          </div>
+        </div>
         <div className="flex flex-col gap-3">
-          {players.map((player) => (
-            <PlayerCard
-              key={player.name}
-              player={player}
-              isOpen={openPlayer === player.name}
-              onToggle={() => handleToggle(player.name)}
-            />
-          ))}
+          {filteredAndSortedPlayers.length === 0 ? (
+            <p className="text-slate-500 text-sm py-4 text-center">
+              {searchQuery.trim() ? 'No players match your search' : 'No players'}
+            </p>
+          ) : (
+            filteredAndSortedPlayers.map((player) => (
+              <PlayerCard
+                key={player.name}
+                player={player}
+                isOpen={openPlayer === player.name}
+                onToggle={() => handleToggle(player.name)}
+              />
+            ))
+          )}
         </div>
       </main>
     </div>
