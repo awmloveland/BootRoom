@@ -59,5 +59,5 @@ export function deriveSeason(weeks: Week[]): string {
   const firstYear = sorted[0].date.split(' ')[2]
   const lastYear = sorted[sorted.length - 1].date.split(' ')[2]
   if (firstYear === lastYear) return firstYear
-  return `${firstYear}\u201326`  // en-dash + last 2 digits
+  return `${firstYear}\u2013${lastYear.slice(-2)}`  // en-dash + last 2 digits
 }

@@ -1,15 +1,21 @@
 {
   "name": "craft-football",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "deploy": "npx vercel deploy --prod --yes",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "supabase:setup": "open 'https://supabase.com/dashboard/project/okkmnluglygrbtcawljr/settings/api' || xdg-open 'https://supabase.com/dashboard/project/okkmnluglygrbtcawljr/settings/api'",
+    "supabase:auth": "open 'https://supabase.com/dashboard/project/okkmnluglygrbtcawljr/auth/providers' || xdg-open 'https://supabase.com/dashboard/project/okkmnluglygrbtcawljr/auth/providers'",
+    "supabase:vercel": "open 'https://supabase.com/dashboard/integrations/vercel/install' || xdg-open 'https://supabase.com/dashboard/integrations/vercel/install'"
   },
   "dependencies": {
     "@radix-ui/react-collapsible": "^1.1.2",
+    "@supabase/ssr": "^0.9.0",
+    "@supabase/supabase-js": "^2.99.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.469.0",
     "next": "14.2.29",
