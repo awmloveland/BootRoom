@@ -84,11 +84,7 @@ Mobile users visiting craft-football.com are redirected to m.craft-football.com.
 
 1. Push to GitHub and import in [Vercel](https://vercel.com).
 2. Add env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-3. Add custom domains: **Project Settings → Domains → Add** both `craft-football.com` and `m.craft-football.com`.
-4. Configure DNS at your registrar:
-   - Root: A record `@` → `76.76.21.21`
-   - www: CNAME `www` → `cname.vercel-dns.com`
-   - m: CNAME `m` → `cname.vercel-dns.com`
+3. Add custom domains, DNS, Supabase Auth redirect, and league invites — see **[DEPLOY.md](DEPLOY.md)** for steps 3–6.
 
 ### Build locally
 

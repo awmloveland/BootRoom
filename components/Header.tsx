@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 const NAV_LINKS = [
   { label: 'Results', href: '/' },
   { label: 'Players', href: '/players' },
+  { label: 'Settings', href: '/settings' },
 ]
 
 export function Header() {

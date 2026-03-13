@@ -8,12 +8,12 @@ interface AuthGuardProps {
   children: React.ReactNode
 }
 
-/** Ensures user has a profile (invited) on protected routes. */
+/** Ensures user has access to at least one game on protected routes. */
 export function AuthGuard({ children }: AuthGuardProps) {
   const pathname = usePathname()
   const [status, setStatus] = useState<'loading' | 'allowed' | 'not-invited'>('loading')
 
-  const isPublicRoute = pathname === '/sign-in' || pathname?.startsWith('/auth')
+  const isPublicRoute = pathname === '/sign-in' || pathname?.startsWith('/auth') || pathname?.startsWith('/invite')
 
   useEffect(() => {
     if (isPublicRoute) return
@@ -31,12 +31,13 @@ export function AuthGuard({ children }: AuthGuardProps) {
         setStatus('loading')
         return
       }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', user.id)
-        .single()
-      setStatus(profile ? 'allowed' : 'not-invited')
+      const { data: member } = await supabase
+        .from('game_members')
+        .select('game_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle()
+      setStatus(member ? 'allowed' : 'not-invited')
     }
     check()
   }, [pathname, isPublicRoute])
@@ -55,9 +56,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
         <div className="max-w-md text-center">
-          <h1 className="text-xl font-semibold text-slate-100 mb-2">Not on the invite list</h1>
+          <h1 className="text-xl font-semibold text-slate-100 mb-2">No games yet</h1>
           <p className="text-slate-400 text-sm mb-6">
-            Your email isn&apos;t on the league invite list. Contact the admin to request access.
+            You need an invite link from a game admin to view stats. Ask someone to send you one.
           </p>
           <button
             onClick={async () => {

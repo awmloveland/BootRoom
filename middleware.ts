@@ -70,7 +70,7 @@ export async function middleware(request: NextRequest) {
 
   // 5. App host or localhost: run auth, then rewrite to /app
   const isAppRequest = (isAppHost(host) || host === 'localhost' || host.startsWith('localhost:')) &&
-    (pathname === '/' || pathname === '' || pathname === '/players' || pathname === '/sign-in')
+    (pathname === '/' || pathname === '' || pathname === '/players' || pathname === '/sign-in' || pathname === '/settings' || pathname.startsWith('/invite'))
 
   if (isAppRequest) {
     let response = NextResponse.next({ request })

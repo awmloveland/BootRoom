@@ -132,10 +132,7 @@ function SignInForm() {
         </button>
 
         <p className="mt-8 text-xs text-slate-500">
-          League members only. Not on the list?{' '}
-          <Link href="mailto:admin@craft-football.com" className="text-slate-400 hover:underline">
-            Request access
-          </Link>
+          Need access? Ask a game admin to send you an invite link.
         </p>
       </main>
     </div>
