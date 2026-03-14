@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Users } from 'lucide-react'
-import { Player, Week } from '@/lib/types'
+import { Player, Week, LeagueFeature, GameRole } from '@/lib/types'
 import { cn, deriveSeason, wprScore } from '@/lib/utils'
 import { fetchWeeks, fetchPlayers, fetchGames } from '@/lib/data'
 import { PlayerCard } from '@/components/PlayerCard'
@@ -78,6 +78,10 @@ export default function LeaguePlayersPage() {
   const [sortAsc, setSortAsc] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Role + feature flags
+  const [userRole, setUserRole] = useState<GameRole>('member')
+  const [features, setFeatures] = useState<LeagueFeature[]>([])
+
   // Team builder state
   const [builderMode, setBuilderMode] = useState(false)
   const [teamA, setTeamA] = useState<Player[]>([])
@@ -106,10 +110,11 @@ export default function LeaguePlayersPage() {
 
     async function load() {
       try {
-        const [games, weeksData, playersData] = await Promise.all([
+        const [games, weeksData, playersData, featuresRes] = await Promise.all([
           fetchGames(),
           fetchWeeks(leagueId),
           fetchPlayers(leagueId),
+          fetch(`/api/league/${leagueId}/features`, { credentials: 'include' }),
         ])
         const game = games.find((g) => g.id === leagueId)
         if (!game) {
@@ -118,6 +123,11 @@ export default function LeaguePlayersPage() {
           return
         }
         setHasAccess(true)
+        setUserRole(game.role)
+
+        const featuresData: LeagueFeature[] = featuresRes.ok ? await featuresRes.json() : []
+        setFeatures(featuresData)
+
         const name = game.name
         const isBootRoom = leagueId === LEGACY_BOOT_ROOM_ID || name === 'The Boot Room'
 
@@ -138,6 +148,15 @@ export default function LeaguePlayersPage() {
     }
     load()
   }, [leagueId])
+
+  // Feature flag helpers — admins always bypass
+  const isAdmin = userRole === 'creator' || userRole === 'admin'
+  const getFeature = (key: string) => features.find((f) => f.feature === key)
+  const playerStatsEnabled  = isAdmin || (getFeature('player_stats')?.enabled !== false)
+  const teamBuilderEnabled  = isAdmin || (getFeature('team_builder')?.enabled !== false)
+  const playerStatsConfig   = getFeature('player_stats')?.config
+  const maxPlayers          = isAdmin ? null : (playerStatsConfig?.max_players ?? null)
+  const visibleStats        = isAdmin ? undefined : (playerStatsConfig?.visible_stats ?? undefined)
 
   const handleToggle = (name: string) => {
     setOpenPlayer((prev) => (prev === name ? null : name))
@@ -227,6 +246,26 @@ export default function LeaguePlayersPage() {
     )
   }
 
+  if (!playerStatsEnabled) {
+    return (
+      <main className="max-w-md mx-auto px-4 sm:px-6 py-12 text-center">
+        <h1 className="text-xl font-semibold text-slate-100 mb-2">Players</h1>
+        <p className="text-slate-400 text-sm mb-6">
+          The players page has been disabled by your league admin.
+        </p>
+        <Link
+          href={`/league/${leagueId}`}
+          className="inline-block px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium"
+        >
+          Back to results
+        </Link>
+      </main>
+    )
+  }
+
+  // Apply max_players limit for members
+  const displayedPlayers = maxPlayers ? filteredAndSortedPlayers.slice(0, maxPlayers) : filteredAndSortedPlayers
+
   return (
     <>
       <div className="bg-slate-800/50 border-b border-slate-700">
@@ -291,19 +330,21 @@ export default function LeaguePlayersPage() {
                 </button>
               )}
             </div>
-            <button
-              type="button"
-              onClick={toggleBuilderMode}
-              className={cn(
-                'inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors shrink-0',
-                builderMode
-                  ? 'bg-sky-500/20 border-sky-500 text-sky-300'
-                  : 'border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-600',
-              )}
-            >
-              <Users className="h-3.5 w-3.5" />
-              {builderMode ? 'Done' : 'Build Teams'}
-            </button>
+            {teamBuilderEnabled && (
+              <button
+                type="button"
+                onClick={toggleBuilderMode}
+                className={cn(
+                  'inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors shrink-0',
+                  builderMode
+                    ? 'bg-sky-500/20 border-sky-500 text-sky-300'
+                    : 'border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-600',
+                )}
+              >
+                <Users className="h-3.5 w-3.5" />
+                {builderMode ? 'Done' : 'Build Teams'}
+              </button>
+            )}
           </div>
 
           {builderMode && (
@@ -314,23 +355,31 @@ export default function LeaguePlayersPage() {
         </div>
 
         <div className="flex flex-col gap-3">
-          {filteredAndSortedPlayers.length === 0 ? (
+          {displayedPlayers.length === 0 ? (
             <p className="text-slate-500 text-sm py-4 text-center">
               {searchQuery.trim() ? 'No players match your search' : 'No players'}
             </p>
           ) : (
-            filteredAndSortedPlayers.map((player) => (
-              <PlayerCard
-                key={player.name}
-                player={player}
-                isOpen={openPlayer === player.name}
-                onToggle={() => handleToggle(player.name)}
-                builderMode={builderMode}
-                teamAssignment={getAssignment(player)}
-                onAssignCycle={() => handleAssignCycle(player)}
-                onDragStart={() => {}}
-              />
-            ))
+            <>
+              {displayedPlayers.map((player) => (
+                <PlayerCard
+                  key={player.name}
+                  player={player}
+                  isOpen={openPlayer === player.name}
+                  onToggle={() => handleToggle(player.name)}
+                  builderMode={builderMode}
+                  teamAssignment={getAssignment(player)}
+                  onAssignCycle={() => handleAssignCycle(player)}
+                  onDragStart={() => {}}
+                  visibleStats={visibleStats}
+                />
+              ))}
+              {maxPlayers && filteredAndSortedPlayers.length > maxPlayers && (
+                <p className="text-xs text-slate-600 text-center py-2">
+                  Showing {maxPlayers} of {filteredAndSortedPlayers.length} players
+                </p>
+              )}
+            </>
           )}
         </div>
       </main>

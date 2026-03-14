@@ -9,7 +9,8 @@ function SignInForm() {
   const searchParams = useSearchParams()
   const redirect = searchParams?.get('redirect') || '/'
   const locked = searchParams?.get('locked') === '1'
-  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin')
+  const initialMode = searchParams?.get('mode') === 'signup' ? 'signup' : 'signin'
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>(initialMode)
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

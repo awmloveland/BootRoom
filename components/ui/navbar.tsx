@@ -107,6 +107,7 @@ export function Navbar({
 
   const [user, setUser] = useState<{ email?: string } | null>(null)
   const [leagueName, setLeagueName] = useState<string | null>(null)
+  const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
   const showNav = pathname !== '/sign-in' && pathname !== '/reset-password'
 
@@ -124,15 +125,17 @@ export function Navbar({
   useEffect(() => {
     if (!leagueId) {
       setLeagueName(null)
+      setIsLeagueAdmin(false)
       return
     }
     fetch('/api/games', { credentials: 'include' })
       .then((res) => res.json().catch(() => []))
-      .then((data: { id: string; name: string }[]) => {
+      .then((data: { id: string; name: string; role: string }[]) => {
         const game = (data ?? []).find((g) => g.id === leagueId)
         setLeagueName(game?.name ?? null)
+        setIsLeagueAdmin(game?.role === 'creator' || game?.role === 'admin')
       })
-      .catch(() => setLeagueName(null))
+      .catch(() => { setLeagueName(null); setIsLeagueAdmin(false) })
   }, [leagueId])
 
   async function handleSignOut() {
@@ -147,9 +150,10 @@ export function Navbar({
         ? [
             { title: 'Results', url: `/league/${leagueId}` },
             { title: 'Players', url: `/league/${leagueId}/players` },
-            { title: 'Settings', url: `/league/${leagueId}/settings` },
+            // Settings is only shown to admins/creators
+            ...(isLeagueAdmin ? [{ title: 'Settings', url: `/league/${leagueId}/settings` }] : []),
           ]
-        : [{ title: 'Settings', url: '/settings' }]),
+        : []),
     ]
     return items
   })()

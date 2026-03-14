@@ -42,6 +42,21 @@ export default function LeaguePage() {
         ])
         const game = games.find((g) => g.id === leagueId)
         if (!game) {
+          // Check if this is a public league — if so, auto-join as member
+          try {
+            const res = await fetch(`/api/league/${leagueId}/public`)
+            const { public_results_enabled } = await res.json()
+            if (public_results_enabled) {
+              const { createClient } = await import('@/lib/supabase/client')
+              const supabase = createClient()
+              await supabase.rpc('join_public_league', { p_game_id: leagueId })
+              // Reload the page so the user is now a member
+              window.location.reload()
+              return
+            }
+          } catch {
+            // If the public check fails, fall through to access denied
+          }
           setHasAccess(false)
           setLoading(false)
           return

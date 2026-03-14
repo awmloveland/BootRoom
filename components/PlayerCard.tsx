@@ -17,6 +17,8 @@ interface PlayerCardProps {
   /** When true, card is draggable and tap cycles assignment instead of expanding */
   builderMode?: boolean
   onDragStart?: (playerName: string) => void
+  /** Stat keys to show in the expanded body — undefined means show all */
+  visibleStats?: string[]
 }
 
 interface StatRowProps {
@@ -40,6 +42,17 @@ const MENTALITY_LABEL: Record<string, string> = {
   attacking: 'ATT',
 }
 
+const STAT_ROWS: { key: string; label: string; render: (p: Player) => React.ReactNode }[] = [
+  { key: 'played',     label: 'Games Played',        render: (p) => p.played },
+  { key: 'won',        label: 'Won',                 render: (p) => p.won },
+  { key: 'drew',       label: 'Drawn',               render: (p) => p.drew },
+  { key: 'lost',       label: 'Lost',                render: (p) => p.lost },
+  { key: 'winRate',    label: 'Win Rate',            render: (p) => `${p.winRate.toFixed(1)}%` },
+  { key: 'timesTeamA', label: 'Team A Appearances',  render: (p) => p.timesTeamA },
+  { key: 'timesTeamB', label: 'Team B Appearances',  render: (p) => p.timesTeamB },
+  { key: 'recentForm', label: 'Recent Form',         render: (p) => <RecentForm form={p.recentForm} /> },
+]
+
 export function PlayerCard({
   player,
   isOpen,
@@ -48,6 +61,7 @@ export function PlayerCard({
   onAssignCycle,
   builderMode = false,
   onDragStart,
+  visibleStats,
 }: PlayerCardProps) {
   const contentId = `player-${player.name.replace(/\s+/g, '-').toLowerCase()}-content`
 
@@ -134,14 +148,12 @@ export function PlayerCard({
         >
           <div className="border-t border-slate-700 p-4">
             <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-              <StatRow label="Games Played" value={player.played} />
-              <StatRow label="Won" value={player.won} />
-              <StatRow label="Drawn" value={player.drew} />
-              <StatRow label="Lost" value={player.lost} />
-              <StatRow label="Win Rate" value={`${player.winRate.toFixed(1)}%`} />
-              <StatRow label="Team A Appearances" value={player.timesTeamA} />
-              <StatRow label="Team B Appearances" value={player.timesTeamB} />
-              <StatRow label="Recent Form" value={<RecentForm form={player.recentForm} />} />
+              {STAT_ROWS
+                .filter((row) => !visibleStats || visibleStats.includes(row.key))
+                .map((row) => (
+                  <StatRow key={row.key} label={row.label} value={row.render(player)} />
+                ))
+              }
             </div>
           </div>
         </Collapsible.Content>

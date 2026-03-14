@@ -8,17 +8,11 @@ import type { Week } from '@/lib/types'
 
 const USE_ACCESS_KEY = process.env.NEXT_PUBLIC_ACCESS_KEY_MODE === 'true'
 
-export interface Game {
-  id: string
-  name: string
-  created_at: string
-}
-
-export async function fetchGames(): Promise<Game[]> {
+export async function fetchGames(): Promise<import('@/lib/types').Game[]> {
   const res = await fetch('/api/games', { credentials: 'include' })
   if (!res.ok) throw new Error(await res.text())
   const data = await res.json()
-  return (data ?? []) as Game[]
+  return (data ?? []) as import('@/lib/types').Game[]
 }
 
 export async function fetchWeeks(gameId: string): Promise<Week[]> {

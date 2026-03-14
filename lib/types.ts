@@ -37,3 +37,33 @@ export interface BootRoomData {
   players: Player[];
   config: Record<string, unknown>;
 }
+
+export type GameRole = 'creator' | 'admin' | 'member';
+
+export interface Game {
+  id: string;
+  name: string;
+  created_at: string;
+  role: GameRole;
+}
+
+export type FeatureKey = 'match_entry' | 'team_builder' | 'player_stats' | 'player_comparison';
+
+export interface FeatureConfig {
+  max_players?: number | null;
+  visible_stats?: string[];
+}
+
+export interface LeagueFeature {
+  feature: FeatureKey;
+  enabled: boolean;
+  config?: FeatureConfig | null;
+}
+
+export interface LeagueMember {
+  user_id: string;
+  email: string;
+  display_name: string | null;
+  role: GameRole;
+  joined_at: string;
+}
