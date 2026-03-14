@@ -241,37 +241,39 @@ export default function LeaguePlayersPage() {
                 className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                 aria-label="Search players"
               />
-              <div className="flex flex-wrap items-center gap-3">
-                <label htmlFor="sort" className="text-xs text-slate-400 shrink-0">Sort by</label>
-                <select
-                  id="sort"
-                  value={sortBy}
-                  onChange={(e) => {
-                    const key = e.target.value as SortKey
-                    setSortBy(key)
-                    setSortAsc(key === 'name')
-                  }}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm"
-                >
-                  {SORT_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                {sortBy !== 'performer' && (
-                  <button
-                    type="button"
-                    onClick={() => setSortAsc((a) => !a)}
-                    className="text-xs text-slate-400 hover:text-slate-300"
-                    title={sortAsc ? 'Ascending (click for descending)' : 'Descending (click for ascending)'}
+              <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
+                <div className="flex flex-wrap items-center gap-2 min-w-0">
+                  <label htmlFor="sort" className="text-xs text-slate-400 shrink-0">Sort by</label>
+                  <select
+                    id="sort"
+                    value={sortBy}
+                    onChange={(e) => {
+                      const key = e.target.value as SortKey
+                      setSortBy(key)
+                      setSortAsc(key === 'name')
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm min-w-0"
                   >
-                    {sortAsc ? '↑ Low to high' : '↓ High to low'}
-                  </button>
-                )}
+                    {SORT_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  {sortBy !== 'performer' && (
+                    <button
+                      type="button"
+                      onClick={() => setSortAsc((a) => !a)}
+                      className="text-xs text-slate-400 hover:text-slate-300 shrink-0"
+                      title={sortAsc ? 'Ascending (click for descending)' : 'Descending (click for ascending)'}
+                    >
+                      {sortAsc ? '↑ Low to high' : '↓ High to low'}
+                    </button>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={toggleCompareMode}
                   className={cn(
-                    'ml-auto inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors',
+                    'inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors shrink-0 justify-self-end',
                     compareMode
                       ? 'bg-sky-500/20 border-sky-500 text-sky-300'
                       : 'border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-600',

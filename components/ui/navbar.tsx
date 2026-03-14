@@ -107,7 +107,12 @@ export function Navbar({
 
   const [user, setUser] = useState<{ email?: string } | null>(null)
   const [leagueName, setLeagueName] = useState<string | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const showNav = pathname !== '/sign-in' && pathname !== '/reset-password'
+
+  useEffect(() => {
+    setSheetOpen(false)
+  }, [pathname])
 
   useEffect(() => {
     if (pathname === '/sign-in' || pathname === '/reset-password') return
@@ -206,26 +211,19 @@ export function Navbar({
 
         {/* Mobile — hamburger only on very small screens */}
         <div className="flex sm:hidden items-center justify-between w-full">
-          <Link href={logo.url} className="flex items-center gap-2">
+          <Link href={logo.url} className="flex items-center gap-2 shrink-0 min-w-0">
             <span className="text-xl font-bold text-slate-100">⚽</span>
-            <span className="text-lg font-semibold text-slate-100">{logo.title}</span>
+            <span className="text-lg font-semibold text-slate-100 truncate">{logo.title}</span>
           </Link>
-          <Sheet>
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" className="shrink-0">
                 <Menu className="size-4" />
               </Button>
             </SheetTrigger>
             <SheetContent className="overflow-y-auto bg-slate-900 border-slate-700">
               <SheetHeader>
-                <SheetTitle>
-                  <Link href={logo.url} className="flex items-center gap-2">
-                    <span className="text-xl font-bold text-slate-100">⚽</span>
-                    <span className="text-lg font-semibold text-slate-100">
-                      {logo.title}
-                    </span>
-                  </Link>
-                </SheetTitle>
+                <SheetTitle className="text-slate-100">Menu</SheetTitle>
               </SheetHeader>
               <div className="my-6 flex flex-col gap-6">
                 {showNav && (
