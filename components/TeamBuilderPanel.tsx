@@ -210,8 +210,13 @@ export function TeamBuilderPanel({
       {/* EWTPI balance bar + clear */}
       <div className="px-3 pt-3 flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-wider text-slate-500">EWTPI</span>
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase tracking-wider text-slate-500">EWTPI <span className="normal-case not-italic">(Estimated Weighted Team Performance Indicator)</span></span>
+            </div>
+            <span className="text-[10px] text-slate-600">
+              Based on each player&apos;s form, results, and whether the team has a goalkeeper.
+            </span>
             {hasPlayers && label && (
               <span className="text-[10px] text-slate-400">{label}</span>
             )}
