@@ -104,19 +104,40 @@ function playerFormScore(player: Player): number {
  *
  * Returns a single 0–100 score for a group of players representing a team.
  *
- *  - 75%: Average WPR score across all players
- *  - 25%: Average normalised recent form score
- *  - Mentality bonus: +3 if team has a goalkeeper, -3 if no goalkeeper
+ *  - 55%: Average WPR — overall team quality floor
+ *  - 20%: Max WPR — star player has outsized impact in 5-a-side
+ *  - 25%: Average normalised recent form
+ *  - GK modifier: +3 for exactly one GK, -3 for none, -2 for two (wasted slot)
+ *  - Variety bonus: +2 if team covers 3+ different mentalities
  *  - Depth modifier: small bonus/penalty relative to a 5-player baseline
  */
 export function ewptScore(players: Player[]): number {
   if (players.length === 0) return 0
-  const avgWpr = players.reduce((sum, p) => sum + wprScore(p), 0) / players.length
+  const wprScores = players.map((p) => wprScore(p))
+  const avgWpr = wprScores.reduce((sum, s) => sum + s, 0) / players.length
+  const maxWpr = Math.max(...wprScores)
   const avgForm = players.reduce((sum, p) => sum + playerFormScore(p), 0) / players.length
-  const hasGk = players.some((p) => p.mentality === 'goalkeeper' || p.goalkeeper)
-  const mentalityBonus = hasGk ? 3 : -3
+  const gkCount = players.filter((p) => p.mentality === 'goalkeeper' || p.goalkeeper).length
+  const gkModifier = gkCount === 1 ? 3 : gkCount === 0 ? -3 : -2
+  const mentalities = new Set(players.map((p) => p.mentality))
+  const varietyBonus = mentalities.size >= 3 ? 2 : 0
   const depthBonus = Math.min((players.length - 5) * 0.5, 3)
-  return Math.min(100, Math.max(0, avgWpr * 0.75 + avgForm * 0.25 + mentalityBonus + depthBonus))
+  return Math.min(
+    100,
+    Math.max(
+      0,
+      avgWpr * 0.55 + maxWpr * 0.20 + avgForm * 0.25 + gkModifier + varietyBonus + depthBonus,
+    ),
+  )
+}
+
+/**
+ * Given EWTPI scores for two teams, returns the probability (0–1) that team A wins.
+ * Uses a logistic function so a 10-point gap ≈ 73% likelihood.
+ */
+export function winProbability(scoreA: number, scoreB: number): number {
+  if (scoreA === 0 && scoreB === 0) return 0.5
+  return 1 / (1 + Math.exp(-(scoreA - scoreB) / 8))
 }
 
 /**

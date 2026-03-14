@@ -3,7 +3,7 @@
 import { useState, useRef, useMemo } from 'react'
 import { X, AlertTriangle } from 'lucide-react'
 import { Player } from '@/lib/types'
-import { ewptScore, cn } from '@/lib/utils'
+import { ewptScore, winProbability, cn } from '@/lib/utils'
 import { RecentForm } from './RecentForm'
 
 interface TeamBuilderPanelProps {
@@ -16,11 +16,17 @@ interface TeamBuilderPanelProps {
   onClear: () => void
 }
 
-function balanceLabel(scoreA: number, scoreB: number): string {
-  const diff = Math.abs(scoreA - scoreB)
-  if (diff < 3) return 'Balanced'
-  if (diff < 8) return scoreA > scoreB ? 'Team A has the edge' : 'Team B has the edge'
-  return scoreA > scoreB ? 'Unbalanced — consider swapping' : 'Unbalanced — consider swapping'
+function outcomeLabel(pA: number): string {
+  if (pA >= 0.5 - 0.04 && pA <= 0.5 + 0.04) return 'Expected to be close'
+  if (pA > 0.5) {
+    if (pA < 0.65) return 'Team A slight edge'
+    if (pA < 0.80) return 'Team A likely to win'
+    return 'Team A strong favourite'
+  } else {
+    if (pA > 0.35) return 'Team B slight edge'
+    if (pA > 0.20) return 'Team B likely to win'
+    return 'Team B strong favourite'
+  }
 }
 
 interface TeamColumnProps {
@@ -63,7 +69,9 @@ function TeamColumn({
       .slice(0, 6)
   }, [query, allPlayers, assignedNames])
 
-  const hasGk = players.some((p) => p.mentality === 'goalkeeper' || p.goalkeeper)
+  const gkCount = players.filter((p) => p.mentality === 'goalkeeper' || p.goalkeeper).length
+  const hasGk = gkCount >= 1
+  const twoGks = gkCount >= 2
   const isTeamA = team === 'A'
   const accentBorder = isTeamA ? 'border-sky-700' : 'border-violet-700'
   const accentBg = isTeamA ? 'bg-sky-500' : 'bg-violet-500'
@@ -104,8 +112,13 @@ function TeamColumn({
           </span>
         )}
         {players.length > 0 && !hasGk && (
-          <span title="No goalkeeper">
+          <span title="No goalkeeper — consider adding one">
             <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" aria-label="No goalkeeper" />
+          </span>
+        )}
+        {twoGks && (
+          <span title="Two goalkeepers on the same team">
+            <AlertTriangle className="h-3.5 w-3.5 text-red-400 shrink-0" aria-label="Two goalkeepers" />
           </span>
         )}
         <span className="text-xs text-slate-500 ml-auto">{players.length} players</span>
@@ -201,56 +214,64 @@ export function TeamBuilderPanel({
   )
 
   const hasPlayers = teamA.length + teamB.length > 0
-  const totalA = scoreA + scoreB > 0 ? (scoreA / (scoreA + scoreB)) * 100 : 50
-  const totalB = 100 - totalA
-  const label = hasPlayers ? balanceLabel(scoreA, scoreB) : null
+  const bothTeamsHavePlayers = teamA.length > 0 && teamB.length > 0
+  const pA = bothTeamsHavePlayers ? winProbability(scoreA, scoreB) : 0.5
+  const pB = 1 - pA
+  const barA = Math.round(pA * 100)
+  const barB = 100 - barA
 
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-800 overflow-hidden">
-      {/* EWTPI balance bar + clear */}
+      {/* Header + win probability */}
       <div className="px-3 pt-3 flex flex-col gap-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-2">
           <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase tracking-wider text-slate-500">EWTPI <span className="normal-case not-italic">(Estimated Weighted Team Performance Indicator)</span></span>
-            </div>
+            <span className="text-[10px] uppercase tracking-wider text-slate-500">
+              EWTPI <span className="normal-case">(Estimated Weighted Team Performance Indicator)</span>
+            </span>
             <span className="text-[10px] text-slate-600">
               Based on each player&apos;s form, results, and whether the team has a goalkeeper.
             </span>
-            {hasPlayers && label && (
-              <span className="text-[10px] text-slate-400">{label}</span>
-            )}
           </div>
           {hasPlayers && (
             <button
               type="button"
               onClick={onClear}
-              className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+              className="text-xs text-slate-500 hover:text-slate-300 transition-colors shrink-0"
             >
               Clear all
             </button>
           )}
         </div>
 
-        {hasPlayers ? (
-          <div className="grid grid-cols-2 gap-px h-2 rounded overflow-hidden">
-            <div className="flex justify-end bg-slate-700">
-              <div
-                className="h-full bg-sky-500 transition-all duration-500"
-                style={{ width: `${totalA}%` }}
-              />
+        {bothTeamsHavePlayers ? (
+          <div className="flex flex-col gap-1">
+            {/* Probability bar */}
+            <div className="grid grid-cols-2 gap-px h-2.5 rounded overflow-hidden">
+              <div className="flex justify-end bg-slate-700">
+                <div
+                  className="h-full bg-sky-500 transition-all duration-500"
+                  style={{ width: `${barA}%` }}
+                />
+              </div>
+              <div className="flex justify-start bg-slate-700">
+                <div
+                  className="h-full bg-violet-500 transition-all duration-500"
+                  style={{ width: `${barB}%` }}
+                />
+              </div>
             </div>
-            <div className="flex justify-start bg-slate-700">
-              <div
-                className="h-full bg-violet-500 transition-all duration-500"
-                style={{ width: `${totalB}%` }}
-              />
+            {/* Labels */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-sky-300">{barA}%</span>
+              <span className="text-[10px] text-slate-400">{outcomeLabel(pA)}</span>
+              <span className="text-xs font-semibold text-violet-300">{barB}%</span>
             </div>
           </div>
+        ) : hasPlayers ? (
+          <p className="text-[10px] text-slate-600">Add players to both teams to see the estimated outcome.</p>
         ) : (
-          <p className="text-xs text-slate-600 text-center py-1">
-            Add players to each team to see their EWTPI
-          </p>
+          <p className="text-[10px] text-slate-600">Add players to each team to see the estimated outcome.</p>
         )}
       </div>
 
