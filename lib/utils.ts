@@ -88,6 +88,37 @@ export function wprScore(player: Player): number {
   return ppgScore * 0.60 + formScore * 0.25 + ratingScore * 0.15
 }
 
+/** Raw form score for a player (used internally by ewptScore). */
+function playerFormScore(player: Player): number {
+  let score = 0
+  for (const c of player.recentForm) {
+    if (c === 'W') score += 3
+    else if (c === 'D') score += 1
+  }
+  // Normalise to 0–100 (max is 3 pts × 5 games = 15)
+  return (score / 15) * 100
+}
+
+/**
+ * Estimated Weighted Team Performance Indicator (EWTPI).
+ *
+ * Returns a single 0–100 score for a group of players representing a team.
+ *
+ *  - 75%: Average WPR score across all players
+ *  - 25%: Average normalised recent form score
+ *  - Mentality bonus: +3 if team has a goalkeeper, -3 if no goalkeeper
+ *  - Depth modifier: small bonus/penalty relative to a 5-player baseline
+ */
+export function ewptScore(players: Player[]): number {
+  if (players.length === 0) return 0
+  const avgWpr = players.reduce((sum, p) => sum + wprScore(p), 0) / players.length
+  const avgForm = players.reduce((sum, p) => sum + playerFormScore(p), 0) / players.length
+  const hasGk = players.some((p) => p.mentality === 'goalkeeper' || p.goalkeeper)
+  const mentalityBonus = hasGk ? 3 : -3
+  const depthBonus = Math.min((players.length - 5) * 0.5, 3)
+  return Math.min(100, Math.max(0, avgWpr * 0.75 + avgForm * 0.25 + mentalityBonus + depthBonus))
+}
+
 /**
  * Derive a season string like "2025–26" from the played weeks.
  * Uses the calendar year of the first and last played game.

@@ -3,12 +3,12 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeftRight } from 'lucide-react'
+import { Users } from 'lucide-react'
 import { Player, Week } from '@/lib/types'
-import { cn, deriveSeason, wprScore } from '@/lib/utils'
+import { cn, deriveSeason } from '@/lib/utils'
 import { fetchWeeks, fetchPlayers, fetchGames } from '@/lib/data'
 import { PlayerCard } from '@/components/PlayerCard'
-import { ComparePanel } from '@/components/ComparePanel'
+import { TeamBuilderPanel } from '@/components/TeamBuilderPanel'
 import {
   Sheet,
   SheetContent,
@@ -19,19 +19,18 @@ import bootRoomData from '@/data/boot_room.json'
 
 const LEGACY_BOOT_ROOM_ID = '00000000-0000-0000-0000-000000000001'
 
-type SortKey = 'performer' | 'name' | 'played' | 'won' | 'drew' | 'lost' | 'winRate' | 'timesTeamA' | 'timesTeamB' | 'recentForm'
+type SortKey = 'name' | 'played' | 'won' | 'drew' | 'lost' | 'winRate' | 'timesTeamA' | 'timesTeamB' | 'recentForm'
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: 'performer', label: 'Weighted Performance Rating' },
   { value: 'name', label: 'Name' },
   { value: 'played', label: 'Games Played' },
   { value: 'won', label: 'Won' },
   { value: 'drew', label: 'Drawn' },
   { value: 'lost', label: 'Lost' },
   { value: 'winRate', label: 'Win Rate' },
+  { value: 'recentForm', label: 'Recent Form' },
   { value: 'timesTeamA', label: 'Team A Appearances' },
   { value: 'timesTeamB', label: 'Team B Appearances' },
-  { value: 'recentForm', label: 'Recent Form' },
 ]
 
 function formScore(form: string): number {
@@ -46,11 +45,6 @@ function formScore(form: string): number {
 function sortPlayers(players: Player[], sortBy: SortKey, ascending: boolean): Player[] {
   const dir = ascending ? 1 : -1
   return [...players].sort((a, b) => {
-    if (sortBy === 'performer') {
-      // Qualified players (5+ games) always rank above unqualified
-      if (a.qualified !== b.qualified) return a.qualified ? -1 : 1
-      return wprScore(b) - wprScore(a)
-    }
     let cmp = 0
     if (sortBy === 'name') {
       cmp = a.name.localeCompare(b.name)
@@ -83,11 +77,14 @@ export default function LeaguePlayersPage() {
   const [error, setError] = useState<string | null>(null)
   const [openPlayer, setOpenPlayer] = useState<string | null>(null)
   const [hasAccess, setHasAccess] = useState(false)
-  const [sortBy, setSortBy] = useState<SortKey>('performer')
+  const [sortBy, setSortBy] = useState<SortKey>('name')
   const [sortAsc, setSortAsc] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [compareMode, setCompareMode] = useState(false)
-  const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([])
+
+  // Team builder state
+  const [builderMode, setBuilderMode] = useState(false)
+  const [teamA, setTeamA] = useState<Player[]>([])
+  const [teamB, setTeamB] = useState<Player[]>([])
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const filteredAndSortedPlayers = useMemo(() => {
@@ -140,34 +137,56 @@ export default function LeaguePlayersPage() {
     setOpenPlayer((prev) => (prev === name ? null : name))
   }
 
-  const handleSelectPlayer = (player: Player) => {
-    setSelectedPlayers((prev) => {
-      if (prev.some((p) => p.name === player.name)) {
-        return prev.filter((p) => p.name !== player.name)
-      }
-      if (prev.length >= 2) {
-        return [prev[1], player]
-      }
-      return [...prev, player]
-    })
+  // Cycle a player through: unassigned → A → B → unassigned
+  const handleAssignCycle = (player: Player) => {
+    const inA = teamA.some((p) => p.name === player.name)
+    const inB = teamB.some((p) => p.name === player.name)
+    if (!inA && !inB) {
+      setTeamA((prev) => [...prev, player])
+    } else if (inA) {
+      setTeamA((prev) => prev.filter((p) => p.name !== player.name))
+      setTeamB((prev) => [...prev, player])
+    } else {
+      setTeamB((prev) => prev.filter((p) => p.name !== player.name))
+    }
   }
 
-  const toggleCompareMode = () => {
-    if (compareMode) {
-      setCompareMode(false)
-      setSelectedPlayers([])
+  const handleAdd = (player: Player, team: 'A' | 'B') => {
+    // Remove from other team if already assigned
+    setTeamA((prev) => prev.filter((p) => p.name !== player.name))
+    setTeamB((prev) => prev.filter((p) => p.name !== player.name))
+    if (team === 'A') setTeamA((prev) => [...prev, player])
+    else setTeamB((prev) => [...prev, player])
+  }
+
+  const handleRemove = (playerName: string) => {
+    setTeamA((prev) => prev.filter((p) => p.name !== playerName))
+    setTeamB((prev) => prev.filter((p) => p.name !== playerName))
+  }
+
+  const handleDropOnTeam = (playerName: string, team: 'A' | 'B') => {
+    const player = players.find((p) => p.name === playerName)
+    if (!player) return
+    handleAdd(player, team)
+  }
+
+  const toggleBuilderMode = () => {
+    if (builderMode) {
+      setBuilderMode(false)
+      setTeamA([])
+      setTeamB([])
       setSheetOpen(false)
     } else {
-      setCompareMode(true)
+      setBuilderMode(true)
       setOpenPlayer(null)
     }
   }
 
-  useEffect(() => {
-    if (compareMode && selectedPlayers.length === 2) {
-      setSheetOpen(true)
-    }
-  }, [compareMode, selectedPlayers.length])
+  const getAssignment = (player: Player): 'A' | 'B' | null => {
+    if (teamA.some((p) => p.name === player.name)) return 'A'
+    if (teamB.some((p) => p.name === player.name)) return 'B'
+    return null
+  }
 
   if (loading) {
     return (
@@ -180,16 +199,16 @@ export default function LeaguePlayersPage() {
   if (!hasAccess) {
     return (
       <main className="max-w-md mx-auto px-4 sm:px-6 py-12 text-center">
-          <h1 className="text-xl font-semibold text-slate-100 mb-2">League</h1>
-          <p className="text-slate-400 text-sm mb-6">
-            You need an invite to view this league. Ask an admin to send you an invite link.
-          </p>
-          <Link
-            href="/"
-            className="inline-block px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium"
-          >
-            Your leagues
-          </Link>
+        <h1 className="text-xl font-semibold text-slate-100 mb-2">League</h1>
+        <p className="text-slate-400 text-sm mb-6">
+          You need an invite to view this league. Ask an admin to send you an invite link.
+        </p>
+        <Link
+          href="/"
+          className="inline-block px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium"
+        >
+          Your leagues
+        </Link>
       </main>
     )
   }
@@ -197,16 +216,13 @@ export default function LeaguePlayersPage() {
   if (error) {
     return (
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-          <p className="text-red-400 mb-4">{error}</p>
-          <Link href="/" className="text-sky-400 hover:underline">Back to leagues</Link>
+        <p className="text-red-400 mb-4">{error}</p>
+        <Link href="/" className="text-sky-400 hover:underline">Back to leagues</Link>
       </main>
     )
   }
 
-  const comparePair =
-    selectedPlayers.length === 2
-      ? (selectedPlayers as [Player, Player])
-      : null
+  const totalAssigned = teamA.length + teamB.length
 
   return (
     <>
@@ -222,14 +238,10 @@ export default function LeaguePlayersPage() {
       <main
         className={cn(
           'mx-auto px-4 sm:px-6 py-4 transition-all duration-300',
-          compareMode && comparePair ? 'max-w-5xl' : 'max-w-2xl',
+          builderMode ? 'max-w-5xl' : 'max-w-2xl',
         )}
       >
-        <div
-          className={cn(
-            compareMode && comparePair ? 'lg:grid lg:grid-cols-[1fr_320px] lg:gap-6' : '',
-          )}
-        >
+        <div className={cn(builderMode ? 'lg:grid lg:grid-cols-[1fr_340px] lg:gap-6' : '')}>
           {/* Left column: toolbar + player list */}
           <div>
             <div className="flex flex-col gap-3 mb-4">
@@ -258,12 +270,11 @@ export default function LeaguePlayersPage() {
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
-                  {sortBy !== 'performer' && (
+                  {sortBy !== 'name' && (
                     <button
                       type="button"
                       onClick={() => setSortAsc((a) => !a)}
                       className="text-xs text-slate-400 hover:text-slate-300 shrink-0"
-                      title={sortAsc ? 'Ascending (click for descending)' : 'Descending (click for ascending)'}
                     >
                       {sortAsc ? '↑ Low to high' : '↓ High to low'}
                     </button>
@@ -271,28 +282,21 @@ export default function LeaguePlayersPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={toggleCompareMode}
+                  onClick={toggleBuilderMode}
                   className={cn(
-                    'inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors shrink-0 justify-self-end',
-                    compareMode
+                    'inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors shrink-0',
+                    builderMode
                       ? 'bg-sky-500/20 border-sky-500 text-sky-300'
                       : 'border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-600',
                   )}
                 >
-                  <ArrowLeftRight className="h-3.5 w-3.5" />
-                  Compare
+                  <Users className="h-3.5 w-3.5" />
+                  {builderMode ? 'Done' : 'Build Teams'}
                 </button>
               </div>
-              {sortBy === 'performer' && !compareMode && (
+              {builderMode && (
                 <p className="text-xs text-slate-500">
-                  Based on overall record, recent form and player rating. Players with fewer than 5 games appear at the bottom.
-                </p>
-              )}
-              {compareMode && (
-                <p className="text-xs text-slate-500">
-                  {selectedPlayers.length === 0 && 'Tap two players to compare them side by side.'}
-                  {selectedPlayers.length === 1 && `${selectedPlayers[0].name} selected — pick one more.`}
-                  {selectedPlayers.length === 2 && `Comparing ${selectedPlayers[0].name} and ${selectedPlayers[1].name}.`}
+                  Drag players into a team, or tap to cycle: unassigned → A → B → unassigned.
                 </p>
               )}
             </div>
@@ -303,42 +307,35 @@ export default function LeaguePlayersPage() {
                   {searchQuery.trim() ? 'No players match your search' : 'No players'}
                 </p>
               ) : (
-                filteredAndSortedPlayers.map((player, index) => (
+                filteredAndSortedPlayers.map((player) => (
                   <PlayerCard
                     key={player.name}
                     player={player}
                     isOpen={openPlayer === player.name}
                     onToggle={() => handleToggle(player.name)}
-                    rank={sortBy === 'performer' && !searchQuery.trim() && !compareMode ? index + 1 : undefined}
-                    compareMode={compareMode}
-                    isSelected={selectedPlayers.some((p) => p.name === player.name)}
-                    onSelect={() => handleSelectPlayer(player)}
+                    builderMode={builderMode}
+                    teamAssignment={getAssignment(player)}
+                    onAssignCycle={() => handleAssignCycle(player)}
+                    onDragStart={() => {}}
                   />
                 ))
               )}
             </div>
           </div>
 
-          {/* Right column: compare panel (desktop only) */}
-          {compareMode && (
+          {/* Right column: team builder panel (desktop) */}
+          {builderMode && (
             <div className="hidden lg:block">
               <div className="sticky top-20">
-                {comparePair ? (
-                  <ComparePanel
-                    playerA={comparePair[0]}
-                    playerB={comparePair[1]}
-                    onClear={() => setSelectedPlayers([])}
-                  />
-                ) : (
-                  <div className="rounded-lg border border-dashed border-slate-700 bg-slate-800/50 p-8 text-center">
-                    <ArrowLeftRight className="h-6 w-6 text-slate-600 mx-auto mb-3" />
-                    <p className="text-sm text-slate-500">
-                      {selectedPlayers.length === 0
-                        ? 'Select 2 players to compare'
-                        : `${selectedPlayers[0].name} selected — pick one more`}
-                    </p>
-                  </div>
-                )}
+                <TeamBuilderPanel
+                  allPlayers={players}
+                  teamA={teamA}
+                  teamB={teamB}
+                  onAdd={handleAdd}
+                  onRemove={handleRemove}
+                  onDropOnTeam={handleDropOnTeam}
+                  onClear={() => { setTeamA([]); setTeamB([]) }}
+                />
               </div>
             </div>
           )}
@@ -346,27 +343,27 @@ export default function LeaguePlayersPage() {
       </main>
 
       {/* Mobile floating pill */}
-      {compareMode && (
+      {builderMode && (
         <div className="lg:hidden fixed bottom-6 inset-x-4 z-40">
           <div className="rounded-full border border-slate-700 bg-slate-800 shadow-xl px-4 py-3 flex items-center justify-between gap-3">
             <span className="text-sm text-slate-300 truncate">
-              {selectedPlayers.length === 0 && 'Select 2 players to compare'}
-              {selectedPlayers.length === 1 && `${selectedPlayers[0].name} — pick one more`}
-              {selectedPlayers.length === 2 && `${selectedPlayers[0].name} vs ${selectedPlayers[1].name}`}
+              {totalAssigned === 0
+                ? 'Tap players to assign to a team'
+                : `${teamA.length} in A · ${teamB.length} in B`}
             </span>
             <div className="flex items-center gap-3 shrink-0">
-              {comparePair && (
+              {totalAssigned > 0 && (
                 <button
                   type="button"
                   onClick={() => setSheetOpen(true)}
                   className="text-xs font-semibold text-sky-400 hover:text-sky-300 whitespace-nowrap"
                 >
-                  View →
+                  View teams →
                 </button>
               )}
               <button
                 type="button"
-                onClick={toggleCompareMode}
+                onClick={toggleBuilderMode}
                 className="text-xs text-slate-500 hover:text-slate-400"
               >
                 Cancel
@@ -377,23 +374,24 @@ export default function LeaguePlayersPage() {
       )}
 
       {/* Mobile bottom sheet */}
-      {compareMode && comparePair && (
+      {builderMode && (
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetContent
             side="bottom"
             className="h-[85vh] bg-slate-900 border-slate-700 p-0 flex flex-col"
           >
             <SheetHeader className="px-4 pt-5 pb-3 border-b border-slate-700 shrink-0">
-              <SheetTitle className="text-slate-100">Compare Players</SheetTitle>
+              <SheetTitle className="text-slate-100">Build Teams</SheetTitle>
             </SheetHeader>
             <div className="overflow-y-auto px-4 py-4 flex-1">
-              <ComparePanel
-                playerA={comparePair[0]}
-                playerB={comparePair[1]}
-                onClear={() => {
-                  setSelectedPlayers([])
-                  setSheetOpen(false)
-                }}
+              <TeamBuilderPanel
+                allPlayers={players}
+                teamA={teamA}
+                teamB={teamB}
+                onAdd={handleAdd}
+                onRemove={handleRemove}
+                onDropOnTeam={handleDropOnTeam}
+                onClear={() => { setTeamA([]); setTeamB([]) }}
               />
             </div>
           </SheetContent>
