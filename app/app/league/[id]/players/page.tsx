@@ -3,10 +3,18 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { ArrowLeftRight } from 'lucide-react'
 import { Player, Week } from '@/lib/types'
-import { deriveSeason, wprScore } from '@/lib/utils'
+import { cn, deriveSeason, wprScore } from '@/lib/utils'
 import { fetchWeeks, fetchPlayers, fetchGames } from '@/lib/data'
 import { PlayerCard } from '@/components/PlayerCard'
+import { ComparePanel } from '@/components/ComparePanel'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import bootRoomData from '@/data/boot_room.json'
 
 const LEGACY_BOOT_ROOM_ID = '00000000-0000-0000-0000-000000000001'
@@ -78,6 +86,9 @@ export default function LeaguePlayersPage() {
   const [sortBy, setSortBy] = useState<SortKey>('performer')
   const [sortAsc, setSortAsc] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [compareMode, setCompareMode] = useState(false)
+  const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([])
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   const filteredAndSortedPlayers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -129,6 +140,35 @@ export default function LeaguePlayersPage() {
     setOpenPlayer((prev) => (prev === name ? null : name))
   }
 
+  const handleSelectPlayer = (player: Player) => {
+    setSelectedPlayers((prev) => {
+      if (prev.some((p) => p.name === player.name)) {
+        return prev.filter((p) => p.name !== player.name)
+      }
+      if (prev.length >= 2) {
+        return [prev[1], player]
+      }
+      return [...prev, player]
+    })
+  }
+
+  const toggleCompareMode = () => {
+    if (compareMode) {
+      setCompareMode(false)
+      setSelectedPlayers([])
+      setSheetOpen(false)
+    } else {
+      setCompareMode(true)
+      setOpenPlayer(null)
+    }
+  }
+
+  useEffect(() => {
+    if (compareMode && selectedPlayers.length === 2) {
+      setSheetOpen(true)
+    }
+  }, [compareMode, selectedPlayers.length])
+
   if (loading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
@@ -163,6 +203,11 @@ export default function LeaguePlayersPage() {
     )
   }
 
+  const comparePair =
+    selectedPlayers.length === 2
+      ? (selectedPlayers as [Player, Player])
+      : null
+
   return (
     <>
       <div className="bg-slate-800/50 border-b border-slate-700">
@@ -174,67 +219,184 @@ export default function LeaguePlayersPage() {
         </div>
       </div>
 
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
-        <div className="flex flex-col gap-3 mb-4">
-          <input
-            type="search"
-            placeholder="Search players…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-            aria-label="Search players"
-          />
-          <div className="flex flex-wrap items-center gap-3">
-            <label htmlFor="sort" className="text-xs text-slate-400 shrink-0">Sort by</label>
-            <select
-              id="sort"
-              value={sortBy}
-              onChange={(e) => {
-                const key = e.target.value as SortKey
-                setSortBy(key)
-                setSortAsc(key === 'name')
-              }}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm"
-            >
-              {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-            {sortBy !== 'performer' && (
-              <button
-                type="button"
-                onClick={() => setSortAsc((a) => !a)}
-                className="text-xs text-slate-400 hover:text-slate-300"
-                title={sortAsc ? 'Ascending (click for descending)' : 'Descending (click for ascending)'}
-              >
-                {sortAsc ? '↑ Low to high' : '↓ High to low'}
-              </button>
-            )}
-          </div>
-          {sortBy === 'performer' && (
-            <p className="text-xs text-slate-500">
-              Based on overall record, recent form and player rating. Players with fewer than 5 games appear at the bottom.
-            </p>
+      <main
+        className={cn(
+          'mx-auto px-4 sm:px-6 py-4 transition-all duration-300',
+          compareMode && comparePair ? 'max-w-5xl' : 'max-w-2xl',
+        )}
+      >
+        <div
+          className={cn(
+            compareMode && comparePair ? 'lg:grid lg:grid-cols-[1fr_320px] lg:gap-6' : '',
           )}
-        </div>
-        <div className="flex flex-col gap-3">
-          {filteredAndSortedPlayers.length === 0 ? (
-            <p className="text-slate-500 text-sm py-4 text-center">
-              {searchQuery.trim() ? 'No players match your search' : 'No players'}
-            </p>
-          ) : (
-            filteredAndSortedPlayers.map((player, index) => (
-              <PlayerCard
-                key={player.name}
-                player={player}
-                isOpen={openPlayer === player.name}
-                onToggle={() => handleToggle(player.name)}
-                rank={sortBy === 'performer' && !searchQuery.trim() ? index + 1 : undefined}
+        >
+          {/* Left column: toolbar + player list */}
+          <div>
+            <div className="flex flex-col gap-3 mb-4">
+              <input
+                type="search"
+                placeholder="Search players…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                aria-label="Search players"
               />
-            ))
+              <div className="flex flex-wrap items-center gap-3">
+                <label htmlFor="sort" className="text-xs text-slate-400 shrink-0">Sort by</label>
+                <select
+                  id="sort"
+                  value={sortBy}
+                  onChange={(e) => {
+                    const key = e.target.value as SortKey
+                    setSortBy(key)
+                    setSortAsc(key === 'name')
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm"
+                >
+                  {SORT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                {sortBy !== 'performer' && (
+                  <button
+                    type="button"
+                    onClick={() => setSortAsc((a) => !a)}
+                    className="text-xs text-slate-400 hover:text-slate-300"
+                    title={sortAsc ? 'Ascending (click for descending)' : 'Descending (click for ascending)'}
+                  >
+                    {sortAsc ? '↑ Low to high' : '↓ High to low'}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={toggleCompareMode}
+                  className={cn(
+                    'ml-auto inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors',
+                    compareMode
+                      ? 'bg-sky-500/20 border-sky-500 text-sky-300'
+                      : 'border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-600',
+                  )}
+                >
+                  <ArrowLeftRight className="h-3.5 w-3.5" />
+                  Compare
+                </button>
+              </div>
+              {sortBy === 'performer' && !compareMode && (
+                <p className="text-xs text-slate-500">
+                  Based on overall record, recent form and player rating. Players with fewer than 5 games appear at the bottom.
+                </p>
+              )}
+              {compareMode && (
+                <p className="text-xs text-slate-500">
+                  {selectedPlayers.length === 0 && 'Tap two players to compare them side by side.'}
+                  {selectedPlayers.length === 1 && `${selectedPlayers[0].name} selected — pick one more.`}
+                  {selectedPlayers.length === 2 && `Comparing ${selectedPlayers[0].name} and ${selectedPlayers[1].name}.`}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {filteredAndSortedPlayers.length === 0 ? (
+                <p className="text-slate-500 text-sm py-4 text-center">
+                  {searchQuery.trim() ? 'No players match your search' : 'No players'}
+                </p>
+              ) : (
+                filteredAndSortedPlayers.map((player, index) => (
+                  <PlayerCard
+                    key={player.name}
+                    player={player}
+                    isOpen={openPlayer === player.name}
+                    onToggle={() => handleToggle(player.name)}
+                    rank={sortBy === 'performer' && !searchQuery.trim() && !compareMode ? index + 1 : undefined}
+                    compareMode={compareMode}
+                    isSelected={selectedPlayers.some((p) => p.name === player.name)}
+                    onSelect={() => handleSelectPlayer(player)}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Right column: compare panel (desktop only) */}
+          {compareMode && (
+            <div className="hidden lg:block">
+              <div className="sticky top-20">
+                {comparePair ? (
+                  <ComparePanel
+                    playerA={comparePair[0]}
+                    playerB={comparePair[1]}
+                    onClear={() => setSelectedPlayers([])}
+                  />
+                ) : (
+                  <div className="rounded-lg border border-dashed border-slate-700 bg-slate-800/50 p-8 text-center">
+                    <ArrowLeftRight className="h-6 w-6 text-slate-600 mx-auto mb-3" />
+                    <p className="text-sm text-slate-500">
+                      {selectedPlayers.length === 0
+                        ? 'Select 2 players to compare'
+                        : `${selectedPlayers[0].name} selected — pick one more`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </main>
+
+      {/* Mobile floating pill */}
+      {compareMode && (
+        <div className="lg:hidden fixed bottom-6 inset-x-4 z-40">
+          <div className="rounded-full border border-slate-700 bg-slate-800 shadow-xl px-4 py-3 flex items-center justify-between gap-3">
+            <span className="text-sm text-slate-300 truncate">
+              {selectedPlayers.length === 0 && 'Select 2 players to compare'}
+              {selectedPlayers.length === 1 && `${selectedPlayers[0].name} — pick one more`}
+              {selectedPlayers.length === 2 && `${selectedPlayers[0].name} vs ${selectedPlayers[1].name}`}
+            </span>
+            <div className="flex items-center gap-3 shrink-0">
+              {comparePair && (
+                <button
+                  type="button"
+                  onClick={() => setSheetOpen(true)}
+                  className="text-xs font-semibold text-sky-400 hover:text-sky-300 whitespace-nowrap"
+                >
+                  View →
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={toggleCompareMode}
+                className="text-xs text-slate-500 hover:text-slate-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile bottom sheet */}
+      {compareMode && comparePair && (
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetContent
+            side="bottom"
+            className="h-[85vh] bg-slate-900 border-slate-700 p-0 flex flex-col"
+          >
+            <SheetHeader className="px-4 pt-5 pb-3 border-b border-slate-700 shrink-0">
+              <SheetTitle className="text-slate-100">Compare Players</SheetTitle>
+            </SheetHeader>
+            <div className="overflow-y-auto px-4 py-4 flex-1">
+              <ComparePanel
+                playerA={comparePair[0]}
+                playerB={comparePair[1]}
+                onClear={() => {
+                  setSelectedPlayers([])
+                  setSheetOpen(false)
+                }}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
     </>
   )
 }
