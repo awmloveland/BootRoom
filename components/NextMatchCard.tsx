@@ -10,6 +10,7 @@ interface Props {
   gameId: string
   weeks: Week[]
   onResultSaved: () => void
+  canEdit?: boolean
 }
 
 interface ParsedName {
@@ -65,7 +66,7 @@ function NameTags({ names }: { names: ParsedName[] }) {
   )
 }
 
-export function NextMatchCard({ gameId, weeks, onResultSaved }: Props) {
+export function NextMatchCard({ gameId, weeks, onResultSaved, canEdit = true }: Props) {
   const [cardState, setCardState] = useState<CardState>('loading')
   const [scheduledWeek, setScheduledWeek] = useState<ScheduledWeek | null>(null)
 
@@ -155,27 +156,17 @@ export function NextMatchCard({ gameId, weeks, onResultSaved }: Props) {
     setError(null)
     try {
       const supabase = createClient()
-      const { data, error: err } = await supabase
-        .from('weeks')
-        .upsert(
-          {
-            game_id: gameId,
-            season,
-            week: nextWeekNum,
-            date: nextDate,
-            status: 'scheduled',
-            format: format || null,
-            team_a: teamA,
-            team_b: teamB,
-            winner: null,
-            notes: null,
-          },
-          { onConflict: 'game_id,season,week' }
-        )
-        .select('id')
-        .single()
+      const { data: weekId, error: err } = await supabase.rpc('save_lineup', {
+        p_game_id: gameId,
+        p_season: season,
+        p_week: nextWeekNum,
+        p_date: nextDate,
+        p_format: format || null,
+        p_team_a: teamA,
+        p_team_b: teamB,
+      })
       if (err) throw err
-      setScheduledWeek({ id: data.id, week: nextWeekNum, date: nextDate, format, teamA, teamB })
+      setScheduledWeek({ id: weekId as string, week: nextWeekNum, date: nextDate, format, teamA, teamB })
       setCardState('lineup')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save lineup')
@@ -193,10 +184,11 @@ export function NextMatchCard({ gameId, weeks, onResultSaved }: Props) {
     setError(null)
     try {
       const supabase = createClient()
-      const { error: err } = await supabase
-        .from('weeks')
-        .update({ status: 'played', winner, notes: notes.trim() || null })
-        .eq('id', scheduledWeek.id)
+      const { error: err } = await supabase.rpc('record_result', {
+        p_week_id: scheduledWeek.id,
+        p_winner: winner,
+        p_notes: notes.trim() || null,
+      })
       if (err) throw err
       setScheduledWeek(null)
       setCardState('idle')
@@ -213,7 +205,7 @@ export function NextMatchCard({ gameId, weeks, onResultSaved }: Props) {
   async function handleCancelScheduled() {
     if (!scheduledWeek) return
     const supabase = createClient()
-    await supabase.from('weeks').delete().eq('id', scheduledWeek.id)
+    await supabase.rpc('cancel_lineup', { p_week_id: scheduledWeek.id })
     setScheduledWeek(null)
     setPlayersText('')
     setRandomisedA([])
@@ -238,7 +230,7 @@ export function NextMatchCard({ gameId, weeks, onResultSaved }: Props) {
             )}
           </p>
         </div>
-        {cardState === 'lineup' && (
+        {cardState === 'lineup' && canEdit && (
           <button
             type="button"
             onClick={handleCancelScheduled}
@@ -252,77 +244,81 @@ export function NextMatchCard({ gameId, weeks, onResultSaved }: Props) {
       <div className="px-4 py-3 space-y-4">
         {/* ── IDLE: single list + randomise ── */}
         {cardState === 'idle' && (
-          <>
-            {format && (
-              <p className="text-xs text-slate-400">
-                <span className="text-slate-100 font-medium">{format}</span>
-                {' · '}{parsedPlayers.length} players
-              </p>
-            )}
+          canEdit ? (
+            <>
+              {format && (
+                <p className="text-xs text-slate-400">
+                  <span className="text-slate-100 font-medium">{format}</span>
+                  {' · '}{parsedPlayers.length} players
+                </p>
+              )}
 
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">
-                Paste all attending players (one per line)
-              </label>
-              <textarea
-                value={playersText}
-                onChange={(e) => {
-                  setPlayersText(e.target.value)
-                  setRandomisedA([])
-                  setRandomisedB([])
-                }}
-                rows={6}
-                placeholder={'Alice\nLuke\nJaff\nWill\nIan\nJunior\nMatt\nJoe R\nRoy\nEthon'}
-                className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-slate-100 text-xs font-mono placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-500 resize-none"
-              />
-              <NameTags names={parsedPlayers} />
-            </div>
-
-            {/* Randomised preview */}
-            {hasRandomised && (
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <div>
-                  <p className="text-xs text-slate-400 mb-1.5">Team A</p>
-                  <div className="flex flex-wrap gap-1">
-                    {randomisedA.map((name) => (
-                      <span key={name} className="px-2 py-0.5 rounded bg-blue-900/60 border border-blue-800 text-blue-200 text-xs">{name}</span>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 mb-1.5">Team B</p>
-                  <div className="flex flex-wrap gap-1">
-                    {randomisedB.map((name) => (
-                      <span key={name} className="px-2 py-0.5 rounded bg-violet-900/60 border border-violet-800 text-violet-200 text-xs">{name}</span>
-                    ))}
-                  </div>
-                </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">
+                  Paste all attending players (one per line)
+                </label>
+                <textarea
+                  value={playersText}
+                  onChange={(e) => {
+                    setPlayersText(e.target.value)
+                    setRandomisedA([])
+                    setRandomisedB([])
+                  }}
+                  rows={6}
+                  placeholder={'Alice\nLuke\nJaff\nWill\nIan\nJunior\nMatt\nJoe R\nRoy\nEthon'}
+                  className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-slate-100 text-xs font-mono placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-500 resize-none"
+                />
+                <NameTags names={parsedPlayers} />
               </div>
-            )}
 
-            {error && <p className="text-xs text-red-400">{error}</p>}
-
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleRandomise}
-                disabled={parsedPlayers.length === 0}
-                className="px-4 py-2 rounded-lg border border-slate-600 hover:border-slate-500 text-slate-200 text-sm font-medium disabled:opacity-40"
-              >
-                {hasRandomised ? 'Re-randomise' : 'Randomise Teams'}
-              </button>
+              {/* Randomised preview */}
               {hasRandomised && (
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <p className="text-xs text-slate-400 mb-1.5">Team A</p>
+                    <div className="flex flex-wrap gap-1">
+                      {randomisedA.map((name) => (
+                        <span key={name} className="px-2 py-0.5 rounded bg-blue-900/60 border border-blue-800 text-blue-200 text-xs">{name}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400 mb-1.5">Team B</p>
+                    <div className="flex flex-wrap gap-1">
+                      {randomisedB.map((name) => (
+                        <span key={name} className="px-2 py-0.5 rounded bg-violet-900/60 border border-violet-800 text-violet-200 text-xs">{name}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {error && <p className="text-xs text-red-400">{error}</p>}
+
+              <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={handleSaveLineup}
-                  disabled={saving}
-                  className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium disabled:opacity-50"
+                  onClick={handleRandomise}
+                  disabled={parsedPlayers.length === 0}
+                  className="px-4 py-2 rounded-lg border border-slate-600 hover:border-slate-500 text-slate-200 text-sm font-medium disabled:opacity-40"
                 >
-                  {saving ? 'Saving…' : 'Save Lineup'}
+                  {hasRandomised ? 'Re-randomise' : 'Randomise Teams'}
                 </button>
-              )}
-            </div>
-          </>
+                {hasRandomised && (
+                  <button
+                    type="button"
+                    onClick={handleSaveLineup}
+                    disabled={saving}
+                    className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium disabled:opacity-50"
+                  >
+                    {saving ? 'Saving…' : 'Save Lineup'}
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-slate-500">Lineup not yet set.</p>
+          )
         )}
 
         {/* ── LINEUP SAVED: show teams + record result ── */}
@@ -349,7 +345,7 @@ export function NextMatchCard({ gameId, weeks, onResultSaved }: Props) {
               </div>
             </div>
 
-            <div className="border-t border-slate-700 pt-3">
+            {canEdit && <div className="border-t border-slate-700 pt-3">
               <p className="text-xs text-slate-400 mb-2">Record result</p>
               <div className="flex gap-2 mb-3">
                 <button
@@ -408,7 +404,7 @@ export function NextMatchCard({ gameId, weeks, onResultSaved }: Props) {
               >
                 {saving ? 'Saving…' : 'Save Result'}
               </button>
-            </div>
+            </div>}
           </>
         )}
       </div>

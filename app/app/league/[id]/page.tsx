@@ -92,7 +92,8 @@ export default function LeaguePage() {
   }
 
   const isAdmin = userRole === 'creator' || userRole === 'admin'
-  const showNextMatch = isAdmin && matchEntryEnabled
+  // Admins always see the Next Match card. Members see it when match_entry is enabled.
+  const showNextMatch = isAdmin || matchEntryEnabled
 
   if (loading) {
     return (
@@ -160,6 +161,7 @@ export default function LeaguePage() {
               gameId={leagueId}
               weeks={weeks}
               onResultSaved={load}
+              canEdit={isAdmin || matchEntryEnabled}
             />
           )}
 

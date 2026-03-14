@@ -7,7 +7,7 @@ import type { LeagueFeature, FeatureKey } from '@/lib/types'
 const FEATURE_META: Record<FeatureKey, { label: string; description: string }> = {
   match_entry: {
     label: 'Match Entry',
-    description: 'Members can add match results to the league.',
+    description: 'Members can see the next match card, build teams, and record results.',
   },
   team_builder: {
     label: 'Team Builder',
