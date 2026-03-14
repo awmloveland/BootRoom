@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Users } from 'lucide-react'
 import { Player, Week } from '@/lib/types'
-import { cn, deriveSeason } from '@/lib/utils'
+import { cn, deriveSeason, wprScore } from '@/lib/utils'
 import { fetchWeeks, fetchPlayers, fetchGames } from '@/lib/data'
 import { PlayerCard } from '@/components/PlayerCard'
 import { TeamBuilderPanel } from '@/components/TeamBuilderPanel'
@@ -13,10 +13,11 @@ import bootRoomData from '@/data/boot_room.json'
 
 const LEGACY_BOOT_ROOM_ID = '00000000-0000-0000-0000-000000000001'
 
-type SortKey = 'name' | 'played' | 'won' | 'drew' | 'lost' | 'winRate' | 'timesTeamA' | 'timesTeamB' | 'recentForm'
+type SortKey = 'name' | 'wpr' | 'played' | 'won' | 'drew' | 'lost' | 'winRate' | 'timesTeamA' | 'timesTeamB' | 'recentForm'
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: 'name', label: 'Name' },
+  { value: 'wpr', label: 'Form (WPR)' },
   { value: 'played', label: 'Games Played' },
   { value: 'won', label: 'Won' },
   { value: 'drew', label: 'Drawn' },
@@ -42,6 +43,8 @@ function sortPlayers(players: Player[], sortBy: SortKey, ascending: boolean): Pl
     let cmp = 0
     if (sortBy === 'name') {
       cmp = a.name.localeCompare(b.name)
+    } else if (sortBy === 'wpr') {
+      cmp = wprScore(a) - wprScore(b)
     } else if (sortBy === 'recentForm') {
       cmp = formScore(a.recentForm) - formScore(b.recentForm)
     } else {
@@ -81,13 +84,22 @@ export default function LeaguePlayersPage() {
   const [teamB, setTeamB] = useState<Player[]>([])
 
 
+  const assignedNames = useMemo(
+    () => new Set([...teamA, ...teamB].map((p) => p.name)),
+    [teamA, teamB],
+  )
+
   const filteredAndSortedPlayers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
-    const filtered = q
+    let filtered = q
       ? players.filter((p) => p.name.toLowerCase().includes(q))
       : players
+    // Hide assigned players from the roster while in builder mode
+    if (builderMode) {
+      filtered = filtered.filter((p) => !assignedNames.has(p.name))
+    }
     return sortPlayers(filtered, sortBy, sortAsc)
-  }, [players, searchQuery, sortBy, sortAsc])
+  }, [players, searchQuery, sortBy, sortAsc, builderMode, assignedNames])
 
   useEffect(() => {
     if (!leagueId) return
