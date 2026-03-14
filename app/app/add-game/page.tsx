@@ -8,7 +8,6 @@ export default function AddGamePage() {
   const router = useRouter()
   const [gameName, setGameName] = useState('')
   const [jsonText, setJsonText] = useState('')
-  const [loadingSample, setLoadingSample] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -45,28 +44,6 @@ export default function AddGamePage() {
         <p className="text-slate-400 text-sm mb-4">
           Use the sample data below, or paste your own JSON (league, weeks, config).
         </p>
-
-        <button
-          type="button"
-          onClick={async () => {
-            setLoadingSample(true)
-            setError(null)
-            try {
-              const res = await fetch('/api/boot-room-data')
-              const data = await res.json()
-              setGameName('The Boot Room')
-              setJsonText(JSON.stringify(data, null, 2))
-            } catch {
-              setError('Failed to load sample data')
-            } finally {
-              setLoadingSample(false)
-            }
-          }}
-          disabled={loadingSample}
-          className="mb-6 w-full py-3 px-4 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium disabled:opacity-50"
-        >
-          {loadingSample ? 'Loading…' : 'Load Boot Room sample data'}
-        </button>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

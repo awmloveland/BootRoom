@@ -1,36 +1,23 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Week } from '@/lib/types'
 import { sortWeeks, getPlayedWeeks, deriveSeason, getMonthKey, formatMonthYear } from '@/lib/utils'
 import { fetchWeeks, fetchGames } from '@/lib/data'
-import { BootRoomMatchHistory } from '@/components/BootRoomMatchHistory'
 import { MatchCard } from '@/components/MatchCard'
 import { MonthDivider } from '@/components/MonthDivider'
-import bootRoomData from '@/data/boot_room.json'
-
-const LEGACY_BOOT_ROOM_ID = '00000000-0000-0000-0000-000000000001'
-
-function getBootRoomWeeks(): Week[] {
-  const raw = (bootRoomData.weeks ?? []) as Week[]
-  const filtered = raw.filter((w) => (w.status as string) !== 'scheduled')
-  return sortWeeks(filtered)
-}
 
 export default function LeaguePage() {
   const params = useParams()
   const leagueId = (params?.id as string) ?? ''
-  const isLegacyId = leagueId === LEGACY_BOOT_ROOM_ID
-  const bootRoomWeeks = useMemo(() => getBootRoomWeeks(), [])
 
   const [leagueName, setLeagueName] = useState('')
   const [weeks, setWeeks] = useState<Week[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [openWeek, setOpenWeek] = useState<number | null>(null)
-  const [isBootRoom, setIsBootRoom] = useState(false)
   const [hasAccess, setHasAccess] = useState(false)
 
   useEffect(() => {
@@ -50,23 +37,20 @@ export default function LeaguePage() {
               const { createClient } = await import('@/lib/supabase/client')
               const supabase = createClient()
               await supabase.rpc('join_public_league', { p_game_id: leagueId })
-              // Reload the page so the user is now a member
               window.location.reload()
               return
             }
           } catch {
-            // If the public check fails, fall through to access denied
+            // fall through to access denied
           }
           setHasAccess(false)
           setLoading(false)
           return
         }
         setHasAccess(true)
-        const name = game.name
-        const bootRoom = isLegacyId || name === 'The Boot Room'
-        setIsBootRoom(bootRoom)
-        setLeagueName(name)
-        const displayWeeks = bootRoom ? bootRoomWeeks : sortWeeks(weeksData)
+        setLeagueName(game.name)
+
+        const displayWeeks = sortWeeks(weeksData)
         const playedWeeks = getPlayedWeeks(displayWeeks)
         const mostRecentPlayed =
           playedWeeks.length > 0
@@ -82,7 +66,7 @@ export default function LeaguePage() {
       }
     }
     load()
-  }, [leagueId, isLegacyId, bootRoomWeeks])
+  }, [leagueId])
 
   const handleToggle = (weekNum: number) => {
     setOpenWeek((prev) => (prev === weekNum ? null : weekNum))
@@ -99,16 +83,16 @@ export default function LeaguePage() {
   if (!hasAccess) {
     return (
       <main className="max-w-md mx-auto px-4 sm:px-6 py-12 text-center">
-          <h1 className="text-xl font-semibold text-slate-100 mb-2">League</h1>
-          <p className="text-slate-400 text-sm mb-6">
-            You need an invite to view this league. Ask an admin to send you an invite link.
-          </p>
-          <Link
-            href="/"
-            className="inline-block px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium"
-          >
-            Your leagues
-          </Link>
+        <h1 className="text-xl font-semibold text-slate-100 mb-2">League</h1>
+        <p className="text-slate-400 text-sm mb-6">
+          You need an invite to view this league. Ask an admin to send you an invite link.
+        </p>
+        <Link
+          href="/"
+          className="inline-block px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium"
+        >
+          Your leagues
+        </Link>
       </main>
     )
   }
@@ -116,21 +100,9 @@ export default function LeaguePage() {
   if (error) {
     return (
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-          <p className="text-red-400 mb-4">{error}</p>
-          <Link href="/" className="text-sky-400 hover:underline">Back to leagues</Link>
+        <p className="text-red-400 mb-4">{error}</p>
+        <Link href="/" className="text-sky-400 hover:underline">Back to leagues</Link>
       </main>
-    )
-  }
-
-  if (isBootRoom) {
-    const season = deriveSeason(weeks)
-    return (
-      <BootRoomMatchHistory
-          weeks={weeks}
-          season={season}
-          openWeek={openWeek}
-          onToggle={handleToggle}
-        />
     )
   }
 

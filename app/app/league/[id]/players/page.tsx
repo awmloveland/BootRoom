@@ -9,9 +9,6 @@ import { cn, deriveSeason, wprScore } from '@/lib/utils'
 import { fetchWeeks, fetchPlayers, fetchGames } from '@/lib/data'
 import { PlayerCard } from '@/components/PlayerCard'
 import { TeamBuilderPanel } from '@/components/TeamBuilderPanel'
-import bootRoomData from '@/data/boot_room.json'
-
-const LEGACY_BOOT_ROOM_ID = '00000000-0000-0000-0000-000000000001'
 
 type SortKey = 'name' | 'wpr' | 'played' | 'won' | 'drew' | 'lost' | 'winRate' | 'timesTeamA' | 'timesTeamB' | 'recentForm'
 
@@ -55,14 +52,6 @@ function sortPlayers(players: Player[], sortBy: SortKey, ascending: boolean): Pl
     return cmp * dir
   })
 }
-
-const bootRoomPlayersData = (() => {
-  const weeks = (bootRoomData.weeks ?? []) as Week[]
-  const players = (bootRoomData.players ?? []) as Player[]
-  const season = deriveSeason(weeks)
-  const sorted = [...players].sort((a, b) => a.name.localeCompare(b.name))
-  return { leagueName: 'The Boot Room', season, players: sorted }
-})()
 
 export default function LeaguePlayersPage() {
   const params = useParams()
@@ -129,17 +118,9 @@ export default function LeaguePlayersPage() {
         setFeatures(featuresData)
 
         const name = game.name
-        const isBootRoom = leagueId === LEGACY_BOOT_ROOM_ID || name === 'The Boot Room'
-
-        if (isBootRoom) {
-          setLeagueName(bootRoomPlayersData.leagueName)
-          setSeason(bootRoomPlayersData.season)
-          setPlayers(bootRoomPlayersData.players)
-        } else {
-          setLeagueName(name)
-          setSeason(deriveSeason(weeksData))
-          setPlayers(playersData as Player[])
-        }
+        setLeagueName(name)
+        setSeason(deriveSeason(weeksData))
+        setPlayers(playersData as Player[])
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load')
       } finally {

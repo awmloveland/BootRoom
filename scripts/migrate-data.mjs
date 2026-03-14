@@ -3,7 +3,7 @@
  * One-time data migration: boot_room.json → Supabase
  *
  * Prerequisites:
- * 1. Run supabase/migrations/*.sql in Supabase SQL Editor
+ * 1. Run all supabase/migrations/*.sql in Supabase SQL Editor
  * 2. Set env: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
  *
  * Usage: node scripts/migrate-data.mjs
@@ -26,11 +26,12 @@ if (!supabaseUrl || !serviceRoleKey) {
 
 const supabase = createClient(supabaseUrl, serviceRoleKey)
 
+const LEGACY_GAME_ID = '9cf13e81-4382-428b-a4ec-c94cb8e2567e'
+
 const dataPath = join(__dirname, '../data/boot_room.json')
 const raw = readFileSync(dataPath, 'utf-8')
 const data = JSON.parse(raw)
 
-/** Derive season string like "2025–26" from played weeks */
 function deriveSeason(weeks) {
   const played = weeks.filter((w) => w.status === 'played')
   if (played.length === 0) return ''
@@ -44,21 +45,23 @@ function deriveSeason(weeks) {
 async function migrate() {
   const season = deriveSeason(data.weeks)
   console.log('Season:', season)
+  console.log('Game ID:', LEGACY_GAME_ID)
 
-  // 1. Insert config (merge league name with config)
+  // 1. Config
   const configValue = { league: data.league, ...data.config }
   const { error: configErr } = await supabase.from('config').upsert(
-    { key: 'config', value: configValue },
-    { onConflict: 'key' }
+    { game_id: LEGACY_GAME_ID, key: 'config', value: configValue },
+    { onConflict: 'game_id,key' }
   )
   if (configErr) {
     console.error('Config insert failed:', configErr)
     process.exit(1)
   }
-  console.log('Config inserted')
+  console.log('✓ Config inserted')
 
-  // 2. Insert weeks
+  // 2. Weeks
   const weeksToInsert = data.weeks.map((w) => ({
+    game_id: LEGACY_GAME_ID,
     season,
     week: w.week,
     date: w.date,
@@ -71,16 +74,34 @@ async function migrate() {
   }))
 
   const { error: weeksErr } = await supabase.from('weeks').upsert(weeksToInsert, {
-    onConflict: 'season,week',
+    onConflict: 'game_id,season,week',
   })
   if (weeksErr) {
     console.error('Weeks insert failed:', weeksErr)
     process.exit(1)
   }
-  console.log(`Weeks inserted: ${weeksToInsert.length}`)
+  console.log(`✓ Weeks inserted: ${weeksToInsert.length}`)
 
-  console.log('\nDone. Next: add league members to profiles after they sign up.')
-  console.log('Profiles are created when users sign in; ensure invite-only flow checks membership.')
+  // 3. Player attributes (goalkeeper, mentality, rating — manually set)
+  const playerAttrsToInsert = data.players.map((p) => ({
+    game_id: LEGACY_GAME_ID,
+    name: p.name,
+    goalkeeper: p.goalkeeper ?? false,
+    mentality: p.mentality ?? 'balanced',
+    rating: p.rating ?? 0,
+  }))
+
+  const { error: attrsErr } = await supabase.from('player_attributes').upsert(
+    playerAttrsToInsert,
+    { onConflict: 'game_id,name' }
+  )
+  if (attrsErr) {
+    console.error('Player attributes insert failed:', attrsErr)
+    process.exit(1)
+  }
+  console.log(`✓ Player attributes inserted: ${playerAttrsToInsert.length} players`)
+
+  console.log('\nDone. The Boot Room data is now fully in Supabase.')
 }
 
 migrate().catch((err) => {
