@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createPublicClient } from '@/lib/supabase/public'
+import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
 import { PublicHeader } from '@/components/PublicHeader'
 import { PublicMatchList } from '@/components/PublicMatchList'
@@ -23,8 +24,16 @@ export default async function PublicResultsPage({ params }: Props) {
 
   if (!game || !game.public_results_enabled) notFound()
 
-  const { data: weeksRaw } = await publicSupabase
-    .rpc('get_public_weeks', { p_game_id: id })
+  // Use the service role to fetch weeks — bypasses anon RLS which has proven
+  // unreliable in the server-component context. Safe because we already
+  // confirmed public_results_enabled = true on the anon client above.
+  const serviceSupabase = createServiceClient()
+  const { data: weeksRaw } = await serviceSupabase
+    .from('weeks')
+    .select('week, date, status, format, team_a, team_b, winner, notes')
+    .eq('game_id', id)
+    .in('status', ['played', 'cancelled'])
+    .order('week', { ascending: false })
 
   type PublicWeekRow = {
     week: number; date: string; status: string; format: string | null;
