@@ -23,12 +23,17 @@ export default async function PublicResultsPage({ params }: Props) {
 
   if (!game || !game.public_results_enabled) notFound()
 
-  const { data: weeksRaw } = await publicSupabase
+  const { data: weeksRaw, error: weeksError } = await publicSupabase
     .from('weeks')
     .select('week, date, status, format, team_a, team_b, winner, notes')
     .eq('game_id', id)
     .in('status', ['played', 'cancelled'])
     .order('week', { ascending: false })
+
+  if (weeksError) {
+    console.error('[PublicResultsPage] weeks fetch error:', weeksError)
+  }
+  console.log('[PublicResultsPage] weeksRaw count:', weeksRaw?.length ?? 0, 'gameId:', id)
 
   const weeks: Week[] = sortWeeks(
     (weeksRaw ?? []).map((row) => ({
