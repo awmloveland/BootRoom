@@ -113,9 +113,13 @@ function playerFormScore(player: Player): number {
  */
 export function ewptScore(players: Player[]): number {
   if (players.length === 0) return 0
-  const wprScores = players.map((p) => wprScore(p))
+  const wprScores = players.map((p) => wprScore(p)).sort((a, b) => b - a)
   const avgWpr = wprScores.reduce((sum, s) => sum + s, 0) / players.length
-  const maxWpr = Math.max(...wprScores)
+  // Average of top 2 WPR scores — rewards having multiple strong players,
+  // not just a single standout
+  const top2Avg = wprScores.length >= 2
+    ? (wprScores[0] + wprScores[1]) / 2
+    : wprScores[0]
   const avgForm = players.reduce((sum, p) => sum + playerFormScore(p), 0) / players.length
   const gkCount = players.filter((p) => p.mentality === 'goalkeeper' || p.goalkeeper).length
   const gkModifier = gkCount === 1 ? 3 : gkCount === 0 ? -3 : -2
@@ -126,7 +130,7 @@ export function ewptScore(players: Player[]): number {
     100,
     Math.max(
       0,
-      avgWpr * 0.55 + maxWpr * 0.20 + avgForm * 0.25 + gkModifier + varietyBonus + depthBonus,
+      avgWpr * 0.50 + top2Avg * 0.25 + avgForm * 0.25 + gkModifier + varietyBonus + depthBonus,
     ),
   )
 }
