@@ -1,20 +1,14 @@
-import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { getSupabaseAnonKey, getSupabaseUrl } from './env'
 
 /**
- * Unauthenticated Supabase client for use in public (anon) server components.
- * Makes requests under the `anon` role — subject to public RLS policies only.
- * No cookies are read or written, so no session is attached.
+ * Unauthenticated Supabase client for use in public server components.
+ * Uses the anon key with no session — all requests run as the anon role.
+ * Using @supabase/supabase-js directly avoids cookie/session complexity
+ * that can interfere with @supabase/ssr in server-component contexts.
  */
 export function createPublicClient() {
-  return createServerClient(
-    getSupabaseUrl(),
-    getSupabaseAnonKey(),
-    {
-      cookies: {
-        getAll: () => [],
-        setAll: () => {},
-      },
-    }
-  )
+  return createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
 }
