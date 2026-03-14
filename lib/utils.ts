@@ -144,6 +144,50 @@ export function winProbability(scoreA: number, scoreB: number): number {
   return 1 / (1 + Math.exp(-(scoreA - scoreB) / 8))
 }
 
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const MONTH_IDX: Record<string, number> = Object.fromEntries(MONTH_SHORT.map((m, i) => [m, i]))
+
+/** Parse a 'DD MMM YYYY' date string into a local Date. */
+export function parseWeekDate(date: string): Date {
+  const [d, m, y] = date.split(' ')
+  return new Date(parseInt(y), MONTH_IDX[m], parseInt(d))
+}
+
+/** Format a Date into the canonical 'DD MMM YYYY' string used across the app. */
+export function formatWeekDate(date: Date): string {
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${d} ${MONTH_SHORT[date.getMonth()]} ${date.getFullYear()}`
+}
+
+/**
+ * Compute the next match date by detecting the recurring day-of-week
+ * from recent played weeks, then finding the next occurrence of that
+ * day from today. Falls back to +7 days if no pattern is available.
+ */
+export function getNextMatchDate(weeks: Week[]): string {
+  const played = getPlayedWeeks(sortWeeks(weeks))
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  if (played.length === 0) {
+    const next = new Date(today)
+    next.setDate(today.getDate() + 7)
+    return formatWeekDate(next)
+  }
+  const lastDate = parseWeekDate(played[0].date)
+  const dow = lastDate.getDay()
+  let daysUntil = (dow - today.getDay() + 7) % 7
+  if (daysUntil === 0) daysUntil = 7
+  const next = new Date(today)
+  next.setDate(today.getDate() + daysUntil)
+  return formatWeekDate(next)
+}
+
+/** Return the next week number (max existing week + 1, or 1 if none). */
+export function getNextWeekNumber(weeks: Week[]): number {
+  if (weeks.length === 0) return 1
+  return Math.max(...weeks.map((w) => w.week)) + 1
+}
+
 /**
  * Derive a season string like "2025–26" from the played weeks.
  * Uses the calendar year of the first and last played game.

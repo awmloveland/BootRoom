@@ -280,8 +280,16 @@ export function Navbar({
       {/* League context bar — shown when a league is selected */}
       {leagueId && leagueName && showNav && (
         <div className="bg-slate-800/50 border-b border-slate-700">
-          <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2">
+          <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center gap-2">
             <p className="text-sm font-medium text-slate-300">{leagueName}</p>
+            <span className={cn(
+              'px-2 py-0.5 rounded-full text-xs font-medium border',
+              isLeagueAdmin
+                ? 'bg-blue-900/40 border-blue-700 text-blue-300'
+                : 'bg-slate-700/50 border-slate-600 text-slate-400'
+            )}>
+              {isLeagueAdmin ? 'Admin' : 'Member'}
+            </span>
           </div>
         </div>
       )}

@@ -1,13 +1,14 @@
 'use client'
 
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Week } from '@/lib/types'
+import { Week, GameRole, LeagueFeature } from '@/lib/types'
 import { sortWeeks, getPlayedWeeks, deriveSeason, getMonthKey, formatMonthYear } from '@/lib/utils'
 import { fetchWeeks, fetchGames } from '@/lib/data'
 import { MatchCard } from '@/components/MatchCard'
 import { MonthDivider } from '@/components/MonthDivider'
+import { NextMatchCard } from '@/components/NextMatchCard'
 
 export default function LeaguePage() {
   const params = useParams()
@@ -19,58 +20,79 @@ export default function LeaguePage() {
   const [error, setError] = useState<string | null>(null)
   const [openWeek, setOpenWeek] = useState<number | null>(null)
   const [hasAccess, setHasAccess] = useState(false)
+  const [userRole, setUserRole] = useState<GameRole>('member')
+  const [matchEntryEnabled, setMatchEntryEnabled] = useState(false)
+
+  const load = useCallback(async () => {
+    try {
+      const [games, weeksData] = await Promise.all([
+        fetchGames(),
+        fetchWeeks(leagueId),
+      ])
+      const game = games.find((g) => g.id === leagueId)
+      if (!game) {
+        try {
+          const res = await fetch(`/api/league/${leagueId}/public`)
+          const { public_results_enabled } = await res.json()
+          if (public_results_enabled) {
+            const { createClient } = await import('@/lib/supabase/client')
+            const supabase = createClient()
+            await supabase.rpc('join_public_league', { p_game_id: leagueId })
+            window.location.reload()
+            return
+          }
+        } catch {
+          // fall through to access denied
+        }
+        setHasAccess(false)
+        setLoading(false)
+        return
+      }
+
+      setHasAccess(true)
+      setLeagueName(game.name)
+      setUserRole(game.role)
+
+      const displayWeeks = sortWeeks(weeksData)
+      const playedWeeks = getPlayedWeeks(displayWeeks)
+      const mostRecentPlayed =
+        playedWeeks.length > 0
+          ? playedWeeks.reduce((a, b) => (a.week > b.week ? a : b))
+          : null
+
+      setWeeks(displayWeeks)
+      setOpenWeek(mostRecentPlayed?.week ?? null)
+
+      // Load feature flags to determine if match entry is enabled
+      try {
+        const featRes = await fetch(`/api/league/${leagueId}/features`, { credentials: 'include' })
+        if (featRes.ok) {
+          const features: LeagueFeature[] = await featRes.json()
+          const matchEntry = features.find((f) => f.feature === 'match_entry')
+          setMatchEntryEnabled(matchEntry ? matchEntry.enabled : true)
+        } else {
+          setMatchEntryEnabled(true)
+        }
+      } catch {
+        setMatchEntryEnabled(true)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load')
+    } finally {
+      setLoading(false)
+    }
+  }, [leagueId])
 
   useEffect(() => {
-    async function load() {
-      try {
-        const [games, weeksData] = await Promise.all([
-          fetchGames(),
-          fetchWeeks(leagueId),
-        ])
-        const game = games.find((g) => g.id === leagueId)
-        if (!game) {
-          // Check if this is a public league — if so, auto-join as member
-          try {
-            const res = await fetch(`/api/league/${leagueId}/public`)
-            const { public_results_enabled } = await res.json()
-            if (public_results_enabled) {
-              const { createClient } = await import('@/lib/supabase/client')
-              const supabase = createClient()
-              await supabase.rpc('join_public_league', { p_game_id: leagueId })
-              window.location.reload()
-              return
-            }
-          } catch {
-            // fall through to access denied
-          }
-          setHasAccess(false)
-          setLoading(false)
-          return
-        }
-        setHasAccess(true)
-        setLeagueName(game.name)
-
-        const displayWeeks = sortWeeks(weeksData)
-        const playedWeeks = getPlayedWeeks(displayWeeks)
-        const mostRecentPlayed =
-          playedWeeks.length > 0
-            ? playedWeeks.reduce((a, b) => (a.week > b.week ? a : b))
-            : null
-
-        setWeeks(displayWeeks)
-        setOpenWeek(mostRecentPlayed?.week ?? null)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load')
-      } finally {
-        setLoading(false)
-      }
-    }
     load()
-  }, [leagueId])
+  }, [load])
 
   const handleToggle = (weekNum: number) => {
     setOpenWeek((prev) => (prev === weekNum ? null : weekNum))
   }
+
+  const isAdmin = userRole === 'creator' || userRole === 'admin'
+  const showNextMatch = isAdmin && matchEntryEnabled
 
   if (loading) {
     return (
@@ -131,7 +153,16 @@ export default function LeaguePage() {
             Players
           </Link>
         </div>
+
         <div className="flex flex-col gap-3">
+          {showNextMatch && (
+            <NextMatchCard
+              gameId={leagueId}
+              weeks={weeks}
+              onResultSaved={load}
+            />
+          )}
+
           {weeks.length === 0 ? (
             <p className="text-slate-400 text-sm">No match data yet. Add game data to get started.</p>
           ) : (
