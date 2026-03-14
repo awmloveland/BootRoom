@@ -218,76 +218,72 @@ export function TeamBuilderPanel({
 
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-800 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
-        <span className="text-sm font-semibold text-slate-100">Build Teams</span>
-        {hasPlayers && (
-          <button
-            type="button"
-            onClick={onClear}
-            className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
-          >
-            Clear all
-          </button>
+      {/* EWTPI balance bar + clear */}
+      <div className="px-3 pt-3 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase tracking-wider text-slate-500">EWTPI</span>
+            {hasPlayers && label && (
+              <span className="text-[10px] text-slate-400">{label}</span>
+            )}
+          </div>
+          {hasPlayers && (
+            <button
+              type="button"
+              onClick={onClear}
+              className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+
+        {hasPlayers ? (
+          <div className="grid grid-cols-2 gap-px h-2 rounded overflow-hidden">
+            <div className="flex justify-end bg-slate-700">
+              <div
+                className="h-full bg-sky-500 transition-all duration-500"
+                style={{ width: `${totalA}%` }}
+              />
+            </div>
+            <div className="flex justify-start bg-slate-700">
+              <div
+                className="h-full bg-violet-500 transition-all duration-500"
+                style={{ width: `${totalB}%` }}
+              />
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-slate-600 text-center py-1">
+            Add players to each team to see their EWTPI
+          </p>
         )}
       </div>
 
-      <div className="p-3 flex flex-col gap-3">
-        {/* EWTPI balance bar */}
-        {hasPlayers && (
-          <div>
-            <div className="flex justify-between text-[10px] text-slate-500 mb-1">
-              <span>EWTPI</span>
-              {label && <span className="text-slate-400">{label}</span>}
-            </div>
-            <div className="grid grid-cols-2 gap-px h-2 rounded overflow-hidden">
-              <div className="flex justify-end bg-slate-700">
-                <div
-                  className="h-full bg-sky-500 transition-all duration-500"
-                  style={{ width: `${totalA}%` }}
-                />
-              </div>
-              <div className="flex justify-start bg-slate-700">
-                <div
-                  className="h-full bg-violet-500 transition-all duration-500"
-                  style={{ width: `${totalB}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Team columns */}
-        <div className="grid grid-cols-2 gap-2">
-          <TeamColumn
-            label="Team A"
-            team="A"
-            players={teamA}
-            allPlayers={allPlayers}
-            assignedNames={assignedNames}
-            score={scoreA}
-            onAdd={onAdd}
-            onRemove={onRemove}
-            onDropOnTeam={onDropOnTeam}
-          />
-          <TeamColumn
-            label="Team B"
-            team="B"
-            players={teamB}
-            allPlayers={allPlayers}
-            assignedNames={assignedNames}
-            score={scoreB}
-            onAdd={onAdd}
-            onRemove={onRemove}
-            onDropOnTeam={onDropOnTeam}
-          />
-        </div>
-
-        {!hasPlayers && (
-          <p className="text-xs text-slate-600 text-center py-2">
-            Drag players from the list or search above to build teams
-          </p>
-        )}
+      {/* Team columns */}
+      <div className="p-3 grid grid-cols-2 gap-3">
+        <TeamColumn
+          label="Team A"
+          team="A"
+          players={teamA}
+          allPlayers={allPlayers}
+          assignedNames={assignedNames}
+          score={scoreA}
+          onAdd={onAdd}
+          onRemove={onRemove}
+          onDropOnTeam={onDropOnTeam}
+        />
+        <TeamColumn
+          label="Team B"
+          team="B"
+          players={teamB}
+          allPlayers={allPlayers}
+          assignedNames={assignedNames}
+          score={scoreB}
+          onAdd={onAdd}
+          onRemove={onRemove}
+          onDropOnTeam={onDropOnTeam}
+        />
       </div>
     </div>
   )

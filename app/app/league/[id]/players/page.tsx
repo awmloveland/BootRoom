@@ -9,12 +9,6 @@ import { cn, deriveSeason } from '@/lib/utils'
 import { fetchWeeks, fetchPlayers, fetchGames } from '@/lib/data'
 import { PlayerCard } from '@/components/PlayerCard'
 import { TeamBuilderPanel } from '@/components/TeamBuilderPanel'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
 import bootRoomData from '@/data/boot_room.json'
 
 const LEGACY_BOOT_ROOM_ID = '00000000-0000-0000-0000-000000000001'
@@ -85,7 +79,7 @@ export default function LeaguePlayersPage() {
   const [builderMode, setBuilderMode] = useState(false)
   const [teamA, setTeamA] = useState<Player[]>([])
   const [teamB, setTeamB] = useState<Player[]>([])
-  const [sheetOpen, setSheetOpen] = useState(false)
+
 
   const filteredAndSortedPlayers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -175,7 +169,6 @@ export default function LeaguePlayersPage() {
       setBuilderMode(false)
       setTeamA([])
       setTeamB([])
-      setSheetOpen(false)
     } else {
       setBuilderMode(true)
       setOpenPlayer(null)
@@ -222,8 +215,6 @@ export default function LeaguePlayersPage() {
     )
   }
 
-  const totalAssigned = teamA.length + teamB.length
-
   return (
     <>
       <div className="bg-slate-800/50 border-b border-slate-700">
@@ -235,168 +226,102 @@ export default function LeaguePlayersPage() {
         </div>
       </div>
 
-      <main
-        className={cn(
-          'mx-auto px-4 sm:px-6 py-4 transition-all duration-300',
-          builderMode ? 'max-w-5xl' : 'max-w-2xl',
-        )}
-      >
-        <div className={cn(builderMode ? 'lg:grid lg:grid-cols-[1fr_340px] lg:gap-6' : '')}>
-          {/* Left column: toolbar + player list */}
-          <div>
-            <div className="flex flex-col gap-3 mb-4">
-              <input
-                type="search"
-                placeholder="Search players…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                aria-label="Search players"
-              />
-              <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
-                <div className="flex flex-wrap items-center gap-2 min-w-0">
-                  <label htmlFor="sort" className="text-xs text-slate-400 shrink-0">Sort by</label>
-                  <select
-                    id="sort"
-                    value={sortBy}
-                    onChange={(e) => {
-                      const key = e.target.value as SortKey
-                      setSortBy(key)
-                      setSortAsc(key === 'name')
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm min-w-0"
-                  >
-                    {SORT_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                  {sortBy !== 'name' && (
-                    <button
-                      type="button"
-                      onClick={() => setSortAsc((a) => !a)}
-                      className="text-xs text-slate-400 hover:text-slate-300 shrink-0"
-                    >
-                      {sortAsc ? '↑ Low to high' : '↓ High to low'}
-                    </button>
-                  )}
-                </div>
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
+        <div className="flex flex-col gap-3 mb-4">
+          {/* Search */}
+          <input
+            type="search"
+            placeholder="Search players…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+            aria-label="Search players"
+          />
+
+          {/* Team builder panel — inline, full width */}
+          {builderMode && (
+            <TeamBuilderPanel
+              allPlayers={players}
+              teamA={teamA}
+              teamB={teamB}
+              onAdd={handleAdd}
+              onRemove={handleRemove}
+              onDropOnTeam={handleDropOnTeam}
+              onClear={() => { setTeamA([]); setTeamB([]) }}
+            />
+          )}
+
+          {/* Sort row + Build Teams button */}
+          <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
+            <div className="flex flex-wrap items-center gap-2 min-w-0">
+              <label htmlFor="sort" className="text-xs text-slate-400 shrink-0">Sort by</label>
+              <select
+                id="sort"
+                value={sortBy}
+                onChange={(e) => {
+                  const key = e.target.value as SortKey
+                  setSortBy(key)
+                  setSortAsc(key === 'name')
+                }}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm min-w-0"
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              {sortBy !== 'name' && (
                 <button
                   type="button"
-                  onClick={toggleBuilderMode}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors shrink-0',
-                    builderMode
-                      ? 'bg-sky-500/20 border-sky-500 text-sky-300'
-                      : 'border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-600',
-                  )}
+                  onClick={() => setSortAsc((a) => !a)}
+                  className="text-xs text-slate-400 hover:text-slate-300 shrink-0"
                 >
-                  <Users className="h-3.5 w-3.5" />
-                  {builderMode ? 'Done' : 'Build Teams'}
+                  {sortAsc ? '↑ Low to high' : '↓ High to low'}
                 </button>
-              </div>
-              {builderMode && (
-                <p className="text-xs text-slate-500">
-                  Drag players into a team, or tap to cycle: unassigned → A → B → unassigned.
-                </p>
               )}
             </div>
-
-            <div className="flex flex-col gap-3">
-              {filteredAndSortedPlayers.length === 0 ? (
-                <p className="text-slate-500 text-sm py-4 text-center">
-                  {searchQuery.trim() ? 'No players match your search' : 'No players'}
-                </p>
-              ) : (
-                filteredAndSortedPlayers.map((player) => (
-                  <PlayerCard
-                    key={player.name}
-                    player={player}
-                    isOpen={openPlayer === player.name}
-                    onToggle={() => handleToggle(player.name)}
-                    builderMode={builderMode}
-                    teamAssignment={getAssignment(player)}
-                    onAssignCycle={() => handleAssignCycle(player)}
-                    onDragStart={() => {}}
-                  />
-                ))
+            <button
+              type="button"
+              onClick={toggleBuilderMode}
+              className={cn(
+                'inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors shrink-0',
+                builderMode
+                  ? 'bg-sky-500/20 border-sky-500 text-sky-300'
+                  : 'border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-600',
               )}
-            </div>
+            >
+              <Users className="h-3.5 w-3.5" />
+              {builderMode ? 'Done' : 'Build Teams'}
+            </button>
           </div>
 
-          {/* Right column: team builder panel (desktop) */}
           {builderMode && (
-            <div className="hidden lg:block">
-              <div className="sticky top-20">
-                <TeamBuilderPanel
-                  allPlayers={players}
-                  teamA={teamA}
-                  teamB={teamB}
-                  onAdd={handleAdd}
-                  onRemove={handleRemove}
-                  onDropOnTeam={handleDropOnTeam}
-                  onClear={() => { setTeamA([]); setTeamB([]) }}
-                />
-              </div>
-            </div>
+            <p className="text-xs text-slate-500">
+              Drag players into a team, or tap to cycle: unassigned → A → B → unassigned.
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {filteredAndSortedPlayers.length === 0 ? (
+            <p className="text-slate-500 text-sm py-4 text-center">
+              {searchQuery.trim() ? 'No players match your search' : 'No players'}
+            </p>
+          ) : (
+            filteredAndSortedPlayers.map((player) => (
+              <PlayerCard
+                key={player.name}
+                player={player}
+                isOpen={openPlayer === player.name}
+                onToggle={() => handleToggle(player.name)}
+                builderMode={builderMode}
+                teamAssignment={getAssignment(player)}
+                onAssignCycle={() => handleAssignCycle(player)}
+                onDragStart={() => {}}
+              />
+            ))
           )}
         </div>
       </main>
-
-      {/* Mobile floating pill */}
-      {builderMode && (
-        <div className="lg:hidden fixed bottom-6 inset-x-4 z-40">
-          <div className="rounded-full border border-slate-700 bg-slate-800 shadow-xl px-4 py-3 flex items-center justify-between gap-3">
-            <span className="text-sm text-slate-300 truncate">
-              {totalAssigned === 0
-                ? 'Tap players to assign to a team'
-                : `${teamA.length} in A · ${teamB.length} in B`}
-            </span>
-            <div className="flex items-center gap-3 shrink-0">
-              {totalAssigned > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setSheetOpen(true)}
-                  className="text-xs font-semibold text-sky-400 hover:text-sky-300 whitespace-nowrap"
-                >
-                  View teams →
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={toggleBuilderMode}
-                className="text-xs text-slate-500 hover:text-slate-400"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mobile bottom sheet */}
-      {builderMode && (
-        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetContent
-            side="bottom"
-            className="h-[85vh] bg-slate-900 border-slate-700 p-0 flex flex-col"
-          >
-            <SheetHeader className="px-4 pt-5 pb-3 border-b border-slate-700 shrink-0">
-              <SheetTitle className="text-slate-100">Build Teams</SheetTitle>
-            </SheetHeader>
-            <div className="overflow-y-auto px-4 py-4 flex-1">
-              <TeamBuilderPanel
-                allPlayers={players}
-                teamA={teamA}
-                teamB={teamB}
-                onAdd={handleAdd}
-                onRemove={handleRemove}
-                onDropOnTeam={handleDropOnTeam}
-                onClear={() => { setTeamA([]); setTeamB([]) }}
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
-      )}
     </>
   )
 }
