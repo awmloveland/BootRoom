@@ -23,27 +23,22 @@ export default async function PublicResultsPage({ params }: Props) {
 
   if (!game || !game.public_results_enabled) notFound()
 
-  const { data: weeksRaw, error: weeksError } = await publicSupabase
-    .from('weeks')
-    .select('week, date, status, format, team_a, team_b, winner, notes')
-    .eq('game_id', id)
-    .in('status', ['played', 'cancelled'])
-    .order('week', { ascending: false })
+  const { data: weeksRaw } = await publicSupabase
+    .rpc('get_public_weeks', { p_game_id: id })
 
-  if (weeksError) {
-    console.error('[PublicResultsPage] weeks fetch error:', weeksError)
+  type PublicWeekRow = {
+    week: number; date: string; status: string; format: string | null;
+    team_a: string[] | null; team_b: string[] | null; winner: string | null; notes: string | null;
   }
-  console.log('[PublicResultsPage] weeksRaw count:', weeksRaw?.length ?? 0, 'gameId:', id)
-
   const weeks: Week[] = sortWeeks(
-    (weeksRaw ?? []).map((row) => ({
+    (weeksRaw as PublicWeekRow[] ?? []).map((row) => ({
       week: row.week,
       date: row.date,
-      status: row.status,
+      status: row.status as Week['status'],
       format: row.format ?? undefined,
       teamA: row.team_a ?? [],
       teamB: row.team_b ?? [],
-      winner: row.winner ?? null,
+      winner: row.winner as Week['winner'] ?? null,
       notes: row.notes ?? undefined,
     }))
   )
