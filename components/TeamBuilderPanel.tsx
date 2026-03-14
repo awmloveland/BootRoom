@@ -111,39 +111,28 @@ function TeamColumn({
         <span className="text-xs text-slate-500 ml-auto">{players.length} players</span>
       </div>
 
-      {/* Player pills */}
+      {/* Combined player pills: name · form · remove */}
       {players.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-col gap-1.5">
           {players.map((p) => (
             <span
               key={p.name}
               className={cn(
-                'inline-flex items-center gap-1 text-xs font-medium border rounded-full px-2 py-0.5',
+                'inline-flex items-center gap-2 text-xs font-medium border rounded-full px-2.5 py-1',
                 accentPill,
               )}
             >
-              {p.name}
+              <span className="shrink-0">{p.name}</span>
+              <RecentForm form={p.recentForm} />
               <button
                 type="button"
                 onClick={() => onRemove(p.name)}
-                className="text-slate-400 hover:text-slate-200 ml-0.5"
+                className="text-slate-500 hover:text-slate-200 ml-auto shrink-0"
                 aria-label={`Remove ${p.name}`}
               >
                 <X className="h-2.5 w-2.5" />
               </button>
             </span>
-          ))}
-        </div>
-      )}
-
-      {/* Recent form summary */}
-      {players.length > 0 && (
-        <div className="flex flex-wrap gap-x-2 gap-y-1">
-          {players.map((p) => (
-            <div key={p.name} className="flex items-center gap-1">
-              <span className="text-[10px] text-slate-500 shrink-0">{p.name.split(' ')[0]}</span>
-              <RecentForm form={p.recentForm} />
-            </div>
           ))}
         </div>
       )}
