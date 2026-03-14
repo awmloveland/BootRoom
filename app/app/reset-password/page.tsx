@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Header } from '@/components/Header'
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams()
@@ -94,10 +93,7 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <Header />
-
-      <main className="max-w-md mx-auto px-4 sm:px-6 py-12">
+    <main className="max-w-md mx-auto px-4 sm:px-6 py-12">
         <h1 className="text-xl font-semibold text-slate-100 mb-6">Set new password</h1>
         <p className="text-slate-400 text-sm mb-6">
           Enter your new password below.
@@ -134,8 +130,7 @@ function ResetPasswordForm() {
         <a href="/sign-in" className="mt-4 block text-sm text-slate-400 hover:text-slate-300">
           ← Back to sign in
         </a>
-      </main>
-    </div>
+    </main>
   )
 }
 

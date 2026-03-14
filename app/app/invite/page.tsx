@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Header } from '@/components/Header'
 
 function InviteAcceptForm() {
   const router = useRouter()
@@ -94,7 +93,7 @@ function InviteAcceptForm() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-[50vh] flex items-center justify-center">
         <p className="text-slate-400">Loading…</p>
       </div>
     )
@@ -102,9 +101,7 @@ function InviteAcceptForm() {
 
   if (status === 'needs-auth') {
     return (
-      <div className="min-h-screen bg-slate-900">
-        <Header />
-        <main className="max-w-md mx-auto px-4 sm:px-6 py-12">
+      <main className="max-w-md mx-auto px-4 sm:px-6 py-12">
           <h1 className="text-xl font-semibold text-slate-100 mb-2">Join the league</h1>
           <p className="text-slate-400 text-sm mb-6">
             Create an account to accept this invite and view the stats.
@@ -150,16 +147,13 @@ function InviteAcceptForm() {
               Sign in
             </a>
           </p>
-        </main>
-      </div>
+      </main>
     )
   }
 
   if (status === 'error') {
     return (
-      <div className="min-h-screen bg-slate-900">
-        <Header />
-        <main className="max-w-md mx-auto px-4 sm:px-6 py-12 text-center">
+      <main className="max-w-md mx-auto px-4 sm:px-6 py-12 text-center">
           <h1 className="text-xl font-semibold text-slate-100 mb-2">Couldn&apos;t accept invite</h1>
           <p className="text-slate-400 text-sm mb-6">{errorMsg}</p>
           <a
@@ -168,8 +162,7 @@ function InviteAcceptForm() {
           >
             Back to app
           </a>
-        </main>
-      </div>
+      </main>
     )
   }
 
@@ -179,7 +172,7 @@ function InviteAcceptForm() {
 export default function InviteAcceptPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-[50vh] flex items-center justify-center">
         <p className="text-slate-400">Loading…</p>
       </div>
     }>

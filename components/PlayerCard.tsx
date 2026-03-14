@@ -10,6 +10,7 @@ interface PlayerCardProps {
   player: Player
   isOpen: boolean
   onToggle: () => void
+  rank?: number
 }
 
 interface StatRowProps {
@@ -26,7 +27,7 @@ function StatRow({ label, value }: StatRowProps) {
   )
 }
 
-export function PlayerCard({ player, isOpen, onToggle }: PlayerCardProps) {
+export function PlayerCard({ player, isOpen, onToggle, rank }: PlayerCardProps) {
   const contentId = `player-${player.name.replace(/\s+/g, '-').toLowerCase()}-content`
 
   return (
@@ -44,8 +45,23 @@ export function PlayerCard({ player, isOpen, onToggle }: PlayerCardProps) {
             aria-expanded={isOpen}
             aria-controls={contentId}
           >
-            <span className="text-sm font-semibold text-slate-100">{player.name}</span>
+            <div className="flex items-center gap-2.5">
+              {rank !== undefined && (
+                <span className={cn(
+                  'text-xs font-mono font-medium tabular-nums w-6 text-right shrink-0',
+                  !player.qualified ? 'text-slate-600' : rank === 1 ? 'text-amber-400' : rank <= 3 ? 'text-slate-300' : 'text-slate-500'
+                )}>
+                  #{rank}
+                </span>
+              )}
+              <span className={cn('text-sm font-semibold', !player.qualified && rank !== undefined ? 'text-slate-500' : 'text-slate-100')}>
+                {player.name}
+              </span>
+            </div>
             <div className="flex items-center gap-2">
+              {rank !== undefined && !player.qualified && (
+                <span className="text-xs text-slate-600">few games</span>
+              )}
               <span className="text-xs text-slate-400">{player.played} games played</span>
               <ChevronDown
                 className={cn(

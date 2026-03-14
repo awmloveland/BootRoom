@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Header } from '@/components/Header'
 import { createClient } from '@/lib/supabase/client'
 
 function SignInForm() {
@@ -148,9 +147,7 @@ function SignInForm() {
 
   if (locked) {
     return (
-      <div className="min-h-screen bg-slate-900">
-        <Header />
-        <main className="max-w-md mx-auto px-4 sm:px-6 py-12">
+      <main className="max-w-md mx-auto px-4 sm:px-6 py-12">
           <h1 className="text-xl font-semibold text-slate-100 mb-4">App locked</h1>
           <p className="text-slate-400 text-sm mb-4">
             Add your access key to the URL to unlock. Use the same URL when signing in so your session persists.
@@ -161,16 +158,12 @@ function SignInForm() {
           <p className="text-slate-500 text-xs">
             Get the key from APP_ACCESS_KEY in your deployment environment.
           </p>
-        </main>
-      </div>
+      </main>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <Header />
-
-      <main className="max-w-md mx-auto px-4 sm:px-6 py-12">
+    <main className="max-w-md mx-auto px-4 sm:px-6 py-12">
         <h1 className="text-xl font-semibold text-slate-100 mb-6">
           {mode === 'signup' ? 'Create account' : mode === 'forgot' ? 'Reset password' : 'Sign in'}
         </h1>
@@ -342,15 +335,14 @@ function SignInForm() {
             </button>
           )}
         </div>
-      </main>
-    </div>
+    </main>
   )
 }
 
 export default function SignInPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-[50vh] flex items-center justify-center">
         <p className="text-slate-400">Loading…</p>
       </div>
     }>

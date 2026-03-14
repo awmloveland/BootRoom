@@ -1,12 +1,9 @@
 'use client'
 
-import { Header } from '@/components/Header'
 
 export default function ProfileRequiredPage() {
   return (
-    <div className="min-h-screen bg-slate-900">
-      <Header />
-      <main className="max-w-md mx-auto px-4 sm:px-6 py-12 flex flex-col items-center justify-center">
+    <main className="max-w-md mx-auto px-4 sm:px-6 py-12 flex flex-col items-center justify-center">
         <h1 className="text-xl font-semibold text-slate-100 mb-2">Profile required</h1>
         <p className="text-slate-400 text-sm mb-6 text-center">
           Your account is missing a profile. Sign out and sign in again, or contact support.
@@ -20,7 +17,6 @@ export default function ProfileRequiredPage() {
         >
           Sign out
         </button>
-      </main>
-    </div>
+    </main>
   )
 }

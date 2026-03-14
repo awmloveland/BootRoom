@@ -28,14 +28,11 @@ export function BootRoomMatchHistory({
   return (
     <>
       <div className="bg-slate-800/50 border-b border-slate-700">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-3">
-          <h1 className="text-lg font-semibold text-slate-100 mb-1">The Boot Room</h1>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-400">Season {season}</span>
-            <span className="text-sm text-slate-400">
-              {weeks.length} of {SEASON_LENGTH} Weeks
-            </span>
-          </div>
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
+          <span className="text-sm text-slate-400">Season {season}</span>
+          <span className="text-sm text-slate-400">
+            {weeks.length} of {SEASON_LENGTH} Weeks
+          </span>
         </div>
       </div>
 

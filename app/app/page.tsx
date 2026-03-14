@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Header } from '@/components/Header'
 import { fetchGames } from '@/lib/data'
 
 export default function LeaguesListPage() {
@@ -49,17 +48,14 @@ export default function LeaguesListPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-[50vh] flex items-center justify-center">
         <p className="text-slate-400">Loading…</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <Header />
-
-      <main className="max-w-md mx-auto px-4 sm:px-6 py-8">
+    <main className="max-w-md mx-auto px-4 sm:px-6 py-8">
         <h1 className="text-xl font-semibold text-slate-100 mb-6">Your leagues</h1>
 
         {error && (
@@ -138,7 +134,6 @@ export default function LeaguesListPage() {
             </div>
           </form>
         )}
-      </main>
-    </div>
+    </main>
   )
 }

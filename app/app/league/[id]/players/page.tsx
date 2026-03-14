@@ -4,17 +4,17 @@ import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Player, Week } from '@/lib/types'
-import { deriveSeason } from '@/lib/utils'
+import { deriveSeason, wprScore } from '@/lib/utils'
 import { fetchWeeks, fetchPlayers, fetchGames } from '@/lib/data'
-import { Header } from '@/components/Header'
 import { PlayerCard } from '@/components/PlayerCard'
 import bootRoomData from '@/data/boot_room.json'
 
 const LEGACY_BOOT_ROOM_ID = '00000000-0000-0000-0000-000000000001'
 
-type SortKey = 'name' | 'played' | 'won' | 'drew' | 'lost' | 'winRate' | 'timesTeamA' | 'timesTeamB' | 'recentForm'
+type SortKey = 'performer' | 'name' | 'played' | 'won' | 'drew' | 'lost' | 'winRate' | 'timesTeamA' | 'timesTeamB' | 'recentForm'
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: 'performer', label: 'Weighted Performance Rating' },
   { value: 'name', label: 'Name' },
   { value: 'played', label: 'Games Played' },
   { value: 'won', label: 'Won' },
@@ -38,6 +38,11 @@ function formScore(form: string): number {
 function sortPlayers(players: Player[], sortBy: SortKey, ascending: boolean): Player[] {
   const dir = ascending ? 1 : -1
   return [...players].sort((a, b) => {
+    if (sortBy === 'performer') {
+      // Qualified players (5+ games) always rank above unqualified
+      if (a.qualified !== b.qualified) return a.qualified ? -1 : 1
+      return wprScore(b) - wprScore(a)
+    }
     let cmp = 0
     if (sortBy === 'name') {
       cmp = a.name.localeCompare(b.name)
@@ -70,7 +75,7 @@ export default function LeaguePlayersPage() {
   const [error, setError] = useState<string | null>(null)
   const [openPlayer, setOpenPlayer] = useState<string | null>(null)
   const [hasAccess, setHasAccess] = useState(false)
-  const [sortBy, setSortBy] = useState<SortKey>('name')
+  const [sortBy, setSortBy] = useState<SortKey>('performer')
   const [sortAsc, setSortAsc] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -126,7 +131,7 @@ export default function LeaguePlayersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-[50vh] flex items-center justify-center">
         <p className="text-slate-400">Loading…</p>
       </div>
     )
@@ -134,9 +139,7 @@ export default function LeaguePlayersPage() {
 
   if (!hasAccess) {
     return (
-      <div className="min-h-screen bg-slate-900">
-        <Header />
-        <main className="max-w-md mx-auto px-4 sm:px-6 py-12 text-center">
+      <main className="max-w-md mx-auto px-4 sm:px-6 py-12 text-center">
           <h1 className="text-xl font-semibold text-slate-100 mb-2">League</h1>
           <p className="text-slate-400 text-sm mb-6">
             You need an invite to view this league. Ask an admin to send you an invite link.
@@ -147,36 +150,27 @@ export default function LeaguePlayersPage() {
           >
             Your leagues
           </Link>
-        </main>
-      </div>
+      </main>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-900">
-        <Header />
-        <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
           <p className="text-red-400 mb-4">{error}</p>
           <Link href="/" className="text-sky-400 hover:underline">Back to leagues</Link>
-        </main>
-      </div>
+      </main>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <Header />
-
+    <>
       <div className="bg-slate-800/50 border-b border-slate-700">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2">
-          <Link href={`/league/${leagueId}`} className="text-xs text-slate-400 hover:text-slate-300">← {leagueName}</Link>
-        </div>
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 pb-2">
-          <h1 className="text-lg font-semibold text-slate-100 mb-1">{leagueName}</h1>
-          <p className="text-xs text-slate-400">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
+          <Link href={`/league/${leagueId}`} className="text-xs text-slate-400 hover:text-slate-300">← Results</Link>
+          <span className="text-xs text-slate-400">
             {players.length} Players · Season {season}
-          </p>
+          </span>
         </div>
       </div>
 
@@ -191,30 +185,37 @@ export default function LeaguePlayersPage() {
             aria-label="Search players"
           />
           <div className="flex flex-wrap items-center gap-3">
-            <label htmlFor="sort" className="text-xs text-slate-400">Sort by</label>
-          <select
-            id="sort"
-            value={sortBy}
-            onChange={(e) => {
-              const key = e.target.value as SortKey
-              setSortBy(key)
-              setSortAsc(key === 'name')
-            }}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm"
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() => setSortAsc((a) => !a)}
-            className="text-xs text-slate-400 hover:text-slate-300"
-            title={sortAsc ? 'Ascending (click for descending)' : 'Descending (click for ascending)'}
-          >
-            {sortAsc ? '↑ Low to high' : '↓ High to low'}
-          </button>
+            <label htmlFor="sort" className="text-xs text-slate-400 shrink-0">Sort by</label>
+            <select
+              id="sort"
+              value={sortBy}
+              onChange={(e) => {
+                const key = e.target.value as SortKey
+                setSortBy(key)
+                setSortAsc(key === 'name')
+              }}
+              className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm"
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            {sortBy !== 'performer' && (
+              <button
+                type="button"
+                onClick={() => setSortAsc((a) => !a)}
+                className="text-xs text-slate-400 hover:text-slate-300"
+                title={sortAsc ? 'Ascending (click for descending)' : 'Descending (click for ascending)'}
+              >
+                {sortAsc ? '↑ Low to high' : '↓ High to low'}
+              </button>
+            )}
           </div>
+          {sortBy === 'performer' && (
+            <p className="text-xs text-slate-500">
+              Based on overall record, recent form and player rating. Players with fewer than 5 games appear at the bottom.
+            </p>
+          )}
         </div>
         <div className="flex flex-col gap-3">
           {filteredAndSortedPlayers.length === 0 ? (
@@ -222,17 +223,18 @@ export default function LeaguePlayersPage() {
               {searchQuery.trim() ? 'No players match your search' : 'No players'}
             </p>
           ) : (
-            filteredAndSortedPlayers.map((player) => (
+            filteredAndSortedPlayers.map((player, index) => (
               <PlayerCard
                 key={player.name}
                 player={player}
                 isOpen={openPlayer === player.name}
                 onToggle={() => handleToggle(player.name)}
+                rank={sortBy === 'performer' && !searchQuery.trim() ? index + 1 : undefined}
               />
             ))
           )}
         </div>
       </main>
-    </div>
+    </>
   )
 }

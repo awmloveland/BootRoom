@@ -1,14 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Header } from '@/components/Header'
+import { Check } from 'lucide-react'
 import { fetchGames } from '@/lib/data'
+import { cn } from '@/lib/utils'
 
 export default function SettingsPage() {
   const [games, setGames] = useState<{ id: string; name: string }[]>([])
   const [gamesLoading, setGamesLoading] = useState(true)
   const [selectedGameId, setSelectedGameId] = useState('')
   const [link, setLink] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -48,13 +50,12 @@ export default function SettingsPage() {
   async function copyLink() {
     if (!link) return
     await navigator.clipboard.writeText(link)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <Header />
-
-      <main className="max-w-md mx-auto px-4 sm:px-6 py-8">
+    <main className="max-w-md mx-auto px-4 sm:px-6 py-8">
         <h1 className="text-xl font-semibold text-slate-100 mb-6">Invite admin</h1>
         <p className="text-slate-400 text-sm mb-6">
           Create a link to share. Anyone who follows it can sign up and get admin access to the league.
@@ -100,13 +101,22 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={copyLink}
-              className="text-sm text-sky-400 hover:text-sky-300"
+              className={cn(
+                'inline-flex items-center gap-1.5 text-sm font-medium transition-all duration-200',
+                copied ? 'text-sky-300' : 'text-sky-400 hover:text-sky-300'
+              )}
             >
-              Copy link
+              {copied ? (
+                <>
+                  <Check className="size-4 shrink-0" />
+                  Copied!
+                </>
+              ) : (
+                'Copy link'
+              )}
             </button>
           </div>
         )}
       </main>
-    </div>
   )
 }

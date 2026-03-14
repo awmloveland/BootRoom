@@ -68,18 +68,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 2. craft-football.com (desktop) → show marketing website
-  if (isWebsiteHost(host) && host !== 'localhost' && !host.startsWith('localhost:')) {
-    return NextResponse.rewrite(new URL('/website', request.url))
-  }
-
-  // 3. localhost + /website → rewrite (to test website locally)
+  // 2. localhost + /website → rewrite (to test website locally)
   if ((host === 'localhost' || host.startsWith('localhost:')) && pathname === '/website') {
     return NextResponse.rewrite(new URL('/website', request.url))
   }
 
-  // 4. App host or localhost: run auth, then rewrite to /app
-  const isAppRequest = (isAppHost(host) || host === 'localhost' || host.startsWith('localhost:')) &&
+  // 3. App: m.craft-football.com (mobile), craft-football.com (desktop), or localhost
+  const isAppRequest = (isAppHost(host) || (isWebsiteHost(host) && !isMobile(userAgent)) || host === 'localhost' || host.startsWith('localhost:')) &&
     (pathname === '/' || pathname === '' || pathname === '/sign-in' || pathname === '/reset-password' || pathname === '/profile-required' || pathname === '/settings' || pathname === '/add-game' || pathname.startsWith('/invite') || pathname.startsWith('/league/'))
 
   if (isAppRequest) {
@@ -88,8 +83,8 @@ export async function middleware(request: NextRequest) {
     const isResetPassword = pathname === '/reset-password'
     const isAuthCallback = pathname.startsWith(AUTH_CALLBACK_PATH)
 
-    // Access key only required on production (m.craft-football.com), not localhost
-    const isProductionApp = isAppHost(host)
+    // Access key only required on production (craft-football.com or m.craft-football.com), not localhost
+    const isProductionApp = (isAppHost(host) || (isWebsiteHost(host) && !isMobile(userAgent))) && host !== 'localhost' && !host.startsWith('localhost:')
     const accessKey = process.env.APP_ACCESS_KEY
     if (isProductionApp && accessKey) {
       const urlKey = request.nextUrl.searchParams.get('key')

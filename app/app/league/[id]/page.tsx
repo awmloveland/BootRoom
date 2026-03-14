@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { Week } from '@/lib/types'
 import { sortWeeks, getPlayedWeeks, deriveSeason, getMonthKey, formatMonthYear } from '@/lib/utils'
 import { fetchWeeks, fetchGames } from '@/lib/data'
-import { Header } from '@/components/Header'
 import { BootRoomMatchHistory } from '@/components/BootRoomMatchHistory'
 import { MatchCard } from '@/components/MatchCard'
 import { MonthDivider } from '@/components/MonthDivider'
@@ -76,7 +75,7 @@ export default function LeaguePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-[50vh] flex items-center justify-center">
         <p className="text-slate-400">Loading…</p>
       </div>
     )
@@ -84,9 +83,7 @@ export default function LeaguePage() {
 
   if (!hasAccess) {
     return (
-      <div className="min-h-screen bg-slate-900">
-        <Header />
-        <main className="max-w-md mx-auto px-4 sm:px-6 py-12 text-center">
+      <main className="max-w-md mx-auto px-4 sm:px-6 py-12 text-center">
           <h1 className="text-xl font-semibold text-slate-100 mb-2">League</h1>
           <p className="text-slate-400 text-sm mb-6">
             You need an invite to view this league. Ask an admin to send you an invite link.
@@ -97,35 +94,28 @@ export default function LeaguePage() {
           >
             Your leagues
           </Link>
-        </main>
-      </div>
+      </main>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-900">
-        <Header />
-        <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
           <p className="text-red-400 mb-4">{error}</p>
           <Link href="/" className="text-sky-400 hover:underline">Back to leagues</Link>
-        </main>
-      </div>
+      </main>
     )
   }
 
   if (isBootRoom) {
     const season = deriveSeason(weeks)
     return (
-      <div className="min-h-screen bg-slate-900">
-        <Header />
-        <BootRoomMatchHistory
+      <BootRoomMatchHistory
           weeks={weeks}
           season={season}
           openWeek={openWeek}
           onToggle={handleToggle}
         />
-      </div>
     )
   }
 
@@ -135,19 +125,13 @@ export default function LeaguePage() {
   const pctComplete = Math.round((totalWeeks / SEASON_LENGTH) * 100)
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <Header />
-
+    <>
       <div className="bg-slate-800/50 border-b border-slate-700">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
           <Link href="/" className="text-xs text-slate-400 hover:text-slate-300">← Leagues</Link>
           <span className="text-xs text-slate-400">
-            {totalWeeks} of {SEASON_LENGTH} Weeks ({pctComplete}% complete)
+            Season {season} · {totalWeeks} of {SEASON_LENGTH} Weeks ({pctComplete}% complete)
           </span>
-        </div>
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 pb-2">
-          <h2 className="text-lg font-semibold text-slate-100">{leagueName}</h2>
-          <p className="text-xs text-slate-400">Season {season}</p>
         </div>
       </div>
 
@@ -182,6 +166,6 @@ export default function LeaguePage() {
           )}
         </div>
       </main>
-    </div>
+    </>
   )
 }

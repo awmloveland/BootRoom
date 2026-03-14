@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Header } from '@/components/Header'
 
 export default function AddGamePage() {
   const router = useRouter()
@@ -40,10 +39,7 @@ export default function AddGamePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <Header />
-
-      <main className="max-w-md mx-auto px-4 sm:px-6 py-8">
+    <main className="max-w-md mx-auto px-4 sm:px-6 py-8">
         <Link href="/" className="text-sm text-slate-400 hover:text-slate-300 mb-4 inline-block">← Leagues</Link>
         <h1 className="text-xl font-semibold text-slate-100 mb-6">Add game data</h1>
         <p className="text-slate-400 text-sm mb-4">
@@ -104,7 +100,6 @@ export default function AddGamePage() {
             {loading ? 'Importing…' : 'Import'}
           </button>
         </form>
-      </main>
-    </div>
+    </main>
   )
 }
