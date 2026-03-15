@@ -30,22 +30,20 @@ export default async function PublicPlayersPage({ params }: Props) {
   const serviceSupabase = createServiceClient()
 
   // Gate: player_stats must be public-enabled
-  const { data: feat } = await serviceSupabase
+  const { data: featRow, error: featError } = await serviceSupabase
     .from('league_features')
-    .select('public_enabled, public_config')
+    .select('*')
     .eq('game_id', id)
     .eq('feature', 'player_stats')
     .maybeSingle()
 
-  if (!feat?.public_enabled) notFound()
+  console.log('[public/players] featRow:', JSON.stringify(featRow))
+  console.log('[public/players] featError:', JSON.stringify(featError))
 
-  const rawPublicConfig = feat.public_config
-  const publicConfig = (typeof rawPublicConfig === 'object' && rawPublicConfig !== null
-    ? rawPublicConfig
-    : null) as FeatureConfig | null
-  console.log('[public/players] raw feat:', JSON.stringify(feat))
+  if (!featRow?.public_enabled) notFound()
+
+  const publicConfig = (featRow.public_config ?? null) as FeatureConfig | null
   console.log('[public/players] publicConfig:', JSON.stringify(publicConfig))
-  console.log('[public/players] showMentality will be:', publicConfig?.show_mentality ?? true)
 
   // Fetch players — use the public variant that has no membership check
   const { data: playersData, error: playersError } = await serviceSupabase.rpc('get_player_stats_public', { p_game_id: id })
