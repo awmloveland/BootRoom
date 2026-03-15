@@ -11,5 +11,11 @@ export function createServiceClient() {
   if (!key) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY')
   return createClient(getSupabaseUrl(), key, {
     auth: { persistSession: false, autoRefreshToken: false },
+    // Explicitly bypass Next.js Data Cache — without this, supabase-js fetch calls
+    // can serve stale cached responses even when the page uses force-dynamic.
+    global: {
+      fetch: (url, options = {}) =>
+        fetch(url as RequestInfo, { ...(options as RequestInit), cache: 'no-store' }),
+    },
   })
 }
