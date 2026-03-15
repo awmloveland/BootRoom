@@ -7,13 +7,13 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://craft-football.com'),
-  title: 'Craft Football',
+  title: 'Crafted Football',
   description: 'Match history browser for The Boot Room 5-a-side league.',
   openGraph: {
-    title: 'Craft Football',
+    title: 'Crafted Football',
     description: 'Match history browser for The Boot Room 5-a-side league.',
     url: 'https://craft-football.com',
-    siteName: 'Craft Football',
+    siteName: 'Crafted Football',
   },
 }
 

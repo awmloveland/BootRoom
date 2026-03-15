@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createPublicClient } from '@/lib/supabase/public'
+import { WebsiteHeader } from '@/components/WebsiteHeader'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,26 +19,7 @@ export default async function WebsitePage() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-slate-900 border-b border-slate-700 h-14 flex items-center">
-        <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 flex items-center justify-between">
-          <span className="text-xl font-bold text-slate-100">⚽ Craft Football</span>
-          <nav className="flex items-center gap-6">
-            <a
-              href="https://m.craft-football.com/sign-in"
-              className="text-sm text-slate-400 hover:text-slate-100 transition-colors"
-            >
-              Sign in
-            </a>
-            <a
-              href="https://m.craft-football.com/sign-in?mode=signup"
-              className="text-sm text-slate-400 hover:text-slate-100 transition-colors"
-            >
-              Sign up
-            </a>
-          </nav>
-        </div>
-      </header>
+      <WebsiteHeader />
 
       {/* Content */}
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">

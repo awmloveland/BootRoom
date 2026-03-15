@@ -4,7 +4,7 @@ import { Fragment, useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Week, GameRole, LeagueFeature } from '@/lib/types'
-import { sortWeeks, getPlayedWeeks, deriveSeason, getMonthKey, formatMonthYear } from '@/lib/utils'
+import { sortWeeks, getPlayedWeeks, getMonthKey, formatMonthYear } from '@/lib/utils'
 import { fetchWeeks, fetchGames } from '@/lib/data'
 import { isFeatureEnabled } from '@/lib/features'
 import { resolveVisibilityTier } from '@/lib/roles'
@@ -94,7 +94,6 @@ export default function LeaguePage() {
   const isAdmin = tier === 'admin'
   const canSeeResults = isAdmin || isFeatureEnabled(features, 'match_history', tier)
   const canSeeMatchEntry = isAdmin || isFeatureEnabled(features, 'match_entry', tier)
-  const canSeePlayers = isAdmin || isFeatureEnabled(features, 'player_stats', tier)
   const showNextMatch = canSeeMatchEntry
 
   if (loading) {
@@ -148,34 +147,9 @@ export default function LeaguePage() {
     )
   }
 
-  const season = deriveSeason(weeks)
-  const SEASON_LENGTH = 52
-  const totalWeeks = weeks.length
-  const pctComplete = Math.round((totalWeeks / SEASON_LENGTH) * 100)
-
   return (
     <>
-      <div className="bg-slate-800/50 border-b border-slate-700">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
-          <Link href="/" className="text-xs text-slate-400 hover:text-slate-300">← Leagues</Link>
-          <span className="text-xs text-slate-400">
-            Season {season} · {totalWeeks} of {SEASON_LENGTH} Weeks ({pctComplete}% complete)
-          </span>
-        </div>
-      </div>
-
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
-        {canSeePlayers && (
-          <div className="flex gap-2 mb-4">
-            <Link
-              href={`/league/${leagueId}/players`}
-              className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
-            >
-              Players
-            </Link>
-          </div>
-        )}
-
         <div className="flex flex-col gap-3">
           {showNextMatch && (
             <NextMatchCard
