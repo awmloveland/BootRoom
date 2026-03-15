@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import type { LeagueFeature, FeatureKey, FeatureConfig } from '@/lib/types'
 
@@ -306,7 +306,20 @@ function PlayersPageCard({ title, description, saving, saved, getFeature, update
   const isSavingBuilder = saving === 'team_builder'
   const savedRecently   = saved === 'player_stats' || saved === 'team_builder'
 
-  const activeConfig = tab === 'members' ? stats.config : stats.public_config
+  // Local config state — keeps all checkbox changes in sync locally before saving.
+  // This prevents race conditions when multiple checkboxes are changed quickly,
+  // where each save would otherwise spread from stale server state.
+  const [localMembersConfig, setLocalMembersConfig] = useState<FeatureConfig | null>(null)
+  const [localPublicConfig,  setLocalPublicConfig]  = useState<FeatureConfig | null>(null)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Sync local config when server data changes (e.g. after initial load or master toggle)
+  useEffect(() => { setLocalMembersConfig(stats.config ?? null) }, [stats.config])
+  useEffect(() => { setLocalPublicConfig(stats.public_config ?? null) }, [stats.public_config])
+
+  const activeConfig = tab === 'members'
+    ? (localMembersConfig ?? stats.config)
+    : (localPublicConfig  ?? stats.public_config)
 
   // Default public config to apply when admin first enables public access
   const DEFAULT_PUBLIC_CONFIG: FeatureConfig = {
@@ -319,7 +332,6 @@ function PlayersPageCard({ title, description, saving, saved, getFeature, update
     if (tab === 'members') {
       updateFeature({ ...stats, enabled: val })
     } else {
-      // When enabling public for the first time, seed a default public_config
       const publicConfig = val && !stats.public_config
         ? DEFAULT_PUBLIC_CONFIG
         : (stats.public_config ?? null)
@@ -334,9 +346,20 @@ function PlayersPageCard({ title, description, saving, saved, getFeature, update
 
   function updateConfig(patch: Partial<FeatureConfig>) {
     if (tab === 'members') {
-      updateFeature({ ...stats, config: { ...stats.config, ...patch } })
+      const next = { ...(localMembersConfig ?? stats.config ?? {}), ...patch } as FeatureConfig
+      setLocalMembersConfig(next)
+      // Debounce: send one save after 600ms of no further changes
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = setTimeout(() => {
+        updateFeature({ ...stats, config: next })
+      }, 600)
     } else {
-      updateFeature({ ...stats, public_config: { ...stats.public_config, ...patch } })
+      const next = { ...(localPublicConfig ?? stats.public_config ?? {}), ...patch } as FeatureConfig
+      setLocalPublicConfig(next)
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = setTimeout(() => {
+        updateFeature({ ...stats, public_config: next })
+      }, 600)
     }
   }
 
