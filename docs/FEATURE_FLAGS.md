@@ -1,32 +1,36 @@
 # Feature Flag Development Standard
 
-All new features in BootRoom are built behind an admin-controlled feature flag. This lets us ship safely: admins test first, then roll out to members, then optionally open to the public — all without a code deploy.
+All new features in BootRoom are built behind an admin-controlled feature flag.
+This lets us ship safely: admins test first, then roll out to members, then
+optionally open to the public — all without a code deploy.
 
 ---
 
 ## Why this pattern exists
 
 - **Safe staging** — admins can use and validate a feature before members see it
-- **Zero downtime rollouts** — promote a feature with a click, not a deployment
+- **Zero-downtime rollouts** — promote a feature with a click, not a deployment
 - **Per-league control** — each league controls its own feature set independently
-- **Reversible** — a feature can be pulled back to `admin_only` at any time
+- **Per-tier config** — members and public visitors can have different data views (e.g. different visible stat columns)
+- **Reversible** — a feature can be pulled back instantly at any time
 
 ---
 
 ## The three visibility tiers
 
 ```
-admin_only  →  members  →  public
-   (new)       (stable)    (open)
+admin  →  member  →  public
+(new)    (stable)    (open)
 ```
 
-| Value | Who can access |
-|---|---|
-| `admin_only` | League creators and admins only. This is the default for every new feature. |
-| `members` | All signed-in league members (plus admins). Enable when a feature is stable. |
-| `public` | Anyone with the league link, including unauthenticated visitors *(routing coming soon)*. |
+| Tier | Who can access | How it maps from GameRole |
+|---|---|---|
+| `admin` | League creators and admins only. Always sees everything. | `creator` or `admin` role |
+| `member` | All signed-in league members (plus admins). | `member` role |
+| `public` | Anyone with the league link, including unauthenticated visitors. | unauthenticated / no role |
 
-Admins always bypass the visibility check entirely — they see every feature in every state.
+Admins always bypass feature flag checks entirely — they see every feature in
+every state regardless of `enabled` or `public_enabled`.
 
 ---
 
@@ -36,148 +40,327 @@ Flags live in the `league_features` table in Supabase:
 
 | Column | Type | Notes |
 |---|---|---|
-| `game_id` | uuid | The league this flag belongs to |
-| `feature` | text | Matches a `FeatureKey` value |
-| `enabled` | boolean | On/off toggle |
-| `visibility` | text | `admin_only`, `members`, or `public` |
-| `config` | jsonb | Optional per-feature config (e.g. `max_players`, `visible_stats`) |
+| `game_id` | uuid PK | The league this flag belongs to |
+| `feature` | text PK | Matches a `FeatureKey` value exactly |
+| `enabled` | boolean | Whether **members** can access this feature |
+| `config` | jsonb | Per-feature config for **members** (e.g. `max_players`, `visible_stats`, `show_mentality`) |
+| `public_enabled` | boolean | Whether **public visitors** can access this feature |
+| `public_config` | jsonb | Per-feature config for **public** — may differ from member config |
+| `updated_at` | timestamptz | Auto-updated on write |
 
-Rows are upserted on conflict `(game_id, feature)`. Missing rows fall back to `DEFAULT_FEATURES` in the API route, so every league always sees a full feature list even before any row exists in the DB.
+Rows are upserted on conflict `(game_id, feature)`. Missing rows fall back to
+`DEFAULT_FEATURES` in the API route, so every league always sees a full
+feature list even before any row exists in the DB.
+
+### ⚠️ Critical: always use `select('*')` when reading `public_config`
+
+A PostgREST schema cache bug means that **narrow column projections** (e.g.
+`.select('public_enabled, public_config')`) silently return `null` for
+newly-added JSONB columns. Always use `.select('*')` when you need
+`public_config` — the extra columns are harmless:
+
+```ts
+// ✅ correct — public_config is returned
+const { data } = await supabase
+  .from('league_features')
+  .select('*')
+  .eq('game_id', id)
+  .eq('feature', 'player_stats')
+  .maybeSingle()
+
+// ❌ wrong — public_config silently returns null
+const { data } = await supabase
+  .from('league_features')
+  .select('public_enabled, public_config')
+  .eq('game_id', id)
+  .eq('feature', 'player_stats')
+  .maybeSingle()
+```
 
 ---
 
 ## How flags are read at runtime
 
-1. Pages fetch `/api/league/[id]/features` — returns the full feature list for that league, merged with defaults.
-2. Call `resolveVisibilityTier(userRole)` from `lib/roles.ts` to convert the user's `GameRole` (or `null` for unauthenticated) into a `VisibilityTier`.
-3. Call `isFeatureEnabled(features, key, tier)` from `lib/features.ts` to gate UI.
+### In authenticated pages (`app/app/league/[id]/...`)
+
+1. Fetch features from the API: `GET /api/league/[id]/features`
+2. Convert the user's role with `resolveVisibilityTier(role)` from `lib/roles.ts`
+3. Gate UI with `isFeatureEnabled(features, key, tier)` from `lib/features.ts`
 
 ```ts
 import { isFeatureEnabled } from '@/lib/features'
 import { resolveVisibilityTier } from '@/lib/roles'
 
+// userRole comes from the games list (fetchGames() in lib/data.ts)
 const tier = resolveVisibilityTier(userRole)  // 'admin' | 'member' | 'public'
-const canSeeTeamBuilder = isFeatureEnabled(features, 'team_builder', tier)
+const showPlayerStats = isFeatureEnabled(features, 'player_stats', tier)
+const playerStatsConfig = features.find(f => f.feature === 'player_stats')?.config
+```
+
+### In public pages (`app/results/[id]/...`)
+
+Public pages use the **service role client** to bypass RLS, and read
+`league_features` directly. Always check `public_results_enabled` on the
+`games` table first, then check `public_enabled` on the feature row.
+
+```ts
+// 1. Gate: league must have public results enabled
+const publicSupabase = createPublicClient()
+const { data: game } = await publicSupabase
+  .from('games')
+  .select('id, name, public_results_enabled')
+  .eq('id', id)
+  .maybeSingle()
+if (!game?.public_results_enabled) notFound()
+
+// 2. Gate: feature must be public-enabled
+const serviceSupabase = createServiceClient()
+const { data: feat } = await serviceSupabase
+  .from('league_features')
+  .select('*')                    // ← must be '*', not a subset
+  .eq('game_id', id)
+  .eq('feature', 'my_feature')
+  .maybeSingle()
+if (!feat?.public_enabled) notFound()
+
+// 3. Apply per-tier public config
+const publicConfig = (feat.public_config ?? null) as FeatureConfig | null
+const showMentality = publicConfig?.show_mentality ?? true
+const visibleStats  = publicConfig?.visible_stats   // undefined = show all
 ```
 
 ---
 
-## How to add a new feature flag
+## How to add a new feature flag — step by step
 
-### Step 1 — Add the key to `lib/types.ts`
+### Step 1 — Add the `FeatureKey` to `lib/types.ts`
 
 ```ts
 export type FeatureKey =
+  | 'match_history'
   | 'match_entry'
   | 'team_builder'
   | 'player_stats'
   | 'player_comparison'
-  | 'team_builder';  // ← add your new key here
+  | 'my_new_feature';    // ← add here
 ```
 
-### Step 2 — Add metadata to `AdminFeaturePanel.tsx`
+If the feature has custom per-tier config fields, add them to `FeatureConfig`:
 
 ```ts
-const FEATURE_META: Record<FeatureKey, { label: string; description: string }> = {
-  // existing entries…
-  team_builder: {
-    label: 'Team Builder',
-    description: 'Members can use the team builder tool on the players page.',
-  },
+export interface FeatureConfig {
+  max_players?: number | null;
+  visible_stats?: string[];
+  show_mentality?: boolean;
+  my_new_setting?: boolean;   // ← add if needed
 }
 ```
 
-Also add the key to the rendered list inside the component.
-
-### Step 3 — Add a default entry to `app/api/league/[id]/features/route.ts`
+### Step 2 — Add a default entry to `app/api/league/[id]/features/route.ts`
 
 ```ts
 const DEFAULT_FEATURES = [
-  // existing entries…
+  // existing entries …
   {
-    feature: 'team_builder' as FeatureKey,
-    enabled: false,          // off by default
-    visibility: 'admin_only' as const,  // always start here
+    feature: 'my_new_feature' as FeatureKey,
+    enabled: false,       // always start disabled
     config: null,
+    public_enabled: false,
+    public_config: null,
   },
 ]
 ```
 
-**Always use `enabled: false` and `visibility: 'admin_only'` for new features.**
+**Always start with `enabled: false` and `public_enabled: false`.** The
+feature is admin-only until explicitly promoted.
 
-### Step 4 — Gate your UI
+### Step 3 — Wire the feature into the Admin Panel (`components/AdminFeaturePanel.tsx`)
 
-In the page or component that renders the feature:
+Features live inside **page cards** (Results page card or Players page card)
+with a `Members` / `Public` tab each. Find the card that owns your feature
+and add a `SubFeatureRow` toggle inside it:
 
-```ts
-const tier = resolveVisibilityTier(userRole)
-const teamBuilderEnabled = isFeatureEnabled(features, 'team_builder', tier)
+```tsx
+// Inside ResultsPageCard or PlayersPageCard, in the sub-features section:
+const myFeature = getFeature('my_new_feature')
+const myEnabled = tab === 'members' ? myFeature.enabled : myFeature.public_enabled
+const isSavingMy = saving === 'my_new_feature'
 
-{teamBuilderEnabled && <TeamBuilderPanel … />}
+function toggleMyFeature(val: boolean) {
+  if (tab === 'members') updateFeature({ ...myFeature, enabled: val })
+  else                   updateFeature({ ...myFeature, public_enabled: val })
+}
+
+// In JSX:
+<SubFeatureRow
+  label="My New Feature"
+  description="What this feature does for the user."
+  enabled={myEnabled}
+  disabled={isSavingMy}
+  onToggle={toggleMyFeature}
+/>
 ```
 
-### Step 5 — Test as admin, then promote
+If the feature needs **per-tier config** (like stat column visibility), extend
+`StatsConfig` or add a new config component inside the page card.
 
-1. Deploy. Only admins see the feature.
-2. Test thoroughly in the real league environment.
-3. When ready: open league Settings → Features → change visibility from `Admin only` to `Members`.
-4. If appropriate: promote further to `Public` (once public routing is live).
+### Step 4 — Gate the feature in authenticated pages
 
----
-
-## Example: adding a hypothetical "team_builder" feature end-to-end
-
-**`lib/types.ts`**
 ```ts
-export type FeatureKey =
-  | 'match_entry'
-  | 'team_builder'      // ← added
-  | 'player_stats'
-  | 'player_comparison';
-```
-
-**`app/api/league/[id]/features/route.ts`**
-```ts
-const DEFAULT_FEATURES = [
-  { feature: 'match_entry',       enabled: true,  visibility: 'members',     config: null },
-  { feature: 'team_builder',      enabled: false, visibility: 'admin_only',  config: null },  // ← new
-  { feature: 'player_stats',      enabled: true,  visibility: 'members',     config: { … } },
-  { feature: 'player_comparison', enabled: false, visibility: 'admin_only',  config: null },
-]
-```
-
-**`components/AdminFeaturePanel.tsx`** — add to `FEATURE_META` and the render list.
-
-**Usage in a page**
-```ts
+// app/app/league/[id]/page.tsx or similar
 const tier = resolveVisibilityTier(game.role)
-const showBuilder = isFeatureEnabled(features, 'team_builder', tier)
+const myFeatureEnabled = isFeatureEnabled(features, 'my_new_feature', tier)
+
+// In JSX:
+{myFeatureEnabled && <MyNewFeatureComponent />}
 ```
+
+### Step 5 — Gate the feature in public pages (if applicable)
+
+In `app/results/[id]/page.tsx` or a new route under `app/results/[id]/`:
+
+```ts
+const serviceSupabase = createServiceClient()
+const { data: feat } = await serviceSupabase
+  .from('league_features')
+  .select('*')                      // ← always select('*')
+  .eq('game_id', id)
+  .eq('feature', 'my_new_feature')
+  .maybeSingle()
+
+if (!feat?.public_enabled) {
+  // Don't 404 — just don't render the section
+  return null
+}
+
+const publicConfig = (feat.public_config ?? null) as FeatureConfig | null
+```
+
+If the feature requires **unauthenticated writes** (like Match Entry on the
+public page), create API routes under `app/api/public/league/[id]/` that:
+1. Verify `public_results_enabled` on `games`
+2. Verify the feature's `public_enabled` flag
+3. Use `createServiceClient()` for the write (service role bypasses RLS)
+4. Perform your own authorization checks before writing
+
+### Step 6 — Seed rows for existing leagues (if needed)
+
+If you need the flag row to exist immediately for all leagues (rather than
+waiting for the first admin interaction to create it via upsert), write a
+Supabase migration:
+
+```sql
+-- supabase/migrations/YYYYMMDDHHMMSS_seed_my_new_feature.sql
+INSERT INTO league_features (game_id, feature, enabled, config, public_enabled, public_config)
+SELECT id, 'my_new_feature', false, null, false, null
+FROM games
+ON CONFLICT (game_id, feature) DO NOTHING;
+```
+
+### Step 7 — Test as admin, then promote
+
+1. **Deploy.** Only you (admin) see the feature.
+2. **Test** thoroughly in the real league environment.
+3. **Promote to members:** Settings → Features → toggle `enabled` on the
+   Members tab.
+4. **Promote to public:** Settings → Features → toggle `public_enabled` on
+   the Public tab, and configure `public_config` (visible columns, etc.)
+5. The change takes effect immediately — **no deployment needed**.
 
 ---
 
-## Promotion flow (no code required)
+## The `public_config` seeding pattern
 
-Once a feature is deployed as `admin_only`, admins can promote it from the league settings UI:
+When an admin first enables **Page visible** for the public tier, the
+`AdminFeaturePanel` seeds a default `public_config` so individual sub-settings
+have a non-null base to build on. Without this seed, unchecking a checkbox
+would save `{ show_mentality: false }` but a subsequent "Page visible" toggle
+would overwrite it with `null`.
 
+The seeding happens in `toggleMaster` inside `PlayersPageCard`:
+
+```ts
+const DEFAULT_PUBLIC_CONFIG: FeatureConfig = {
+  max_players: null,
+  visible_stats: ['played', 'won', 'drew', 'lost', 'winRate', 'recentForm', 'points', 'timesTeamA', 'timesTeamB'],
+  show_mentality: true,
+}
+
+function toggleMaster(val: boolean) {
+  if (tab === 'members') {
+    updateFeature({ ...stats, enabled: val })
+  } else {
+    const publicConfig = val && !stats.public_config
+      ? DEFAULT_PUBLIC_CONFIG
+      : (stats.public_config ?? null)
+    updateFeature({ ...stats, public_enabled: val, public_config: publicConfig })
+  }
+}
 ```
-League → Settings → Features tab
-  [Team Builder]  [Admin only ▾]  [●  Enabled]
-                  → change to Members
-                  → change to Public
-```
 
-The change takes effect immediately for all users of that league. No deployment needed.
+Apply the same pattern to any new page card that has per-tier config.
 
 ---
 
-## Out of scope (follow-on task): public routing
+## Current feature registry
 
-The `public` visibility tier is fully typed and flaggable, but unauthenticated access to league routes requires:
+| Feature key | Page card | Members tab | Public tab | Notes |
+|---|---|---|---|---|
+| `match_history` | Results | Toggle | Toggle | Controls the match history feed |
+| `match_entry` | Results | Toggle | Toggle | Public writes use `/api/public/` routes |
+| `player_stats` | Players | Toggle + config | Toggle + config | Config: columns, mentality badge, max players |
+| `team_builder` | Players | Toggle | Members only | Cannot be made public (requires auth) |
+| `player_comparison` | Players | — | — | Coming soon |
 
-1. Middleware changes — allow `/league/:id` through without a session
-2. Supabase RLS — anonymous SELECT for leagues with public features
-3. A public-facing page/layout using `resolveVisibilityTier(null)` + `isFeatureEnabled()`
-4. Auto-join on sign-in (the `join_public_league` RPC already exists)
+---
 
-Until this is built, setting a feature to `public` has no visible effect for non-members.
+## Admin panel UI structure
+
+The admin panel (`components/AdminFeaturePanel.tsx`) uses a **page-centric,
+tabbed layout**:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Results page          [Members] [Public]   Saved ✓     │
+├─────────────────────────────────────────────────────────┤
+│  Page visible                            ●──────        │
+│                                                         │
+│  Features (shown when Page visible is ON):              │
+│    Match Entry                           ○              │
+└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│  Players page          [Members] [Public]   Saved ✓     │
+├─────────────────────────────────────────────────────────┤
+│  Page visible                            ●──────        │
+│                                                         │
+│  Data visible on the players page:                      │
+│    Max players shown  [ Unlimited ]                     │
+│    Player card badges [ ] Show mentality badge          │
+│    Visible stat columns  [✓ Played] [✓ Won] …          │
+│                                                         │
+│  Features:                                              │
+│    Team Builder  (Requires sign in — public tab only)   │
+│    Player Comparison  [Coming soon]                     │
+└─────────────────────────────────────────────────────────┘
+```
+
+Each save triggers an auto-save PATCH to `/api/league/[id]/features` and
+shows a brief **"Saved ✓"** indicator next to the tier tabs.
+
+---
+
+## Key files
+
+| File | Purpose |
+|---|---|
+| `lib/types.ts` | `FeatureKey`, `FeatureConfig`, `LeagueFeature` types |
+| `lib/features.ts` | `isFeatureEnabled(features, key, tier)` helper |
+| `lib/roles.ts` | `resolveVisibilityTier(role)` helper, `VisibilityTier` type |
+| `app/api/league/[id]/features/route.ts` | GET (read features) + PATCH (save features) |
+| `components/AdminFeaturePanel.tsx` | Admin UI — page cards with Members/Public tabs |
+| `app/app/league/[id]/page.tsx` | Member results page — gated by `isFeatureEnabled` |
+| `app/app/league/[id]/players/page.tsx` | Member players page — gated by `isFeatureEnabled` |
+| `app/results/[id]/page.tsx` | Public results page — reads `public_enabled` directly |
+| `app/results/[id]/players/page.tsx` | Public players page — reads `public_config` via `select('*')` |
+| `app/api/public/league/[id]/lineup/route.ts` | Public write: save/cancel match lineup |
+| `app/api/public/league/[id]/result/route.ts` | Public write: record match result |
