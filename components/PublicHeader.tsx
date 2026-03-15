@@ -1,51 +1,81 @@
 'use client'
 
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
+
+export type PublicPage = 'results' | 'players'
 
 interface PublicHeaderProps {
   leagueName: string
   leagueId: string
   isAuthenticated: boolean
+  currentPage: PublicPage
+  showPlayersNav?: boolean
 }
 
-export function PublicHeader({ leagueName, leagueId, isAuthenticated }: PublicHeaderProps) {
+export function PublicHeader({
+  leagueName,
+  leagueId,
+  isAuthenticated,
+  currentPage,
+  showPlayersNav = false,
+}: PublicHeaderProps) {
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-700 bg-slate-900">
-      <div className="flex h-14 w-full max-w-2xl mx-auto items-center justify-between px-4 sm:px-6">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xl font-bold text-slate-100 shrink-0">⚽</span>
-          <span className="text-sm font-medium text-slate-400 truncate">
-            {leagueName}
-          </span>
-          <span className="text-slate-600 shrink-0">·</span>
-          <span className="text-sm text-slate-500 shrink-0">Results</span>
-        </div>
+    <header className="sticky top-0 z-50 bg-slate-900 border-b border-slate-700 h-14 flex items-center">
+      <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 flex items-center justify-between">
+        <span className="text-xl font-bold text-slate-100">⚽ {leagueName}</span>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <nav className="flex items-center gap-6">
+          <Link
+            href={`/results/${leagueId}`}
+            className={cn(
+              'text-sm transition-colors',
+              currentPage === 'results'
+                ? 'text-slate-100 font-medium'
+                : 'text-slate-400 hover:text-slate-100',
+            )}
+          >
+            Results
+          </Link>
+
+          {showPlayersNav && (
+            <Link
+              href={`/results/${leagueId}/players`}
+              className={cn(
+                'text-sm transition-colors',
+                currentPage === 'players'
+                  ? 'text-slate-100 font-medium'
+                  : 'text-slate-400 hover:text-slate-100',
+              )}
+            >
+              Players
+            </Link>
+          )}
+
           {isAuthenticated ? (
             <Link
               href={`/league/${leagueId}`}
-              className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium transition-colors"
+              className="text-sm text-slate-400 hover:text-slate-100 transition-colors"
             >
-              Open in app →
+              Open app
             </Link>
           ) : (
             <>
               <Link
                 href={`/sign-in?redirect=${encodeURIComponent(`/league/${leagueId}`)}`}
-                className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium transition-colors"
+                className="text-sm text-slate-400 hover:text-slate-100 transition-colors"
               >
                 Sign in
               </Link>
               <Link
                 href={`/sign-in?mode=signup&redirect=${encodeURIComponent(`/league/${leagueId}`)}`}
-                className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium transition-colors"
+                className="text-sm text-slate-400 hover:text-slate-100 transition-colors"
               >
                 Sign up
               </Link>
             </>
           )}
-        </div>
+        </nav>
       </div>
     </header>
   )

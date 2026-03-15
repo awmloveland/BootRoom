@@ -4,6 +4,14 @@ import { useEffect, useState } from 'react'
 import { Check } from 'lucide-react'
 import { fetchGames } from '@/lib/data'
 import { cn } from '@/lib/utils'
+import type { FeatureKey } from '@/lib/types'
+
+const FEATURE_OVERVIEW: { key: FeatureKey; label: string; description: string }[] = [
+  { key: 'match_entry',       label: 'Match Entry',       description: 'Next match card, team building, and result recording.' },
+  { key: 'team_builder',      label: 'Team Builder',      description: 'Drag-and-drop team builder on the players page.' },
+  { key: 'player_stats',      label: 'Player Stats',      description: 'Player stats page with configurable columns and player limit.' },
+  { key: 'player_comparison', label: 'Player Comparison', description: 'Side-by-side player comparison tool.' },
+]
 
 export default function SettingsPage() {
   const [games, setGames] = useState<{ id: string; name: string }[]>([])
@@ -117,6 +125,30 @@ export default function SettingsPage() {
             </button>
           </div>
         )}
+
+        {/* Feature flags overview */}
+        <div className="mt-10">
+          <h2 className="text-base font-semibold text-slate-100 mb-1">Feature flags</h2>
+          <p className="text-sm text-slate-400 mb-4">
+            Feature management coming soon — contact your league admin to enable features.
+          </p>
+          <div className="space-y-2">
+            {FEATURE_OVERVIEW.map((f) => (
+              <div
+                key={f.key}
+                className="flex items-start justify-between gap-4 p-4 rounded-lg bg-slate-800 border border-slate-700"
+              >
+                <div>
+                  <p className="text-sm font-medium text-slate-200">{f.label}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{f.description}</p>
+                </div>
+                <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-700 text-slate-400 border border-slate-600">
+                  Admin only
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </main>
   )
 }

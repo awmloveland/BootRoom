@@ -47,17 +47,26 @@ export interface Game {
   role: GameRole;
 }
 
-export type FeatureKey = 'match_entry' | 'team_builder' | 'player_stats' | 'player_comparison';
+export type FeatureKey =
+  | 'match_history'
+  | 'match_entry'
+  | 'team_builder'
+  | 'player_stats'
+  | 'player_comparison';
 
 export interface FeatureConfig {
   max_players?: number | null;
   visible_stats?: string[];
+  show_mentality?: boolean; // show ATT/BAL/DEF/GK badge on player cards (default true)
 }
 
 export interface LeagueFeature {
   feature: FeatureKey;
-  enabled: boolean;
-  config?: FeatureConfig | null;
+  enabled: boolean;               // whether members can access this feature
+  config?: FeatureConfig | null;  // member-tier config (columns, limits, etc.)
+  public_enabled: boolean;               // whether public visitors can access this feature
+  public_config?: FeatureConfig | null;  // public-tier config (may differ from member config)
+  // Admins always have full access regardless of these settings
 }
 
 export interface LeagueMember {

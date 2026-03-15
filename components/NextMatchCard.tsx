@@ -11,6 +11,10 @@ interface Props {
   weeks: Week[]
   onResultSaved: () => void
   canEdit?: boolean
+  /** When true, skips the Supabase client fetch and uses public API routes for writes. */
+  publicMode?: boolean
+  /** Pre-loaded scheduled week from the server (used when publicMode=true). */
+  initialScheduledWeek?: ScheduledWeek | null
 }
 
 interface ParsedName {
@@ -18,7 +22,7 @@ interface ParsedName {
   known: boolean
 }
 
-interface ScheduledWeek {
+export interface ScheduledWeek {
   id: string
   week: number
   date: string
@@ -66,7 +70,7 @@ function NameTags({ names }: { names: ParsedName[] }) {
   )
 }
 
-export function NextMatchCard({ gameId, weeks, onResultSaved, canEdit = true }: Props) {
+export function NextMatchCard({ gameId, weeks, onResultSaved, canEdit = true, publicMode = false, initialScheduledWeek }: Props) {
   const [cardState, setCardState] = useState<CardState>('loading')
   const [scheduledWeek, setScheduledWeek] = useState<ScheduledWeek | null>(null)
 
@@ -117,6 +121,17 @@ export function NextMatchCard({ gameId, weeks, onResultSaved, canEdit = true }: 
   }
 
   useEffect(() => {
+    if (publicMode) {
+      // Use the server-pre-loaded week; skip Supabase client fetch
+      if (initialScheduledWeek) {
+        setScheduledWeek(initialScheduledWeek)
+        setCardState('lineup')
+      } else {
+        setCardState('idle')
+      }
+      return
+    }
+
     async function load() {
       const supabase = createClient()
       const { data } = await supabase
@@ -143,7 +158,7 @@ export function NextMatchCard({ gameId, weeks, onResultSaved, canEdit = true }: 
       }
     }
     load()
-  }, [gameId])
+  }, [gameId, publicMode, initialScheduledWeek])
 
   async function handleSaveLineup() {
     const teamA = randomisedA.length > 0 ? randomisedA : []
@@ -155,18 +170,31 @@ export function NextMatchCard({ gameId, weeks, onResultSaved, canEdit = true }: 
     setSaving(true)
     setError(null)
     try {
-      const supabase = createClient()
-      const { data: weekId, error: err } = await supabase.rpc('save_lineup', {
-        p_game_id: gameId,
-        p_season: season,
-        p_week: nextWeekNum,
-        p_date: nextDate,
-        p_format: format || null,
-        p_team_a: teamA,
-        p_team_b: teamB,
-      })
-      if (err) throw err
-      setScheduledWeek({ id: weekId as string, week: nextWeekNum, date: nextDate, format, teamA, teamB })
+      let weekId: string
+      if (publicMode) {
+        const res = await fetch(`/api/public/league/${gameId}/lineup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ season, week: nextWeekNum, date: nextDate, format: format || null, teamA, teamB }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? 'Failed to save lineup')
+        weekId = data.id
+      } else {
+        const supabase = createClient()
+        const { data, error: err } = await supabase.rpc('save_lineup', {
+          p_game_id: gameId,
+          p_season: season,
+          p_week: nextWeekNum,
+          p_date: nextDate,
+          p_format: format || null,
+          p_team_a: teamA,
+          p_team_b: teamB,
+        })
+        if (err) throw err
+        weekId = data as string
+      }
+      setScheduledWeek({ id: weekId, week: nextWeekNum, date: nextDate, format, teamA, teamB })
       setCardState('lineup')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save lineup')
@@ -183,13 +211,23 @@ export function NextMatchCard({ gameId, weeks, onResultSaved, canEdit = true }: 
     setSaving(true)
     setError(null)
     try {
-      const supabase = createClient()
-      const { error: err } = await supabase.rpc('record_result', {
-        p_week_id: scheduledWeek.id,
-        p_winner: winner,
-        p_notes: notes.trim() || null,
-      })
-      if (err) throw err
+      if (publicMode) {
+        const res = await fetch(`/api/public/league/${gameId}/result`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ weekId: scheduledWeek.id, winner, notes: notes.trim() || null }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? 'Failed to save result')
+      } else {
+        const supabase = createClient()
+        const { error: err } = await supabase.rpc('record_result', {
+          p_week_id: scheduledWeek.id,
+          p_winner: winner,
+          p_notes: notes.trim() || null,
+        })
+        if (err) throw err
+      }
       setScheduledWeek(null)
       setCardState('idle')
       setWinner(null)
@@ -204,8 +242,16 @@ export function NextMatchCard({ gameId, weeks, onResultSaved, canEdit = true }: 
 
   async function handleCancelScheduled() {
     if (!scheduledWeek) return
-    const supabase = createClient()
-    await supabase.rpc('cancel_lineup', { p_week_id: scheduledWeek.id })
+    if (publicMode) {
+      await fetch(`/api/public/league/${gameId}/lineup`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weekId: scheduledWeek.id }),
+      })
+    } else {
+      const supabase = createClient()
+      await supabase.rpc('cancel_lineup', { p_week_id: scheduledWeek.id })
+    }
     setScheduledWeek(null)
     setPlayersText('')
     setRandomisedA([])

@@ -291,7 +291,7 @@ export default function LeagueSettingsPage() {
       {/* ── FEATURES ── */}
       {section === 'features' && (
         <div>
-          {featuresLoading ? (
+          {featuresLoading && features.length === 0 ? (
             <p className="text-slate-400 text-sm">Loading features…</p>
           ) : (
             <AdminFeaturePanel

@@ -2,11 +2,18 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import type { FeatureKey } from '@/lib/types'
 
-const DEFAULT_FEATURES: { feature: FeatureKey; enabled: boolean; config: object | null }[] = [
-  { feature: 'match_entry',       enabled: true,  config: null },
-  { feature: 'team_builder',      enabled: true,  config: null },
-  { feature: 'player_stats',      enabled: true,  config: { max_players: null, visible_stats: ['played','won','drew','lost','winRate','recentForm'] } },
-  { feature: 'player_comparison', enabled: false, config: null },
+const DEFAULT_FEATURES: {
+  feature: FeatureKey
+  enabled: boolean
+  config: object | null
+  public_enabled: boolean
+  public_config: object | null
+}[] = [
+  { feature: 'match_history',     enabled: true,  config: null, public_enabled: false, public_config: null },
+  { feature: 'match_entry',       enabled: true,  config: null, public_enabled: false, public_config: null },
+  { feature: 'team_builder',      enabled: true,  config: null, public_enabled: false, public_config: null },
+  { feature: 'player_stats',      enabled: true,  config: { max_players: null, visible_stats: ['played','won','drew','lost','winRate','recentForm'] }, public_enabled: false, public_config: null },
+  { feature: 'player_comparison', enabled: false, config: null, public_enabled: false, public_config: null },
 ]
 
 /** GET — returns feature flags for a league. Any member can read. */
@@ -21,7 +28,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from('league_features')
-    .select('feature, enabled, config')
+    .select('feature, enabled, config, public_enabled, public_config')
     .eq('game_id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -47,7 +54,13 @@ export async function PATCH(
   if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await request.json()
-  const updates: { feature: FeatureKey; enabled: boolean; config?: object | null }[] = Array.isArray(body) ? body : [body]
+  const updates: {
+    feature: FeatureKey
+    enabled: boolean
+    config?: object | null
+    public_enabled: boolean
+    public_config?: object | null
+  }[] = Array.isArray(body) ? body : [body]
 
   const { error } = await supabase
     .from('league_features')
@@ -57,6 +70,8 @@ export async function PATCH(
         feature: u.feature,
         enabled: u.enabled,
         config: u.config ?? null,
+        public_enabled: u.public_enabled,
+        public_config: u.public_config ?? null,
         updated_at: new Date().toISOString(),
       })),
       { onConflict: 'game_id,feature' }

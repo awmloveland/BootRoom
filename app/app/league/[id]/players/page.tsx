@@ -7,6 +7,8 @@ import { Users } from 'lucide-react'
 import { Player, Week, LeagueFeature, GameRole } from '@/lib/types'
 import { cn, deriveSeason, wprScore } from '@/lib/utils'
 import { fetchWeeks, fetchPlayers, fetchGames } from '@/lib/data'
+import { isFeatureEnabled } from '@/lib/features'
+import { resolveVisibilityTier } from '@/lib/roles'
 import { PlayerCard } from '@/components/PlayerCard'
 import { TeamBuilderPanel } from '@/components/TeamBuilderPanel'
 
@@ -130,14 +132,15 @@ export default function LeaguePlayersPage() {
     load()
   }, [leagueId])
 
-  // Feature flag helpers — admins always bypass
-  const isAdmin = userRole === 'creator' || userRole === 'admin'
-  const getFeature = (key: string) => features.find((f) => f.feature === key)
-  const playerStatsEnabled  = isAdmin || (getFeature('player_stats')?.enabled !== false)
-  const teamBuilderEnabled  = isAdmin || (getFeature('team_builder')?.enabled !== false)
-  const playerStatsConfig   = getFeature('player_stats')?.config
+  // Feature flag checks — admins always bypass via tier === 'admin'
+  const tier = resolveVisibilityTier(userRole)
+  const isAdmin = tier === 'admin'
+  const playerStatsEnabled  = isAdmin || isFeatureEnabled(features, 'player_stats',  tier)
+  const teamBuilderEnabled  = isAdmin || isFeatureEnabled(features, 'team_builder',  tier)
+  const playerStatsConfig   = features.find((f) => f.feature === 'player_stats')?.config
   const maxPlayers          = isAdmin ? null : (playerStatsConfig?.max_players ?? null)
   const visibleStats        = isAdmin ? undefined : (playerStatsConfig?.visible_stats ?? undefined)
+  const showMentality       = isAdmin ? true  : (playerStatsConfig?.show_mentality ?? true)
 
   const handleToggle = (name: string) => {
     setOpenPlayer((prev) => (prev === name ? null : name))
@@ -353,6 +356,7 @@ export default function LeaguePlayersPage() {
                   onAssignCycle={() => handleAssignCycle(player)}
                   onDragStart={() => {}}
                   visibleStats={visibleStats}
+                  showMentality={showMentality}
                 />
               ))}
               {maxPlayers && filteredAndSortedPlayers.length > maxPlayers && (

@@ -19,6 +19,8 @@ interface PlayerCardProps {
   onDragStart?: (playerName: string) => void
   /** Stat keys to show in the expanded body — undefined means show all */
   visibleStats?: string[]
+  /** Whether to show the ATT/BAL/DEF/GK mentality badge — defaults to true */
+  showMentality?: boolean
 }
 
 interface StatRowProps {
@@ -62,6 +64,7 @@ export function PlayerCard({
   builderMode = false,
   onDragStart,
   visibleStats,
+  showMentality = true,
 }: PlayerCardProps) {
   const contentId = `player-${player.name.replace(/\s+/g, '-').toLowerCase()}-content`
 
@@ -122,9 +125,11 @@ export function PlayerCard({
               )}
               <span className="text-sm font-semibold text-slate-100">{player.name}</span>
               {/* Mentality pill */}
-              <span className="text-[10px] font-medium text-slate-500 bg-slate-700/60 px-1.5 py-0.5 rounded">
-                {MENTALITY_LABEL[player.mentality] ?? player.mentality}
-              </span>
+              {showMentality && (
+                <span className="text-[10px] font-medium text-slate-500 bg-slate-700/60 px-1.5 py-0.5 rounded">
+                  {MENTALITY_LABEL[player.mentality] ?? player.mentality}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400">{player.played} games</span>

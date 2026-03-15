@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { Week, GameRole, LeagueFeature } from '@/lib/types'
 import { sortWeeks, getPlayedWeeks, deriveSeason, getMonthKey, formatMonthYear } from '@/lib/utils'
 import { fetchWeeks, fetchGames } from '@/lib/data'
+import { isFeatureEnabled } from '@/lib/features'
+import { resolveVisibilityTier } from '@/lib/roles'
 import { MatchCard } from '@/components/MatchCard'
 import { MonthDivider } from '@/components/MonthDivider'
 import { NextMatchCard } from '@/components/NextMatchCard'
@@ -21,7 +23,7 @@ export default function LeaguePage() {
   const [openWeek, setOpenWeek] = useState<number | null>(null)
   const [hasAccess, setHasAccess] = useState(false)
   const [userRole, setUserRole] = useState<GameRole>('member')
-  const [matchEntryEnabled, setMatchEntryEnabled] = useState(false)
+  const [features, setFeatures] = useState<LeagueFeature[]>([])
 
   const load = useCallback(async () => {
     try {
@@ -63,18 +65,15 @@ export default function LeaguePage() {
       setWeeks(displayWeeks)
       setOpenWeek(mostRecentPlayed?.week ?? null)
 
-      // Load feature flags to determine if match entry is enabled
+      // Load feature flags
       try {
         const featRes = await fetch(`/api/league/${leagueId}/features`, { credentials: 'include' })
         if (featRes.ok) {
-          const features: LeagueFeature[] = await featRes.json()
-          const matchEntry = features.find((f) => f.feature === 'match_entry')
-          setMatchEntryEnabled(matchEntry ? matchEntry.enabled : true)
-        } else {
-          setMatchEntryEnabled(true)
+          const featData: LeagueFeature[] = await featRes.json()
+          setFeatures(featData)
         }
       } catch {
-        setMatchEntryEnabled(true)
+        // Features failed to load — fall back to empty list (admins bypass; members see nothing)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load')
@@ -91,9 +90,12 @@ export default function LeaguePage() {
     setOpenWeek((prev) => (prev === weekNum ? null : weekNum))
   }
 
-  const isAdmin = userRole === 'creator' || userRole === 'admin'
-  // Admins always see the Next Match card. Members see it when match_entry is enabled.
-  const showNextMatch = isAdmin || matchEntryEnabled
+  const tier = resolveVisibilityTier(userRole)
+  const isAdmin = tier === 'admin'
+  const canSeeResults = isAdmin || isFeatureEnabled(features, 'match_history', tier)
+  const canSeeMatchEntry = isAdmin || isFeatureEnabled(features, 'match_entry', tier)
+  const canSeePlayers = isAdmin || isFeatureEnabled(features, 'player_stats', tier)
+  const showNextMatch = canSeeMatchEntry
 
   if (loading) {
     return (
@@ -129,6 +131,23 @@ export default function LeaguePage() {
     )
   }
 
+  if (!canSeeResults) {
+    return (
+      <main className="max-w-md mx-auto px-4 sm:px-6 py-12 text-center">
+        <h1 className="text-xl font-semibold text-slate-100 mb-2">Match History</h1>
+        <p className="text-slate-400 text-sm mb-6">
+          Match history has been disabled by your league admin.
+        </p>
+        <Link
+          href="/"
+          className="inline-block px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium"
+        >
+          Your leagues
+        </Link>
+      </main>
+    )
+  }
+
   const season = deriveSeason(weeks)
   const SEASON_LENGTH = 52
   const totalWeeks = weeks.length
@@ -146,14 +165,16 @@ export default function LeaguePage() {
       </div>
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
-        <div className="flex gap-2 mb-4">
-          <Link
-            href={`/league/${leagueId}/players`}
-            className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
-          >
-            Players
-          </Link>
-        </div>
+        {canSeePlayers && (
+          <div className="flex gap-2 mb-4">
+            <Link
+              href={`/league/${leagueId}/players`}
+              className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
+            >
+              Players
+            </Link>
+          </div>
+        )}
 
         <div className="flex flex-col gap-3">
           {showNextMatch && (
@@ -161,7 +182,7 @@ export default function LeaguePage() {
               gameId={leagueId}
               weeks={weeks}
               onResultSaved={load}
-              canEdit={isAdmin || matchEntryEnabled}
+              canEdit={canSeeMatchEntry}
             />
           )}
 
