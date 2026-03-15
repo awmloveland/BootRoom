@@ -18,11 +18,6 @@ optionally open to the public — all without a code deploy.
 
 ## The three visibility tiers
 
-```
-admin  →  member  →  public
-(new)    (stable)    (open)
-```
-
 | Tier | Who can access | How it maps from GameRole |
 |---|---|---|
 | `admin` | League creators and admins only. Always sees everything. | `creator` or `admin` role |
@@ -31,6 +26,11 @@ admin  →  member  →  public
 
 Admins always bypass feature flag checks entirely — they see every feature in
 every state regardless of `enabled` or `public_enabled`.
+
+The member and public toggles are **independent** — you can enable match history
+for members without making it public, or open player stats to the public while
+keeping team builder members-only. The only rule is that giving public access to
+something members can't see makes no sense, so the admin UI won't allow it.
 
 ---
 
@@ -176,7 +176,7 @@ feature is admin-only until explicitly promoted.
 
 ### Step 3 — Wire the feature into the Admin Panel (`components/AdminFeaturePanel.tsx`)
 
-Features live inside **page cards** (Results page card or Players page card)
+Features live inside **page cards** (`ResultsPageCard` or `PlayersPageCard`)
 with a `Members` / `Public` tab each. Find the card that owns your feature
 and add a `SubFeatureRow` toggle inside it:
 
@@ -199,6 +199,20 @@ function toggleMyFeature(val: boolean) {
   disabled={isSavingMy}
   onToggle={toggleMyFeature}
 />
+```
+
+Also update the `getFeature()` fallback at the bottom of the same file to include
+the new key with `enabled: false` so the panel renders correctly before the first
+DB row is created:
+
+```ts
+features.find((f) => f.feature === key) ?? {
+  feature: key,
+  enabled: false,   // ← add your feature here, always false
+  config: null,
+  public_enabled: false,
+  public_config: null,
+}
 ```
 
 If the feature needs **per-tier config** (like stat column visibility), extend
@@ -243,11 +257,12 @@ public page), create API routes under `app/api/public/league/[id]/` that:
 3. Use `createServiceClient()` for the write (service role bypasses RLS)
 4. Perform your own authorization checks before writing
 
-### Step 6 — Seed rows for existing leagues (if needed)
+### Step 6 — Seed rows for existing leagues (required)
 
-If you need the flag row to exist immediately for all leagues (rather than
-waiting for the first admin interaction to create it via upsert), write a
-Supabase migration:
+The public results page queries `league_features` directly from the DB. If no
+row exists for a feature, it can never appear publicly — the `DEFAULT_FEATURES`
+merge only happens in the API layer, not the public page. **Always write a
+migration** so existing leagues get the row immediately:
 
 ```sql
 -- supabase/migrations/YYYYMMDDHHMMSS_seed_my_new_feature.sql
@@ -257,14 +272,24 @@ FROM games
 ON CONFLICT (game_id, feature) DO NOTHING;
 ```
 
+**Also update `create_game`** in the same migration so new leagues get the row too:
+
+```sql
+CREATE OR REPLACE FUNCTION public.create_game(game_name text)
+...
+-- add to the INSERT inside the function:
+(game_uuid, 'my_new_feature', false, NULL, false, NULL),
+```
+
+Run the migration in the Supabase SQL Editor after deploying the code changes.
+
 ### Step 7 — Test as admin, then promote
 
-1. **Deploy.** Only you (admin) see the feature.
+1. **Deploy + run migration.** Only you (admin) see the feature.
 2. **Test** thoroughly in the real league environment.
-3. **Promote to members:** Settings → Features → toggle `enabled` on the
-   Members tab.
-4. **Promote to public:** Settings → Features → toggle `public_enabled` on
-   the Public tab, and configure `public_config` (visible columns, etc.)
+3. **Promote to members:** Settings → Features → Members tab → toggle on.
+4. **Promote to public:** Settings → Features → Public tab → toggle on.
+   Configure `public_config` if the feature has per-tier settings (visible columns, etc.)
 5. The change takes effect immediately — **no deployment needed**.
 
 ---

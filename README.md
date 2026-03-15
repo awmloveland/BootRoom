@@ -4,7 +4,7 @@ Private, invite-only league management platform for 5-a-side to 7-a-side footbal
 
 ## Two domains
 
-- **craft-football.com** — public marketing site (landing page)
+- **craft-football.com** — public marketing site + public league pages (`/results/[id]`)
 - **m.craft-football.com** — authenticated member app (match history, players, settings)
 
 Mobile visitors to craft-football.com are automatically redirected to m.craft-football.com.
@@ -24,7 +24,7 @@ Authentication is handled by Supabase (email + password and magic links).
 |---|---|---|
 | Admin | League creators and invited admins | All features + settings + feature flag controls |
 | Member | Invited members | Features the admin has enabled for members |
-| Public | Anyone with the league link *(coming soon)* | Features the admin has marked as public |
+| Public | Anyone with the public league link | Features the admin has enabled for public |
 
 ## Tech stack
 
@@ -60,6 +60,7 @@ npm run dev
 ## Working rules
 
 - All new features are built behind an admin-controlled feature flag
-- Features start as `admin_only` — admins see and test them first
-- Once stable, promote to `members`, then optionally to `public`
+- Features start hidden from members and public — admins always see everything
+- Promote to members by toggling **enabled** on; promote to public by toggling **public_enabled** on
+- Each tier can have independent config (e.g. different visible stat columns for public vs members)
 - See **[docs/FEATURE_FLAGS.md](docs/FEATURE_FLAGS.md)** for the full development standard

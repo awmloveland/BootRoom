@@ -4,12 +4,11 @@ import { notFound } from 'next/navigation'
 import { createPublicClient } from '@/lib/supabase/public'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
-import Link from 'next/link'
 import { PublicHeader } from '@/components/PublicHeader'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { sortWeeks } from '@/lib/utils'
-import type { Week, LeagueFeature, FeatureKey } from '@/lib/types'
+import type { Week, FeatureKey } from '@/lib/types'
 import type { ScheduledWeek } from '@/components/NextMatchCard'
 
 interface Props {
@@ -43,7 +42,7 @@ export default async function PublicResultsPage({ params }: Props) {
       .order('week', { ascending: false }),
     serviceSupabase
       .from('league_features')
-      .select('feature, enabled, config, public_enabled, public_config')
+      .select('*')
       .eq('game_id', id)
       .eq('public_enabled', true),
   ])

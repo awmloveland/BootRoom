@@ -10,7 +10,7 @@ Read it in full before writing or editing any code.
 **BootRoom** is a private, invite-only league management platform for 5-a-side to 7-a-side football leagues called *The Boot Room*. It is a dark-mode-first web app built with Next.js 14 and Supabase. Members can view match history, player statistics, and league tables. Admins can manage invites, record game results, and control which features are visible to members and the public.
 
 Deployed on two domains:
-- `craft-football.com` — public marketing site
+- `craft-football.com` — public marketing site + public league pages (`/results/[id]`)
 - `m.craft-football.com` — authenticated member app
 
 ---
@@ -82,20 +82,22 @@ New types go in `lib/types.ts`. Do not create `src/` directories.
 
 **All new features must be built behind an admin-controlled feature flag.**
 
-The three visibility tiers, in promotion order:
+Each feature has two independent toggles controlled by the admin:
 
-| Tier | Value | Who can see it |
+| Toggle | Column | Who it affects |
 |---|---|---|
-| Admin only | `admin_only` | League creators and admins only |
-| Members | `members` | All signed-in league members |
-| Public | `public` | Anyone with the league link *(routing coming soon)* |
+| Members enabled | `enabled` | All signed-in league members |
+| Public enabled | `public_enabled` | Anyone with the public league link |
+
+Admins always bypass feature flag checks — they see every feature regardless of either toggle.
 
 **Rules:**
-1. Every new feature starts at `admin_only`. Build it, test it as an admin, then promote when stable.
-2. Promote by changing the `visibility` field in league Settings → Features tab — no code change needed.
-3. Admins always bypass feature flag checks — they see every feature regardless of visibility.
-4. To add a new feature: add a `FeatureKey` value to `lib/types.ts`, add a `FEATURE_META` entry in `AdminFeaturePanel.tsx`, and add a `DEFAULT_FEATURES` entry in `app/api/league/[id]/features/route.ts` with `enabled: false, visibility: 'admin_only'`.
-5. Use `isFeatureEnabled(features, key, resolveVisibilityTier(userRole))` from `lib/features.ts` to gate UI.
+1. Every new feature starts with `enabled: false, public_enabled: false`. Admins see it immediately; members and public do not.
+2. Promote to members by toggling **enabled** on in Settings → Features → Members tab.
+3. Promote to public by toggling **public_enabled** on in Settings → Features → Public tab.
+4. Each tier can have independent config (e.g. different visible stat columns for public vs members).
+5. To add a new feature: add a `FeatureKey` to `lib/types.ts`, add a `DEFAULT_FEATURES` entry in `app/api/league/[id]/features/route.ts`, wire it into `AdminFeaturePanel.tsx`, and write a migration to seed the row.
+6. Use `isFeatureEnabled(features, key, resolveVisibilityTier(userRole))` from `lib/features.ts` to gate UI.
 
 See **`docs/FEATURE_FLAGS.md`** for the full step-by-step guide.
 
@@ -134,9 +136,8 @@ established in `components/` when adding new components.
 Defined in `lib/types.ts`. Never redefine or shadow them locally.
 
 ```ts
-export type FeatureVisibility = 'admin_only' | 'members' | 'public';
-
 export type FeatureKey =
+  | 'match_history'
   | 'match_entry'
   | 'team_builder'
   | 'player_stats'
@@ -144,9 +145,11 @@ export type FeatureKey =
 
 export interface LeagueFeature {
   feature: FeatureKey;
-  enabled: boolean;
-  visibility: FeatureVisibility;
-  config?: FeatureConfig | null;
+  enabled: boolean;               // whether members can access this feature
+  config?: FeatureConfig | null;  // member-tier config (columns, limits, etc.)
+  public_enabled: boolean;        // whether public visitors can access this feature
+  public_config?: FeatureConfig | null; // public-tier config (may differ from member config)
+  // Admins always have full access regardless of these settings
 }
 
 export type GameRole = 'creator' | 'admin' | 'member';
