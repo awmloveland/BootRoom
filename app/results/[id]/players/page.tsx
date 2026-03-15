@@ -40,6 +40,8 @@ export default async function PublicPlayersPage({ params }: Props) {
   if (!feat?.public_enabled) notFound()
 
   const publicConfig = feat.public_config as FeatureConfig | null
+  console.log('[public/players] feat:', JSON.stringify(feat))
+  console.log('[public/players] publicConfig:', JSON.stringify(publicConfig))
 
   // Fetch players — use the public variant that has no membership check
   const { data: playersData, error: playersError } = await serviceSupabase.rpc('get_player_stats_public', { p_game_id: id })
