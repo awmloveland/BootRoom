@@ -60,14 +60,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 2. craft-football.com (the public website, not m.) — route appropriately
+  // 2. Root path on any host → public league directory (no auth required)
+  if (pathname === '/' || pathname === '' || pathname === '/website') {
+    return NextResponse.rewrite(new URL('/website', request.url))
+  }
+
+  // 3. craft-football.com (non-m.) — public only, redirect app routes to m.
   const isMainWebsite = isWebsiteHost(host) && !isAppHost(host) && host !== 'localhost' && !host.startsWith('localhost:')
   if (isMainWebsite) {
-    // Root and /website → league directory
-    if (pathname === '/' || pathname === '' || pathname === '/website') {
-      return NextResponse.rewrite(new URL('/website', request.url))
-    }
-    // App routes hit on craft-football.com → redirect to m.craft-football.com
     const APP_PATHS = ['/sign-in', '/reset-password', '/profile-required', '/settings', '/add-game', '/invite', '/league/']
     if (APP_PATHS.some((p) => pathname === p || pathname.startsWith(p))) {
       const url = request.nextUrl.clone()
@@ -75,13 +75,13 @@ export async function middleware(request: NextRequest) {
       url.protocol = 'https'
       return NextResponse.redirect(url)
     }
-    // Public pages (/results/[id], /results/[id]/players) pass through normally
+    // Public pages (/results/[id] etc.) pass through normally
     return NextResponse.next({ request })
   }
 
-  // 3. App: m.craft-football.com or localhost
+  // 4. App: m.craft-football.com or localhost — auth-protected routes
   const isAppRequest = (isAppHost(host) || host === 'localhost' || host.startsWith('localhost:')) &&
-    (pathname === '/' || pathname === '' || pathname === '/sign-in' || pathname === '/reset-password' || pathname === '/profile-required' || pathname === '/settings' || pathname === '/add-game' || pathname.startsWith('/invite') || pathname.startsWith('/league/'))
+    (pathname === '/sign-in' || pathname === '/reset-password' || pathname === '/profile-required' || pathname === '/settings' || pathname === '/add-game' || pathname.startsWith('/invite') || pathname.startsWith('/league/'))
 
   if (isAppRequest) {
     let response = NextResponse.next({ request })
