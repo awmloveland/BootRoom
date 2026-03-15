@@ -23,14 +23,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'gameId required' }, { status: 400 })
   }
 
-  const { data: member } = await supabase
-    .from('game_members')
-    .select('game_id')
-    .eq('game_id', gameId)
-    .eq('user_id', user.id)
-    .single()
-
-  if (!member) {
+  const { data: isAdmin } = await supabase.rpc('is_game_admin', { p_game_id: gameId })
+  if (!isAdmin) {
     return NextResponse.json({ error: 'Not an admin of this game' }, { status: 403 })
   }
 

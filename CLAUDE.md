@@ -247,5 +247,4 @@ these colours carry strong pass/warning/error connotations in UI.
 - **Feature flags** — all new features start at `admin_only`. Promote via the UI, not code.
 - **No player profile pages** — player detail views are not in scope yet.
 - **Max-width `max-w-2xl`** — do not widen the content column.
-- **Public routing** — middleware currently requires auth for all app routes. Public-tier
-  routing (unauthenticated league views) is a planned follow-on task; the type system is ready.
+- **Public routing** — public league pages live at `craft-football.com/results/[id]` and require `public_results_enabled = true` on the league. Feature-level access is controlled per-feature via `public_enabled` on `league_features`.
