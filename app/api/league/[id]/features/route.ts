@@ -62,20 +62,22 @@ export async function PATCH(
     public_config?: object | null
   }[] = Array.isArray(body) ? body : [body]
 
+  const rows = updates.map((u) => ({
+    game_id: id,
+    feature: u.feature,
+    enabled: u.enabled,
+    config: u.config ?? null,
+    public_enabled: u.public_enabled,
+    public_config: u.public_config ?? null,
+    updated_at: new Date().toISOString(),
+  }))
+  console.log('[features PATCH] upserting:', JSON.stringify(rows))
+
   const { error } = await supabase
     .from('league_features')
-    .upsert(
-      updates.map((u) => ({
-        game_id: id,
-        feature: u.feature,
-        enabled: u.enabled,
-        config: u.config ?? null,
-        public_enabled: u.public_enabled,
-        public_config: u.public_config ?? null,
-        updated_at: new Date().toISOString(),
-      })),
-      { onConflict: 'game_id,feature' }
-    )
+    .upsert(rows, { onConflict: 'game_id,feature' })
+
+  console.log('[features PATCH] result error:', error ? JSON.stringify(error) : 'null')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
