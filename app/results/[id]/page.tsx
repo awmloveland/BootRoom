@@ -66,7 +66,11 @@ export default async function PublicResultsPage({ params }: Props) {
   )
 
   // Build a map of features that have public_enabled = true
+  if (featuresResult.error) {
+    console.error('[public/results] league_features query error:', featuresResult.error)
+  }
   const dbPublicFeatures = featuresResult.data ?? []
+  console.log('[public/results] public features:', dbPublicFeatures.map((f) => f.feature))
   function isPublic(key: FeatureKey): boolean {
     return dbPublicFeatures.some((f) => f.feature === key && f.public_enabled)
   }
