@@ -68,13 +68,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 2. localhost + /website → rewrite (to test website locally)
-  if ((host === 'localhost' || host.startsWith('localhost:')) && pathname === '/website') {
+  // 2. craft-football.com (not m.) root → serve public league directory
+  const isMainWebsite = isWebsiteHost(host) && !isAppHost(host)
+  if (isMainWebsite && (pathname === '/' || pathname === '' || pathname === '/website')) {
     return NextResponse.rewrite(new URL('/website', request.url))
   }
 
-  // 3. App: m.craft-football.com (mobile), craft-football.com (desktop), or localhost
-  const isAppRequest = (isAppHost(host) || (isWebsiteHost(host) && !isMobile(userAgent)) || host === 'localhost' || host.startsWith('localhost:')) &&
+  // 3. App: m.craft-football.com, or localhost app paths
+  const isAppRequest = (isAppHost(host) || host === 'localhost' || host.startsWith('localhost:')) &&
     (pathname === '/' || pathname === '' || pathname === '/sign-in' || pathname === '/reset-password' || pathname === '/profile-required' || pathname === '/settings' || pathname === '/add-game' || pathname.startsWith('/invite') || pathname.startsWith('/league/'))
 
   if (isAppRequest) {

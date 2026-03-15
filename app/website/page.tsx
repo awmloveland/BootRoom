@@ -23,18 +23,18 @@ export default async function WebsitePage() {
         <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 flex items-center justify-between">
           <span className="text-xl font-bold text-slate-100">⚽ Craft Football</span>
           <nav className="flex items-center gap-6">
-            <Link
-              href="/sign-in"
+            <a
+              href="https://m.craft-football.com/sign-in"
               className="text-sm text-slate-400 hover:text-slate-100 transition-colors"
             >
               Sign in
-            </Link>
-            <Link
-              href="/sign-in?mode=signup"
+            </a>
+            <a
+              href="https://m.craft-football.com/sign-in?mode=signup"
               className="text-sm text-slate-400 hover:text-slate-100 transition-colors"
             >
               Sign up
-            </Link>
+            </a>
           </nav>
         </div>
       </header>
