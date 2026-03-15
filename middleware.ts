@@ -60,21 +60,26 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 1. craft-football.com + mobile → redirect to m.craft-football.com
-  if (isWebsiteHost(host) && host !== 'localhost' && !host.startsWith('localhost:') && isMobile(userAgent)) {
-    const url = request.nextUrl.clone()
-    url.host = APP_HOST
-    url.protocol = 'https'
-    return NextResponse.redirect(url)
+  // 2. craft-football.com (the public website, not m.) — route appropriately
+  const isMainWebsite = isWebsiteHost(host) && !isAppHost(host) && host !== 'localhost' && !host.startsWith('localhost:')
+  if (isMainWebsite) {
+    // Root and /website → league directory
+    if (pathname === '/' || pathname === '' || pathname === '/website') {
+      return NextResponse.rewrite(new URL('/website', request.url))
+    }
+    // App routes hit on craft-football.com → redirect to m.craft-football.com
+    const APP_PATHS = ['/sign-in', '/reset-password', '/profile-required', '/settings', '/add-game', '/invite', '/league/']
+    if (APP_PATHS.some((p) => pathname === p || pathname.startsWith(p))) {
+      const url = request.nextUrl.clone()
+      url.host = APP_HOST
+      url.protocol = 'https'
+      return NextResponse.redirect(url)
+    }
+    // Public pages (/results/[id], /results/[id]/players) pass through normally
+    return NextResponse.next({ request })
   }
 
-  // 2. craft-football.com (not m.) root → serve public league directory
-  const isMainWebsite = isWebsiteHost(host) && !isAppHost(host)
-  if (isMainWebsite && (pathname === '/' || pathname === '' || pathname === '/website')) {
-    return NextResponse.rewrite(new URL('/website', request.url))
-  }
-
-  // 3. App: m.craft-football.com, or localhost app paths
+  // 3. App: m.craft-football.com or localhost
   const isAppRequest = (isAppHost(host) || host === 'localhost' || host.startsWith('localhost:')) &&
     (pathname === '/' || pathname === '' || pathname === '/sign-in' || pathname === '/reset-password' || pathname === '/profile-required' || pathname === '/settings' || pathname === '/add-game' || pathname.startsWith('/invite') || pathname.startsWith('/league/'))
 
