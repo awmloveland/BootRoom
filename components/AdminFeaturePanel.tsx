@@ -446,9 +446,13 @@ export function AdminFeaturePanel({ leagueId, features, onChanged }: AdminFeatur
         </p>
       )}
 
-      <p className="text-xs text-slate-500">
-        Admins always have full access. Use the tabs to configure what members and public visitors can see independently.
-      </p>
+      <div className="rounded-lg bg-sky-950/40 border border-sky-900/60 px-4 py-3">
+        <p className="text-xs font-medium text-sky-400 mb-0.5">You always see everything</p>
+        <p className="text-xs text-slate-400">
+          As a league admin, your own view is never restricted by these settings.
+          Changes here only affect <span className="text-slate-300">members</span> and <span className="text-slate-300">public visitors</span> — test with a member account to verify.
+        </p>
+      </div>
 
       <ResultsPageCard
         title="Results page"
