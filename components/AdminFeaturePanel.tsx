@@ -427,6 +427,8 @@ export function AdminFeaturePanel({ leagueId, features, onChanged }: AdminFeatur
         credentials: 'include',
       })
       const data = await res.json()
+      console.log('[AdminFeaturePanel] PATCH sent:', JSON.stringify(update))
+      console.log('[AdminFeaturePanel] PATCH response:', JSON.stringify(data))
       if (!res.ok) throw new Error(data.error ?? 'Failed to save')
       onChanged()
     } catch (err) {
