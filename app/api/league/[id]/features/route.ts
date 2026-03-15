@@ -26,9 +26,11 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // Note: must use select('*') — narrow column selection causes PostgREST to
+  // silently return null for the newly-added public_config JSONB column.
   const { data, error } = await supabase
     .from('league_features')
-    .select('feature, enabled, config, public_enabled, public_config')
+    .select('*')
     .eq('game_id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
