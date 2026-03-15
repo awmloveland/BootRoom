@@ -214,12 +214,13 @@ interface PageCardProps {
   title: string
   description: string
   saving: FeatureKey | null
+  saved: FeatureKey | null
   getFeature: (key: FeatureKey) => LeagueFeature
   updateFeature: (f: LeagueFeature) => void
 }
 
 /** Results page card — master: match_history, sub: match_entry */
-function ResultsPageCard({ title, description, saving, getFeature, updateFeature }: PageCardProps) {
+function ResultsPageCard({ title, description, saving, saved, getFeature, updateFeature }: PageCardProps) {
   const [tab, setTab] = useState<Tier>('members')
 
   const history = getFeature('match_history')
@@ -229,6 +230,7 @@ function ResultsPageCard({ title, description, saving, getFeature, updateFeature
   const entryEnabled   = tab === 'members' ? entry.enabled         : entry.public_enabled
   const isSavingMaster = saving === 'match_history'
   const isSavingEntry  = saving === 'match_entry'
+  const savedRecently  = saved === 'match_history' || saved === 'match_entry'
 
   function toggleMaster(val: boolean) {
     if (tab === 'members') updateFeature({ ...history, enabled: val })
@@ -248,7 +250,12 @@ function ResultsPageCard({ title, description, saving, getFeature, updateFeature
           <p className="text-sm font-semibold text-slate-200">{title}</p>
           <p className="text-xs text-slate-500 mt-0.5">{description}</p>
         </div>
-        <TabBar active={tab} onChange={setTab} />
+        <div className="flex items-center gap-3">
+          {savedRecently && (
+            <span className="text-xs text-emerald-400 font-medium">Saved ✓</span>
+          )}
+          <TabBar active={tab} onChange={setTab} />
+        </div>
       </div>
 
       {/* Body */}
@@ -287,7 +294,7 @@ function ResultsPageCard({ title, description, saving, getFeature, updateFeature
 }
 
 /** Players page card — master: player_stats, sub: team_builder, player_comparison */
-function PlayersPageCard({ title, description, saving, getFeature, updateFeature }: PageCardProps) {
+function PlayersPageCard({ title, description, saving, saved, getFeature, updateFeature }: PageCardProps) {
   const [tab, setTab] = useState<Tier>('members')
 
   const stats   = getFeature('player_stats')
@@ -297,12 +304,27 @@ function PlayersPageCard({ title, description, saving, getFeature, updateFeature
   const builderEnabled  = tab === 'members' ? builder.enabled     : builder.public_enabled
   const isSavingStats   = saving === 'player_stats'
   const isSavingBuilder = saving === 'team_builder'
+  const savedRecently   = saved === 'player_stats' || saved === 'team_builder'
 
   const activeConfig = tab === 'members' ? stats.config : stats.public_config
 
+  // Default public config to apply when admin first enables public access
+  const DEFAULT_PUBLIC_CONFIG: FeatureConfig = {
+    max_players: null,
+    visible_stats: ['played', 'won', 'drew', 'lost', 'winRate', 'recentForm', 'points', 'timesTeamA', 'timesTeamB'],
+    show_mentality: true,
+  }
+
   function toggleMaster(val: boolean) {
-    if (tab === 'members') updateFeature({ ...stats, enabled: val })
-    else                   updateFeature({ ...stats, public_enabled: val })
+    if (tab === 'members') {
+      updateFeature({ ...stats, enabled: val })
+    } else {
+      // When enabling public for the first time, seed a default public_config
+      const publicConfig = val && !stats.public_config
+        ? DEFAULT_PUBLIC_CONFIG
+        : (stats.public_config ?? null)
+      updateFeature({ ...stats, public_enabled: val, public_config: publicConfig })
+    }
   }
 
   function toggleBuilder(val: boolean) {
@@ -326,7 +348,12 @@ function PlayersPageCard({ title, description, saving, getFeature, updateFeature
           <p className="text-sm font-semibold text-slate-200">{title}</p>
           <p className="text-xs text-slate-500 mt-0.5">{description}</p>
         </div>
-        <TabBar active={tab} onChange={setTab} />
+        <div className="flex items-center gap-3">
+          {savedRecently && (
+            <span className="text-xs text-emerald-400 font-medium">Saved ✓</span>
+          )}
+          <TabBar active={tab} onChange={setTab} />
+        </div>
       </div>
 
       {/* Body */}
@@ -403,6 +430,7 @@ interface AdminFeaturePanelProps {
 export function AdminFeaturePanel({ leagueId, features, onChanged }: AdminFeaturePanelProps) {
   const [saving, setSaving] = useState<FeatureKey | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [saved, setSaved] = useState<FeatureKey | null>(null)
 
   function getFeature(key: FeatureKey): LeagueFeature {
     return (
@@ -427,9 +455,9 @@ export function AdminFeaturePanel({ leagueId, features, onChanged }: AdminFeatur
         credentials: 'include',
       })
       const data = await res.json()
-      console.log('[AdminFeaturePanel] PATCH sent:', JSON.stringify(update))
-      console.log('[AdminFeaturePanel] PATCH response:', JSON.stringify(data))
       if (!res.ok) throw new Error(data.error ?? 'Failed to save')
+      setSaved(update.feature)
+      setTimeout(() => setSaved(null), 2000)
       onChanged()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -438,7 +466,7 @@ export function AdminFeaturePanel({ leagueId, features, onChanged }: AdminFeatur
     }
   }
 
-  const shared = { saving, getFeature, updateFeature }
+  const shared = { saving, saved, getFeature, updateFeature }
 
   return (
     <div className="space-y-4">

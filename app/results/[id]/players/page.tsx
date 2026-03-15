@@ -76,7 +76,6 @@ export default async function PublicPlayersPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-slate-900">
-      <div id="debug-config" style={{ display: 'none' }} data-config={JSON.stringify(publicConfig)} data-show-mentality={String(publicConfig?.show_mentality ?? true)} />
       <PublicHeader
         leagueName={game.name}
         leagueId={id}

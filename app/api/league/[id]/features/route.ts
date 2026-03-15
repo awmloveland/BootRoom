@@ -72,11 +72,10 @@ export async function PATCH(
     updated_at: new Date().toISOString(),
   }))
 
-  const { data: saved, error } = await supabase
+  const { error } = await supabase
     .from('league_features')
     .upsert(rows, { onConflict: 'game_id,feature' })
-    .select('feature, enabled, config, public_enabled, public_config')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ ok: true, saved })
+  return NextResponse.json({ ok: true })
 }
