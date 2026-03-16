@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic'
 
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
 import { createPublicClient } from '@/lib/supabase/public'
 import { createServiceClient } from '@/lib/supabase/service'
 import { PublicHeader } from '@/components/PublicHeader'
@@ -66,6 +65,16 @@ export default async function PublicPlayersPage({ params }: Props) {
     players = players.slice(0, publicConfig.max_players)
   }
 
+  // Fetch week counts for sub-header
+  const { data: weekRows } = await serviceSupabase
+    .from('weeks')
+    .select('status')
+    .eq('game_id', id)
+    .in('status', ['played', 'cancelled'])
+  const playedCount = (weekRows ?? []).length
+  const totalWeeks = 52
+  const pct = Math.round((playedCount / totalWeeks) * 100)
+
   // Auth check for header
   let isAuthenticated = false
   try {
@@ -88,12 +97,8 @@ export default async function PublicPlayersPage({ params }: Props) {
 
       <div className="bg-slate-800/50 border-b border-slate-700">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
-          <Link href={`/results/${id}`} className="text-xs text-slate-400 hover:text-slate-300">
-            ← Results
-          </Link>
-          <span className="text-xs text-slate-400">
-            {players.length} {players.length === 1 ? 'player' : 'players'}
-          </span>
+          <span className="text-xs text-slate-400">{game.name}</span>
+          <span className="text-xs text-slate-400">{playedCount} of {totalWeeks} weeks ({pct}% complete)</span>
         </div>
       </div>
 

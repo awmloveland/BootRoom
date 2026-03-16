@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Menu } from 'lucide-react'
+import { Menu, Settings, User, LogOut } from 'lucide-react'
 
 import {
   Accordion,
@@ -19,7 +19,16 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import { AuthDialog } from '@/components/AuthDialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { fetchWeeks } from '@/lib/data'
 
 interface MenuItem {
   title: string
@@ -48,8 +57,8 @@ interface NavbarProps {
 const defaultLogo = {
   url: '/',
   src: '/favicon.ico',
-  alt: 'Craft Football',
-  title: 'Craft Football',
+  alt: 'Crafted Football',
+  title: 'Crafted Football',
 }
 
 function renderMobileMenuItem(item: MenuItem, isActive: boolean) {
@@ -82,6 +91,19 @@ function renderMobileMenuItem(item: MenuItem, isActive: boolean) {
     )
   }
 
+  if (item.title === 'Settings') {
+    return (
+      <Link
+        key={item.title}
+        href={item.url}
+        className={cn('flex items-center gap-2 font-semibold', isActive && 'text-foreground')}
+      >
+        <Settings className="size-4" />
+        Settings
+      </Link>
+    )
+  }
+
   return (
     <Link
       key={item.title}
@@ -105,9 +127,11 @@ export function Navbar({
   const isLeagueDetail = !!pathname?.match(/^\/league\/[^/]+/)
   const isPlayersPage = pathname?.endsWith('/players')
 
-  const [user, setUser] = useState<{ email?: string } | null>(null)
+  const [user, setUser] = useState<{ id?: string; email?: string } | null>(null)
+  const [displayName, setDisplayName] = useState<string | null>(null)
   const [leagueName, setLeagueName] = useState<string | null>(null)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
+  const [weekCount, setWeekCount] = useState<number | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const showNav = pathname !== '/sign-in' && pathname !== '/reset-password'
 
@@ -119,13 +143,17 @@ export function Navbar({
     if (pathname === '/sign-in' || pathname === '/reset-password') return
     fetch('/api/auth/me', { credentials: 'include' })
       .then((res) => res.json().catch(() => ({})))
-      .then((data) => setUser(data?.user ?? null))
+      .then((data) => {
+        setUser(data?.user ?? null)
+        setDisplayName(data?.profile?.display_name ?? data?.user?.email ?? null)
+      })
   }, [pathname])
 
   useEffect(() => {
     if (!leagueId) {
       setLeagueName(null)
       setIsLeagueAdmin(false)
+      setWeekCount(null)
       return
     }
     fetch('/api/games', { credentials: 'include' })
@@ -136,6 +164,9 @@ export function Navbar({
         setIsLeagueAdmin(game?.role === 'creator' || game?.role === 'admin')
       })
       .catch(() => { setLeagueName(null); setIsLeagueAdmin(false) })
+    fetchWeeks(leagueId)
+      .then((weeks) => setWeekCount(weeks.length))
+      .catch(() => setWeekCount(null))
   }, [leagueId])
 
   async function handleSignOut() {
@@ -145,7 +176,6 @@ export function Navbar({
 
   const resolvedMenu = menu.length > 0 ? menu : (() => {
     const items: MenuItem[] = [
-      { title: 'Leagues', url: '/' },
       ...(leagueId
         ? [
             { title: 'Results', url: `/league/${leagueId}` },
@@ -163,28 +193,25 @@ export function Navbar({
     const isResults = item.title === 'Results'
     const isPlayers = item.title === 'Players'
     const isSettings = item.title === 'Settings'
-    const isLeagues = item.title === 'Leagues'
     return (
       (isResults && isLeagueDetail && !isPlayersPage && !pathname?.endsWith('/settings')) ||
       (isPlayers && isPlayersPage) ||
-      (isSettings && isSettingsPage) ||
-      (isLeagues && (pathname === '/' || pathname === ''))
+      (isSettings && isSettingsPage)
     )
   }
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-700 bg-slate-900">
-      {/* Action bar */}
-      <div className="flex h-14 w-full max-w-2xl mx-auto items-center justify-between px-4 sm:px-6">
-        {/* Logo — always left */}
-        <Link href={logo.url} className="flex items-center gap-2 shrink-0">
-          <span className="text-xl font-bold text-slate-100">⚽</span>
-          <span className="text-lg font-semibold text-slate-100">{logo.title}</span>
+      {/* Action bar — desktop: 3-column grid to centre nav tabs */}
+      <div className="hidden sm:grid grid-cols-3 h-14 w-full max-w-2xl mx-auto items-center px-4 sm:px-6">
+        {/* Left: logo */}
+        <Link href={logo.url} className="flex items-center shrink-0">
+          <img src="/logo.png" alt="Crafted Football" className="h-10 w-10" />
         </Link>
 
-        {/* Nav items + Sign out — right-aligned, grouped together */}
-        <div className="hidden sm:flex items-center gap-6">
-          {showNav && resolvedMenu.map((item) => (
+        {/* Centre: nav tabs */}
+        <div className="flex items-center justify-center gap-6">
+          {showNav && resolvedMenu.filter((item) => item.title !== 'Settings').map((item) => (
             <Link
               key={item.title}
               href={item.url}
@@ -196,28 +223,55 @@ export function Navbar({
               {item.title}
             </Link>
           ))}
-          {auth?.login && auth?.signup && !user && (
-            <>
-              <Button asChild variant="outline" size="sm">
-                <Link href={auth.login.url}>{auth.login.text}</Link>
-              </Button>
-              <Button asChild size="sm">
-                <Link href={auth.signup.url}>{auth.signup.text}</Link>
-              </Button>
-            </>
-          )}
-          {showNav && user && (
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
-              Sign out
-            </Button>
-          )}
         </div>
 
-        {/* Mobile — hamburger only on very small screens */}
-        <div className="flex sm:hidden items-center justify-between w-full">
-          <Link href={logo.url} className="flex items-center gap-2 shrink-0 min-w-0">
-            <span className="text-xl font-bold text-slate-100">⚽</span>
-            <span className="text-lg font-semibold text-slate-100 truncate">{logo.title}</span>
+        {/* Right: auth / user controls */}
+        <div className="flex items-center justify-end">
+          {auth?.login && auth?.signup && !user && (
+            <AuthDialog redirect={auth.login.url} />
+          )}
+          {showNav && user && (
+            <div className="flex items-center gap-0.5">
+              {resolvedMenu.find((item) => item.title === 'Settings') && (
+                <Button asChild variant="ghost" size="sm">
+                  <Link href={resolvedMenu.find((item) => item.title === 'Settings')!.url}>
+                    <Settings className="size-4" />
+                  </Link>
+                </Button>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <User className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <div className="px-2 py-1.5">
+                    {displayName && (
+                      <p className="text-sm font-medium text-slate-100">{displayName}</p>
+                    )}
+                    {leagueId && (
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {isLeagueAdmin ? 'Admin' : 'Member'}
+                      </p>
+                    )}
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="size-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile action bar */}
+      <div className="flex sm:hidden h-14 w-full items-center justify-between px-4">
+          <Link href={logo.url} className="flex items-center shrink-0">
+            <img src="/logo.png" alt="Crafted Football" className="h-10 w-10" />
           </Link>
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
@@ -254,41 +308,34 @@ export function Navbar({
                     </div>
                   </div>
                 )}
-                {showNav && user && (
-                  <div className="flex flex-col gap-3">
-                    <Button variant="outline" onClick={handleSignOut}>
-                      Sign out
-                    </Button>
-                  </div>
+                {user && (
+                  <button
+                    onClick={handleSignOut}
+                    className="flex items-center gap-2 font-semibold text-slate-100"
+                  >
+                    <LogOut className="size-4" />
+                    Log out
+                  </button>
                 )}
                 {auth?.login && auth?.signup && !user && (
                   <div className="flex flex-col gap-3">
-                    <Button asChild variant="outline">
-                      <Link href={auth.login.url}>{auth.login.text}</Link>
-                    </Button>
-                    <Button asChild>
-                      <Link href={auth.signup.url}>{auth.signup.text}</Link>
-                    </Button>
+                    <AuthDialog redirect={auth.login.url} size="default" />
                   </div>
                 )}
               </div>
             </SheetContent>
           </Sheet>
-        </div>
       </div>
 
-      {/* League context bar — shown when a league is selected */}
+      {/* League context bar */}
       {leagueId && leagueName && showNav && (
-        <div className="bg-slate-800/50 border-b border-slate-700">
-          <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center gap-2">
-            <p className="text-sm font-medium text-slate-300">{leagueName}</p>
-            <span className={cn(
-              'px-2 py-0.5 rounded-full text-xs font-medium border',
-              isLeagueAdmin
-                ? 'bg-blue-900/40 border-blue-700 text-blue-300'
-                : 'bg-slate-700/50 border-slate-600 text-slate-400'
-            )}>
-              {isLeagueAdmin ? 'Admin' : 'Member'}
+        <div className="bg-slate-800/50 border-t border-slate-700">
+          <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
+            <span className="text-xs text-slate-400">{leagueName}</span>
+            <span className="text-xs text-slate-400">
+              {weekCount !== null
+                ? `${weekCount} of 52 weeks (${Math.round((weekCount / 52) * 100)}% complete)`
+                : ''}
             </span>
           </div>
         </div>

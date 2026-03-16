@@ -40,7 +40,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 bg-slate-900 border-b border-slate-700 h-14 flex items-center">
       <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 flex items-center justify-between">
-        <Link href="/" className="text-xl font-bold text-slate-100 hover:text-slate-200 transition-colors">⚽ Craft Football</Link>
+        <Link href="/" className="text-xl font-bold text-slate-100 hover:text-slate-200 transition-colors">⚽ Crafted Football</Link>
         <nav className="flex items-center gap-6">
           {pathname !== '/sign-in' && (
             <>

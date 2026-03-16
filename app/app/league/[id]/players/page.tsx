@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Users } from 'lucide-react'
 import { Player, Week, LeagueFeature, GameRole } from '@/lib/types'
-import { cn, deriveSeason, wprScore } from '@/lib/utils'
+import { cn, wprScore } from '@/lib/utils'
 import { fetchWeeks, fetchPlayers, fetchGames } from '@/lib/data'
 import { isFeatureEnabled } from '@/lib/features'
 import { resolveVisibilityTier } from '@/lib/roles'
@@ -58,9 +58,7 @@ function sortPlayers(players: Player[], sortBy: SortKey, ascending: boolean): Pl
 export default function LeaguePlayersPage() {
   const params = useParams()
   const leagueId = (params?.id as string) ?? ''
-  const [leagueName, setLeagueName] = useState('')
   const [players, setPlayers] = useState<Player[]>([])
-  const [season, setSeason] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [openPlayer, setOpenPlayer] = useState<string | null>(null)
@@ -119,9 +117,6 @@ export default function LeaguePlayersPage() {
         const featuresData: LeagueFeature[] = featuresRes.ok ? await featuresRes.json() : []
         setFeatures(featuresData)
 
-        const name = game.name
-        setLeagueName(name)
-        setSeason(deriveSeason(weeksData))
         setPlayers(playersData as Player[])
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load')
@@ -252,15 +247,6 @@ export default function LeaguePlayersPage() {
 
   return (
     <>
-      <div className="bg-slate-800/50 border-b border-slate-700">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
-          <Link href={`/league/${leagueId}`} className="text-xs text-slate-400 hover:text-slate-300">← Results</Link>
-          <span className="text-xs text-slate-400">
-            {players.length} Players · Season {season}
-          </span>
-        </div>
-      </div>
-
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
         <div className="flex flex-col gap-3 mb-4">
           {/* Search */}

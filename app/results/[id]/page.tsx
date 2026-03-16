@@ -105,7 +105,9 @@ export default async function PublicResultsPage({ params }: Props) {
     // treat as unauthenticated
   }
 
-  const playedCount = weeks.filter((w) => w.status === 'played').length
+  const playedCount = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled').length
+  const totalWeeks = 52
+  const pct = Math.round((playedCount / totalWeeks) * 100)
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -116,6 +118,15 @@ export default async function PublicResultsPage({ params }: Props) {
         currentPage="results"
         showPlayersNav={isPublic('player_stats')}
       />
+
+      {isPublic('match_history') && (
+        <div className="bg-slate-800/50 border-b border-slate-700">
+          <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
+            <span className="text-xs text-slate-400">{game.name}</span>
+            <span className="text-xs text-slate-400">{playedCount} of {totalWeeks} weeks ({pct}% complete)</span>
+          </div>
+        </div>
+      )}
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4 space-y-8">
 
@@ -131,11 +142,6 @@ export default async function PublicResultsPage({ params }: Props) {
         {/* Match history — only shown when match_history is public */}
         {isPublic('match_history') && (
           <section>
-            <div className="mb-4 pb-3 border-b border-slate-800">
-              <p className="text-xs text-slate-500">
-                Public results · {game.name} · {playedCount} matches played
-              </p>
-            </div>
             <PublicMatchList weeks={weeks} />
           </section>
         )}

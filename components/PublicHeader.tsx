@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 export type PublicPage = 'results' | 'players'
 
@@ -20,19 +21,23 @@ export function PublicHeader({
   currentPage,
   showPlayersNav = false,
 }: PublicHeaderProps) {
-  return (
-    <header className="sticky top-0 z-50 bg-slate-900 border-b border-slate-700 h-14 flex items-center">
-      <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 flex items-center justify-between">
-        <span className="text-xl font-bold text-slate-100">⚽ {leagueName}</span>
+  const redirectParam = encodeURIComponent(`/league/${leagueId}`)
+  const signInHref = `/sign-in?redirect=${redirectParam}`
+  const signUpHref = `/sign-in?mode=signup&redirect=${redirectParam}`
 
-        <nav className="flex items-center gap-6">
+  return (
+    <header className="sticky top-0 z-50 bg-slate-900 border-b border-slate-700">
+      <div className="grid grid-cols-3 h-14 w-full max-w-2xl mx-auto items-center px-4 sm:px-6">
+        {/* Left: logo */}
+        <img src="/logo.png" alt="Crafted Football" className="h-10 w-10" />
+
+        {/* Centre: nav tabs */}
+        <nav className="flex items-center justify-center gap-6">
           <Link
             href={`/results/${leagueId}`}
             className={cn(
-              'text-sm transition-colors',
-              currentPage === 'results'
-                ? 'text-slate-100 font-medium'
-                : 'text-slate-400 hover:text-slate-100',
+              'text-sm font-medium transition-colors',
+              currentPage === 'results' ? 'text-slate-100' : 'text-slate-400 hover:text-slate-100',
             )}
           >
             Results
@@ -42,16 +47,17 @@ export function PublicHeader({
             <Link
               href={`/results/${leagueId}/players`}
               className={cn(
-                'text-sm transition-colors',
-                currentPage === 'players'
-                  ? 'text-slate-100 font-medium'
-                  : 'text-slate-400 hover:text-slate-100',
+                'text-sm font-medium transition-colors',
+                currentPage === 'players' ? 'text-slate-100' : 'text-slate-400 hover:text-slate-100',
               )}
             >
               Players
             </Link>
           )}
+        </nav>
 
+        {/* Right: auth */}
+        <div className="flex items-center justify-end">
           {isAuthenticated ? (
             <Link
               href={`/league/${leagueId}`}
@@ -60,22 +66,16 @@ export function PublicHeader({
               Open app
             </Link>
           ) : (
-            <>
-              <Link
-                href={`/sign-in?redirect=${encodeURIComponent(`/league/${leagueId}`)}`}
-                className="text-sm text-slate-400 hover:text-slate-100 transition-colors"
-              >
-                Sign in
-              </Link>
-              <Link
-                href={`/sign-in?mode=signup&redirect=${encodeURIComponent(`/league/${leagueId}`)}`}
-                className="text-sm text-slate-400 hover:text-slate-100 transition-colors"
-              >
-                Sign up
-              </Link>
-            </>
+            <div className="flex items-center gap-2">
+              <Button size="xs" asChild>
+                <a href={signInHref}>Log in</a>
+              </Button>
+              <Button size="xs" variant="secondary" asChild>
+                <a href={signUpHref}>Join</a>
+              </Button>
+            </div>
           )}
-        </nav>
+        </div>
       </div>
     </header>
   )

@@ -9,8 +9,11 @@ export async function GET() {
   }
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id')
+    .select('id, display_name')
     .eq('id', user.id)
     .maybeSingle()
-  return NextResponse.json({ user: { id: user.id }, profile: profile ? { id: profile.id } : null })
+  return NextResponse.json({
+    user: { id: user.id, email: user.email },
+    profile: profile ? { id: profile.id, display_name: profile.display_name } : null,
+  })
 }
