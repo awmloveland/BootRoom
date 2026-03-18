@@ -115,7 +115,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
           <span className="text-xs text-slate-400">{playedCount} of {totalWeeks} weeks ({pct}% complete)</span>
         </div>
       </div>
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 pb-8">
         <PublicPlayerList
           players={players}
           visibleStats={visibleStats}
