@@ -1,4 +1,4 @@
-// app/app/settings/page.tsx (temporary location — moved to app/settings/page.tsx in Task 14)
+// app/settings/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
