@@ -40,6 +40,8 @@ export interface BootRoomData {
 
 export type GameRole = 'creator' | 'admin' | 'member';
 
+export type ProfileRole = 'user' | 'developer';
+
 export interface Game {
   id: string;
   name: string;
@@ -62,11 +64,11 @@ export interface FeatureConfig {
 
 export interface LeagueFeature {
   feature: FeatureKey;
+  available: boolean;             // whether this feature is globally available (from feature_experiments)
   enabled: boolean;               // whether members can access this feature
-  config?: FeatureConfig | null;  // member-tier config (columns, limits, etc.)
-  public_enabled: boolean;               // whether public visitors can access this feature
-  public_config?: FeatureConfig | null;  // public-tier config (may differ from member config)
-  // Admins always have full access regardless of these settings
+  config?: FeatureConfig | null;
+  public_enabled: boolean;
+  public_config?: FeatureConfig | null;
 }
 
 export interface LeagueMember {
