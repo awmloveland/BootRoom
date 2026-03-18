@@ -66,6 +66,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
+  // Check profile exists (required for all auth-gated routes)
+  // Skip for /sign-in, /reset-password, /profile-required, /invite which handle this themselves
+  const skipProfileCheck = ['/sign-in', '/reset-password', '/profile-required', '/invite'].some(
+    (p) => pathname === p || pathname.startsWith(p + '/')
+  )
+  if (!skipProfileCheck) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (!profile) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = '/profile-required'
+      return NextResponse.redirect(redirectUrl)
+    }
+  }
+
   if (needsDeveloper) {
     const { data: profile } = await supabase
       .from('profiles')
