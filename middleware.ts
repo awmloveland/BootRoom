@@ -5,10 +5,10 @@ import { NextResponse, type NextRequest } from 'next/server'
 const SIGN_IN_PATH = '/sign-in'
 
 // Routes that require a valid Supabase session
-const AUTH_REQUIRED = ['/settings', '/add-game']
+const AUTH_REQUIRED = ['/settings']
 
 // Routes that require profiles.role = 'developer'
-const DEVELOPER_REQUIRED = ['/experiments', '/add-game']
+const DEVELOPER_REQUIRED = ['/experiments']
 
 function getSupabaseUrl() { return process.env.NEXT_PUBLIC_SUPABASE_URL! }
 function getSupabaseAnonKey() {

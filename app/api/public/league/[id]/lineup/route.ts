@@ -3,19 +3,15 @@ import { createServiceClient } from '@/lib/supabase/service'
 
 type Params = { params: Promise<{ id: string }> }
 
-/** Verify the game has a public link and match_entry is public-enabled. */
+/** Verify match_entry is public-enabled for this league. */
 async function verifyPublicMatchEntry(service: ReturnType<typeof createServiceClient>, gameId: string) {
-  const [gameRes, featRes] = await Promise.all([
-    service.from('games').select('public_results_enabled').eq('id', gameId).single(),
-    service.from('league_features')
-      .select('public_enabled')
-      .eq('game_id', gameId)
-      .eq('feature', 'match_entry')
-      .maybeSingle(),
-  ])
-  if (!gameRes.data?.public_results_enabled) return false
-  if (!featRes.data?.public_enabled) return false
-  return true
+  const { data: feat } = await service
+    .from('league_features')
+    .select('public_enabled')
+    .eq('game_id', gameId)
+    .eq('feature', 'match_entry')
+    .maybeSingle()
+  return feat?.public_enabled === true
 }
 
 /**

@@ -13,17 +13,6 @@ export async function POST(request: Request, { params }: Params) {
   const { id } = await params
   const service = createServiceClient()
 
-  // Verify public link is on
-  const { data: game } = await service
-    .from('games')
-    .select('public_results_enabled')
-    .eq('id', id)
-    .single()
-
-  if (!game?.public_results_enabled) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
   // Verify match_entry is public-enabled
   const { data: feat } = await service
     .from('league_features')
