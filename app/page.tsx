@@ -58,8 +58,12 @@ export default async function HomePage() {
     service.from('league_features').select('game_id, feature, games(id, name)').eq('public_enabled', true),
   ])
 
-  const globallyAvailable = new Set((experimentsRes.data ?? []).map((e) => e.feature))
-  const publicLeagues = (publicLeaguesRes.data ?? []).filter((row) => globallyAvailable.has(row.feature))
+  const globallyAvailable = experimentsRes.error
+    ? null // null = all features available (table not yet created)
+    : new Set((experimentsRes.data ?? []).map((e) => e.feature))
+  const publicLeagues = (publicLeaguesRes.data ?? []).filter(
+    (row) => globallyAvailable === null || globallyAvailable.has(row.feature)
+  )
 
   // Deduplicate by game_id
   const seen = new Set<string>()

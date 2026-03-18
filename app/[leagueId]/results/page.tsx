@@ -6,7 +6,6 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
 import { sortWeeks } from '@/lib/utils'
-import { PublicHeader } from '@/components/PublicHeader'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
@@ -65,11 +64,13 @@ export default async function LeagueResultsPage({ params }: Props) {
     serviceSupabase.from('league_features').select('*').eq('game_id', leagueId),
   ])
 
-  const availableSet = new Set(
-    (experimentsResult.data ?? [])
-      .filter((e) => e.available)
-      .map((e) => e.feature as FeatureKey)
-  )
+  const availableSet = experimentsResult.error
+    ? new Set(DEFAULT_FEATURES.map((f) => f.feature as FeatureKey))
+    : new Set(
+        (experimentsResult.data ?? [])
+          .filter((e) => e.available)
+          .map((e) => e.feature as FeatureKey)
+      )
   const featureMap = Object.fromEntries((leagueFeaturesResult.data ?? []).map((f) => [f.feature, f]))
   const features: LeagueFeature[] = DEFAULT_FEATURES
     .filter((def) => availableSet.has(def.feature))
@@ -86,18 +87,9 @@ export default async function LeagueResultsPage({ params }: Props) {
   // 4. For the public tier: if nothing is visible, show private state
   if (tier === 'public' && !canSeeMatchHistory && !canSeeMatchEntry && !canSeePlayerStats) {
     return (
-      <div className="min-h-screen bg-slate-900">
-        <PublicHeader
-          leagueName={game.name}
-          leagueId={leagueId}
-          isAuthenticated={isAuthenticated}
-          currentPage="results"
-          showPlayersNav={false}
-        />
-        <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
-          <LeaguePrivateState leagueName={game.name} />
-        </main>
-      </div>
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
+        <LeaguePrivateState leagueName={game.name} />
+      </main>
     )
   }
 
@@ -183,15 +175,7 @@ export default async function LeagueResultsPage({ params }: Props) {
   // ── Public tier render ──
   if (tier === 'public') {
     return (
-      <div className="min-h-screen bg-slate-900">
-        <PublicHeader
-          leagueName={game.name}
-          leagueId={leagueId}
-          isAuthenticated={isAuthenticated}
-          currentPage="results"
-          showPlayersNav={canSeePlayerStats}
-        />
-
+      <>
         {canSeeMatchHistory && (
           <div className="bg-slate-800/50 border-b border-slate-700">
             <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
@@ -222,37 +206,35 @@ export default async function LeagueResultsPage({ params }: Props) {
             </p>
           )}
         </main>
-      </div>
+      </>
     )
   }
 
   // ── Member / Admin tier render ──
   return (
-    <div className="min-h-screen bg-slate-900">
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
-        <div className="flex flex-col gap-3">
-          {canSeeMatchEntry && (
-            <ResultsRefresher
-              gameId={leagueId}
-              weeks={weeks}
-              initialScheduledWeek={nextWeek}
-              canEdit={true}
-              canAutoPick={canSeeTeamBuilder}
-              allPlayers={players}
-            />
-          )}
+    <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
+      <div className="flex flex-col gap-3">
+        {canSeeMatchEntry && (
+          <ResultsRefresher
+            gameId={leagueId}
+            weeks={weeks}
+            initialScheduledWeek={nextWeek}
+            canEdit={true}
+            canAutoPick={canSeeTeamBuilder}
+            allPlayers={players}
+          />
+        )}
 
-          {canSeeMatchHistory && (
-            <WeekList weeks={weeks} />
-          )}
+        {canSeeMatchHistory && (
+          <WeekList weeks={weeks} />
+        )}
 
-          {!canSeeMatchHistory && !canSeeMatchEntry && (
-            <div className="py-16 text-center">
-              <p className="text-sm text-slate-500">Nothing to show here yet.</p>
-            </div>
-          )}
-        </div>
-      </main>
-    </div>
+        {!canSeeMatchHistory && !canSeeMatchEntry && (
+          <div className="py-16 text-center">
+            <p className="text-sm text-slate-500">Nothing to show here yet.</p>
+          </div>
+        )}
+      </div>
+    </main>
   )
 }

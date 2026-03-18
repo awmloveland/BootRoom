@@ -55,11 +55,13 @@ export default async function LeaguePlayersPage({ params }: Props) {
     service.from('league_features').select('*').eq('game_id', leagueId),
   ])
 
-  const availableSet = new Set(
-    (experimentsResult.data ?? [])
-      .filter((e) => e.available)
-      .map((e) => e.feature as FeatureKey)
-  )
+  const availableSet = experimentsResult.error
+    ? new Set(DEFAULT_FEATURES.map((f) => f.feature as FeatureKey))
+    : new Set(
+        (experimentsResult.data ?? [])
+          .filter((e) => e.available)
+          .map((e) => e.feature as FeatureKey)
+      )
   const featureMap = Object.fromEntries((leagueFeaturesResult.data ?? []).map((f) => [f.feature, f]))
   const rawFeatures: LeagueFeature[] = DEFAULT_FEATURES
     .filter((def) => availableSet.has(def.feature))
