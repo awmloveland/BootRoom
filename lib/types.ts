@@ -78,3 +78,13 @@ export interface LeagueMember {
   role: GameRole;
   joined_at: string;
 }
+
+export interface ScheduledWeek {
+  id: string;
+  week: number;
+  date: string;
+  format: string | null;
+  teamA: string[];
+  teamB: string[];
+  status: 'scheduled' | 'cancelled';
+}

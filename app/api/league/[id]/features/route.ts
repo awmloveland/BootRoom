@@ -1,20 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import type { FeatureKey } from '@/lib/types'
-
-const DEFAULT_FEATURES: {
-  feature: FeatureKey
-  enabled: boolean
-  config: object | null
-  public_enabled: boolean
-  public_config: object | null
-}[] = [
-  { feature: 'match_history',     enabled: true,  config: null, public_enabled: false, public_config: null },
-  { feature: 'match_entry',       enabled: true,  config: null, public_enabled: false, public_config: null },
-  { feature: 'team_builder',      enabled: true,  config: null, public_enabled: false, public_config: null },
-  { feature: 'player_stats',      enabled: true,  config: { max_players: null, visible_stats: ['played','won','drew','lost','winRate','recentForm'] }, public_enabled: false, public_config: null },
-  { feature: 'player_comparison', enabled: false, config: null, public_enabled: false, public_config: null },
-]
+import { DEFAULT_FEATURES } from '@/lib/defaults'
 
 /** GET — returns feature flags for a league, gated by global feature_experiments availability. */
 export async function GET(

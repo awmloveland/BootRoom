@@ -5,7 +5,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
 import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { Week, Winner, Player } from '@/lib/types'
+import type { Week, Winner, Player, ScheduledWeek } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
 import { X } from 'lucide-react'
 import { WinnerBadge } from '@/components/WinnerBadge'
@@ -45,16 +45,6 @@ interface Props {
   allPlayers?: Player[]
   /** Called when the user enters building state — used to collapse open match cards. */
   onBuildStart?: () => void
-}
-
-export interface ScheduledWeek {
-  id: string
-  week: number
-  date: string
-  format: string | null
-  teamA: string[]
-  teamB: string[]
-  status: 'scheduled' | 'cancelled'
 }
 
 type CardState = 'loading' | 'idle' | 'building' | 'lineup' | 'cancelled'

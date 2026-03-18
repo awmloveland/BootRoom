@@ -11,27 +11,13 @@ import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
-import { NextMatchCard } from '@/components/NextMatchCard'
-import type { Week, GameRole, LeagueFeature, FeatureKey, Player } from '@/lib/types'
-import type { ScheduledWeek } from '@/components/NextMatchCard'
+import { ResultsRefresher } from '@/components/ResultsRefresher'
+import type { Week, GameRole, LeagueFeature, FeatureKey, Player, ScheduledWeek } from '@/lib/types'
+import { DEFAULT_FEATURES } from '@/lib/defaults'
 
 interface Props {
   params: Promise<{ leagueId: string }>
 }
-
-const DEFAULT_FEATURES: {
-  feature: FeatureKey
-  enabled: boolean
-  config: object | null
-  public_enabled: boolean
-  public_config: object | null
-}[] = [
-  { feature: 'match_history',     enabled: true,  config: null, public_enabled: false, public_config: null },
-  { feature: 'match_entry',       enabled: true,  config: null, public_enabled: false, public_config: null },
-  { feature: 'team_builder',      enabled: true,  config: null, public_enabled: false, public_config: null },
-  { feature: 'player_stats',      enabled: true,  config: null, public_enabled: false, public_config: null },
-  { feature: 'player_comparison', enabled: false, config: null, public_enabled: false, public_config: null },
-]
 
 export default async function LeagueResultsPage({ params }: Props) {
   const { leagueId } = await params
@@ -65,7 +51,8 @@ export default async function LeagueResultsPage({ params }: Props) {
         userRole = memberRow.role as GameRole
       }
     }
-  } catch {
+  } catch (err) {
+    console.error('[results] auth check failed:', err)
     // treat as unauthenticated
   }
 
@@ -245,14 +232,13 @@ export default async function LeagueResultsPage({ params }: Props) {
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
         <div className="flex flex-col gap-3">
           {canSeeMatchEntry && (
-            <NextMatchCard
+            <ResultsRefresher
               gameId={leagueId}
               weeks={weeks}
-              onResultSaved={() => {}}
-              canEdit={canSeeMatchEntry}
+              initialScheduledWeek={nextWeek}
+              canEdit={true}
               canAutoPick={canSeeTeamBuilder}
               allPlayers={players}
-              initialScheduledWeek={nextWeek}
             />
           )}
 

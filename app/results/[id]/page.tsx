@@ -8,8 +8,7 @@ import { PublicHeader } from '@/components/PublicHeader'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { sortWeeks } from '@/lib/utils'
-import type { Week, FeatureKey } from '@/lib/types'
-import type { ScheduledWeek } from '@/components/NextMatchCard'
+import type { Week, FeatureKey, ScheduledWeek } from '@/lib/types'
 
 interface Props {
   params: Promise<{ id: string }>
