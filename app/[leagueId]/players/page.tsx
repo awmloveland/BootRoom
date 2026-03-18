@@ -7,6 +7,7 @@ import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { PublicPlayerList } from '@/components/PublicPlayerList'
+import { DEFAULT_FEATURES } from '@/lib/defaults'
 import type { GameRole, LeagueFeature, FeatureKey, Player } from '@/lib/types'
 
 interface Props {
@@ -59,9 +60,13 @@ export default async function LeaguePlayersPage({ params }: Props) {
       .filter((e) => e.available)
       .map((e) => e.feature as FeatureKey)
   )
-  const rawFeatures: LeagueFeature[] = (leagueFeaturesResult.data ?? [])
-    .filter((f) => availableSet.has(f.feature))
-    .map((f) => ({ ...f, available: true }))
+  const featureMap = Object.fromEntries((leagueFeaturesResult.data ?? []).map((f) => [f.feature, f]))
+  const rawFeatures: LeagueFeature[] = DEFAULT_FEATURES
+    .filter((def) => availableSet.has(def.feature))
+    .map((def) => {
+      const row = featureMap[def.feature] ?? def
+      return { ...row, available: true } as LeagueFeature
+    })
 
   // 4. Check player_stats feature visibility
   if (!isFeatureEnabled(rawFeatures, 'player_stats', tier)) {
