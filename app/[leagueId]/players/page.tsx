@@ -49,11 +49,15 @@ export default async function LeaguePlayersPage({ params }: Props) {
 
   const tier = resolveVisibilityTier(userRole)
 
-  // 3. Fetch feature_experiments + league_features in parallel
-  const [experimentsResult, leagueFeaturesResult] = await Promise.all([
+  // 3. Fetch feature_experiments + league_features + played week count in parallel
+  const [experimentsResult, leagueFeaturesResult, weeksResult] = await Promise.all([
     service.from('feature_experiments').select('feature, available'),
     service.from('league_features').select('*').eq('game_id', leagueId),
+    service.from('weeks').select('week', { count: 'exact', head: true }).eq('game_id', leagueId).in('status', ['played', 'cancelled']),
   ])
+  const playedCount = weeksResult.count ?? 0
+  const totalWeeks = 52
+  const pct = Math.round((playedCount / totalWeeks) * 100)
 
   const availableSet = experimentsResult.error
     ? new Set(DEFAULT_FEATURES.map((f) => f.feature as FeatureKey))
@@ -104,12 +108,20 @@ export default async function LeaguePlayersPage({ params }: Props) {
   const showMentality = config?.show_mentality ?? true
 
   return (
-    <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-      <PublicPlayerList
-        players={players}
-        visibleStats={visibleStats}
-        showMentality={showMentality}
-      />
-    </main>
+    <>
+      <div className="bg-slate-800/50 border-b border-slate-700">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
+          <span className="text-xs text-slate-400">{game.name}</span>
+          <span className="text-xs text-slate-400">{playedCount} of {totalWeeks} weeks ({pct}% complete)</span>
+        </div>
+      </div>
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+        <PublicPlayerList
+          players={players}
+          visibleStats={visibleStats}
+          showMentality={showMentality}
+        />
+      </main>
+    </>
   )
 }

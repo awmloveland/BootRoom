@@ -235,7 +235,7 @@ export function Navbar({
         {/* Right: auth / user controls */}
         <div className="flex items-center justify-end">
           {showNav && !user && (
-            <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} />
+            <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} size="sm" />
           )}
           {showNav && user && (
             <div className="flex items-center gap-0.5">
