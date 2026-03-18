@@ -234,8 +234,8 @@ export function Navbar({
 
         {/* Right: auth / user controls */}
         <div className="flex items-center justify-end">
-          {auth?.login && auth?.signup && !user && (
-            <AuthDialog redirect={auth.login.url} />
+          {showNav && !user && (
+            <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} />
           )}
           {showNav && user && (
             <div className="flex items-center gap-0.5">
@@ -329,9 +329,9 @@ export function Navbar({
                     Log out
                   </button>
                 )}
-                {auth?.login && auth?.signup && !user && (
+                {!user && (
                   <div className="flex flex-col gap-3">
-                    <AuthDialog redirect={auth.login.url} size="default" />
+                    <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} size="default" />
                   </div>
                 )}
               </div>
