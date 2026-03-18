@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Menu, Settings, User, LogOut } from 'lucide-react'
+import { Menu, Settings, User, LogOut, FlaskConical } from 'lucide-react'
 
 import {
   Accordion,
@@ -123,12 +123,13 @@ export function Navbar({
 }: NavbarProps) {
   const pathname = usePathname()
   const params = useParams()
-  const leagueId = params?.id as string | undefined
-  const isLeagueDetail = !!pathname?.match(/^\/league\/[^/]+/)
-  const isPlayersPage = pathname?.endsWith('/players')
+  const leagueId = (params as { leagueId?: string })?.leagueId
+  const isLeagueDetail = !!pathname?.match(/^\/[0-9a-f-]{36}\/(results|players|settings)/)
+  const isPlayersPage = !!pathname?.match(/^\/[^/]+\/players$/)
 
   const [user, setUser] = useState<{ id?: string; email?: string } | null>(null)
   const [displayName, setDisplayName] = useState<string | null>(null)
+  const [profileRole, setProfileRole] = useState<string | null>(null)
   const [leagueName, setLeagueName] = useState<string | null>(null)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
   const [weekCount, setWeekCount] = useState<number | null>(null)
@@ -143,9 +144,19 @@ export function Navbar({
     if (pathname === '/sign-in' || pathname === '/reset-password') return
     fetch('/api/auth/me', { credentials: 'include' })
       .then((res) => res.json().catch(() => ({})))
-      .then((data) => {
+      .then(async (data) => {
         setUser(data?.user ?? null)
         setDisplayName(data?.profile?.display_name ?? data?.user?.email ?? null)
+        if (data?.user?.id) {
+          const { createClient } = await import('@/lib/supabase/client')
+          const supabase = createClient()
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .maybeSingle()
+          setProfileRole(profile?.role ?? null)
+        }
       })
   }, [pathname])
 
@@ -178,26 +189,22 @@ export function Navbar({
     const items: MenuItem[] = [
       ...(leagueId
         ? [
-            { title: 'Results', url: `/league/${leagueId}` },
-            { title: 'Players', url: `/league/${leagueId}/players` },
-            // Settings is only shown to admins/creators
-            ...(isLeagueAdmin ? [{ title: 'Settings', url: `/league/${leagueId}/settings` }] : []),
+            { title: 'Results', url: `/${leagueId}/results` },
+            { title: 'Players', url: `/${leagueId}/players` },
+            ...(isLeagueAdmin ? [{ title: 'Settings', url: `/${leagueId}/settings` }] : []),
           ]
         : []),
     ]
     return items
   })()
 
-  const isSettingsPage = pathname === '/settings' || !!pathname?.match(/^\/league\/[^/]+\/settings$/)
+  const isSettingsPage = pathname === '/settings' || !!pathname?.match(/^\/[^/]+\/settings$/)
+  const settingsUrl = leagueId ? `/${leagueId}/settings` : '/settings'
   const isActive = (item: MenuItem) => {
-    const isResults = item.title === 'Results'
-    const isPlayers = item.title === 'Players'
-    const isSettings = item.title === 'Settings'
-    return (
-      (isResults && isLeagueDetail && !isPlayersPage && !pathname?.endsWith('/settings')) ||
-      (isPlayers && isPlayersPage) ||
-      (isSettings && isSettingsPage)
-    )
+    if (item.title === 'Results') return !!leagueId && !isPlayersPage && !isSettingsPage
+    if (item.title === 'Players') return isPlayersPage
+    if (item.title === 'Settings') return isSettingsPage
+    return false
   }
 
   return (
@@ -232,13 +239,18 @@ export function Navbar({
           )}
           {showNav && user && (
             <div className="flex items-center gap-0.5">
-              {resolvedMenu.find((item) => item.title === 'Settings') && (
+              {profileRole === 'developer' && (
                 <Button asChild variant="ghost" size="sm">
-                  <Link href={resolvedMenu.find((item) => item.title === 'Settings')!.url}>
-                    <Settings className="size-4" />
+                  <Link href="/experiments" title="Experiments">
+                    <FlaskConical className="size-4" />
                   </Link>
                 </Button>
               )}
+              <Button asChild variant="ghost" size="sm">
+                <Link href={settingsUrl}>
+                  <Settings className="size-4" />
+                </Link>
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
