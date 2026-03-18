@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 
+import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
@@ -44,16 +45,7 @@ export default async function LeagueResultsPage({ params }: Props) {
     .eq('id', leagueId)
     .maybeSingle()
 
-  if (!game) {
-    // Unknown league ID — render private state with a generic name
-    return (
-      <div className="min-h-screen bg-slate-900">
-        <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
-          <LeaguePrivateState leagueName="League" />
-        </main>
-      </div>
-    )
-  }
+  if (!game) notFound()
 
   // 2. Resolve auth + league membership
   let userRole: GameRole | null = null
