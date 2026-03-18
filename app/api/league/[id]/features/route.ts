@@ -16,7 +16,7 @@ const DEFAULT_FEATURES: {
   { feature: 'player_comparison', enabled: false, config: null, public_enabled: false, public_config: null },
 ]
 
-/** GET — returns feature flags for a league. Any member can read. */
+/** GET — returns feature flags for a league, gated by global feature_experiments availability. */
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -26,18 +26,30 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Note: must use select('*') — narrow column selection causes PostgREST to
-  // silently return null for the newly-added public_config JSONB column.
-  const { data, error } = await supabase
-    .from('league_features')
-    .select('*')
-    .eq('game_id', id)
+  // Fetch global availability and per-league flags in parallel
+  const [experimentsResult, leagueResult] = await Promise.all([
+    supabase.from('feature_experiments').select('feature, available'),
+    supabase.from('league_features').select('*').eq('game_id', id),
+  ])
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (experimentsResult.error) {
+    return NextResponse.json({ error: experimentsResult.error.message }, { status: 500 })
+  }
 
-  // Merge with defaults so missing rows don't break the UI
-  const featureMap = Object.fromEntries((data ?? []).map((f) => [f.feature, f]))
-  const features = DEFAULT_FEATURES.map((def) => featureMap[def.feature] ?? def)
+  const availableSet = new Set(
+    (experimentsResult.data ?? [])
+      .filter((e) => e.available)
+      .map((e) => e.feature as FeatureKey)
+  )
+
+  // Merge with defaults, then filter by global availability
+  const featureMap = Object.fromEntries((leagueResult.data ?? []).map((f) => [f.feature, f]))
+  const features = DEFAULT_FEATURES
+    .filter((def) => availableSet.has(def.feature))
+    .map((def) => {
+      const row = featureMap[def.feature] ?? def
+      return { ...row, available: true }
+    })
 
   return NextResponse.json(features)
 }
