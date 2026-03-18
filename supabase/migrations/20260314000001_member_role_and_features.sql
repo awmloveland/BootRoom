@@ -280,7 +280,6 @@ BEGIN
   -- Seed default feature flags for the new league
   INSERT INTO league_features (game_id, feature, enabled, config) VALUES
     (game_uuid, 'match_entry',       true,  NULL),
-    (game_uuid, 'team_builder',      true,  NULL),
     (game_uuid, 'player_stats',      true,  '{"max_players": null, "visible_stats": ["played","won","drew","lost","winRate","recentForm"]}'::jsonb),
     (game_uuid, 'player_comparison', false, NULL);
 

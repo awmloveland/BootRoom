@@ -3,9 +3,9 @@
 import { Fragment, useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Week, GameRole, LeagueFeature } from '@/lib/types'
+import { Week, GameRole, LeagueFeature, Player } from '@/lib/types'
 import { sortWeeks, getPlayedWeeks, getMonthKey, formatMonthYear } from '@/lib/utils'
-import { fetchWeeks, fetchGames } from '@/lib/data'
+import { fetchWeeks, fetchGames, fetchPlayers } from '@/lib/data'
 import { isFeatureEnabled } from '@/lib/features'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { MatchCard } from '@/components/MatchCard'
@@ -24,12 +24,14 @@ export default function LeaguePage() {
   const [hasAccess, setHasAccess] = useState(false)
   const [userRole, setUserRole] = useState<GameRole>('member')
   const [features, setFeatures] = useState<LeagueFeature[]>([])
+  const [players, setPlayers] = useState<Player[]>([])
 
   const load = useCallback(async () => {
     try {
-      const [games, weeksData] = await Promise.all([
+      const [games, weeksData, playersData] = await Promise.all([
         fetchGames(),
         fetchWeeks(leagueId),
+        fetchPlayers(leagueId),
       ])
       const game = games.find((g) => g.id === leagueId)
       if (!game) {
@@ -54,6 +56,7 @@ export default function LeaguePage() {
       setHasAccess(true)
       setLeagueName(game.name)
       setUserRole(game.role)
+      setPlayers(playersData as Player[])
 
       const displayWeeks = sortWeeks(weeksData)
       const playedWeeks = getPlayedWeeks(displayWeeks)
@@ -157,6 +160,9 @@ export default function LeaguePage() {
               weeks={weeks}
               onResultSaved={load}
               canEdit={canSeeMatchEntry}
+              canAutoPick={isAdmin || isFeatureEnabled(features, 'team_builder', tier)}
+              allPlayers={players}
+              onBuildStart={() => setOpenWeek(null)}
             />
           )}
 

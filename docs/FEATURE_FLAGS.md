@@ -334,7 +334,7 @@ Apply the same pattern to any new page card that has per-tier config.
 | `match_history` | Results | Toggle | Toggle | Controls the match history feed |
 | `match_entry` | Results | Toggle | Toggle | Public writes use `/api/public/` routes |
 | `player_stats` | Players | Toggle + config | Toggle + config | Config: columns, mentality badge, max players |
-| `team_builder` | Players | Toggle | Members only | Cannot be made public (requires auth) |
+| `team_builder` | League home | Toggle | Members only | Auto-pick in NextMatchCard; cannot be made public |
 | `player_comparison` | Players | — | — | Coming soon |
 
 ---

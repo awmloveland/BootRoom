@@ -10,13 +10,6 @@ interface PlayerCardProps {
   player: Player
   isOpen: boolean
   onToggle: () => void
-  /** In builder mode: which team the player is assigned to, or null if unassigned */
-  teamAssignment?: 'A' | 'B' | null
-  /** Called in builder mode when the card is tapped */
-  onAssignCycle?: () => void
-  /** When true, card is draggable and tap cycles assignment instead of expanding */
-  builderMode?: boolean
-  onDragStart?: (playerName: string) => void
   /** Stat keys to show in the expanded body — undefined means show all */
   visibleStats?: string[]
   /** Whether to show the ATT/BAL/DEF/GK mentality badge — defaults to true */
@@ -59,70 +52,27 @@ export function PlayerCard({
   player,
   isOpen,
   onToggle,
-  teamAssignment = null,
-  onAssignCycle,
-  builderMode = false,
-  onDragStart,
   visibleStats,
   showMentality = true,
 }: PlayerCardProps) {
   const contentId = `player-${player.name.replace(/\s+/g, '-').toLowerCase()}-content`
 
-  const borderClass = builderMode
-    ? teamAssignment === 'A'
-      ? 'border-sky-500'
-      : teamAssignment === 'B'
-        ? 'border-violet-500'
-        : 'border-slate-700 hover:border-slate-500'
-    : isOpen
-      ? 'border-slate-600'
-      : 'border-slate-700 hover:border-slate-500'
-
-  const handleOpenChange = () => {
-    if (builderMode) {
-      onAssignCycle?.()
-    } else {
-      onToggle()
-    }
-  }
+  const borderClass = isOpen
+    ? 'border-slate-600'
+    : 'border-slate-700 hover:border-slate-500'
 
   return (
-    <Collapsible.Root open={builderMode ? false : isOpen} onOpenChange={handleOpenChange}>
+    <Collapsible.Root open={isOpen} onOpenChange={onToggle}>
       <div
         className={cn('rounded-lg border bg-slate-800 transition-colors duration-150', borderClass)}
-        draggable={builderMode}
-        onDragStart={
-          builderMode
-            ? (e) => {
-                e.dataTransfer.setData('text/plain', player.name)
-                e.dataTransfer.effectAllowed = 'move'
-                onDragStart?.(player.name)
-              }
-            : undefined
-        }
       >
         <Collapsible.Trigger asChild>
           <button
             className="w-full flex items-center justify-between px-4 py-3 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer"
-            aria-expanded={builderMode ? false : isOpen}
+            aria-expanded={isOpen}
             aria-controls={contentId}
           >
             <div className="flex items-center gap-2.5">
-              {/* Team assignment indicator (builder mode) */}
-              {builderMode && (
-                <span
-                  className={cn(
-                    'flex items-center justify-center h-5 w-5 rounded-full text-[10px] font-bold shrink-0 transition-colors',
-                    teamAssignment === 'A'
-                      ? 'bg-sky-500 text-white'
-                      : teamAssignment === 'B'
-                        ? 'bg-violet-500 text-white'
-                        : 'border border-slate-600 text-slate-600',
-                  )}
-                >
-                  {teamAssignment ?? ''}
-                </span>
-              )}
               <span className="text-sm font-semibold text-slate-100">{player.name}</span>
               {/* Mentality pill */}
               {showMentality && (
@@ -133,15 +83,13 @@ export function PlayerCard({
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400">{player.played} games</span>
-              {!builderMode && (
-                <ChevronDown
-                  className={cn(
-                    'h-4 w-4 text-slate-400 transition-transform duration-200 flex-shrink-0',
-                    isOpen && 'rotate-180',
-                  )}
-                  aria-hidden="true"
-                />
-              )}
+              <ChevronDown
+                className={cn(
+                  'h-4 w-4 text-slate-400 transition-transform duration-200 flex-shrink-0',
+                  isOpen && 'rotate-180',
+                )}
+                aria-hidden="true"
+              />
             </div>
           </button>
         </Collapsible.Trigger>
