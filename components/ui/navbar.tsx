@@ -159,9 +159,7 @@ export function Navbar({
 
   useEffect(() => {
     if (!leagueId) {
-      setLeagueName(null)
       setIsLeagueAdmin(false)
-      setWeekCount(null)
       return
     }
     fetch('/api/games', { credentials: 'include' })
