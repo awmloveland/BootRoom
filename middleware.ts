@@ -1,58 +1,33 @@
+// middleware.ts
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-function getSupabaseUrl(): string | undefined {
-  return process.env.NEXT_PUBLIC_SUPABASE_URL
-}
-function getSupabaseAnonKey(): string | undefined {
-  return (
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-  )
-}
-
 const SIGN_IN_PATH = '/sign-in'
-const AUTH_CALLBACK_PATH = '/auth/callback'
-const ACCESS_KEY_COOKIE = 'app_access'
-const ACCESS_KEY_DAYS = 7
 
-const APP_HOST = 'm.craft-football.com'
-const WEBSITE_HOST = 'craft-football.com'
+// Routes that require a valid Supabase session
+const AUTH_REQUIRED = ['/settings', '/add-game']
 
-function isAppHost(host: string | null): boolean {
-  if (!host) return false
-  return host === APP_HOST || host.startsWith('m.')
-}
+// Routes that require profiles.role = 'developer'
+const DEVELOPER_REQUIRED = ['/experiments', '/add-game']
 
-function isWebsiteHost(host: string | null): boolean {
-  if (!host) return false
-  return host === WEBSITE_HOST || host === `www.${WEBSITE_HOST}` || host === 'localhost' || host.startsWith('localhost:')
-}
-
-function isMobile(userAgent: string): boolean {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
-}
-
-function hasValidAccessKey(request: NextRequest): boolean {
-  const key = process.env.APP_ACCESS_KEY
-  if (!key) return false
-  const urlKey = request.nextUrl.searchParams.get('key')
-  if (urlKey && urlKey === key) return true
-  const cookieKey = request.cookies.get(ACCESS_KEY_COOKIE)?.value
-  return cookieKey === key
+function getSupabaseUrl() { return process.env.NEXT_PUBLIC_SUPABASE_URL! }
+function getSupabaseAnonKey() {
+  return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 }
 
 export async function middleware(request: NextRequest) {
-  const host = request.headers.get('host') ?? ''
-  const pathname = request.nextUrl.pathname
-  const userAgent = request.headers.get('user-agent') ?? ''
+  const { pathname } = request.nextUrl
 
-  // Skip API and auth callback - no host-based routing
-  if (pathname.startsWith('/api') || pathname.startsWith('/auth')) {
+  // Skip static assets, API routes, and auth callback
+  if (
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/auth') ||
+    pathname.startsWith('/_next')
+  ) {
     return NextResponse.next({ request })
   }
 
-  // Supabase magic link sometimes redirects to /?code= instead of /auth/callback?code= - fix it
+  // Fix Supabase magic link: /?code= → /auth/callback?code=
   const code = request.nextUrl.searchParams.get('code')
   if (code && (pathname === '/' || pathname === '')) {
     const url = request.nextUrl.clone()
@@ -60,152 +35,65 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 2. Root path on any host → public league directory (no auth required)
-  if (pathname === '/' || pathname === '' || pathname === '/website') {
-    return NextResponse.rewrite(new URL('/website', request.url))
-  }
+  // Check if this path needs auth or developer role
+  const needsAuth = AUTH_REQUIRED.some((p) => pathname === p || pathname.startsWith(p + '/'))
+  const needsDeveloper = DEVELOPER_REQUIRED.some((p) => pathname === p || pathname.startsWith(p + '/'))
+  const needsLeagueAdmin = /^\/[^/]+\/settings(\/|$)/.test(pathname)
 
-  // 3. craft-football.com (non-m.) — public only, redirect app routes to m.
-  const isMainWebsite = isWebsiteHost(host) && !isAppHost(host) && host !== 'localhost' && !host.startsWith('localhost:')
-  if (isMainWebsite) {
-    const APP_PATHS = ['/sign-in', '/reset-password', '/profile-required', '/settings', '/add-game', '/invite', '/league/']
-    if (APP_PATHS.some((p) => pathname === p || pathname.startsWith(p))) {
-      const url = request.nextUrl.clone()
-      url.host = APP_HOST
-      url.protocol = 'https'
-      return NextResponse.redirect(url)
-    }
-    // Public pages (/results/[id] etc.) pass through normally
+  if (!needsAuth && !needsDeveloper && !needsLeagueAdmin) {
     return NextResponse.next({ request })
   }
 
-  // 4. App: m.craft-football.com or localhost — auth-protected routes
-  const isAppRequest = (isAppHost(host) || host === 'localhost' || host.startsWith('localhost:')) &&
-    (pathname === '/sign-in' || pathname === '/reset-password' || pathname === '/profile-required' || pathname === '/settings' || pathname === '/add-game' || pathname.startsWith('/invite') || pathname.startsWith('/league/'))
-
-  if (isAppRequest) {
-    let response = NextResponse.next({ request })
-    const isSignIn = pathname === '/sign-in'
-    const isResetPassword = pathname === '/reset-password'
-    const isAuthCallback = pathname.startsWith(AUTH_CALLBACK_PATH)
-
-    // Access key only required on production (craft-football.com or m.craft-football.com), not localhost
-    const isProductionApp = (isAppHost(host) || (isWebsiteHost(host) && !isMobile(userAgent))) && host !== 'localhost' && !host.startsWith('localhost:')
-    const accessKey = process.env.APP_ACCESS_KEY
-    if (isProductionApp && accessKey) {
-      const urlKey = request.nextUrl.searchParams.get('key')
-      if (urlKey && urlKey === accessKey) {
-        response.cookies.set(ACCESS_KEY_COOKIE, accessKey, {
-          httpOnly: true,
-          secure: true,
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * ACCESS_KEY_DAYS,
-          path: '/',
-        })
-        const redirectUrl = request.nextUrl.clone()
-        redirectUrl.searchParams.delete('key')
-        return NextResponse.redirect(redirectUrl)
-      }
-      if (hasValidAccessKey(request)) {
-        const rewritePath = (pathname === '/' || pathname === '') ? '/app' : `/app${pathname}`
-        return NextResponse.rewrite(new URL(rewritePath, request.url))
-      }
-      // Fall through to auth check: logged-in users can access app routes without the key
-      if (!isSignIn && !isResetPassword) {
-        // Check auth before redirecting to locked sign-in
-        const supabaseAuth = createServerClient(
-          getSupabaseUrl()!,
-          getSupabaseAnonKey()!,
-          {
-            cookies: {
-              getAll: () => request.cookies.getAll(),
-              setAll: () => {},
-            },
-          }
+  // Build supabase client to check session
+  const response = NextResponse.next({ request })
+  const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+    cookies: {
+      getAll: () => request.cookies.getAll(),
+      setAll: (cookiesToSet) => {
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options)
         )
-        const { data } = await supabaseAuth.auth.getUser()
-        if (data.user) {
-          const rewritePath = pathname === '/' || pathname === '' ? '/app' : `/app${pathname}`
-          return NextResponse.rewrite(new URL(rewritePath, request.url))
-        }
-        const redirectUrl = request.nextUrl.clone()
-        redirectUrl.pathname = SIGN_IN_PATH
-        redirectUrl.searchParams.set('locked', '1')
-        return NextResponse.redirect(redirectUrl)
-      }
-      const rewritePath = `/app${pathname}`
-      return NextResponse.rewrite(new URL(rewritePath, request.url))
-    }
+      },
+    },
+  })
 
-    const supabaseUrl = getSupabaseUrl()
-    const supabaseAnonKey = getSupabaseAnonKey()
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY/PUBLISHABLE_KEY')
-      return new NextResponse('Server misconfigured', { status: 503 })
-    }
+  const { data: { user } } = await supabase.auth.getUser()
 
-    const supabase = createServerClient(
-      supabaseUrl,
-      supabaseAnonKey,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, options)
-            )
-          },
-        },
-      }
-    )
-
-    let user = null
-    try {
-      const { data } = await supabase.auth.getUser()
-      user = data.user
-    } catch (err) {
-      console.error('Middleware auth error:', err)
-      return new NextResponse('Auth error', { status: 503 })
-    }
-
-    const isInvite = pathname.startsWith('/invite')
-    if (!user && !isSignIn && !isResetPassword && !isAuthCallback && !isInvite) {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = SIGN_IN_PATH
-      // Preserve full path + query (e.g. /invite?token=xxx) so invite token isn't lost
-      const redirectTo = pathname + (request.nextUrl.search || '')
-      redirectUrl.searchParams.set('redirect', redirectTo)
-      return NextResponse.redirect(redirectUrl)
-    }
-
-    if (user && isSignIn) {
-      const redirectTo = request.nextUrl.searchParams.get('redirect') || '/'
-      return NextResponse.redirect(new URL(redirectTo, request.url))
-    }
-
-    // profile-required: user exists but no profile (show sign-out + message)
-    if (pathname === '/profile-required' && user) {
-      return NextResponse.rewrite(new URL('/app/profile-required', request.url))
-    }
-
-    // Protected routes require profile; redirect if missing
-    const isProtectedRoute = pathname !== '/reset-password' && pathname !== '/profile-required'
-    if (user && isProtectedRoute) {
-      const { data: profile } = await supabase.from('profiles').select('id').eq('id', user.id).maybeSingle()
-      if (!profile) {
-        const redirectUrl = request.nextUrl.clone()
-        redirectUrl.pathname = '/profile-required'
-        return NextResponse.redirect(redirectUrl)
-      }
-    }
-
-    const rewritePath = pathname === '/' || pathname === '' ? '/app' : `/app${pathname}`
-    return NextResponse.rewrite(new URL(rewritePath, request.url))
+  if (!user) {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = SIGN_IN_PATH
+    redirectUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(redirectUrl)
   }
 
-  return NextResponse.next({ request })
+  if (needsDeveloper) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (profile?.role !== 'developer') {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+  }
+
+  if (needsLeagueAdmin) {
+    // Extract leagueId from path like /abc-uuid/settings
+    const leagueId = pathname.split('/')[1]
+    const { data: member } = await supabase
+      .from('game_members')
+      .select('role')
+      .eq('game_id', leagueId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (!member || !['creator', 'admin'].includes(member.role)) {
+      return NextResponse.redirect(new URL(`/${leagueId}/results`, request.url))
+    }
+  }
+
+  return response
 }
 
 export const config = {
