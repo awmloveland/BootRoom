@@ -28,7 +28,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
-import { fetchWeeks } from '@/lib/data'
 
 interface MenuItem {
   title: string
@@ -130,9 +129,7 @@ export function Navbar({
   const [user, setUser] = useState<{ id?: string; email?: string } | null>(null)
   const [displayName, setDisplayName] = useState<string | null>(null)
   const [profileRole, setProfileRole] = useState<string | null>(null)
-  const [leagueName, setLeagueName] = useState<string | null>(null)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
-  const [weekCount, setWeekCount] = useState<number | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const showNav = pathname !== '/sign-in' && pathname !== '/reset-password'
 
@@ -171,13 +168,9 @@ export function Navbar({
       .then((res) => res.json().catch(() => []))
       .then((data: { id: string; name: string; role: string }[]) => {
         const game = (data ?? []).find((g) => g.id === leagueId)
-        setLeagueName(game?.name ?? null)
         setIsLeagueAdmin(game?.role === 'creator' || game?.role === 'admin')
       })
-      .catch(() => { setLeagueName(null); setIsLeagueAdmin(false) })
-    fetchWeeks(leagueId)
-      .then((weeks) => setWeekCount(weeks.length))
-      .catch(() => setWeekCount(null))
+      .catch(() => { setIsLeagueAdmin(false) })
   }, [leagueId])
 
   async function handleSignOut() {
@@ -339,19 +332,6 @@ export function Navbar({
           </Sheet>
       </div>
 
-      {/* League context bar */}
-      {leagueId && leagueName && showNav && (
-        <div className="bg-slate-800/50 border-t border-slate-700">
-          <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
-            <span className="text-xs text-slate-400">{leagueName}</span>
-            <span className="text-xs text-slate-400">
-              {weekCount !== null
-                ? `${weekCount} of 52 weeks (${Math.round((weekCount / 52) * 100)}% complete)`
-                : ''}
-            </span>
-          </div>
-        </div>
-      )}
     </header>
   )
 }
