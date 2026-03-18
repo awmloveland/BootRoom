@@ -212,7 +212,14 @@ export default async function LeagueResultsPage({ params }: Props) {
 
   // ── Member / Admin tier render ──
   return (
-    <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
+    <>
+      <div className="bg-slate-800/50 border-b border-slate-700">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
+          <span className="text-xs text-slate-400">{game.name}</span>
+          <span className="text-xs text-slate-400">{playedCount} of {totalWeeks} weeks ({pct}% complete)</span>
+        </div>
+      </div>
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
       <div className="flex flex-col gap-3">
         {canSeeMatchEntry && (
           <ResultsRefresher
@@ -236,5 +243,6 @@ export default async function LeagueResultsPage({ params }: Props) {
         )}
       </div>
     </main>
+    </>
   )
 }
