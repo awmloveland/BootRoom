@@ -104,10 +104,6 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true }
             player={player}
             isOpen={openPlayer === player.name}
             onToggle={() => setOpenPlayer((prev) => (prev === player.name ? null : player.name))}
-            builderMode={false}
-            teamAssignment={null}
-            onAssignCycle={() => {}}
-            onDragStart={() => {}}
             visibleStats={visibleStats}
             showMentality={showMentality}
           />

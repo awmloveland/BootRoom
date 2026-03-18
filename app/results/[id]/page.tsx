@@ -92,6 +92,7 @@ export default async function PublicResultsPage({ params }: Props) {
         format: row.format ?? null,
         teamA: (row.team_a as string[]) ?? [],
         teamB: (row.team_b as string[]) ?? [],
+        status: 'scheduled' as const,
       }
     }
   }

@@ -415,7 +415,7 @@ function PlayersPageCard({ title, description, saving, saved, getFeature, update
               {tab === 'members' ? (
                 <SubFeatureRow
                   label="Team Builder"
-                  description="Drag-and-drop tool to split players into balanced teams."
+                  description="Smart auto-pick on the next match card."
                   enabled={builderEnabled}
                   disabled={isSavingBuilder}
                   onToggle={toggleBuilder}

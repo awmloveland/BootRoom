@@ -7,8 +7,8 @@ import { cn } from '@/lib/utils'
 import type { FeatureKey } from '@/lib/types'
 
 const FEATURE_OVERVIEW: { key: FeatureKey; label: string; description: string }[] = [
-  { key: 'match_entry',       label: 'Match Entry',       description: 'Next match card, team building, and result recording.' },
-  { key: 'team_builder',      label: 'Team Builder',      description: 'Drag-and-drop team builder on the players page.' },
+  { key: 'match_entry',       label: 'Match Entry',       description: 'Next match card and result recording.' },
+  { key: 'team_builder',      label: 'Team Builder',      description: 'Smart auto-pick on the next match card.' },
   { key: 'player_stats',      label: 'Player Stats',      description: 'Player stats page with configurable columns and player limit.' },
   { key: 'player_comparison', label: 'Player Comparison', description: 'Side-by-side player comparison tool.' },
 ]
