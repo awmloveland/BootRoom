@@ -77,7 +77,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
     })
 
   // 4. Check player_stats feature visibility
-  if (!isFeatureEnabled(rawFeatures, 'player_stats', tier)) {
+  if (!isAdmin && !isFeatureEnabled(rawFeatures, 'player_stats', tier)) {
     return <LeaguePrivateState leagueName={game.name} />
   }
 
