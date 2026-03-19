@@ -123,7 +123,6 @@ export function Navbar({
   const pathname = usePathname()
   const params = useParams()
   const leagueId = (params as { leagueId?: string })?.leagueId
-  const isLeagueDetail = !!pathname?.match(/^\/[0-9a-f-]{36}\/(results|players|settings)/)
   const isPlayersPage = !!pathname?.match(/^\/[^/]+\/players$/)
 
   const [user, setUser] = useState<{ id?: string; email?: string } | null>(null)
