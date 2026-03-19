@@ -179,7 +179,6 @@ export function Navbar({
   const resolvedMenu: MenuItem[] = menu.length > 0 ? menu : []
 
   const isSettingsPage = pathname === '/settings' || !!pathname?.match(/^\/[^/]+\/settings$/)
-  const settingsUrl = leagueId ? `/${leagueId}/settings` : '/settings'
   const isActive = (item: MenuItem) => {
     if (item.title === 'Results') return !!leagueId && !isPlayersPage && !isSettingsPage
     if (item.title === 'Players') return isPlayersPage
@@ -226,13 +225,6 @@ export function Navbar({
                   </Link>
                 </Button>
               )}
-              {!isLeagueDetail && (
-                <Button asChild variant="ghost" size="sm">
-                  <Link href={settingsUrl}>
-                    <Settings className="size-4" />
-                  </Link>
-                </Button>
-              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
@@ -250,6 +242,12 @@ export function Navbar({
                       </p>
                     )}
                   </div>
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings">
+                      <Settings className="size-4" />
+                      Account Settings
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="size-4" />
