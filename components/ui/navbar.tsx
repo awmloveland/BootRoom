@@ -301,13 +301,33 @@ export function Navbar({
                       </div>
                     </div>
                   )}
-                  <button
-                    onClick={handleSignOut}
-                    className="flex items-center gap-2 font-semibold text-slate-100"
-                  >
-                    <LogOut className="size-4" />
-                    Log out
-                  </button>
+                  <div className="border-t border-slate-700 pt-4 flex flex-col gap-4">
+                    <div>
+                      {displayName && (
+                        <p className="text-sm font-medium text-slate-100">{displayName}</p>
+                      )}
+                      {leagueId && (
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {isLeagueAdmin ? 'Admin' : 'Member'}
+                        </p>
+                      )}
+                    </div>
+                    <Link
+                      href="/settings"
+                      className="flex items-center gap-2 font-semibold text-slate-100"
+                      onClick={() => setSheetOpen(false)}
+                    >
+                      <Settings className="size-4" />
+                      Account Settings
+                    </Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center gap-2 font-semibold text-slate-100"
+                    >
+                      <LogOut className="size-4" />
+                      Log out
+                    </button>
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>
