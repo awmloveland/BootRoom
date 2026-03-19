@@ -11,6 +11,7 @@ import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { ResultsRefresher } from '@/components/ResultsRefresher'
+import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import type { Week, GameRole, LeagueFeature, FeatureKey, Player, ScheduledWeek } from '@/lib/types'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
 
@@ -175,51 +176,51 @@ export default async function LeagueResultsPage({ params }: Props) {
   // ── Public tier render ──
   if (tier === 'public') {
     return (
-      <>
-        {canSeeMatchHistory && (
-          <div className="bg-slate-800/50 border-b border-slate-700">
-            <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
-              <span className="text-xs text-slate-400">{game.name}</span>
-              <span className="text-xs text-slate-400">{playedCount} of {totalWeeks} weeks ({pct}% complete)</span>
-            </div>
-          </div>
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4 space-y-8">
+        <LeaguePageHeader
+          leagueName={game.name}
+          leagueId={leagueId}
+          playedCount={playedCount}
+          totalWeeks={totalWeeks}
+          pct={pct}
+          currentTab="results"
+          isAdmin={isAdmin}
+        />
+        {canSeeMatchEntry && (
+          <PublicMatchEntrySection
+            gameId={leagueId}
+            weeks={weeks}
+            initialScheduledWeek={nextWeek}
+          />
         )}
 
-        <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4 space-y-8">
-          {canSeeMatchEntry && (
-            <PublicMatchEntrySection
-              gameId={leagueId}
-              weeks={weeks}
-              initialScheduledWeek={nextWeek}
-            />
-          )}
+        {canSeeMatchHistory && (
+          <section>
+            <PublicMatchList weeks={weeks} />
+          </section>
+        )}
 
-          {canSeeMatchHistory && (
-            <section>
-              <PublicMatchList weeks={weeks} />
-            </section>
-          )}
-
-          {!isAuthenticated && (
-            <p className="text-xs text-slate-600 text-center pb-4">
-              Sign in for full access to your league.
-            </p>
-          )}
-        </main>
-      </>
+        {!isAuthenticated && (
+          <p className="text-xs text-slate-600 text-center pb-4">
+            Sign in for full access to your league.
+          </p>
+        )}
+      </main>
     )
   }
 
   // ── Member / Admin tier render ──
   return (
-    <>
-      <div className="bg-slate-800/50 border-b border-slate-700">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
-          <span className="text-xs text-slate-400">{game.name}</span>
-          <span className="text-xs text-slate-400">{playedCount} of {totalWeeks} weeks ({pct}% complete)</span>
-        </div>
-      </div>
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
+    <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
+      <LeaguePageHeader
+        leagueName={game.name}
+        leagueId={leagueId}
+        playedCount={playedCount}
+        totalWeeks={totalWeeks}
+        pct={pct}
+        currentTab="results"
+        isAdmin={isAdmin}
+      />
       <div className="flex flex-col gap-3">
         {canSeeMatchEntry && (
           <ResultsRefresher
@@ -243,6 +244,5 @@ export default async function LeagueResultsPage({ params }: Props) {
         )}
       </div>
     </main>
-    </>
   )
 }
