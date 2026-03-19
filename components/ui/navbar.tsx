@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Menu, Settings, User, LogOut, FlaskConical } from 'lucide-react'
+import { Settings, User, LogOut, FlaskConical } from 'lucide-react'
 
 import {
   Accordion,
@@ -123,7 +123,6 @@ export function Navbar({
   const pathname = usePathname()
   const params = useParams()
   const leagueId = (params as { leagueId?: string })?.leagueId
-  const isLeagueDetail = !!pathname?.match(/^\/[0-9a-f-]{36}\/(results|players|settings)/)
   const isPlayersPage = !!pathname?.match(/^\/[^/]+\/players$/)
 
   const [user, setUser] = useState<{ id?: string; email?: string } | null>(null)
@@ -179,7 +178,6 @@ export function Navbar({
   const resolvedMenu: MenuItem[] = menu.length > 0 ? menu : []
 
   const isSettingsPage = pathname === '/settings' || !!pathname?.match(/^\/[^/]+\/settings$/)
-  const settingsUrl = leagueId ? `/${leagueId}/settings` : '/settings'
   const isActive = (item: MenuItem) => {
     if (item.title === 'Results') return !!leagueId && !isPlayersPage && !isSettingsPage
     if (item.title === 'Players') return isPlayersPage
@@ -226,13 +224,6 @@ export function Navbar({
                   </Link>
                 </Button>
               )}
-              {!isLeagueDetail && (
-                <Button asChild variant="ghost" size="sm">
-                  <Link href={settingsUrl}>
-                    <Settings className="size-4" />
-                  </Link>
-                </Button>
-              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
@@ -250,6 +241,12 @@ export function Navbar({
                       </p>
                     )}
                   </div>
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings">
+                      <Settings className="size-4" />
+                      Account Settings
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="size-4" />
@@ -267,18 +264,21 @@ export function Navbar({
           <Link href={logo.url} className="flex items-center shrink-0">
             <img src="/logo.png" alt="Crafted Football" className="h-10 w-10" />
           </Link>
-          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="shrink-0">
-                <Menu className="size-4" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="overflow-y-auto bg-slate-900 border-slate-700">
-              <SheetHeader>
-                <SheetTitle className="text-slate-100">Menu</SheetTitle>
-              </SheetHeader>
-              <div className="my-6 flex flex-col gap-6">
-                {showNav && (
+          {showNav && !user && (
+            <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} size="xs" />
+          )}
+          {showNav && user && (
+            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="shrink-0">
+                  <User className="size-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="overflow-y-auto bg-slate-900 border-slate-700">
+                <SheetHeader>
+                  <SheetTitle className="text-slate-100">Menu</SheetTitle>
+                </SheetHeader>
+                <div className="my-6 flex flex-col gap-6">
                   <Accordion
                     type="single"
                     collapsible
@@ -286,39 +286,52 @@ export function Navbar({
                   >
                     {resolvedMenu.map((item) => renderMobileMenuItem(item, isActive(item)))}
                   </Accordion>
-                )}
-                {mobileExtraLinks.length > 0 && (
-                  <div className="border-t border-slate-700 py-4">
-                    <div className="grid grid-cols-2 justify-start">
-                      {mobileExtraLinks.map((link, idx) => (
-                        <Link
-                          key={idx}
-                          className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-100"
-                          href={link.url}
-                        >
-                          {link.name}
-                        </Link>
-                      ))}
+                  {mobileExtraLinks.length > 0 && (
+                    <div className="border-t border-slate-700 py-4">
+                      <div className="grid grid-cols-2 justify-start">
+                        {mobileExtraLinks.map((link, idx) => (
+                          <Link
+                            key={idx}
+                            className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-100"
+                            href={link.url}
+                          >
+                            {link.name}
+                          </Link>
+                        ))}
+                      </div>
                     </div>
+                  )}
+                  <div className="border-t border-slate-700 pt-4 flex flex-col gap-4">
+                    <div>
+                      {displayName && (
+                        <p className="text-sm font-medium text-slate-100">{displayName}</p>
+                      )}
+                      {leagueId && (
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {isLeagueAdmin ? 'Admin' : 'Member'}
+                        </p>
+                      )}
+                    </div>
+                    <Link
+                      href="/settings"
+                      className="flex items-center gap-2 font-semibold text-slate-100"
+                      onClick={() => setSheetOpen(false)}
+                    >
+                      <Settings className="size-4" />
+                      Account Settings
+                    </Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center gap-2 font-semibold text-slate-100"
+                    >
+                      <LogOut className="size-4" />
+                      Log out
+                    </button>
                   </div>
-                )}
-                {user && (
-                  <button
-                    onClick={handleSignOut}
-                    className="flex items-center gap-2 font-semibold text-slate-100"
-                  >
-                    <LogOut className="size-4" />
-                    Log out
-                  </button>
-                )}
-                {!user && (
-                  <div className="flex flex-col gap-3">
-                    <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} size="default" />
-                  </div>
-                )}
-              </div>
-            </SheetContent>
-          </Sheet>
+                </div>
+              </SheetContent>
+            </Sheet>
+          )}
       </div>
 
     </header>
