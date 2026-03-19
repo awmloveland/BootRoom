@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Menu, Settings, User, LogOut, FlaskConical } from 'lucide-react'
+import { Settings, User, LogOut, FlaskConical } from 'lucide-react'
 
 import {
   Accordion,
@@ -264,42 +264,45 @@ export function Navbar({
           <Link href={logo.url} className="flex items-center shrink-0">
             <img src="/logo.png" alt="Crafted Football" className="h-10 w-10" />
           </Link>
-          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="shrink-0">
-                <Menu className="size-4" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="overflow-y-auto bg-slate-900 border-slate-700">
-              <SheetHeader>
-                <SheetTitle className="text-slate-100">Menu</SheetTitle>
-              </SheetHeader>
-              <div className="my-6 flex flex-col gap-6">
-                {showNav && (
-                  <Accordion
-                    type="single"
-                    collapsible
-                    className="flex w-full flex-col gap-4"
-                  >
-                    {resolvedMenu.map((item) => renderMobileMenuItem(item, isActive(item)))}
-                  </Accordion>
-                )}
-                {mobileExtraLinks.length > 0 && (
-                  <div className="border-t border-slate-700 py-4">
-                    <div className="grid grid-cols-2 justify-start">
-                      {mobileExtraLinks.map((link, idx) => (
-                        <Link
-                          key={idx}
-                          className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-100"
-                          href={link.url}
-                        >
-                          {link.name}
-                        </Link>
-                      ))}
+          {showNav && !user && (
+            <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} size="xs" />
+          )}
+          {showNav && user && (
+            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="shrink-0">
+                  <User className="size-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="overflow-y-auto bg-slate-900 border-slate-700">
+                <SheetHeader>
+                  <SheetTitle className="text-slate-100">Menu</SheetTitle>
+                </SheetHeader>
+                <div className="my-6 flex flex-col gap-6">
+                  {showNav && (
+                    <Accordion
+                      type="single"
+                      collapsible
+                      className="flex w-full flex-col gap-4"
+                    >
+                      {resolvedMenu.map((item) => renderMobileMenuItem(item, isActive(item)))}
+                    </Accordion>
+                  )}
+                  {mobileExtraLinks.length > 0 && (
+                    <div className="border-t border-slate-700 py-4">
+                      <div className="grid grid-cols-2 justify-start">
+                        {mobileExtraLinks.map((link, idx) => (
+                          <Link
+                            key={idx}
+                            className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-100"
+                            href={link.url}
+                          >
+                            {link.name}
+                          </Link>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-                {user && (
+                  )}
                   <button
                     onClick={handleSignOut}
                     className="flex items-center gap-2 font-semibold text-slate-100"
@@ -307,15 +310,10 @@ export function Navbar({
                     <LogOut className="size-4" />
                     Log out
                   </button>
-                )}
-                {!user && (
-                  <div className="flex flex-col gap-3">
-                    <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} size="default" />
-                  </div>
-                )}
-              </div>
-            </SheetContent>
-          </Sheet>
+                </div>
+              </SheetContent>
+            </Sheet>
+          )}
       </div>
 
     </header>
