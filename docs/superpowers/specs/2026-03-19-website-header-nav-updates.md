@@ -8,56 +8,100 @@
 
 ## Overview
 
-Three targeted changes to the `Navbar` component used across craft-football.com and m.craft-football.com. All changes are confined to `components/ui/navbar.tsx`.
+Three targeted changes to the `Navbar` component. All changes are confined to `components/ui/navbar.tsx`.
 
 ---
 
 ## Change 1 — Account Settings in Desktop Dropdown
 
-**Current state:** When a user is logged in and not on a league detail page (`!isLeagueDetail`), a standalone Settings gear icon button appears to the left of the user dropdown. It links to `settingsUrl` (which resolves to `/settings` on non-league pages).
+**Current state:** When logged in and `!isLeagueDetail`, a standalone Settings gear icon button appears to the left of the user dropdown, linking to `settingsUrl`.
 
-**Desired state:** Remove the standalone Settings gear icon button. Add an "Account Settings" `DropdownMenuItem` inside the user `DropdownMenu`, positioned above the separator and "Log out" item, linking to `/settings` (always, regardless of current page — this is the account-level settings, not league settings).
+**Desired state:** Remove the standalone Settings gear icon button. Add an "Account Settings" `DropdownMenuItem` inside the user `DropdownMenu`, always linking to `/settings`.
 
 **Implementation:**
-- Delete the `{!isLeagueDetail && <Button ...><Settings /></Button>}` block
-- Add a `DropdownMenuItem asChild` with a `<Link href="/settings">` before the `<DropdownMenuSeparator />`
-- Use `<Settings className="size-4" />` icon and the label "Account Settings", matching the existing `<LogOut>` row style
+
+1. Delete the `{!isLeagueDetail && <Button asChild variant="ghost" size="sm">...<Settings />...</Button>}` block.
+
+2. Remove the `settingsUrl` variable — it is no longer referenced after the button is deleted. Keep `isSettingsPage`; it is still used in `isActive()` to both determine the Settings active state and prevent Results from showing as active on the settings page.
+
+3. Inside `DropdownMenuContent`, insert a new item **before** the existing `<DropdownMenuSeparator />`. The final order is:
+
+   ```
+   name/role block
+   → new DropdownMenuItem: Account Settings → /settings
+   → existing <DropdownMenuSeparator />
+   → existing Log out DropdownMenuItem
+   ```
+
+   The separator's role shifts from separating name/role from Log out to separating Account Settings from Log out.
+
+4. The new item:
+   ```tsx
+   <DropdownMenuItem asChild>
+     <Link href="/settings">
+       <Settings className="size-4" />
+       Account Settings
+     </Link>
+   </DropdownMenuItem>
+   ```
+   Uses `asChild` so `<Link>` handles navigation, matching the icon + label layout of the Log out row.
 
 ---
 
-## Change 2 — Mobile Unauthenticated: Login + Join Buttons Instead of Hamburger
+## Change 2 — Mobile Unauthenticated: AuthDialog Buttons Instead of Hamburger
 
-**Current state:** On mobile (`sm:hidden`), the header always shows a hamburger button that opens a Sheet. Unauthenticated users must open the sheet to see the auth UI.
+**Current state:** On mobile (`sm:hidden`), the header always shows a Sheet trigger (hamburger). Unauthenticated users must open the sheet to access auth.
 
-**Desired state:** When `!user` on mobile, display "Log in" and "Join" buttons directly in the header instead of the hamburger/Sheet trigger. These match the existing `Button size="xs"` pattern used in `WebsiteHeader.tsx` and `PublicHeader.tsx`. No sheet is needed for unauthenticated mobile users since the only nav action available to them is auth.
+**Desired state:** When `!user` on mobile, render `<AuthDialog />` directly in the header (which renders its own "Log in" and "Join" buttons and opens a modal on click). When `user` is truthy, keep the existing Sheet trigger. On `/sign-in` and `/reset-password`, render nothing on the right side for both branches.
+
+This approach keeps auth flow consistent with desktop (modal dialog, not page navigation), and removes the dependency on any `/sign-in` page route or query params.
+
+**Note:** The current mobile bar has no `showNav` guard on the Sheet — it renders even on `/sign-in`. The new structure adds `showNav` to both branches, which is an intentional fix to this existing inconsistency.
 
 **Implementation:**
-- In the mobile action bar `div`, split the sheet trigger into a conditional:
-  - `!user`: render `<Button size="xs" asChild><a href="/sign-in">Log in</a></Button>` and `<Button size="xs" variant="secondary" asChild><a href="/sign-in?mode=signup">Join</a></Button>`
-  - `user`: render the existing Sheet trigger (hamburger button)
-- The `showNav` guard still applies; on `/sign-in` and `/reset-password`, render nothing on the right side
+
+Replace the single Sheet element wrapping both trigger and content with a conditional structure:
+
+```tsx
+{showNav && !user && (
+  <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} size="xs" />
+)}
+{showNav && user && (
+  <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+    <SheetTrigger asChild>
+      <Button variant="outline" size="icon" className="shrink-0">
+        <User className="size-4" />  {/* Change 3 applied here */}
+      </Button>
+    </SheetTrigger>
+    <SheetContent className="overflow-y-auto bg-slate-900 border-slate-700">
+      {/* existing sheet content unchanged */}
+    </SheetContent>
+  </Sheet>
+)}
+```
+
+The `{!user && <div className="flex flex-col gap-3"><AuthDialog .../></div>}` block inside `SheetContent` becomes unreachable and should be removed along with the Sheet restructure.
 
 ---
 
 ## Change 3 — Mobile Authenticated: User Icon Instead of Three Lines
 
-**Current state:** The Sheet trigger shows `<Menu className="size-4" />` (three horizontal lines) for all users.
+**Current state:** The Sheet trigger shows `<Menu className="size-4" />`.
 
-**Desired state:** When `user` is set, the Sheet trigger icon changes to `<User className="size-4" />`. The Sheet behaviour and contents are unchanged.
+**Desired state:** The Sheet trigger shows `<User className="size-4" />`. Sheet behaviour and contents are unchanged.
 
 **Implementation:**
-- Replace `<Menu className="size-4" />` inside the `SheetTrigger` with a conditional: `user ? <User className="size-4" /> : <Menu className="size-4" />` — though after Change 2, the sheet trigger only renders when `user` is truthy, so it can simply always use `<User className="size-4" />`.
+
+After Change 2, the Sheet only renders when `user` is truthy. Replace `<Menu className="size-4" />` with `<User className="size-4" />` inside the `SheetTrigger`. No conditional needed. (See Change 2 code snippet above — the icon replacement is applied there.)
 
 ---
 
 ## Constraints
 
-- No new dependencies — `User`, `Settings`, `LogOut` icons already imported from `lucide-react`
-- `Button`, `DropdownMenuItem`, `Link`, `Sheet` already used in the file
-- `size="xs"` already defined on `Button` — matches `WebsiteHeader.tsx` and `PublicHeader.tsx` styling
-- The `AuthDialog` currently used for mobile auth (in the Sheet) is replaced by direct links for the mobile unauthenticated case, matching the pattern already in `WebsiteHeader.tsx`
-- Redirect params on mobile login/join links: use `leagueId ? `/${leagueId}/results` : '/'` as the redirect, matching existing desktop `AuthDialog` call
-- League-level settings (`/${leagueId}/settings`) are accessible via `LeaguePageHeader` — not affected by these changes
+- No new imports — `AuthDialog` is already imported; `User`, `Settings`, `LogOut` icons already imported from `lucide-react`; `Button`, `DropdownMenuItem`, `Link`, `Sheet` already in scope
+- `size="xs"` on `AuthDialog` matches the button sizing used in `WebsiteHeader.tsx` and `PublicHeader.tsx`
+- The `Menu` icon import can be removed after Change 3 if it is no longer referenced elsewhere in the file
+- League-level settings (`/${leagueId}/settings`) remain accessible via `LeaguePageHeader` — not affected
 
 ---
 
