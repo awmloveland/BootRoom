@@ -33,7 +33,7 @@ export function LeaguePageHeader({
         </div>
         {isAdmin && (
           <Button asChild variant="ghost" size="icon">
-            <Link href={`/${leagueId}/settings`}>
+            <Link href={`/${leagueId}/settings`} aria-label="League settings">
               <Settings className="size-4" />
             </Link>
           </Button>
