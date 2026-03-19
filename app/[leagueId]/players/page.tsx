@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
+import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { PublicPlayerList } from '@/components/PublicPlayerList'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
 import type { GameRole, LeagueFeature, FeatureKey, Player } from '@/lib/types'
@@ -48,6 +49,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
   }
 
   const tier = resolveVisibilityTier(userRole)
+  const isAdmin = tier === 'admin'
 
   // 3. Fetch feature_experiments + league_features + played week count in parallel
   const [experimentsResult, leagueFeaturesResult, weeksResult] = await Promise.all([
@@ -108,20 +110,21 @@ export default async function LeaguePlayersPage({ params }: Props) {
   const showMentality = config?.show_mentality ?? true
 
   return (
-    <>
-      <div className="bg-slate-800/50 border-b border-slate-700">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
-          <span className="text-xs text-slate-400">{game.name}</span>
-          <span className="text-xs text-slate-400">{playedCount} of {totalWeeks} weeks ({pct}% complete)</span>
-        </div>
-      </div>
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 pb-8">
-        <PublicPlayerList
-          players={players}
-          visibleStats={visibleStats}
-          showMentality={showMentality}
-        />
-      </main>
-    </>
+    <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 pb-8">
+      <LeaguePageHeader
+        leagueName={game.name}
+        leagueId={leagueId}
+        playedCount={playedCount}
+        totalWeeks={totalWeeks}
+        pct={pct}
+        currentTab="players"
+        isAdmin={isAdmin}
+      />
+      <PublicPlayerList
+        players={players}
+        visibleStats={visibleStats}
+        showMentality={showMentality}
+      />
+    </main>
   )
 }
