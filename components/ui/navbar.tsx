@@ -279,15 +279,13 @@ export function Navbar({
                   <SheetTitle className="text-slate-100">Menu</SheetTitle>
                 </SheetHeader>
                 <div className="my-6 flex flex-col gap-6">
-                  {showNav && (
-                    <Accordion
-                      type="single"
-                      collapsible
-                      className="flex w-full flex-col gap-4"
-                    >
-                      {resolvedMenu.map((item) => renderMobileMenuItem(item, isActive(item)))}
-                    </Accordion>
-                  )}
+                  <Accordion
+                    type="single"
+                    collapsible
+                    className="flex w-full flex-col gap-4"
+                  >
+                    {resolvedMenu.map((item) => renderMobileMenuItem(item, isActive(item)))}
+                  </Accordion>
                   {mobileExtraLinks.length > 0 && (
                     <div className="border-t border-slate-700 py-4">
                       <div className="grid grid-cols-2 justify-start">
