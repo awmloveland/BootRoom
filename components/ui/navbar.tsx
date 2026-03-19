@@ -176,18 +176,7 @@ export function Navbar({
     window.location.href = '/sign-in'
   }
 
-  const resolvedMenu = menu.length > 0 ? menu : (() => {
-    const items: MenuItem[] = [
-      ...(leagueId
-        ? [
-            { title: 'Results', url: `/${leagueId}/results` },
-            { title: 'Players', url: `/${leagueId}/players` },
-            ...(isLeagueAdmin ? [{ title: 'Settings', url: `/${leagueId}/settings` }] : []),
-          ]
-        : []),
-    ]
-    return items
-  })()
+  const resolvedMenu: MenuItem[] = menu.length > 0 ? menu : []
 
   const isSettingsPage = pathname === '/settings' || !!pathname?.match(/^\/[^/]+\/settings$/)
   const settingsUrl = leagueId ? `/${leagueId}/settings` : '/settings'
@@ -237,11 +226,13 @@ export function Navbar({
                   </Link>
                 </Button>
               )}
-              <Button asChild variant="ghost" size="sm">
-                <Link href={settingsUrl}>
-                  <Settings className="size-4" />
-                </Link>
-              </Button>
+              {!isLeagueDetail && (
+                <Button asChild variant="ghost" size="sm">
+                  <Link href={settingsUrl}>
+                    <Settings className="size-4" />
+                  </Link>
+                </Button>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
