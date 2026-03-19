@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Menu, Settings, User, LogOut } from 'lucide-react'
+import { Menu, Settings, User, LogOut, FlaskConical } from 'lucide-react'
 
 import {
   Accordion,
@@ -28,7 +28,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
-import { fetchWeeks } from '@/lib/data'
 
 interface MenuItem {
   title: string
@@ -123,15 +122,14 @@ export function Navbar({
 }: NavbarProps) {
   const pathname = usePathname()
   const params = useParams()
-  const leagueId = params?.id as string | undefined
-  const isLeagueDetail = !!pathname?.match(/^\/league\/[^/]+/)
-  const isPlayersPage = pathname?.endsWith('/players')
+  const leagueId = (params as { leagueId?: string })?.leagueId
+  const isLeagueDetail = !!pathname?.match(/^\/[0-9a-f-]{36}\/(results|players|settings)/)
+  const isPlayersPage = !!pathname?.match(/^\/[^/]+\/players$/)
 
   const [user, setUser] = useState<{ id?: string; email?: string } | null>(null)
   const [displayName, setDisplayName] = useState<string | null>(null)
-  const [leagueName, setLeagueName] = useState<string | null>(null)
+  const [profileRole, setProfileRole] = useState<string | null>(null)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
-  const [weekCount, setWeekCount] = useState<number | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const showNav = pathname !== '/sign-in' && pathname !== '/reset-password'
 
@@ -143,30 +141,34 @@ export function Navbar({
     if (pathname === '/sign-in' || pathname === '/reset-password') return
     fetch('/api/auth/me', { credentials: 'include' })
       .then((res) => res.json().catch(() => ({})))
-      .then((data) => {
+      .then(async (data) => {
         setUser(data?.user ?? null)
         setDisplayName(data?.profile?.display_name ?? data?.user?.email ?? null)
+        if (data?.user?.id) {
+          const { createClient } = await import('@/lib/supabase/client')
+          const supabase = createClient()
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .maybeSingle()
+          setProfileRole(profile?.role ?? null)
+        }
       })
   }, [pathname])
 
   useEffect(() => {
     if (!leagueId) {
-      setLeagueName(null)
       setIsLeagueAdmin(false)
-      setWeekCount(null)
       return
     }
     fetch('/api/games', { credentials: 'include' })
       .then((res) => res.json().catch(() => []))
       .then((data: { id: string; name: string; role: string }[]) => {
         const game = (data ?? []).find((g) => g.id === leagueId)
-        setLeagueName(game?.name ?? null)
         setIsLeagueAdmin(game?.role === 'creator' || game?.role === 'admin')
       })
-      .catch(() => { setLeagueName(null); setIsLeagueAdmin(false) })
-    fetchWeeks(leagueId)
-      .then((weeks) => setWeekCount(weeks.length))
-      .catch(() => setWeekCount(null))
+      .catch(() => { setIsLeagueAdmin(false) })
   }, [leagueId])
 
   async function handleSignOut() {
@@ -178,26 +180,22 @@ export function Navbar({
     const items: MenuItem[] = [
       ...(leagueId
         ? [
-            { title: 'Results', url: `/league/${leagueId}` },
-            { title: 'Players', url: `/league/${leagueId}/players` },
-            // Settings is only shown to admins/creators
-            ...(isLeagueAdmin ? [{ title: 'Settings', url: `/league/${leagueId}/settings` }] : []),
+            { title: 'Results', url: `/${leagueId}/results` },
+            { title: 'Players', url: `/${leagueId}/players` },
+            ...(isLeagueAdmin ? [{ title: 'Settings', url: `/${leagueId}/settings` }] : []),
           ]
         : []),
     ]
     return items
   })()
 
-  const isSettingsPage = pathname === '/settings' || !!pathname?.match(/^\/league\/[^/]+\/settings$/)
+  const isSettingsPage = pathname === '/settings' || !!pathname?.match(/^\/[^/]+\/settings$/)
+  const settingsUrl = leagueId ? `/${leagueId}/settings` : '/settings'
   const isActive = (item: MenuItem) => {
-    const isResults = item.title === 'Results'
-    const isPlayers = item.title === 'Players'
-    const isSettings = item.title === 'Settings'
-    return (
-      (isResults && isLeagueDetail && !isPlayersPage && !pathname?.endsWith('/settings')) ||
-      (isPlayers && isPlayersPage) ||
-      (isSettings && isSettingsPage)
-    )
+    if (item.title === 'Results') return !!leagueId && !isPlayersPage && !isSettingsPage
+    if (item.title === 'Players') return isPlayersPage
+    if (item.title === 'Settings') return isSettingsPage
+    return false
   }
 
   return (
@@ -227,18 +225,23 @@ export function Navbar({
 
         {/* Right: auth / user controls */}
         <div className="flex items-center justify-end">
-          {auth?.login && auth?.signup && !user && (
-            <AuthDialog redirect={auth.login.url} />
+          {showNav && !user && (
+            <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} size="xs" />
           )}
           {showNav && user && (
             <div className="flex items-center gap-0.5">
-              {resolvedMenu.find((item) => item.title === 'Settings') && (
+              {profileRole === 'developer' && (
                 <Button asChild variant="ghost" size="sm">
-                  <Link href={resolvedMenu.find((item) => item.title === 'Settings')!.url}>
-                    <Settings className="size-4" />
+                  <Link href="/experiments" title="Experiments">
+                    <FlaskConical className="size-4" />
                   </Link>
                 </Button>
               )}
+              <Button asChild variant="ghost" size="sm">
+                <Link href={settingsUrl}>
+                  <Settings className="size-4" />
+                </Link>
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
@@ -317,9 +320,9 @@ export function Navbar({
                     Log out
                   </button>
                 )}
-                {auth?.login && auth?.signup && !user && (
+                {!user && (
                   <div className="flex flex-col gap-3">
-                    <AuthDialog redirect={auth.login.url} size="default" />
+                    <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} size="default" />
                   </div>
                 )}
               </div>
@@ -327,19 +330,6 @@ export function Navbar({
           </Sheet>
       </div>
 
-      {/* League context bar */}
-      {leagueId && leagueName && showNav && (
-        <div className="bg-slate-800/50 border-t border-slate-700">
-          <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
-            <span className="text-xs text-slate-400">{leagueName}</span>
-            <span className="text-xs text-slate-400">
-              {weekCount !== null
-                ? `${weekCount} of 52 weeks (${Math.round((weekCount / 52) * 100)}% complete)`
-                : ''}
-            </span>
-          </div>
-        </div>
-      )}
     </header>
   )
 }

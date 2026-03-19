@@ -1,7 +1,7 @@
 'use client'
 
-import { NextMatchCard, type ScheduledWeek } from '@/components/NextMatchCard'
-import type { Week } from '@/lib/types'
+import { NextMatchCard } from '@/components/NextMatchCard'
+import type { Week, ScheduledWeek } from '@/lib/types'
 
 interface Props {
   gameId: string

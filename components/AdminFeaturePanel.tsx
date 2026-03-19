@@ -459,6 +459,7 @@ export function AdminFeaturePanel({ leagueId, features, onChanged }: AdminFeatur
     return (
       features.find((f) => f.feature === key) ?? {
         feature: key,
+        available: true,
         enabled: key !== 'player_comparison',
         config: null,
         public_enabled: false,

@@ -1,4 +1,12 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build"
+  "buildCommand": "npm run build",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "m.craft-football.com" }],
+      "destination": "https://craft-football.com/:path*",
+      "permanent": true
+    }
+  ]
 }

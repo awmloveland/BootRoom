@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 import { Inter } from 'next/font/google'
+import { Navbar } from '@/components/ui/navbar'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -17,14 +17,11 @@ export const metadata: Metadata = {
   },
 }
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} bg-slate-900 text-slate-100 antialiased`}>
+      <body className={`${inter.className} bg-slate-900 text-slate-100 antialiased min-h-screen`}>
+        <Navbar />
         {children}
       </body>
     </html>
