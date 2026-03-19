@@ -11,6 +11,7 @@ import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { ResultsRefresher } from '@/components/ResultsRefresher'
+import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import type { Week, GameRole, LeagueFeature, FeatureKey, Player, ScheduledWeek } from '@/lib/types'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
 
@@ -58,11 +59,14 @@ export default async function LeagueResultsPage({ params }: Props) {
   const tier = resolveVisibilityTier(userRole)
   const isAdmin = tier === 'admin'
 
-  // 3. Fetch feature flags — join feature_experiments (global) with league_features (per-league)
-  const [experimentsResult, leagueFeaturesResult] = await Promise.all([
+  // 3. Fetch feature flags + played week count in parallel
+  const [experimentsResult, leagueFeaturesResult, weeksCountResult] = await Promise.all([
     serviceSupabase.from('feature_experiments').select('feature, available'),
     serviceSupabase.from('league_features').select('*').eq('game_id', leagueId),
+    serviceSupabase.from('weeks').select('week', { count: 'exact', head: true }).eq('game_id', leagueId).in('status', ['played', 'cancelled']),
   ])
+
+  const playedCount = weeksCountResult.count ?? 0
 
   const availableSet = experimentsResult.error
     ? new Set(DEFAULT_FEATURES.map((f) => f.feature as FeatureKey))
@@ -84,12 +88,25 @@ export default async function LeagueResultsPage({ params }: Props) {
   const canSeePlayerStats = isAdmin || isFeatureEnabled(features, 'player_stats', tier)
   const canSeeTeamBuilder = isAdmin || isFeatureEnabled(features, 'team_builder', tier)
 
+  const header = (
+    <LeaguePageHeader
+      leagueName={game.name}
+      leagueId={leagueId}
+      playedCount={playedCount}
+      currentTab="results"
+      isAdmin={isAdmin}
+    />
+  )
+
   // 4. For the public tier: if nothing is visible, show private state
   if (tier === 'public' && !canSeeMatchHistory && !canSeeMatchEntry && !canSeePlayerStats) {
     return (
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
-        <LeaguePrivateState leagueName={game.name} />
-      </main>
+      <>
+        {header}
+        <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-6">
+          <LeaguePrivateState leagueName={game.name} />
+        </main>
+      </>
     )
   }
 
@@ -168,24 +185,12 @@ export default async function LeagueResultsPage({ params }: Props) {
     }
   }
 
-  const playedCount = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled').length
-  const totalWeeks = 52
-  const pct = Math.round((playedCount / totalWeeks) * 100)
-
   // ── Public tier render ──
   if (tier === 'public') {
     return (
       <>
-        {canSeeMatchHistory && (
-          <div className="bg-slate-800/50 border-b border-slate-700">
-            <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
-              <span className="text-xs text-slate-400">{game.name}</span>
-              <span className="text-xs text-slate-400">{playedCount} of {totalWeeks} weeks ({pct}% complete)</span>
-            </div>
-          </div>
-        )}
-
-        <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4 space-y-8">
+        {header}
+        <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 pb-8 space-y-8">
           {canSeeMatchEntry && (
             <PublicMatchEntrySection
               gameId={leagueId}
@@ -213,36 +218,31 @@ export default async function LeagueResultsPage({ params }: Props) {
   // ── Member / Admin tier render ──
   return (
     <>
-      <div className="bg-slate-800/50 border-b border-slate-700">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
-          <span className="text-xs text-slate-400">{game.name}</span>
-          <span className="text-xs text-slate-400">{playedCount} of {totalWeeks} weeks ({pct}% complete)</span>
+      {header}
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 pb-8">
+        <div className="flex flex-col gap-3">
+          {canSeeMatchEntry && (
+            <ResultsRefresher
+              gameId={leagueId}
+              weeks={weeks}
+              initialScheduledWeek={nextWeek}
+              canEdit={true}
+              canAutoPick={canSeeTeamBuilder}
+              allPlayers={players}
+            />
+          )}
+
+          {canSeeMatchHistory && (
+            <WeekList weeks={weeks} />
+          )}
+
+          {!canSeeMatchHistory && !canSeeMatchEntry && (
+            <div className="py-16 text-center">
+              <p className="text-sm text-slate-500">Nothing to show here yet.</p>
+            </div>
+          )}
         </div>
-      </div>
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
-      <div className="flex flex-col gap-3">
-        {canSeeMatchEntry && (
-          <ResultsRefresher
-            gameId={leagueId}
-            weeks={weeks}
-            initialScheduledWeek={nextWeek}
-            canEdit={true}
-            canAutoPick={canSeeTeamBuilder}
-            allPlayers={players}
-          />
-        )}
-
-        {canSeeMatchHistory && (
-          <WeekList weeks={weeks} />
-        )}
-
-        {!canSeeMatchHistory && !canSeeMatchEntry && (
-          <div className="py-16 text-center">
-            <p className="text-sm text-slate-500">Nothing to show here yet.</p>
-          </div>
-        )}
-      </div>
-    </main>
+      </main>
     </>
   )
 }

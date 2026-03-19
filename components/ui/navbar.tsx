@@ -123,8 +123,6 @@ export function Navbar({
   const pathname = usePathname()
   const params = useParams()
   const leagueId = (params as { leagueId?: string })?.leagueId
-  const isLeagueDetail = !!pathname?.match(/^\/[0-9a-f-]{36}\/(results|players|settings)/)
-  const isPlayersPage = !!pathname?.match(/^\/[^/]+\/players$/)
 
   const [user, setUser] = useState<{ id?: string; email?: string } | null>(null)
   const [displayName, setDisplayName] = useState<string | null>(null)
@@ -176,27 +174,10 @@ export function Navbar({
     window.location.href = '/sign-in'
   }
 
-  const resolvedMenu = menu.length > 0 ? menu : (() => {
-    const items: MenuItem[] = [
-      ...(leagueId
-        ? [
-            { title: 'Results', url: `/${leagueId}/results` },
-            { title: 'Players', url: `/${leagueId}/players` },
-            ...(isLeagueAdmin ? [{ title: 'Settings', url: `/${leagueId}/settings` }] : []),
-          ]
-        : []),
-    ]
-    return items
-  })()
+  const resolvedMenu = menu.length > 0 ? menu : []
 
-  const isSettingsPage = pathname === '/settings' || !!pathname?.match(/^\/[^/]+\/settings$/)
   const settingsUrl = leagueId ? `/${leagueId}/settings` : '/settings'
-  const isActive = (item: MenuItem) => {
-    if (item.title === 'Results') return !!leagueId && !isPlayersPage && !isSettingsPage
-    if (item.title === 'Players') return isPlayersPage
-    if (item.title === 'Settings') return isSettingsPage
-    return false
-  }
+  const isActive = (item: MenuItem) => pathname === item.url
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-700 bg-slate-900">

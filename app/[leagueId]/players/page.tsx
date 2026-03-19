@@ -7,6 +7,7 @@ import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { PublicPlayerList } from '@/components/PublicPlayerList'
+import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
 import type { GameRole, LeagueFeature, FeatureKey, Player } from '@/lib/types'
 
@@ -48,6 +49,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
   }
 
   const tier = resolveVisibilityTier(userRole)
+  const isAdmin = tier === 'admin'
 
   // 3. Fetch feature_experiments + league_features + played week count in parallel
   const [experimentsResult, leagueFeaturesResult, weeksResult] = await Promise.all([
@@ -56,8 +58,6 @@ export default async function LeaguePlayersPage({ params }: Props) {
     service.from('weeks').select('week', { count: 'exact', head: true }).eq('game_id', leagueId).in('status', ['played', 'cancelled']),
   ])
   const playedCount = weeksResult.count ?? 0
-  const totalWeeks = 52
-  const pct = Math.round((playedCount / totalWeeks) * 100)
 
   const availableSet = experimentsResult.error
     ? new Set(DEFAULT_FEATURES.map((f) => f.feature as FeatureKey))
@@ -74,9 +74,26 @@ export default async function LeaguePlayersPage({ params }: Props) {
       return { ...row, available: true } as LeagueFeature
     })
 
+  const header = (
+    <LeaguePageHeader
+      leagueName={game.name}
+      leagueId={leagueId}
+      playedCount={playedCount}
+      currentTab="players"
+      isAdmin={isAdmin}
+    />
+  )
+
   // 4. Check player_stats feature visibility
   if (!isFeatureEnabled(rawFeatures, 'player_stats', tier)) {
-    return <LeaguePrivateState leagueName={game.name} />
+    return (
+      <>
+        {header}
+        <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-6">
+          <LeaguePrivateState leagueName={game.name} />
+        </main>
+      </>
+    )
   }
 
   // 5. Fetch players via RPC
@@ -109,12 +126,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
 
   return (
     <>
-      <div className="bg-slate-800/50 border-b border-slate-700">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
-          <span className="text-xs text-slate-400">{game.name}</span>
-          <span className="text-xs text-slate-400">{playedCount} of {totalWeeks} weeks ({pct}% complete)</span>
-        </div>
-      </div>
+      {header}
       <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 pb-8">
         <PublicPlayerList
           players={players}
