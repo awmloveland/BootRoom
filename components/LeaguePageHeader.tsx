@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Settings } from 'lucide-react'
+import { Settings, ClipboardList, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -24,7 +24,7 @@ export function LeaguePageHeader({
 }: LeaguePageHeaderProps) {
   return (
     <div className="mb-4">
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-slate-100">{leagueName}</h1>
           <p className="mt-1 text-sm text-slate-500">
@@ -39,27 +39,29 @@ export function LeaguePageHeader({
           </Button>
         )}
       </div>
-      <nav className="flex gap-6 border-b border-slate-700 pt-4">
+      <nav className="flex gap-6 border-b border-slate-700 pt-6">
         <Link
           href={`/${leagueId}/results`}
           className={cn(
-            '-mb-px border-b-2 pb-2 text-sm font-medium',
+            '-mb-px flex items-center gap-2 border-b-2 pb-2 text-base font-medium',
             currentTab === 'results'
               ? 'border-slate-100 text-slate-100'
               : 'border-transparent text-slate-400 hover:text-slate-200'
           )}
         >
+          <ClipboardList className="size-4" />
           Results
         </Link>
         <Link
           href={`/${leagueId}/players`}
           className={cn(
-            '-mb-px border-b-2 pb-2 text-sm font-medium',
+            '-mb-px flex items-center gap-2 border-b-2 pb-2 text-base font-medium',
             currentTab === 'players'
               ? 'border-slate-100 text-slate-100'
               : 'border-transparent text-slate-400 hover:text-slate-200'
           )}
         >
+          <Users className="size-4" />
           Players
         </Link>
       </nav>
