@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Week, Winner, Player, ScheduledWeek } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
@@ -490,9 +490,15 @@ export function NextMatchCard({
                   })()}
                   <button
                     type="button"
-                    onClick={() => { setError(null); setShowCancelModal(true) }}
-                    className="p-1 rounded text-slate-500 hover:text-red-400 hover:bg-slate-700 transition-colors"
-                    aria-label="Cancel game"
+                    onClick={() => {
+                      setError(null)
+                      clearSplit()
+                      setSelectedNames([])
+                      setGuestNames([])
+                      setCardState(scheduledWeek ? 'lineup' : 'idle')
+                    }}
+                    className="p-1 rounded text-slate-500 hover:text-slate-300 hover:bg-slate-700 transition-colors"
+                    aria-label="Close team builder"
                   >
                     <X size={15} />
                   </button>
@@ -580,9 +586,11 @@ export function NextMatchCard({
                 {/* Auto-pick result — replaces player list once built */}
                 {isAutoPickMode && autoPickResult.suggestions.length > 0 && (() => {
                   const suggestion = autoPickResult.suggestions[0]
+                  const liveScoreA = ewptScore(localTeamA)
+                  const liveScoreB = ewptScore(localTeamB)
                   const renderTeam = (team: 'A' | 'B', players: Player[]) => (
                     <div>
-                      <p className="text-xs font-medium text-slate-400 mb-2">{team === 'A' ? 'Team A' : 'Team B'}</p>
+                      <p className="text-sm font-semibold text-slate-100 mb-2">{team === 'A' ? 'Team A' : 'Team B'}</p>
                       <div className="space-y-1">
                         {players.map((p, i) => {
                           const isOver = dragOver?.team === team && dragOver?.index === i
@@ -610,28 +618,49 @@ export function NextMatchCard({
                       </div>
                     </div>
                   )
-                  const liveScoreA = ewptScore(localTeamA)
-                  const liveScoreB = ewptScore(localTeamB)
                   return (
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         {renderTeam('A', localTeamA)}
                         {renderTeam('B', localTeamB)}
                       </div>
-                      <div className="space-y-1.5">
-                        <div className="flex h-1.5 rounded-full overflow-hidden">
-                          <div
-                            className="bg-sky-600 transition-all"
-                            style={{ width: `${liveScoreA + liveScoreB === 0 ? 50 : (liveScoreA / (liveScoreA + liveScoreB)) * 100}%` }}
-                          />
-                          <div className="bg-violet-600 flex-1" />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-sky-400/70 font-medium tabular-nums">{liveScoreA.toFixed(1)}</span>
-                          <span className="text-[10px] font-semibold tracking-widest text-slate-600 uppercase">Team Ratings</span>
-                          <span className="text-xs text-violet-400/70 font-medium tabular-nums">{liveScoreB.toFixed(1)}</span>
-                        </div>
-                      </div>
+                      {(() => {
+                        const winProbA = winProbability(liveScoreA, liveScoreB)
+                        const winProbB = 1 - winProbA
+                        const isEven = Math.abs(winProbA * 100 - 50) <= 1
+                        const copy = winCopy(winProbA)
+                        return (
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2.5">
+                              <span className={cn(
+                                'text-[15px] font-bold tabular-nums min-w-[34px]',
+                                isEven ? 'text-slate-400' : 'text-sky-300'
+                              )}>
+                                {Math.round(winProbA * 100)}%
+                              </span>
+                              <div className="flex-1 h-1.5 rounded-full overflow-hidden flex">
+                                <div
+                                  className="bg-sky-600 transition-all"
+                                  style={{ width: `${winProbA * 100}%` }}
+                                />
+                                <div className="bg-violet-600 flex-1" />
+                              </div>
+                              <span className={cn(
+                                'text-[15px] font-bold tabular-nums min-w-[34px] text-right',
+                                isEven ? 'text-slate-400' : 'text-violet-300'
+                              )}>
+                                {Math.round(winProbB * 100)}%
+                              </span>
+                            </div>
+                            <p className={cn(
+                              'text-xs font-medium text-center',
+                              copy.team === 'A' ? 'text-sky-400' : copy.team === 'B' ? 'text-violet-400' : 'text-slate-400'
+                            )}>
+                              {copy.text}
+                            </p>
+                          </div>
+                        )
+                      })()}
                     </div>
                   )
                 })()}
@@ -641,16 +670,17 @@ export function NextMatchCard({
 
               {/* Footer */}
               <div className="flex items-center justify-between px-4 py-3 border-t border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => {
-                    clearSplit()
-                    setCardState(scheduledWeek ? 'lineup' : 'idle')
-                  }}
-                  className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
-                >
-                  Back
-                </button>
+                {isAutoPickMode ? (
+                  <button
+                    type="button"
+                    onClick={() => clearSplit()}
+                    className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
+                  >
+                    Back
+                  </button>
+                ) : (
+                  <div />
+                )}
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
