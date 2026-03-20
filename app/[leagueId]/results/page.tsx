@@ -145,7 +145,7 @@ export default async function LeagueResultsPage({ params }: Props) {
 
   // 7. Fetch players for member/admin tier (needed for NextMatchCard squad selection + auto-pick)
   let players: Player[] = []
-  if (tier !== 'public' && canSeeMatchEntry) {
+  if (tier !== 'public' && (canSeeMatchHistory || canSeeMatchEntry)) {
     const { data: playersData } = await serviceSupabase.rpc('get_player_stats_public', {
       p_game_id: leagueId,
     })
@@ -168,6 +168,8 @@ export default async function LeagueResultsPage({ params }: Props) {
       }))
     }
   }
+
+  const goalkeepers = players.filter(p => p.goalkeeper).map(p => p.name)
 
   const playedCount = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled').length
   const totalWeeks = 52
@@ -234,7 +236,7 @@ export default async function LeagueResultsPage({ params }: Props) {
         )}
 
         {canSeeMatchHistory && (
-          <WeekList weeks={weeks} />
+          <WeekList weeks={weeks} goalkeepers={goalkeepers} />
         )}
 
         {!canSeeMatchHistory && !canSeeMatchEntry && (

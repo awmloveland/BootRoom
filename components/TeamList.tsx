@@ -1,9 +1,10 @@
 interface TeamListProps {
   label: string
   players: string[]
+  goalkeepers?: string[]
 }
 
-export function TeamList({ label, players }: TeamListProps) {
+export function TeamList({ label, players, goalkeepers }: TeamListProps) {
   return (
     <div>
       <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
@@ -15,7 +16,7 @@ export function TeamList({ label, players }: TeamListProps) {
             key={i}
             className="text-sm font-medium text-slate-100 pl-3 border-l-2 border-slate-700"
           >
-            {player}
+            {player}{goalkeepers?.includes(player) ? ' 🧤' : ''}
           </li>
         ))}
       </ul>

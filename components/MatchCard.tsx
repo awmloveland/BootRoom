@@ -11,6 +11,7 @@ interface MatchCardProps {
   week: Week
   isOpen: boolean
   onToggle: () => void
+  goalkeepers?: string[]
 }
 
 /** Cancelled card — muted, non-interactive. */
@@ -29,7 +30,7 @@ function CancelledCard({ week }: { week: Week }) {
 }
 
 /** Played card — collapsible accordion entry. */
-function PlayedCard({ week, isOpen, onToggle }: MatchCardProps) {
+function PlayedCard({ week, isOpen, onToggle, goalkeepers }: MatchCardProps) {
   return (
     <Collapsible.Root open={isOpen} onOpenChange={onToggle}>
       <div
@@ -77,8 +78,8 @@ function PlayedCard({ week, isOpen, onToggle }: MatchCardProps) {
             <div className="p-4">
               {/* Team line-ups — 2 cols on sm+, 1 col on mobile */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <TeamList label="Team A" players={week.teamA} />
-                <TeamList label="Team B" players={week.teamB} />
+                <TeamList label="Team A" players={week.teamA} goalkeepers={goalkeepers} />
+                <TeamList label="Team B" players={week.teamB} goalkeepers={goalkeepers} />
               </div>
 
               {/* Notes */}
@@ -95,9 +96,9 @@ function PlayedCard({ week, isOpen, onToggle }: MatchCardProps) {
   )
 }
 
-export function MatchCard({ week, isOpen, onToggle }: MatchCardProps) {
+export function MatchCard({ week, isOpen, onToggle, goalkeepers }: MatchCardProps) {
   if (week.status === 'cancelled') {
     return <CancelledCard week={week} />
   }
-  return <PlayedCard week={week} isOpen={isOpen} onToggle={onToggle} />
+  return <PlayedCard week={week} isOpen={isOpen} onToggle={onToggle} goalkeepers={goalkeepers} />
 }

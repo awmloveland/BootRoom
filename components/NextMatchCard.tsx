@@ -142,6 +142,11 @@ export function NextMatchCard({
   const nextWeekNum = useMemo(() => getNextWeekNumber(weeks), [weeks])
   const season = useMemo(() => deriveSeason(weeks), [weeks])
 
+  const goalkeepers = useMemo(
+    () => allPlayers.filter(p => p.goalkeeper).map(p => p.name),
+    [allPlayers]
+  )
+
   // Auto-derive format from player count
   useEffect(() => {
     const n = squadNames.length
@@ -620,7 +625,9 @@ export function NextMatchCard({
                                   : isOver ? 'bg-violet-800/60 border-violet-600' : 'bg-violet-950/40 border-violet-900/60'
                               )}
                             >
-                              <span className={cn('text-xs font-medium', team === 'A' ? 'text-sky-100' : 'text-violet-100')}>{p.name}</span>
+                              <span className={cn('text-xs font-medium', team === 'A' ? 'text-sky-100' : 'text-violet-100')}>
+                                {p.name}{p.goalkeeper ? ' 🧤' : ''}
+                              </span>
                               {p.recentForm && <FormDots form={p.recentForm} />}
                             </div>
                           )
@@ -761,8 +768,8 @@ export function NextMatchCard({
         {cardState === 'lineup' && scheduledWeek && (
           <div className="px-4 py-3">
             <div className="grid grid-cols-2 gap-4">
-              <TeamList label="Team A" players={scheduledWeek.teamA} />
-              <TeamList label="Team B" players={scheduledWeek.teamB} />
+              <TeamList label="Team A" players={scheduledWeek.teamA} goalkeepers={goalkeepers} />
+              <TeamList label="Team B" players={scheduledWeek.teamB} goalkeepers={goalkeepers} />
             </div>
           </div>
         )}
