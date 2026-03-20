@@ -46,7 +46,8 @@ describe('goalkeeper badge inclusion check', () => {
   })
 
   it('returns undefined (falsy) when goalkeepers prop is undefined', () => {
-    const goalkeepers: string[] | undefined = undefined
+    // Cast to prevent TypeScript narrowing the literal `undefined` to the `undefined` type
+    const goalkeepers = undefined as string[] | undefined
     // This is how TeamList will call it: goalkeepers?.includes(player)
     // undefined means no badge — correct behaviour
     expect(goalkeepers?.includes('Alice')).toBeUndefined()
