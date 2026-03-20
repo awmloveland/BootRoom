@@ -103,7 +103,7 @@ export function AdminMemberTable({ leagueId, members, onChanged }: AdminMemberTa
                           className={cn(
                             'px-2.5 py-1 font-medium transition-colors capitalize',
                             member.role === r
-                              ? 'bg-slate-600 text-slate-100 cursor-default'
+                              ? 'bg-sky-600 text-white cursor-default'
                               : 'bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                           )}
                         >
