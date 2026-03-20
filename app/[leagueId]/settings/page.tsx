@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Check, Copy, RefreshCw, Settings2, Users } from 'lucide-react'
+import { ArrowLeft, Check, Copy, RefreshCw, Settings2, Users } from 'lucide-react'
 import { fetchGames } from '@/lib/data'
 import { AdminMemberTable } from '@/components/AdminMemberTable'
 import { FeaturePanel } from '@/components/FeaturePanel'
@@ -150,6 +150,13 @@ export default function LeagueSettingsPage() {
   return (
     <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
       <div className="mb-6">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors mb-3"
+        >
+          <ArrowLeft className="size-4" />
+          Back
+        </button>
         <h1 className="text-xl font-semibold text-slate-100">Settings</h1>
         <p className="text-sm text-slate-500 mt-0.5">{leagueName}</p>
       </div>
