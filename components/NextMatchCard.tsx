@@ -588,9 +588,19 @@ export function NextMatchCard({
                   const suggestion = autoPickResult.suggestions[0]
                   const liveScoreA = ewptScore(localTeamA)
                   const liveScoreB = ewptScore(localTeamB)
-                  const renderTeam = (team: 'A' | 'B', players: Player[]) => (
+                  const renderTeam = (team: 'A' | 'B', players: Player[], score: number) => (
                     <div>
-                      <p className="text-sm font-semibold text-slate-100 mb-2">{team === 'A' ? 'Team A' : 'Team B'}</p>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-semibold text-slate-100">{team === 'A' ? 'Team A' : 'Team B'}</p>
+                        <span className={cn(
+                          'px-1.5 py-0.5 rounded text-xs font-semibold tabular-nums',
+                          team === 'A'
+                            ? 'bg-sky-900/60 border border-sky-700 text-sky-300'
+                            : 'bg-violet-900/60 border border-violet-700 text-violet-300'
+                        )}>
+                          {score.toFixed(3)}
+                        </span>
+                      </div>
                       <div className="space-y-1">
                         {players.map((p, i) => {
                           const isOver = dragOver?.team === team && dragOver?.index === i
@@ -621,8 +631,8 @@ export function NextMatchCard({
                   return (
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 gap-3">
-                        {renderTeam('A', localTeamA)}
-                        {renderTeam('B', localTeamB)}
+                        {renderTeam('A', localTeamA, liveScoreA)}
+                        {renderTeam('B', localTeamB, liveScoreB)}
                       </div>
                       {(() => {
                         const winProbA = winProbability(liveScoreA, liveScoreB)
