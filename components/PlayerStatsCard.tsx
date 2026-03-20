@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Toggle } from '@/components/ui/toggle'
+import { cn } from '@/lib/utils'
 import type { LeagueFeature, FeatureConfig } from '@/lib/types'
 
 const ALL_STATS = [
@@ -49,6 +50,13 @@ export function PlayerStatsCard({ leagueId, feature, onChanged }: PlayerStatsCar
   useEffect(() => {
     if (!savePublicTimerRef.current) setLocalPublicConfig(feature.public_config ?? null)
   }, [feature.public_config])
+
+  useEffect(() => {
+    return () => {
+      if (saveMembersTimerRef.current) clearTimeout(saveMembersTimerRef.current)
+      if (savePublicTimerRef.current) clearTimeout(savePublicTimerRef.current)
+    }
+  }, [])
 
   const updateFeature = useCallback(async (updated: LeagueFeature) => {
     setSaving(true)
@@ -140,11 +148,10 @@ export function PlayerStatsCard({ leagueId, feature, onChanged }: PlayerStatsCar
                     onChange={e => handleMembersStatChange(stat.key, e.target.checked)}
                     className="sr-only"
                   />
-                  <div className={`w-3.5 h-3.5 rounded-sm flex-shrink-0 flex items-center justify-center border ${
-                    checked
-                      ? 'bg-sky-600 border-sky-600'
-                      : 'bg-slate-700 border-slate-600'
-                  }`}>
+                  <div className={cn(
+                    'w-3.5 h-3.5 rounded-sm flex-shrink-0 flex items-center justify-center border',
+                    checked ? 'bg-sky-600 border-sky-600' : 'bg-slate-700 border-slate-600'
+                  )}>
                     {checked && (
                       <svg width="9" height="9" viewBox="0 0 10 10" fill="white">
                         <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
@@ -172,11 +179,10 @@ export function PlayerStatsCard({ leagueId, feature, onChanged }: PlayerStatsCar
                     onChange={e => handlePublicStatChange(stat.key, e.target.checked)}
                     className="sr-only"
                   />
-                  <div className={`w-3.5 h-3.5 rounded-sm flex-shrink-0 flex items-center justify-center border ${
-                    checked
-                      ? 'bg-sky-600 border-sky-600'
-                      : 'bg-slate-700 border-slate-600'
-                  }`}>
+                  <div className={cn(
+                    'w-3.5 h-3.5 rounded-sm flex-shrink-0 flex items-center justify-center border',
+                    checked ? 'bg-sky-600 border-sky-600' : 'bg-slate-700 border-slate-600'
+                  )}>
                     {checked && (
                       <svg width="9" height="9" viewBox="0 0 10 10" fill="white">
                         <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>

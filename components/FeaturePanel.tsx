@@ -13,6 +13,7 @@ interface FeaturePanelProps {
 function getFeature(features: LeagueFeature[], key: FeatureKey): LeagueFeature {
   return features.find(f => f.feature === key) ?? {
     feature: key,
+    available: false,
     enabled: false,
     config: null,
     public_enabled: false,
