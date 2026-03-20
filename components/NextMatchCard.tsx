@@ -627,8 +627,8 @@ export function NextMatchCard({
                       {(() => {
                         const winProbA = winProbability(liveScoreA, liveScoreB)
                         const winProbB = 1 - winProbA
-                        const isEven = Math.abs(winProbA * 100 - 50) <= 1
                         const copy = winCopy(winProbA)
+                        const isEven = copy.team === 'even'
                         return (
                           <div className="space-y-1.5">
                             <div className="flex items-center gap-2.5">
