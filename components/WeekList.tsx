@@ -8,9 +8,10 @@ import type { Week } from '@/lib/types'
 
 interface Props {
   weeks: Week[]
+  goalkeepers?: string[]
 }
 
-export function WeekList({ weeks }: Props) {
+export function WeekList({ weeks, goalkeepers }: Props) {
   const playedWeeks = getPlayedWeeks(weeks)
   const mostRecent = playedWeeks.length > 0
     ? playedWeeks.reduce((a, b) => (a.week > b.week ? a : b))
@@ -34,6 +35,7 @@ export function WeekList({ weeks }: Props) {
               week={week}
               isOpen={openWeek === week.week}
               onToggle={() => setOpenWeek((prev) => (prev === week.week ? null : week.week))}
+              goalkeepers={goalkeepers}
             />
           </Fragment>
         )
