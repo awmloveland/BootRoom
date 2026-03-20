@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LeagueMember, GameRole } from '@/lib/types'
 
@@ -91,15 +92,6 @@ export function AdminMemberTable({ leagueId, members, onChanged }: AdminMemberTa
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <span
-                  className={cn(
-                    'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border',
-                    ROLE_BADGE[member.role]
-                  )}
-                >
-                  {ROLE_LABEL[member.role]}
-                </span>
-
                 {!isLocked && (
                   <>
                     <div className="flex rounded-md border border-slate-600 overflow-hidden text-xs">
@@ -122,9 +114,9 @@ export function AdminMemberTable({ leagueId, members, onChanged }: AdminMemberTa
                     <button
                       onClick={() => removeMember(member.user_id)}
                       disabled={!!busy}
-                      className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
+                      className="text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
                     >
-                      {busy === `remove-${member.user_id}` ? '…' : 'Remove'}
+                      <Trash2 className="size-3.5" />
                     </button>
                   </>
                 )}
