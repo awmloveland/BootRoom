@@ -144,6 +144,24 @@ export function winProbability(scoreA: number, scoreB: number): number {
   return 1 / (1 + Math.exp(-(scoreA - scoreB) / 8))
 }
 
+/**
+ * Returns pundit-style copy and the leading team for a given Team A win probability.
+ * Thresholds: even ≤51%, slight edge >51–<55%, stronger side 55–<62%,
+ * favourites 62–<70%, heavy favourites ≥70%.
+ */
+export function winCopy(probA: number): { text: string; team: 'A' | 'B' | 'even' } {
+  const pct = probA * 100
+  const isEven = Math.abs(pct - 50) <= 1
+  if (isEven) return { text: "Too close to call — this one could go either way", team: 'even' }
+  const leading = pct > 50 ? 'A' : 'B'
+  const leadPct = pct > 50 ? pct : 100 - pct
+  const name = leading === 'A' ? 'Team A' : 'Team B'
+  if (leadPct < 55) return { text: `Slight edge to ${name} going into this one`, team: leading }
+  if (leadPct < 62) return { text: `${name} look like the stronger side tonight`, team: leading }
+  if (leadPct < 70) return { text: `${name} are favourites heading into this one`, team: leading }
+  return { text: `The odds heavily favour ${name} tonight`, team: leading }
+}
+
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const MONTH_IDX: Record<string, number> = Object.fromEntries(MONTH_SHORT.map((m, i) => [m, i]))
 
