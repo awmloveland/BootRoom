@@ -25,13 +25,21 @@ export function autoPick(players: Player[]): AutoPickResult {
   const n = players.length
   if (n < 2) return { suggestions: [], bestDiff: 0, poolSize: 0 }
 
-  // GK constraint: pin a single goalkeeper to Team A
-  const gkPlayers = players.filter((p) => p.goalkeeper || p.mentality === 'goalkeeper')
-  const pinnedGK: Player | null = gkPlayers.length === 1 ? gkPlayers[0] : null
-  const searchPool = pinnedGK ? players.filter((p) => p !== pinnedGK) : players
+  // GK constraint: pin one GK to each team (when ≥2 GKs exist) so neither
+  // team is ever left without a goalkeeper. Any additional GKs beyond the
+  // two pinned ones go into searchPool and are distributed freely.
+  // - 0 GKs: no pinning
+  // - 1 GK: pin to Team A only
+  // - 2 GKs: one pinned to each team — guaranteed opposing sides
+  // - 3+ GKs: one pinned to each team, the rest distributed freely
+  const gkPlayers = [...players.filter((p) => p.goalkeeper || p.mentality === 'goalkeeper')]
+    .sort(() => Math.random() - 0.5) // shuffle so pinned pair is random when 3+ GKs
+  const pinnedA: Player | null = gkPlayers.length >= 1 ? gkPlayers[0] : null
+  const pinnedB: Player | null = gkPlayers.length >= 2 ? gkPlayers[1] : null
+  const searchPool = players.filter((p) => p !== pinnedA && p !== pinnedB)
 
   // How many non-pinned players go into Team A
-  const sizeA = Math.ceil(n / 2) - (pinnedGK ? 1 : 0)
+  const sizeA = Math.ceil(n / 2) - (pinnedA ? 1 : 0)
 
   // Generate candidate splits
   let rawSplits: [Player[], Player[]][]
@@ -50,10 +58,11 @@ export function autoPick(players: Player[]): AutoPickResult {
     }
   }
 
-  // Prepend pinned GK to every Team A
-  const allSplits: [Player[], Player[]][] = pinnedGK
-    ? rawSplits.map(([a, b]) => [[pinnedGK, ...a], b])
-    : rawSplits
+  // Prepend pinned GKs to their respective teams
+  const allSplits: [Player[], Player[]][] = rawSplits.map(([a, b]) => [
+    pinnedA ? [pinnedA, ...a] : a,
+    pinnedB ? [pinnedB, ...b] : b,
+  ])
 
   // Score all splits
   const scored = allSplits.map(([a, b]) => {
