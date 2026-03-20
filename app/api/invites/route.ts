@@ -17,6 +17,7 @@ export async function POST(request: Request) {
   const body = await request.json()
   const rawEmail = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
   const gameId = typeof body?.gameId === 'string' ? body.gameId : null
+  const role = body?.role === 'member' ? 'member' : 'admin'
   // Use '*' for open invite (anyone with the link can accept); otherwise require valid email
   const email = rawEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) ? rawEmail : '*'
   if (!gameId) {
@@ -39,8 +40,9 @@ export async function POST(request: Request) {
       invited_by: user.id,
       token,
       expires_at: expiresAt.toISOString(),
+      role,
     },
-    { onConflict: 'game_id,email' }
+    { onConflict: 'game_id,email,role' }
   )
 
   if (error) {

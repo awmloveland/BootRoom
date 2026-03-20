@@ -2,33 +2,47 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Check, Copy, Link as LinkIcon, Users } from 'lucide-react'
+import { ArrowLeft, Check, Copy, RefreshCw, Settings2, Users } from 'lucide-react'
 import { fetchGames } from '@/lib/data'
 import { AdminMemberTable } from '@/components/AdminMemberTable'
+import { FeaturePanel } from '@/components/FeaturePanel'
 import { cn } from '@/lib/utils'
-import type { LeagueMember } from '@/lib/types'
+import type { LeagueMember, LeagueFeature } from '@/lib/types'
 
-type Section = 'links' | 'members'
+type Section = 'members' | 'features'
+
+function formatExpiry(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return `Expires ${d.getDate()} ${d.toLocaleString('en-GB', { month: 'short' })} ${d.getFullYear()}`
+}
 
 export default function LeagueSettingsPage() {
   const params = useParams()
   const router = useRouter()
   const leagueId = (params?.leagueId as string) ?? ''
 
-  const [section, setSection] = useState<Section>('links')
+  const [section, setSection] = useState<Section>('members')
   const [leagueName, setLeagueName] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  // Links state
-  const [inviteLink, setInviteLink] = useState<string | null>(null)
-  const [inviteLoading, setInviteLoading] = useState(false)
-  const [inviteError, setInviteError] = useState<string | null>(null)
-  const [copiedInvite, setCopiedInvite] = useState(false)
-
   // Members state
   const [members, setMembers] = useState<LeagueMember[]>([])
   const [membersLoading, setMembersLoading] = useState(false)
+
+  // Invite links state
+  const [memberLink, setMemberLink] = useState<string | null>(null)
+  const [adminLink, setAdminLink] = useState<string | null>(null)
+  const [memberExpiry, setMemberExpiry] = useState<string | null>(null)
+  const [adminExpiry, setAdminExpiry] = useState<string | null>(null)
+  const [loadingRole, setLoadingRole] = useState<'member' | 'admin' | null>(null)
+  const [copiedRole, setCopiedRole] = useState<'member' | 'admin' | null>(null)
+  const [inviteError, setInviteError] = useState<string | null>(null)
+
+  // Features state
+  const [features, setFeatures] = useState<LeagueFeature[]>([])
+  const [featuresLoading, setFeaturesLoading] = useState(false)
 
   useEffect(() => {
     async function init() {
@@ -65,36 +79,60 @@ export default function LeagueSettingsPage() {
     }
   }, [leagueId])
 
-  useEffect(() => {
-    if (!isAdmin) return
-    if (section === 'members') loadMembers()
-  }, [section, isAdmin, loadMembers])
-
-  async function generateInviteLink() {
-    setInviteLoading(true)
+  async function fetchInviteLink(role: 'member' | 'admin') {
+    setLoadingRole(role)
     setInviteError(null)
     try {
       const res = await fetch('/api/invites', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId: leagueId }),
+        body: JSON.stringify({ gameId: leagueId, role }),
         credentials: 'include',
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to create invite')
-      setInviteLink(data.link)
+      if (role === 'member') {
+        setMemberLink(data.link)
+        setMemberExpiry(data.expiresAt ?? null)
+      } else {
+        setAdminLink(data.link)
+        setAdminExpiry(data.expiresAt ?? null)
+      }
     } catch (err) {
       setInviteError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
-      setInviteLoading(false)
+      setLoadingRole(null)
     }
   }
 
-  async function copyInviteLink(text: string) {
-    await navigator.clipboard.writeText(text)
-    setCopiedInvite(true)
-    setTimeout(() => setCopiedInvite(false), 2000)
+  async function copyLink(link: string, role: 'member' | 'admin') {
+    await navigator.clipboard.writeText(link)
+    setCopiedRole(role)
+    setTimeout(() => setCopiedRole(null), 2000)
   }
+
+  const loadFeatures = useCallback(async () => {
+    setFeaturesLoading(true)
+    try {
+      const res = await fetch(`/api/league/${leagueId}/features`, { credentials: 'include' })
+      const data = await res.json()
+      setFeatures(Array.isArray(data) ? data : [])
+    } finally {
+      setFeaturesLoading(false)
+    }
+  }, [leagueId])
+
+  useEffect(() => {
+    if (!isAdmin) return
+    if (section === 'members') {
+      loadMembers()
+      // Auto-create both invite links on members tab mount
+      fetchInviteLink('member')
+      fetchInviteLink('admin')
+    }
+    if (section === 'features') loadFeatures()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section, isAdmin, loadMembers, loadFeatures])
 
   if (loading) {
     return (
@@ -104,88 +142,123 @@ export default function LeagueSettingsPage() {
     )
   }
 
-  const NAV: { id: Section; label: string; icon: React.ReactNode }[] = [
-    { id: 'links',   label: 'Links',   icon: <LinkIcon className="size-4" /> },
-    { id: 'members', label: 'Members', icon: <Users className="size-4" /> },
+  const NAV: { id: Section; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: 'members',  label: 'Members',  Icon: Users },
+    { id: 'features', label: 'Features', Icon: Settings2 },
   ]
 
   return (
     <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
       <div className="mb-6">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors mb-3"
+        >
+          <ArrowLeft className="size-4" />
+          Back
+        </button>
         <h1 className="text-xl font-semibold text-slate-100">Settings</h1>
         <p className="text-sm text-slate-500 mt-0.5">{leagueName}</p>
       </div>
 
       {/* Section tabs */}
       <div className="flex gap-1 mb-6 border-b border-slate-700">
-        {NAV.map((nav) => (
+        {NAV.map(({ id, label, Icon }) => (
           <button
-            key={nav.id}
-            onClick={() => setSection(nav.id)}
+            key={id}
+            onClick={() => setSection(id)}
             className={cn(
               'flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
-              section === nav.id
+              section === id
                 ? 'border-sky-500 text-sky-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             )}
           >
-            {nav.icon}
-            {nav.label}
+            <Icon className="size-4" />
+            {label}
           </button>
         ))}
       </div>
 
-      {/* ── LINKS ── */}
-      {section === 'links' && (
-        <div className="space-y-4">
+      {/* ── MEMBERS ── */}
+      {section === 'members' && (
+        <div className="space-y-6">
 
-          {/* Invite link */}
-          <div className="p-4 rounded-lg bg-slate-800 border border-slate-700">
-            <div className="mb-3">
-              <p className="text-sm font-medium text-slate-200">Admin Invite Link</p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Share with people you want to give admin access. Valid for 7 days.
-              </p>
+          {/* Invite Links card */}
+          <div className="rounded-lg bg-slate-800 border border-slate-700 overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-700/60">
+              <p className="text-sm font-medium text-slate-200">Invite Links</p>
             </div>
+            <div className="divide-y divide-slate-700/40">
+              {inviteError && (
+                <div className="px-4 py-2 text-xs text-red-400">{inviteError}</div>
+              )}
+              {(
+                [
+                  { role: 'member', label: 'Member link', sub: 'accepted user joins as member', link: memberLink, expiry: memberExpiry },
+                  { role: 'admin',  label: 'Admin link',  sub: 'accepted user joins as admin',  link: adminLink,  expiry: adminExpiry },
+                ] as const
+              ).map(({ role, label, sub, link, expiry }) => (
+                <div key={role} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm text-slate-300">{label}</span>
+                    <span className="text-xs text-slate-500 ml-2">{sub}</span>
+                    {expiry && (
+                      <span className="text-xs text-slate-500 ml-2">· {formatExpiry(expiry)}</span>
+                    )}
+                    {!link && !expiry && loadingRole === role && (
+                      <span className="text-xs text-slate-500 ml-2">Generating…</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => link && copyLink(link, role)}
+                      disabled={!link || loadingRole === role}
+                      className="flex items-center gap-1 text-xs font-medium text-sky-400 hover:text-sky-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {copiedRole === role ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                      {copiedRole === role ? 'Copied' : 'Copy'}
+                    </button>
+                    <button
+                      onClick={() => fetchInviteLink(role)}
+                      disabled={loadingRole === role}
+                      className="flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <RefreshCw className={cn('size-3.5', loadingRole === role && 'animate-spin')} />
+                      Regenerate
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-            {inviteError && <p className="text-sm text-red-400 mb-2">{inviteError}</p>}
-
-            {inviteLink ? (
-              <div className="flex items-center gap-2">
-                <code className="flex-1 text-xs text-slate-300 bg-slate-900 rounded px-2 py-1.5 truncate">
-                  {inviteLink}
-                </code>
-                <button
-                  onClick={() => copyInviteLink(inviteLink)}
-                  className="flex items-center gap-1.5 text-xs font-medium text-sky-400 hover:text-sky-300 transition-colors shrink-0"
-                >
-                  {copiedInvite ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-                  {copiedInvite ? 'Copied' : 'Copy'}
-                </button>
-              </div>
+          {/* Member list */}
+          <div>
+            <p className="text-xs text-slate-500 uppercase tracking-wide mb-3">League Members</p>
+            {membersLoading ? (
+              <p className="text-slate-400 text-sm">Loading members…</p>
             ) : (
-              <button
-                onClick={generateInviteLink}
-                disabled={inviteLoading}
-                className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium disabled:opacity-50 transition-colors"
-              >
-                {inviteLoading ? 'Generating…' : 'Generate invite link'}
-              </button>
+              <AdminMemberTable
+                leagueId={leagueId}
+                members={members}
+                onChanged={loadMembers}
+              />
             )}
           </div>
         </div>
       )}
 
-      {/* ── MEMBERS ── */}
-      {section === 'members' && (
+      {/* ── FEATURES ── */}
+      {section === 'features' && (
         <div>
-          {membersLoading ? (
-            <p className="text-slate-400 text-sm">Loading members…</p>
+          {featuresLoading ? (
+            <p className="text-slate-400 text-sm">Loading…</p>
           ) : (
-            <AdminMemberTable
+            <FeaturePanel
               leagueId={leagueId}
-              members={members}
-              onChanged={loadMembers}
+              features={features}
+              onChanged={loadFeatures}
             />
           )}
         </div>
