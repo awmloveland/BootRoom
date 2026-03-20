@@ -102,23 +102,23 @@ export function AdminMemberTable({ leagueId, members, onChanged }: AdminMemberTa
 
                 {!isLocked && (
                   <>
-                    {member.role === 'member' ? (
-                      <button
-                        onClick={() => setRole(member.user_id, 'admin')}
-                        disabled={!!busy}
-                        className="text-xs text-sky-400 hover:text-sky-300 disabled:opacity-50 transition-colors"
-                      >
-                        {busy === `role-${member.user_id}` ? '…' : 'Make admin'}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setRole(member.user_id, 'member')}
-                        disabled={!!busy}
-                        className="text-xs text-slate-400 hover:text-slate-300 disabled:opacity-50 transition-colors"
-                      >
-                        {busy === `role-${member.user_id}` ? '…' : 'Make member'}
-                      </button>
-                    )}
+                    <div className="flex rounded-md border border-slate-600 overflow-hidden text-xs">
+                      {(['member', 'admin'] as const).map((r) => (
+                        <button
+                          key={r}
+                          onClick={() => member.role !== r && setRole(member.user_id, r)}
+                          disabled={!!busy || member.role === r}
+                          className={cn(
+                            'px-2.5 py-1 font-medium transition-colors capitalize',
+                            member.role === r
+                              ? 'bg-slate-600 text-slate-100 cursor-default'
+                              : 'bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                          )}
+                        >
+                          {busy === `role-${member.user_id}` && member.role !== r ? '…' : r.charAt(0).toUpperCase() + r.slice(1)}
+                        </button>
+                      ))}
+                    </div>
                     <button
                       onClick={() => removeMember(member.user_id)}
                       disabled={!!busy}
