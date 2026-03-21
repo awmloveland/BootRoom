@@ -87,4 +87,23 @@ export interface ScheduledWeek {
   teamA: string[];
   teamB: string[];
   status: 'scheduled' | 'cancelled';
+  lineupMetadata?: LineupMetadata | null;
+}
+
+export interface GuestEntry {
+  type: 'guest'            // runtime discriminant — not persisted to DB
+  name: string             // e.g. "Alice +1"
+  associatedPlayer: string // e.g. "Alice"
+  rating: number           // 1–3
+}
+
+export interface NewPlayerEntry {
+  type: 'new_player'       // runtime discriminant — not persisted to DB
+  name: string
+  rating: number           // 1–3
+}
+
+export interface LineupMetadata {
+  guests: GuestEntry[]
+  new_players: NewPlayerEntry[]
 }
