@@ -28,13 +28,11 @@ export function ResultsSection({
 }: Props) {
   const router = useRouter()
 
-  const mostRecentWeekNum = (() => {
+  const [openWeek, setOpenWeek] = useState<number | null>(() => {
     const played = getPlayedWeeks(weeks)
     if (played.length === 0) return null
     return played.reduce((a, b) => (a.week > b.week ? a : b)).week
-  })()
-
-  const [openWeek, setOpenWeek] = useState<number | null>(mostRecentWeekNum)
+  })
 
   const handleBuildStart = useCallback(() => {
     setOpenWeek(null)
