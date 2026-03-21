@@ -33,8 +33,8 @@ export function EyeTestSlider({ value, onChange, showNote = false }: Props) {
       </div>
       {showNote && (
         <p className="mt-2 text-[11px] text-slate-500 leading-relaxed bg-slate-900 border border-slate-700/50 rounded p-2">
-          <span className="text-slate-400 font-medium">This isn't personal.</span>{' '}
-          It's just a starting point to help balance teams. Ratings aren't visible to players
+          <span className="text-slate-400 font-medium">This isn&apos;t personal.</span>{' '}
+          It&apos;s just a starting point to help balance teams. Ratings aren&apos;t visible to players
           and will naturally adjust over time based on their form.
         </p>
       )}
