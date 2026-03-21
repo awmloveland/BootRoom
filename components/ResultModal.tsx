@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, ScheduledWeek, LineupMetadata, Player } from '@/lib/types'
 import { EyeTestSlider } from '@/components/EyeTestSlider'
+import { Toggle } from '@/components/ui/toggle'
 
 interface Props {
   scheduledWeek: ScheduledWeek
@@ -267,24 +268,10 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                     <EyeTestSlider value={p.rating} onChange={(v) => updateNewPlayerRating(i, v)} />
 
                     <div className="mt-3 pt-3 border-t border-slate-800">
-                      <label className="flex items-center gap-2.5 cursor-pointer">
-                        <div
-                          onClick={() => updateNewPlayerGoalkeeper(i, !p.goalkeeper)}
-                          className={cn(
-                            'w-8 rounded-full relative transition-colors cursor-pointer flex-shrink-0',
-                            p.goalkeeper ? 'bg-blue-600' : 'bg-slate-600'
-                          )}
-                          style={{ height: '18px' }}
-                        >
-                          <div className={cn(
-                            'absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full shadow transition-all',
-                            p.goalkeeper ? 'left-[18px]' : 'left-0.5'
-                          )} />
-                        </div>
-                        <span className="text-xs text-slate-300">
-                          <span className="font-semibold">Dedicated goalkeeper</span>
-                        </span>
-                      </label>
+                      <div className="flex items-center gap-2.5">
+                        <Toggle enabled={p.goalkeeper} onChange={(v) => updateNewPlayerGoalkeeper(i, v)} />
+                        <span className="text-xs font-semibold text-slate-300">Dedicated goalkeeper</span>
+                      </div>
                       <p className="text-[11px] text-slate-500 mt-1 ml-[42px] leading-relaxed">
                         Plays in goal every game. Goalkeepers are always split across teams during auto-pick.
                       </p>
@@ -304,24 +291,10 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                     <div className="mt-3 pt-3 border-t border-slate-800">
                       {/* Goalkeeper toggle */}
                       <div className="mb-3">
-                        <label className="flex items-center gap-2.5 cursor-pointer">
-                          <div
-                            onClick={() => updateGuestGoalkeeper(i, !g.goalkeeper)}
-                            className={cn(
-                              'w-8 rounded-full relative transition-colors cursor-pointer flex-shrink-0',
-                              g.goalkeeper ? 'bg-blue-600' : 'bg-slate-600'
-                            )}
-                            style={{ height: '18px' }}
-                          >
-                            <div className={cn(
-                              'absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full shadow transition-all',
-                              g.goalkeeper ? 'left-[18px]' : 'left-0.5'
-                            )} />
-                          </div>
-                          <span className="text-xs text-slate-300">
-                            <span className="font-semibold">Dedicated goalkeeper</span>
-                          </span>
-                        </label>
+                        <div className="flex items-center gap-2.5">
+                          <Toggle enabled={g.goalkeeper} onChange={(v) => updateGuestGoalkeeper(i, v)} />
+                          <span className="text-xs font-semibold text-slate-300">Dedicated goalkeeper</span>
+                        </div>
                         <p className="text-[11px] text-slate-500 mt-1 ml-[42px] leading-relaxed">
                           Plays in goal every game. Goalkeepers are always split across teams during auto-pick.
                         </p>

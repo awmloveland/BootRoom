@@ -3,9 +3,9 @@
 
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { cn } from '@/lib/utils'
 import type { Player, GuestEntry, NewPlayerEntry } from '@/lib/types'
 import { EyeTestSlider } from '@/components/EyeTestSlider'
+import { Toggle } from '@/components/ui/toggle'
 
 interface Props {
   players: Player[]           // current lineup players (for "plays with" dropdown)
@@ -172,24 +172,10 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
                 </div>
 
                 <div className="pt-1">
-                  <label className="flex items-center gap-2.5 cursor-pointer">
-                    <div
-                      onClick={() => setGuestIsGoalkeeper((prev) => !prev)}
-                      className={cn(
-                        'w-8 rounded-full relative transition-colors cursor-pointer flex-shrink-0',
-                        guestIsGoalkeeper ? 'bg-blue-600' : 'bg-slate-600'
-                      )}
-                      style={{ height: '18px' }}
-                    >
-                      <div className={cn(
-                        'absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full shadow transition-all',
-                        guestIsGoalkeeper ? 'left-[18px]' : 'left-0.5'
-                      )} />
-                    </div>
-                    <span className="text-xs text-slate-300">
-                      <span className="font-semibold">Dedicated goalkeeper</span>
-                    </span>
-                  </label>
+                  <div className="flex items-center gap-2.5">
+                    <Toggle enabled={guestIsGoalkeeper} onChange={(v) => setGuestIsGoalkeeper(v)} />
+                    <span className="text-xs font-semibold text-slate-300">Dedicated goalkeeper</span>
+                  </div>
                   <p className="text-[11px] text-slate-500 mt-1 ml-[42px] leading-relaxed">
                     Plays in goal every game. Goalkeepers are always split across teams during auto-pick.
                   </p>
@@ -247,24 +233,10 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
                 </div>
 
                 <div className="pt-1">
-                  <label className="flex items-center gap-2.5 cursor-pointer">
-                    <div
-                      onClick={() => setNewPlayerIsGoalkeeper((prev) => !prev)}
-                      className={cn(
-                        'w-8 rounded-full relative transition-colors cursor-pointer flex-shrink-0',
-                        newPlayerIsGoalkeeper ? 'bg-blue-600' : 'bg-slate-600'
-                      )}
-                      style={{ height: '18px' }}
-                    >
-                      <div className={cn(
-                        'absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full shadow transition-all',
-                        newPlayerIsGoalkeeper ? 'left-[18px]' : 'left-0.5'
-                      )} />
-                    </div>
-                    <span className="text-xs text-slate-300">
-                      <span className="font-semibold">Dedicated goalkeeper</span>
-                    </span>
-                  </label>
+                  <div className="flex items-center gap-2.5">
+                    <Toggle enabled={newPlayerIsGoalkeeper} onChange={(v) => setNewPlayerIsGoalkeeper(v)} />
+                    <span className="text-xs font-semibold text-slate-300">Dedicated goalkeeper</span>
+                  </div>
                   <p className="text-[11px] text-slate-500 mt-1 ml-[42px] leading-relaxed">
                     Plays in goal every game. Goalkeepers are always split across teams during auto-pick.
                   </p>
