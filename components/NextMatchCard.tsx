@@ -97,7 +97,7 @@ function resolvePlayersForAutoPick(
         played: 0, won: 0, drew: 0, lost: 0,
         timesTeamA: 0, timesTeamB: 0,
         winRate: 0, qualified: false, points: 0,
-        goalkeeper: false, mentality: 'balanced' as const,
+        goalkeeper: guest.goalkeeper ?? false, mentality: 'balanced' as const,
         rating: guest.rating,
         recentForm: '',
       }
@@ -110,7 +110,7 @@ function resolvePlayersForAutoPick(
         played: 0, won: 0, drew: 0, lost: 0,
         timesTeamA: 0, timesTeamB: 0,
         winRate: 0, qualified: false, points: 0,
-        goalkeeper: false, mentality: 'balanced' as const,
+        goalkeeper: newPlayer.goalkeeper ?? false, mentality: 'balanced' as const,
         rating: newPlayer.rating,
         recentForm: '',
       }

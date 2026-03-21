@@ -3,9 +3,9 @@
 
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { cn } from '@/lib/utils'
 import type { Player, GuestEntry, NewPlayerEntry } from '@/lib/types'
 import { EyeTestSlider } from '@/components/EyeTestSlider'
+import { Toggle } from '@/components/ui/toggle'
 
 interface Props {
   players: Player[]           // current lineup players (for "plays with" dropdown)
@@ -30,6 +30,9 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
   const [newRating, setNewRating] = useState(avgRating)
   const [nameError, setNameError] = useState<string | null>(null)
 
+  const [guestIsGoalkeeper, setGuestIsGoalkeeper] = useState(false)
+  const [newPlayerIsGoalkeeper, setNewPlayerIsGoalkeeper] = useState(false)
+
   const selectedPlayerInLineup = players.some((p) => p.name === associatedPlayer)
   const showWarning = associatedPlayer && !selectedPlayerInLineup
 
@@ -47,6 +50,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
       name,
       associatedPlayer,
       rating: guestRating,
+      goalkeeper: guestIsGoalkeeper,
     })
     onClose()
   }
@@ -65,6 +69,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
       type: 'new_player',
       name: trimmed,
       rating: newRating,
+      goalkeeper: newPlayerIsGoalkeeper,
     })
     onClose()
   }
@@ -78,9 +83,9 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
             <Dialog.Title className="text-base font-semibold text-slate-100">
-              {step === 'choose' && 'Add player'}
-              {step === 'guest' && 'Add guest'}
-              {step === 'new_player' && 'Add new player'}
+              {step === 'choose' && 'Add Player'}
+              {step === 'guest' && 'Add Guest'}
+              {step === 'new_player' && 'Add New Player'}
             </Dialog.Title>
             <Dialog.Close
               onClick={onClose}
@@ -165,15 +170,27 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
                   </label>
                   <EyeTestSlider value={guestRating} onChange={setGuestRating} showNote />
                 </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                      Dedicated goalkeeper
+                    </label>
+                    <p className="text-[11px] text-slate-400 leading-relaxed mt-px">
+                      Plays in goal all game, every game.
+                    </p>
+                  </div>
+                  <Toggle enabled={guestIsGoalkeeper} onChange={(v) => setGuestIsGoalkeeper(v)} />
+                </div>
               </div>
 
               <div className="flex gap-2 justify-end px-5 pb-4">
                 <button
                   type="button"
-                  onClick={() => setStep('choose')}
+                  onClick={() => { setStep('choose'); setGuestIsGoalkeeper(false) }}
                   className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500"
                 >
-                  ← Back
+                  Back
                 </button>
                 <button
                   type="button"
@@ -216,15 +233,27 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
                   </label>
                   <EyeTestSlider value={newRating} onChange={setNewRating} showNote />
                 </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                      Dedicated goalkeeper
+                    </label>
+                    <p className="text-[11px] text-slate-400 leading-relaxed mt-px">
+                      Plays in goal all game, every game.
+                    </p>
+                  </div>
+                  <Toggle enabled={newPlayerIsGoalkeeper} onChange={(v) => setNewPlayerIsGoalkeeper(v)} />
+                </div>
               </div>
 
               <div className="flex gap-2 justify-end px-5 pb-4">
                 <button
                   type="button"
-                  onClick={() => setStep('choose')}
+                  onClick={() => { setStep('choose'); setNewPlayerIsGoalkeeper(false) }}
                   className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500"
                 >
-                  ← Back
+                  Back
                 </button>
                 <button
                   type="button"
