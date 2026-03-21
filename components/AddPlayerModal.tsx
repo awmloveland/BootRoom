@@ -83,7 +83,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
             <Dialog.Title className="text-base font-semibold text-slate-100">
-              {step === 'choose' && 'Add player'}
+              {step === 'choose' && 'Add Player'}
               {step === 'guest' && 'Add Guest'}
               {step === 'new_player' && 'Add New Player'}
             </Dialog.Title>
