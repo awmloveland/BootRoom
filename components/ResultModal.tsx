@@ -23,6 +23,7 @@ type ResultStep = 'winner' | 'review' | 'confirm'
 interface GuestReviewState {
   name: string
   rating: number
+  goalkeeper: boolean
   addToRoster: boolean
   rosterName: string
   nameError: string | null
@@ -31,6 +32,7 @@ interface GuestReviewState {
 interface NewPlayerReviewState {
   name: string
   rating: number
+  goalkeeper: boolean
 }
 
 function StepIndicator({ current, total }: { current: number; total: number }) {
@@ -63,10 +65,17 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   const [error, setError] = useState<string | null>(null)
 
   const [guestStates, setGuestStates] = useState<GuestReviewState[]>(
-    guests.map((g) => ({ name: g.name, rating: g.rating, addToRoster: false, rosterName: '', nameError: null }))
+    guests.map((g) => ({
+      name: g.name,
+      rating: g.rating,
+      goalkeeper: g.goalkeeper ?? false,
+      addToRoster: false,
+      rosterName: '',
+      nameError: null,
+    }))
   )
   const [newPlayerStates, setNewPlayerStates] = useState<NewPlayerReviewState[]>(
-    newPlayers.map((p) => ({ name: p.name, rating: p.rating }))
+    newPlayers.map((p) => ({ name: p.name, rating: p.rating, goalkeeper: p.goalkeeper ?? false }))
   )
 
   function updateGuestRating(i: number, rating: number) {
@@ -80,6 +89,12 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   }
   function updateNewPlayerRating(i: number, rating: number) {
     setNewPlayerStates((prev) => prev.map((p, idx) => idx === i ? { ...p, rating } : p))
+  }
+  function updateGuestGoalkeeper(i: number, goalkeeper: boolean) {
+    setGuestStates((prev) => prev.map((g, idx) => idx === i ? { ...g, goalkeeper } : g))
+  }
+  function updateNewPlayerGoalkeeper(i: number, goalkeeper: boolean) {
+    setNewPlayerStates((prev) => prev.map((p, idx) => idx === i ? { ...p, goalkeeper } : p))
   }
 
   function validateReview(): boolean {
@@ -128,10 +143,10 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         if (resultErr) throw resultErr
 
         const entries = [
-          ...newPlayerStates.map((p) => ({ name: p.name, rating: p.rating })),
+          ...newPlayerStates.map((p) => ({ name: p.name, rating: p.rating, goalkeeper: p.goalkeeper })),
           ...guestStates
             .filter((g) => g.addToRoster && g.rosterName.trim())
-            .map((g) => ({ name: g.rosterName.trim(), rating: g.rating })),
+            .map((g) => ({ name: g.rosterName.trim(), rating: g.rating, goalkeeper: g.goalkeeper })),
         ]
         if (entries.length > 0) {
           const { error: promoteErr } = await supabase.rpc('promote_roster', {
@@ -250,6 +265,30 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                     </div>
                     <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">The Eye Test</p>
                     <EyeTestSlider value={p.rating} onChange={(v) => updateNewPlayerRating(i, v)} />
+
+                    <div className="mt-3 pt-3 border-t border-slate-800">
+                      <label className="flex items-center gap-2.5 cursor-pointer">
+                        <div
+                          onClick={() => updateNewPlayerGoalkeeper(i, !p.goalkeeper)}
+                          className={cn(
+                            'w-8 rounded-full relative transition-colors cursor-pointer flex-shrink-0',
+                            p.goalkeeper ? 'bg-blue-600' : 'bg-slate-600'
+                          )}
+                          style={{ height: '18px' }}
+                        >
+                          <div className={cn(
+                            'absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full shadow transition-all',
+                            p.goalkeeper ? 'left-[18px]' : 'left-0.5'
+                          )} />
+                        </div>
+                        <span className="text-xs text-slate-300">
+                          <span className="font-semibold">Dedicated goalkeeper</span>
+                        </span>
+                      </label>
+                      <p className="text-[11px] text-slate-500 mt-1 ml-[42px] leading-relaxed">
+                        Plays in goal every game. Goalkeepers are always split across teams during auto-pick.
+                      </p>
+                    </div>
                   </div>
                 ))}
 
@@ -263,6 +302,31 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                     <EyeTestSlider value={g.rating} onChange={(v) => updateGuestRating(i, v)} />
 
                     <div className="mt-3 pt-3 border-t border-slate-800">
+                      {/* Goalkeeper toggle */}
+                      <div className="mb-3">
+                        <label className="flex items-center gap-2.5 cursor-pointer">
+                          <div
+                            onClick={() => updateGuestGoalkeeper(i, !g.goalkeeper)}
+                            className={cn(
+                              'w-8 rounded-full relative transition-colors cursor-pointer flex-shrink-0',
+                              g.goalkeeper ? 'bg-blue-600' : 'bg-slate-600'
+                            )}
+                            style={{ height: '18px' }}
+                          >
+                            <div className={cn(
+                              'absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full shadow transition-all',
+                              g.goalkeeper ? 'left-[18px]' : 'left-0.5'
+                            )} />
+                          </div>
+                          <span className="text-xs text-slate-300">
+                            <span className="font-semibold">Dedicated goalkeeper</span>
+                          </span>
+                        </label>
+                        <p className="text-[11px] text-slate-500 mt-1 ml-[42px] leading-relaxed">
+                          Plays in goal every game. Goalkeepers are always split across teams during auto-pick.
+                        </p>
+                      </div>
+
                       <label className="flex items-center gap-2.5 cursor-pointer">
                         <div
                           onClick={() => updateGuestRoster(i, !g.addToRoster)}
@@ -301,7 +365,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
 
               <div className="flex gap-2 justify-end px-5 pb-4 border-t border-slate-700 pt-3">
                 <button type="button" onClick={() => setStep('winner')} className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500">
-                  ← Back
+                  Back
                 </button>
                 <button
                   type="button"
@@ -351,7 +415,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
 
               <div className="flex gap-2 justify-end px-5 pb-4 border-t border-slate-700 pt-3">
                 <button type="button" onClick={() => setStep('review')} className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500">
-                  ← Back
+                  Back
                 </button>
                 <button
                   type="button"
