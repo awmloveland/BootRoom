@@ -1,0 +1,372 @@
+// components/ResultModal.tsx
+'use client'
+
+import { useState } from 'react'
+import * as Dialog from '@radix-ui/react-dialog'
+import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
+import type { Winner, ScheduledWeek, LineupMetadata, Player } from '@/lib/types'
+import { EyeTestSlider } from '@/components/EyeTestSlider'
+
+interface Props {
+  scheduledWeek: ScheduledWeek
+  lineupMetadata: LineupMetadata | null
+  allPlayers: Player[]
+  gameId: string
+  publicMode: boolean
+  onSaved: () => void
+  onClose: () => void
+}
+
+type ResultStep = 'winner' | 'review' | 'confirm'
+
+interface GuestReviewState {
+  name: string
+  rating: number
+  addToRoster: boolean
+  rosterName: string
+  nameError: string | null
+}
+
+interface NewPlayerReviewState {
+  name: string
+  rating: number
+}
+
+function StepIndicator({ current, total }: { current: number; total: number }) {
+  return (
+    <div className="flex items-center gap-1.5 px-5 py-2.5 bg-slate-900 border-b border-slate-700">
+      {Array.from({ length: total }).map((_, i) => (
+        <div
+          key={i}
+          className={cn(
+            'w-1.5 h-1.5 rounded-full',
+            i < current - 1 ? 'bg-green-500' : i === current - 1 ? 'bg-blue-500' : 'bg-slate-600'
+          )}
+        />
+      ))}
+      <span className="ml-1 text-[11px] text-slate-500">{current} of {total}</span>
+    </div>
+  )
+}
+
+export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId, publicMode, onSaved, onClose }: Props) {
+  const guests = lineupMetadata?.guests ?? []
+  const newPlayers = lineupMetadata?.new_players ?? []
+  const hasReviewStep = guests.length > 0 || newPlayers.length > 0
+  const totalSteps = hasReviewStep ? 3 : 1
+
+  const [step, setStep] = useState<ResultStep>('winner')
+  const [winner, setWinner] = useState<Winner>(null)
+  const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const [guestStates, setGuestStates] = useState<GuestReviewState[]>(
+    guests.map((g) => ({ name: g.name, rating: g.rating, addToRoster: false, rosterName: '', nameError: null }))
+  )
+  const [newPlayerStates, setNewPlayerStates] = useState<NewPlayerReviewState[]>(
+    newPlayers.map((p) => ({ name: p.name, rating: p.rating }))
+  )
+
+  function updateGuestRating(i: number, rating: number) {
+    setGuestStates((prev) => prev.map((g, idx) => idx === i ? { ...g, rating } : g))
+  }
+  function updateGuestRoster(i: number, addToRoster: boolean) {
+    setGuestStates((prev) => prev.map((g, idx) => idx === i ? { ...g, addToRoster, nameError: null } : g))
+  }
+  function updateGuestRosterName(i: number, rosterName: string) {
+    setGuestStates((prev) => prev.map((g, idx) => idx === i ? { ...g, rosterName, nameError: null } : g))
+  }
+  function updateNewPlayerRating(i: number, rating: number) {
+    setNewPlayerStates((prev) => prev.map((p, idx) => idx === i ? { ...p, rating } : p))
+  }
+
+  function validateReview(): boolean {
+    let valid = true
+    const updatedGuests = guestStates.map((g) => {
+      if (!g.addToRoster) return g
+      const trimmed = g.rosterName.trim()
+      if (!trimmed) {
+        valid = false
+        return { ...g, nameError: 'Enter a name to add to the roster.' }
+      }
+      const collision = allPlayers.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())
+      if (collision) {
+        valid = false
+        return { ...g, nameError: `A player named "${trimmed}" already exists.` }
+      }
+      return g
+    })
+    setGuestStates(updatedGuests)
+    return valid
+  }
+
+  async function handleSave() {
+    if (!winner) return
+    setSaving(true)
+    setError(null)
+    try {
+      if (publicMode) {
+        const res = await fetch(`/api/public/league/${gameId}/result`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ weekId: scheduledWeek.id, winner, notes: notes.trim() || null }),
+        })
+        if (!res.ok) {
+          const d = await res.json()
+          throw new Error(d.error ?? 'Failed to save result')
+        }
+      } else {
+        const supabase = createClient()
+
+        const { error: resultErr } = await supabase.rpc('record_result', {
+          p_week_id: scheduledWeek.id,
+          p_winner: winner,
+          p_notes: notes.trim() || null,
+        })
+        if (resultErr) throw resultErr
+
+        const entries = [
+          ...newPlayerStates.map((p) => ({ name: p.name, rating: p.rating })),
+          ...guestStates
+            .filter((g) => g.addToRoster && g.rosterName.trim())
+            .map((g) => ({ name: g.rosterName.trim(), rating: g.rating })),
+        ]
+        if (entries.length > 0) {
+          const { error: promoteErr } = await supabase.rpc('promote_roster', {
+            p_game_id: gameId,
+            p_entries: JSON.stringify(entries),
+          })
+          if (promoteErr) throw promoteErr
+        }
+      }
+
+      onSaved()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save result')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const currentStepNum = step === 'winner' ? 1 : step === 'review' ? 2 : 3
+
+  return (
+    <Dialog.Root open onOpenChange={(open) => { if (!open) onClose() }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-black/70 z-[999]" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-sm rounded-xl bg-slate-800 border border-slate-700 shadow-xl focus:outline-none overflow-hidden">
+
+          {/* Header */}
+          <div className="px-5 pt-4 pb-3 border-b border-slate-700">
+            <Dialog.Title className="text-base font-semibold text-slate-100">
+              Result — Week {scheduledWeek.week}
+            </Dialog.Title>
+            <Dialog.Description className="text-xs text-slate-400 mt-0.5">
+              {scheduledWeek.date}
+            </Dialog.Description>
+          </div>
+
+          {hasReviewStep && <StepIndicator current={currentStepNum} total={totalSteps} />}
+
+          {/* ── Step: winner ── */}
+          {step === 'winner' && (
+            <>
+              <div className="p-5">
+                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Who won?</p>
+                <div className="flex gap-2 mb-4">
+                  {(['teamA', 'draw', 'teamB'] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setWinner(opt)}
+                      className={cn(
+                        'flex-1 py-2 rounded border text-sm font-medium transition-colors',
+                        opt === 'teamA' && (winner === 'teamA'
+                          ? 'bg-blue-900 border-blue-700 text-blue-300'
+                          : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-blue-700 hover:text-blue-300'),
+                        opt === 'draw' && (winner === 'draw'
+                          ? 'bg-slate-700 border-slate-600 text-slate-300'
+                          : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-300'),
+                        opt === 'teamB' && (winner === 'teamB'
+                          ? 'bg-violet-900 border-violet-700 text-violet-300'
+                          : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-violet-700 hover:text-violet-300'),
+                      )}
+                    >
+                      {opt === 'teamA' ? 'Team A' : opt === 'draw' ? 'Draw' : 'Team B'}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={2}
+                  placeholder="Optional notes (e.g. +3 goals, injuries…)"
+                  className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-slate-100 text-xs placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-500 resize-none"
+                />
+                {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
+              </div>
+
+              <div className="flex gap-2 justify-end px-5 pb-4">
+                <button type="button" onClick={onClose} className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500">
+                  Cancel
+                </button>
+                {hasReviewStep ? (
+                  <button
+                    type="button"
+                    onClick={() => setStep('review')}
+                    disabled={!winner}
+                    className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold disabled:opacity-40"
+                  >
+                    Next →
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={saving || !winner}
+                    className="px-4 py-2 rounded bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold disabled:opacity-50"
+                  >
+                    {saving ? 'Saving…' : 'Confirm Result'}
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ── Step: review ── */}
+          {step === 'review' && (
+            <>
+              <div className="p-5 flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
+                <p className="text-xs text-slate-400 -mb-2">How did they actually play?</p>
+
+                {newPlayerStates.map((p, i) => (
+                  <div key={p.name} className="bg-slate-900 border border-slate-700 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-sm font-semibold text-slate-100">{p.name}</span>
+                      <span className="text-[10px] font-semibold bg-blue-950 border border-blue-800 text-blue-300 rounded-full px-2 py-0.5">New player</span>
+                    </div>
+                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">The Eye Test</p>
+                    <EyeTestSlider value={p.rating} onChange={(v) => updateNewPlayerRating(i, v)} />
+                  </div>
+                ))}
+
+                {guestStates.map((g, i) => (
+                  <div key={g.name} className="bg-slate-900 border border-slate-700 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-sm font-semibold text-slate-100">{g.name}</span>
+                      <span className="text-[10px] font-semibold bg-slate-800 border border-slate-600 text-slate-400 rounded-full px-2 py-0.5">Guest</span>
+                    </div>
+                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">The Eye Test</p>
+                    <EyeTestSlider value={g.rating} onChange={(v) => updateGuestRating(i, v)} />
+
+                    <div className="mt-3 pt-3 border-t border-slate-800">
+                      <label className="flex items-center gap-2.5 cursor-pointer">
+                        <div
+                          onClick={() => updateGuestRoster(i, !g.addToRoster)}
+                          className={cn(
+                            'w-8 rounded-full relative transition-colors cursor-pointer flex-shrink-0',
+                            g.addToRoster ? 'bg-blue-600' : 'bg-slate-600'
+                          )}
+                          style={{ height: '18px' }}
+                        >
+                          <div className={cn(
+                            'absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full shadow transition-all',
+                            g.addToRoster ? 'left-[18px]' : 'left-0.5'
+                          )} />
+                        </div>
+                        <span className="text-xs text-slate-300">
+                          <span className="font-semibold">Add to the roster</span> — they&apos;re joining the league
+                        </span>
+                      </label>
+                      {g.addToRoster && (
+                        <div className="mt-2">
+                          <input
+                            type="text"
+                            value={g.rosterName}
+                            onChange={(e) => updateGuestRosterName(i, e.target.value)}
+                            placeholder="Enter their name…"
+                            autoFocus
+                            className="w-full bg-slate-800 border border-blue-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                          {g.nameError && <p className="text-xs text-red-400 mt-1">{g.nameError}</p>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2 justify-end px-5 pb-4 border-t border-slate-700 pt-3">
+                <button type="button" onClick={() => setStep('winner')} className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500">
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { if (validateReview()) setStep('confirm') }}
+                  className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold"
+                >
+                  Next →
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── Step: confirm ── */}
+          {step === 'confirm' && (
+            <>
+              <div className="p-5 flex flex-col gap-2">
+                <div className="flex justify-between items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
+                  <span className="text-slate-400">Winner</span>
+                  <span className={cn(
+                    'font-semibold',
+                    winner === 'teamA' ? 'text-blue-300' : winner === 'teamB' ? 'text-violet-300' : 'text-slate-300'
+                  )}>
+                    {winner === 'teamA' ? 'Team A' : winner === 'teamB' ? 'Team B' : 'Draw'}
+                  </span>
+                </div>
+
+                {newPlayerStates.map((p) => (
+                  <div key={p.name} className="flex justify-between items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
+                    <span className="text-slate-300 font-medium">{p.name}</span>
+                    <span className="text-slate-500 text-xs">Added to roster · rating {p.rating}</span>
+                  </div>
+                ))}
+
+                {guestStates.map((g) => (
+                  <div key={g.name} className="flex justify-between items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
+                    <span className="text-slate-300 font-medium">
+                      {g.addToRoster ? `${g.name} → ${g.rosterName.trim()}` : g.name}
+                    </span>
+                    <span className="text-slate-500 text-xs">
+                      {g.addToRoster ? `Added to roster · rating ${g.rating}` : 'Guest only'}
+                    </span>
+                  </div>
+                ))}
+
+                {error && <p className="text-sm text-red-400 mt-1">{error}</p>}
+              </div>
+
+              <div className="flex gap-2 justify-end px-5 pb-4 border-t border-slate-700 pt-3">
+                <button type="button" onClick={() => setStep('review')} className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500">
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="px-4 py-2 rounded bg-green-700 hover:bg-green-600 text-white text-sm font-semibold disabled:opacity-50"
+                >
+                  {saving ? 'Saving…' : 'Save result'}
+                </button>
+              </div>
+            </>
+          )}
+
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  )
+}
