@@ -220,31 +220,49 @@ export function NextMatchCard({
     const newA = [...teamA]
     const newB = [...teamB]
 
-    for (const guest of guests) {
-      const guestInA = newA.findIndex((p) => p.name === guest.name)
-      const guestInB = newB.findIndex((p) => p.name === guest.name)
-      const assocInA = newA.findIndex((p) => p.name === guest.associatedPlayer)
-      const assocInB = newB.findIndex((p) => p.name === guest.associatedPlayer)
+  // Collect swaps: for each guest, determine if they need to move teams
+  const swaps: Array<{ fromA: boolean; guestIdx: number; displaceIdx: number }> = []
 
-      if (assocInA === -1 && assocInB === -1) continue
+  for (const guest of guests) {
+    const guestInA = newA.findIndex((p) => p.name === guest.name)
+    const guestInB = newB.findIndex((p) => p.name === guest.name)
+    const assocInA = newA.findIndex((p) => p.name === guest.associatedPlayer)
+    const assocInB = newB.findIndex((p) => p.name === guest.associatedPlayer)
 
-      const guestOnA = guestInA !== -1
-      const assocOnA = assocInA !== -1
+    // Associated player not in squad — no constraint
+    if (assocInA === -1 && assocInB === -1) continue
 
-      if (guestOnA === assocOnA) continue
+    const guestOnA = guestInA !== -1
+    const assocOnA = assocInA !== -1
 
-      if (assocOnA && guestInB !== -1) {
-        const displaced = newA[newA.length - 1]
-        newA[newA.length - 1] = newB[guestInB]
-        newB[guestInB] = displaced
-      } else if (!assocOnA && guestInA !== -1) {
-        const displaced = newB[newB.length - 1]
-        newB[newB.length - 1] = newA[guestInA]
-        newA[guestInA] = displaced
-      }
+    // Already on same team
+    if (guestOnA === assocOnA) continue
+
+    if (assocOnA && guestInB !== -1) {
+      // Guest is on B, assoc is on A — guest should move to A
+      swaps.push({ fromA: false, guestIdx: guestInB, displaceIdx: newA.length - 1 })
+    } else if (!assocOnA && guestInA !== -1) {
+      // Guest is on A, assoc is on B — guest should move to B
+      swaps.push({ fromA: true, guestIdx: guestInA, displaceIdx: newB.length - 1 })
     }
+  }
 
-    return { teamA: newA, teamB: newB }
+  // Apply all swaps
+  for (const swap of swaps) {
+    if (!swap.fromA) {
+      // Move from B to A: swap newB[guestIdx] with newA[displaceIdx]
+      const tmp = newA[swap.displaceIdx]
+      newA[swap.displaceIdx] = newB[swap.guestIdx]
+      newB[swap.guestIdx] = tmp
+    } else {
+      // Move from A to B: swap newA[guestIdx] with newB[displaceIdx]
+      const tmp = newB[swap.displaceIdx]
+      newB[swap.displaceIdx] = newA[swap.guestIdx]
+      newA[swap.guestIdx] = tmp
+    }
+  }
+
+  return { teamA: newA, teamB: newB }
   }
 
   function handleAutoPick() {
@@ -355,8 +373,15 @@ export function NextMatchCard({
       new_players: newPlayerEntries,
     }
     const lineupMetadataForDB = {
-      guests: guestEntries.map(({ type: _type, ...rest }) => rest),
-      new_players: newPlayerEntries.map(({ type: _type, ...rest }) => rest),
+      guests: guestEntries.map((g) => ({
+        name: g.name,
+        associated_player: g.associatedPlayer,
+        rating: g.rating,
+      })),
+      new_players: newPlayerEntries.map((p) => ({
+        name: p.name,
+        rating: p.rating,
+      })),
     }
     setSaving(true)
     setError(null)
@@ -653,13 +678,15 @@ export function NextMatchCard({
                         ))}
 
                         {/* Add guest or new player button */}
-                        <button
-                          type="button"
-                          onClick={() => setShowAddPlayerModal(true)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border border-dashed border-slate-600 text-slate-500 hover:border-blue-500 hover:text-blue-400 transition-colors"
-                        >
-                          + Add guest or new player
-                        </button>
+                        {!publicMode && (
+                          <button
+                            type="button"
+                            onClick={() => setShowAddPlayerModal(true)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border border-dashed border-slate-600 text-slate-500 hover:border-blue-500 hover:text-blue-400 transition-colors"
+                          >
+                            + Add guest or new player
+                          </button>
+                        )}
                       </div>
                     </div>
                   </>
@@ -945,6 +972,8 @@ export function NextMatchCard({
           publicMode={publicMode}
           onSaved={() => {
             setScheduledWeek(null)
+            setGuestEntries([])
+            setNewPlayerEntries([])
             setCardState('idle')
             setShowResultModal(false)
             onResultSaved()
