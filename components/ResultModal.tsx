@@ -268,13 +268,13 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                     <EyeTestSlider value={p.rating} onChange={(v) => updateNewPlayerRating(i, v)} />
 
                     <div className="mt-3 pt-3 border-t border-slate-800">
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Dedicated goalkeeper</p>
+                          <p className="text-[11px] text-slate-400 leading-relaxed mt-px">Plays in goal all game, every game.</p>
+                        </div>
                         <Toggle enabled={p.goalkeeper} onChange={(v) => updateNewPlayerGoalkeeper(i, v)} />
-                        <span className="text-xs font-semibold text-slate-300">Dedicated goalkeeper</span>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-1 ml-[42px] leading-relaxed">
-                        Plays in goal every game. Goalkeepers are always split across teams during auto-pick.
-                      </p>
                     </div>
                   </div>
                 ))}
@@ -290,14 +290,12 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
 
                     <div className="mt-3 pt-3 border-t border-slate-800">
                       {/* Goalkeeper toggle */}
-                      <div className="mb-3">
-                        <div className="flex items-center gap-2.5">
-                          <Toggle enabled={g.goalkeeper} onChange={(v) => updateGuestGoalkeeper(i, v)} />
-                          <span className="text-xs font-semibold text-slate-300">Dedicated goalkeeper</span>
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <div>
+                          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Dedicated goalkeeper</p>
+                          <p className="text-[11px] text-slate-400 leading-relaxed mt-px">Plays in goal all game, every game.</p>
                         </div>
-                        <p className="text-[11px] text-slate-500 mt-1 ml-[42px] leading-relaxed">
-                          Plays in goal every game. Goalkeepers are always split across teams during auto-pick.
-                        </p>
+                        <Toggle enabled={g.goalkeeper} onChange={(v) => updateGuestGoalkeeper(i, v)} />
                       </div>
 
                       <label className="flex items-center gap-2.5 cursor-pointer">

@@ -171,14 +171,16 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
                   <EyeTestSlider value={guestRating} onChange={setGuestRating} showNote />
                 </div>
 
-                <div className="pt-1">
-                  <div className="flex items-center gap-2.5">
-                    <Toggle enabled={guestIsGoalkeeper} onChange={(v) => setGuestIsGoalkeeper(v)} />
-                    <span className="text-xs font-semibold text-slate-300">Dedicated goalkeeper</span>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                      Dedicated goalkeeper
+                    </label>
+                    <p className="text-[11px] text-slate-400 leading-relaxed mt-px">
+                      Plays in goal all game, every game.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-1 ml-[42px] leading-relaxed">
-                    Plays in goal every game. Goalkeepers are always split across teams during auto-pick.
-                  </p>
+                  <Toggle enabled={guestIsGoalkeeper} onChange={(v) => setGuestIsGoalkeeper(v)} />
                 </div>
               </div>
 
@@ -232,14 +234,16 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
                   <EyeTestSlider value={newRating} onChange={setNewRating} showNote />
                 </div>
 
-                <div className="pt-1">
-                  <div className="flex items-center gap-2.5">
-                    <Toggle enabled={newPlayerIsGoalkeeper} onChange={(v) => setNewPlayerIsGoalkeeper(v)} />
-                    <span className="text-xs font-semibold text-slate-300">Dedicated goalkeeper</span>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                      Dedicated goalkeeper
+                    </label>
+                    <p className="text-[11px] text-slate-400 leading-relaxed mt-px">
+                      Plays in goal all game, every game.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-1 ml-[42px] leading-relaxed">
-                    Plays in goal every game. Goalkeepers are always split across teams during auto-pick.
-                  </p>
+                  <Toggle enabled={newPlayerIsGoalkeeper} onChange={(v) => setNewPlayerIsGoalkeeper(v)} />
                 </div>
               </div>
 
