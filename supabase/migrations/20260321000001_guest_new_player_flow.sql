@@ -70,3 +70,6 @@ BEGIN
     SET rating = EXCLUDED.rating;
 END;
 $$;
+
+GRANT EXECUTE ON FUNCTION public.save_lineup(UUID, TEXT, INT, TEXT, TEXT, TEXT[], TEXT[], JSONB) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.promote_roster(UUID, JSONB) TO authenticated;
