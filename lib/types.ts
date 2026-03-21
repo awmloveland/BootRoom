@@ -95,12 +95,14 @@ export interface GuestEntry {
   name: string             // e.g. "Alice +1"
   associatedPlayer: string // e.g. "Alice"
   rating: number           // 1–3
+  goalkeeper?: boolean     // whether this guest is playing as goalkeeper
 }
 
 export interface NewPlayerEntry {
   type: 'new_player'       // runtime discriminant — not persisted to DB
   name: string
   rating: number           // 1–3
+  goalkeeper?: boolean     // whether this new player is a goalkeeper
 }
 
 export interface LineupMetadata {
