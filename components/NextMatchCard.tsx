@@ -641,7 +641,7 @@ export function NextMatchCard({
                         {guestEntries.map((g) => (
                           <span
                             key={g.name}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border border-dashed border-slate-600 text-slate-400"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-sky-900/60 border border-sky-700 text-sky-100"
                           >
                             {g.name}
                             <button
@@ -650,7 +650,7 @@ export function NextMatchCard({
                                 setGuestEntries((prev) => prev.filter((e) => e.name !== g.name))
                                 clearSplit()
                               }}
-                              className="text-slate-500 hover:text-slate-300 ml-0.5"
+                              className="text-sky-400 hover:text-sky-200 ml-0.5"
                             >
                               <X size={10} />
                             </button>
@@ -661,7 +661,7 @@ export function NextMatchCard({
                         {newPlayerEntries.map((p) => (
                           <span
                             key={p.name}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-slate-700 border border-slate-600 text-slate-300"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-sky-900/60 border border-sky-700 text-sky-100"
                           >
                             {p.name}
                             <button
@@ -670,7 +670,7 @@ export function NextMatchCard({
                                 setNewPlayerEntries((prev) => prev.filter((e) => e.name !== p.name))
                                 clearSplit()
                               }}
-                              className="text-slate-500 hover:text-slate-300 ml-0.5"
+                              className="text-sky-400 hover:text-sky-200 ml-0.5"
                             >
                               <X size={10} />
                             </button>
