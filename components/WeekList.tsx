@@ -9,14 +9,28 @@ import type { Week } from '@/lib/types'
 interface Props {
   weeks: Week[]
   goalkeepers?: string[]
+  openWeek?: number | null           // controlled: if provided, overrides internal state
+  onOpenWeekChange?: (week: number | null) => void  // controlled setter
 }
 
-export function WeekList({ weeks, goalkeepers }: Props) {
+export function WeekList({ weeks, goalkeepers, openWeek: controlledOpenWeek, onOpenWeekChange }: Props) {
   const playedWeeks = getPlayedWeeks(weeks)
   const mostRecent = playedWeeks.length > 0
     ? playedWeeks.reduce((a, b) => (a.week > b.week ? a : b))
     : null
-  const [openWeek, setOpenWeek] = useState<number | null>(mostRecent?.week ?? null)
+  const [internalOpenWeek, setInternalOpenWeek] = useState<number | null>(mostRecent?.week ?? null)
+
+  const isControlled = controlledOpenWeek !== undefined
+  const openWeek = isControlled ? controlledOpenWeek : internalOpenWeek
+
+  function handleToggle(weekNum: number) {
+    const next = openWeek === weekNum ? null : weekNum
+    if (isControlled) {
+      onOpenWeekChange?.(next)
+    } else {
+      setInternalOpenWeek(next)
+    }
+  }
 
   if (weeks.length === 0) {
     return <p className="text-slate-400 text-sm">No results yet.</p>
@@ -34,7 +48,7 @@ export function WeekList({ weeks, goalkeepers }: Props) {
             <MatchCard
               week={week}
               isOpen={openWeek === week.week}
-              onToggle={() => setOpenWeek((prev) => (prev === week.week ? null : week.week))}
+              onToggle={() => handleToggle(week.week)}
               goalkeepers={goalkeepers}
             />
           </Fragment>
