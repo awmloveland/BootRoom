@@ -30,6 +30,9 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
   const [newRating, setNewRating] = useState(avgRating)
   const [nameError, setNameError] = useState<string | null>(null)
 
+  const [guestIsGoalkeeper, setGuestIsGoalkeeper] = useState(false)
+  const [newPlayerIsGoalkeeper, setNewPlayerIsGoalkeeper] = useState(false)
+
   const selectedPlayerInLineup = players.some((p) => p.name === associatedPlayer)
   const showWarning = associatedPlayer && !selectedPlayerInLineup
 
@@ -47,6 +50,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
       name,
       associatedPlayer,
       rating: guestRating,
+      goalkeeper: guestIsGoalkeeper,
     })
     onClose()
   }
@@ -65,6 +69,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
       type: 'new_player',
       name: trimmed,
       rating: newRating,
+      goalkeeper: newPlayerIsGoalkeeper,
     })
     onClose()
   }
@@ -79,8 +84,8 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
             <Dialog.Title className="text-base font-semibold text-slate-100">
               {step === 'choose' && 'Add player'}
-              {step === 'guest' && 'Add guest'}
-              {step === 'new_player' && 'Add new player'}
+              {step === 'guest' && 'Add Guest'}
+              {step === 'new_player' && 'Add New Player'}
             </Dialog.Title>
             <Dialog.Close
               onClick={onClose}
@@ -165,15 +170,39 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
                   </label>
                   <EyeTestSlider value={guestRating} onChange={setGuestRating} showNote />
                 </div>
+
+                <div className="pt-1">
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <div
+                      onClick={() => setGuestIsGoalkeeper((prev) => !prev)}
+                      className={cn(
+                        'w-8 rounded-full relative transition-colors cursor-pointer flex-shrink-0',
+                        guestIsGoalkeeper ? 'bg-blue-600' : 'bg-slate-600'
+                      )}
+                      style={{ height: '18px' }}
+                    >
+                      <div className={cn(
+                        'absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full shadow transition-all',
+                        guestIsGoalkeeper ? 'left-[18px]' : 'left-0.5'
+                      )} />
+                    </div>
+                    <span className="text-xs text-slate-300">
+                      <span className="font-semibold">Dedicated goalkeeper</span>
+                    </span>
+                  </label>
+                  <p className="text-[11px] text-slate-500 mt-1 ml-[42px] leading-relaxed">
+                    Plays in goal every game. Goalkeepers are always split across teams during auto-pick.
+                  </p>
+                </div>
               </div>
 
               <div className="flex gap-2 justify-end px-5 pb-4">
                 <button
                   type="button"
-                  onClick={() => setStep('choose')}
+                  onClick={() => { setStep('choose'); setGuestIsGoalkeeper(false) }}
                   className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500"
                 >
-                  ← Back
+                  Back
                 </button>
                 <button
                   type="button"
@@ -216,15 +245,39 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
                   </label>
                   <EyeTestSlider value={newRating} onChange={setNewRating} showNote />
                 </div>
+
+                <div className="pt-1">
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <div
+                      onClick={() => setNewPlayerIsGoalkeeper((prev) => !prev)}
+                      className={cn(
+                        'w-8 rounded-full relative transition-colors cursor-pointer flex-shrink-0',
+                        newPlayerIsGoalkeeper ? 'bg-blue-600' : 'bg-slate-600'
+                      )}
+                      style={{ height: '18px' }}
+                    >
+                      <div className={cn(
+                        'absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full shadow transition-all',
+                        newPlayerIsGoalkeeper ? 'left-[18px]' : 'left-0.5'
+                      )} />
+                    </div>
+                    <span className="text-xs text-slate-300">
+                      <span className="font-semibold">Dedicated goalkeeper</span>
+                    </span>
+                  </label>
+                  <p className="text-[11px] text-slate-500 mt-1 ml-[42px] leading-relaxed">
+                    Plays in goal every game. Goalkeepers are always split across teams during auto-pick.
+                  </p>
+                </div>
               </div>
 
               <div className="flex gap-2 justify-end px-5 pb-4">
                 <button
                   type="button"
-                  onClick={() => setStep('choose')}
+                  onClick={() => { setStep('choose'); setNewPlayerIsGoalkeeper(false) }}
                   className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500"
                 >
-                  ← Back
+                  Back
                 </button>
                 <button
                   type="button"
