@@ -10,7 +10,7 @@ import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
-import { ResultsRefresher } from '@/components/ResultsRefresher'
+import { ResultsSection } from '@/components/ResultsSection'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import type { Week, GameRole, LeagueFeature, FeatureKey, Player, ScheduledWeek } from '@/lib/types'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
@@ -224,22 +224,19 @@ export default async function LeagueResultsPage({ params }: Props) {
         isAdmin={isAdmin}
       />
       <div className="flex flex-col gap-3">
-        {canSeeMatchEntry && (
-          <ResultsRefresher
+        {canSeeMatchEntry ? (
+          <ResultsSection
             gameId={leagueId}
             weeks={weeks}
+            goalkeepers={goalkeepers}
             initialScheduledWeek={nextWeek}
-            canEdit={true}
             canAutoPick={canSeeTeamBuilder}
             allPlayers={players}
+            showMatchHistory={canSeeMatchHistory}
           />
-        )}
-
-        {canSeeMatchHistory && (
+        ) : canSeeMatchHistory ? (
           <WeekList weeks={weeks} goalkeepers={goalkeepers} />
-        )}
-
-        {!canSeeMatchHistory && !canSeeMatchEntry && (
+        ) : (
           <div className="py-16 text-center">
             <p className="text-sm text-slate-500">Nothing to show here yet.</p>
           </div>
