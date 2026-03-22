@@ -1,5 +1,3 @@
-'use client'
-
 import { cn } from '@/lib/utils'
 import { isFeatureEnabled } from '@/lib/features'
 import { resolveVisibilityTier } from '@/lib/roles'
@@ -109,7 +107,7 @@ function TeamABWidget({ weeks }: { weeks: Week[] }) {
   const streakLabel =
     streakTeam === 'teamA' ? `Team A · ${streakLength} in a row` :
     streakTeam === 'teamB' ? `Team B · ${streakLength} in a row` :
-    streakTeam === 'draw'  ? 'Draw' :
+    streakTeam === 'draw'  ? `Draw · ${streakLength} in a row` :
     null
 
   return (
