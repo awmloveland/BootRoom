@@ -166,63 +166,70 @@ function QuarterlyTableWidget({ weeks }: { weeks: Week[] }) {
   )
 }
 
-// ─── Widget 3: Team A vs Team B ───────────────────────────────────────────────
+// ─── Widget 3: Head to Head ───────────────────────────────────────────────
 
 function TeamABWidget({ weeks }: { weeks: Week[] }) {
   const { teamAWins, draws, teamBWins, total, streakTeam, streakLength } = computeTeamAB(weeks)
 
-  const streakLabel =
-    streakTeam === 'teamA' ? `Team A · ${streakLength} in a row` :
-    streakTeam === 'teamB' ? `Team B · ${streakLength} in a row` :
-    streakTeam === 'draw'  ? `Draw · ${streakLength} in a row` :
-    null
+  const streakDotClass =
+    streakTeam === 'teamA' ? 'bg-blue-500' :
+    streakTeam === 'teamB' ? 'bg-violet-500' :
+    'bg-slate-500'
+
+  const streakNameClass =
+    streakTeam === 'teamA' ? 'text-blue-300' :
+    streakTeam === 'teamB' ? 'text-violet-300' :
+    'text-slate-400'
+
+  const streakName =
+    streakTeam === 'teamA' ? 'Team A' :
+    streakTeam === 'teamB' ? 'Team B' :
+    'Draw'
 
   return (
-    <WidgetShell title="Team A vs Team B">
+    <WidgetShell title="Head to Head">
       {total === 0 ? (
         <EmptyState message="No results yet" />
       ) : (
         <>
-          <div className="flex justify-between mb-1 text-sm font-semibold">
-            <span className="text-blue-300">{teamAWins}</span>
-            <span className="text-slate-400">{draws}</span>
-            <span className="text-violet-300">{teamBWins}</span>
+          {/* Scoreline */}
+          <div className="flex justify-between items-baseline mb-[6px]">
+            <div>
+              <span className="text-[9px] font-bold uppercase tracking-wide text-blue-500">Team A</span>
+              <span className="text-[16px] font-extrabold text-blue-300 ml-[5px]">{teamAWins}</span>
+            </div>
+            <span className="text-[11px] text-slate-700">{draws}D</span>
+            <div>
+              <span className="text-[16px] font-extrabold text-violet-300 mr-[5px]">{teamBWins}</span>
+              <span className="text-[9px] font-bold uppercase tracking-wide text-violet-700">Team B</span>
+            </div>
           </div>
-          <div className="flex gap-0.5 rounded-full overflow-hidden h-3 mb-1">
+
+          {/* Gradient bar */}
+          <div className="flex gap-0.5 rounded-md overflow-hidden h-3 mb-[10px]">
             {teamAWins > 0 && (
               <div
-                className="bg-blue-800"
+                className="bg-gradient-to-r from-blue-900 to-blue-500"
                 style={{ flex: teamAWins }}
               />
             )}
             {draws > 0 && (
-              <div
-                className="bg-slate-600"
-                style={{ flex: draws }}
-              />
+              <div className="bg-slate-800" style={{ flex: draws }} />
             )}
             {teamBWins > 0 && (
               <div
-                className="bg-violet-800"
+                className="bg-gradient-to-r from-violet-700 to-violet-900"
                 style={{ flex: teamBWins }}
               />
             )}
           </div>
-          <div className="flex justify-between text-xs text-slate-600 mb-2">
-            <span className="text-blue-400/70">Team A</span>
-            <span>Draws</span>
-            <span className="text-violet-400/70">Team B</span>
-          </div>
-          {streakLabel && (
-            <div className="flex items-center gap-1.5 text-xs text-slate-400 pt-2 border-t border-slate-700/60">
-              <span
-                className={cn(
-                  'w-2 h-2 rounded-full shrink-0',
-                  streakTeam === 'teamA' ? 'bg-blue-500' :
-                  streakTeam === 'teamB' ? 'bg-violet-500' : 'bg-slate-500'
-                )}
-              />
-              {streakLabel}
+
+          {/* Streak */}
+          {streakTeam !== null && (
+            <div className="flex items-center gap-1.5 pt-2 border-t border-slate-700/40">
+              <span className={cn('w-[7px] h-[7px] rounded-full shrink-0', streakDotClass)} />
+              <span className={cn('text-[12px] font-semibold', streakNameClass)}>{streakName}</span>
+              <span className="text-[11px] text-slate-500">on a {streakLength}-game streak</span>
             </div>
           )}
         </>
