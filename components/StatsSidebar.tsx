@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
 import { isFeatureEnabled } from '@/lib/features'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { computeInForm, computeQuarterlyTable, computeTeamAB } from '@/lib/sidebar-stats'
+import { computeInForm, computeQuarterlyTable, computeTeamAB, QUARTER_GAME_COUNT } from '@/lib/sidebar-stats'
 import { FormDots } from '@/components/FormDots'
 import type { Player, Week, LeagueFeature, GameRole } from '@/lib/types'
 
@@ -80,45 +80,89 @@ function InFormWidget({ players }: { players: Player[] }) {
 // ─── Widget 2: Quarterly Table ────────────────────────────────────────────────
 
 function QuarterlyTableWidget({ weeks }: { weeks: Week[] }) {
-  const { quarterLabel, entries, lastChampion, lastQuarterLabel } = computeQuarterlyTable(weeks)
+  const { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft } = computeQuarterlyTable(weeks)
+  const fillPct = Math.round(((QUARTER_GAME_COUNT - gamesLeft) / QUARTER_GAME_COUNT) * 100)
+  const showProgress = entries.length > 0 && gamesLeft > 0
+
   return (
-    <WidgetShell title={quarterLabel}>
-      {entries.length === 0 ? (
-        <EmptyState message="Quarter just started" />
-      ) : (
-        <>
-          <div className="space-y-1">
+    <div className="rounded-lg border border-slate-700 bg-transparent overflow-hidden">
+      {/* Header with inline column labels */}
+      <div className="px-3 py-1.5 border-b border-slate-700/40 flex items-center gap-1">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex-1">
+          {quarterLabel}
+        </span>
+        <span className="text-[10px] font-semibold uppercase text-slate-700 w-[22px] text-center">P</span>
+        <span className="text-[10px] font-semibold uppercase text-slate-500 w-[28px] text-right">Pts</span>
+      </div>
+
+      <div className="px-3 py-3">
+        {entries.length === 0 ? (
+          <EmptyState message="Quarter just started" />
+        ) : (
+          <div className="flex flex-col gap-[2px]">
             {entries.map((e, i) => (
-              <div key={e.name} className="flex items-center gap-2 text-sm">
-                <span className="text-slate-600 w-4 shrink-0 text-right">{i + 1}</span>
-                <span className="text-slate-200 flex-1 truncate">{e.name}</span>
-                <span className="text-slate-500 text-xs w-6 text-center">{e.played}</span>
-                <span className="text-xs w-6 text-center shrink-0 font-medium text-slate-300">{e.won}</span>
-                <span className="text-xs w-6 text-center shrink-0 text-slate-500">{e.drew}</span>
-                <span className="text-xs w-6 text-center shrink-0 text-slate-500">{e.lost}</span>
-                <span className="text-xs w-8 text-right shrink-0 font-semibold text-slate-100">{e.points}</span>
+              <div
+                key={e.name}
+                className={cn(
+                  'flex items-center gap-1 px-1 py-[3px] rounded -mx-1',
+                  i === 0 && 'bg-sky-400/[0.06]'
+                )}
+              >
+                <span className={cn(
+                  'text-[11px] w-[14px] text-right shrink-0',
+                  i === 0 ? 'font-bold text-sky-400' : 'text-slate-600'
+                )}>
+                  {i + 1}
+                </span>
+                <span className={cn(
+                  'text-[13px] flex-1 truncate',
+                  i === 0 ? 'font-semibold text-slate-100' : 'text-slate-400'
+                )}>
+                  {e.name}
+                </span>
+                <span className="text-[11px] text-slate-600 w-[22px] text-center shrink-0">
+                  {e.played}
+                </span>
+                <span className={cn(
+                  'text-[12px] font-bold w-[28px] text-right shrink-0',
+                  i === 0 ? 'text-sky-300' : 'text-slate-300'
+                )}>
+                  {e.points}
+                </span>
               </div>
             ))}
           </div>
-          {/* Column headers */}
-          <div className="flex items-center gap-2 text-xs text-slate-600 mt-2 pt-2 border-t border-slate-700/60">
-            <span className="w-4 shrink-0" />
-            <span className="flex-1" />
-            <span className="w-6 text-center shrink-0">P</span>
-            <span className="w-6 text-center shrink-0">W</span>
-            <span className="w-6 text-center shrink-0">D</span>
-            <span className="w-6 text-center shrink-0">L</span>
-            <span className="w-8 text-right shrink-0">Pts</span>
-          </div>
-          {lastChampion && (
-            <div className="mt-3 pt-2 border-t border-slate-700/60 text-xs text-slate-500">
-              <span className="text-slate-600">{lastQuarterLabel} Champion · </span>
-              <span className="text-slate-400">{lastChampion}</span>
+        )}
+
+        {/* Quarter progress bar */}
+        {showProgress && (
+          <div className="py-[7px] border-t border-b border-slate-700/40 my-2">
+            <div className="flex justify-between items-baseline mb-[5px]">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                Quarter progress
+              </span>
+              <span className="text-[10px] text-slate-600">{gamesLeft} left</span>
             </div>
-          )}
-        </>
-      )}
-    </WidgetShell>
+            <div className="h-1 rounded-full bg-slate-800 overflow-hidden">
+              <div className="h-full rounded-full bg-slate-600" style={{ width: `${fillPct}%` }} />
+            </div>
+          </div>
+        )}
+
+        {/* Previous quarter champion */}
+        {lastChampion && lastQuarterLabel && (
+          <div className="flex items-center justify-between bg-amber-400/[0.07] border border-amber-400/[0.14] rounded-md px-[10px] py-[6px]">
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-wide text-amber-600 mb-0.5">
+                {lastQuarterLabel} Champion
+              </p>
+              <p className="text-[13px] font-bold text-yellow-200">{lastChampion}</p>
+            </div>
+            <span className="text-lg leading-none">🏆</span>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 
