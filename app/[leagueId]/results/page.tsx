@@ -12,6 +12,7 @@ import { WeekList } from '@/components/WeekList'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { ResultsSection } from '@/components/ResultsSection'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
+import { StatsSidebar } from '@/components/StatsSidebar'
 import type { Week, GameRole, LeagueFeature, FeatureKey, Player, ScheduledWeek } from '@/lib/types'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
 
@@ -214,35 +215,47 @@ export default async function LeagueResultsPage({ params }: Props) {
 
   // ── Member / Admin tier render ──
   return (
-    <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
-      <LeaguePageHeader
-        leagueName={game.name}
-        leagueId={leagueId}
-        playedCount={playedCount}
-        totalWeeks={totalWeeks}
-        pct={pct}
-        currentTab="results"
-        isAdmin={isAdmin}
-        showLineupLabTab={canSeeTeamBuilder}
-      />
-      <div className="flex flex-col gap-3">
-        {canSeeMatchEntry ? (
-          <ResultsSection
-            gameId={leagueId}
-            weeks={weeks}
-            goalkeepers={goalkeepers}
-            initialScheduledWeek={nextWeek}
-            canAutoPick={canSeeTeamBuilder}
-            allPlayers={players}
-            showMatchHistory={canSeeMatchHistory}
+    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
+      <div className="flex gap-6 items-start">
+        <div className="flex-1 min-w-0 max-w-2xl">
+          <LeaguePageHeader
+            leagueName={game.name}
+            leagueId={leagueId}
+            playedCount={playedCount}
+            totalWeeks={totalWeeks}
+            pct={pct}
+            currentTab="results"
+            isAdmin={isAdmin}
+            showLineupLabTab={canSeeTeamBuilder}
           />
-        ) : canSeeMatchHistory ? (
-          <WeekList weeks={weeks} goalkeepers={goalkeepers} />
-        ) : (
-          <div className="py-16 text-center">
-            <p className="text-sm text-slate-500">Nothing to show here yet.</p>
+          <div className="flex flex-col gap-3">
+            {canSeeMatchEntry ? (
+              <ResultsSection
+                gameId={leagueId}
+                weeks={weeks}
+                goalkeepers={goalkeepers}
+                initialScheduledWeek={nextWeek}
+                canAutoPick={canSeeTeamBuilder}
+                allPlayers={players}
+                showMatchHistory={canSeeMatchHistory}
+              />
+            ) : canSeeMatchHistory ? (
+              <WeekList weeks={weeks} goalkeepers={goalkeepers} />
+            ) : (
+              <div className="py-16 text-center">
+                <p className="text-sm text-slate-500">Nothing to show here yet.</p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
+        <div className="hidden lg:block w-72 shrink-0 sticky top-4">
+          <StatsSidebar
+            players={players}
+            weeks={weeks}
+            features={features}
+            role={userRole}
+          />
+        </div>
       </div>
     </main>
   )
