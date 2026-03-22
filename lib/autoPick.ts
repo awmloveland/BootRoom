@@ -38,6 +38,9 @@ export function autoPick(players: Player[], pairs?: Array<[string, string]>): Au
   //
   // Guests (identified by appearance as first element of any pair) are excluded
   // from the GK pool — their placement is handled by pair pinning instead.
+  // Guest names are matched with exact case. This is safe because player names flow
+  // through from the same source (Player.name / GuestEntry.name) without case normalisation.
+  // If name normalisation is ever added to resolvePlayersForAutoPick, update these comparisons.
   const guestNames = new Set((pairs ?? []).map(([g]) => g))
   const gkPlayers = [...players.filter((p) => (p.goalkeeper || p.mentality === 'goalkeeper') && !guestNames.has(p.name))]
     .sort(() => Math.random() - 0.5) // shuffle so pinned pair is random when 3+ GKs

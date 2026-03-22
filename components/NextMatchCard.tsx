@@ -215,7 +215,7 @@ export function NextMatchCard({
   function handleAutoPick() {
     const resolved = resolvePlayersForAutoPick(squadNames, allPlayers, guestEntries, newPlayerEntries)
     const pairs = guestEntries
-      .filter((g) => g.associatedPlayer)
+      .filter((g) => g.associatedPlayer) // guards against empty-string from pre-submit modal state
       .map((g) => [g.name, g.associatedPlayer] as [string, string])
     const result = autoPick(resolved, pairs)
     setAutoPickResult(result)

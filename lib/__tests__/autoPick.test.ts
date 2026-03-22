@@ -124,7 +124,8 @@ describe('autoPick — associated player not in squad', () => {
     // All 5 players must be distributed across both teams
     for (const s of result.suggestions) {
       expect(s.teamA.length + s.teamB.length).toBe(5)
-      // graceful degradation confirmed — guest is distributed freely with no crash
+      const allPlayers = [...s.teamA, ...s.teamB]
+      expect(allPlayers.some((p) => p.name === 'Alice +1')).toBe(true)
     }
   })
 })
