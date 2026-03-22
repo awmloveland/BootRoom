@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { Search } from 'lucide-react'
 import { PlayerCard } from '@/components/PlayerCard'
 import type { Player } from '@/lib/types'
 
@@ -54,42 +55,22 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true }
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Search */}
-      <input
-        type="search"
-        placeholder="Search players…"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
-        aria-label="Search players"
-      />
+      {/* Toolbar card */}
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-3">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
+          <input
+            type="search"
+            placeholder="Search players…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-slate-900 border border-slate-600 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 w-full"
+            aria-label="Search players"
+          />
+        </div>
 
-      {/* Sort */}
-      <div className="flex items-center gap-2">
-        <label htmlFor="pub-sort" className="text-xs text-slate-400 shrink-0">Sort by</label>
-        <select
-          id="pub-sort"
-          value={sortBy}
-          onChange={(e) => {
-            const key = e.target.value as SortKey
-            setSortBy(key)
-            setSortAsc(key === 'name')
-          }}
-          className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm"
-        >
-          {SORT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-        {sortBy !== 'name' && (
-          <button
-            type="button"
-            onClick={() => setSortAsc((a) => !a)}
-            className="text-xs text-slate-400 hover:text-slate-300 shrink-0"
-          >
-            {sortAsc ? '↑ Low to high' : '↓ High to low'}
-          </button>
-        )}
+        {/* Sort — replaced in Task 2 */}
       </div>
 
       {/* Player cards */}
