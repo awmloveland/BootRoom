@@ -187,6 +187,7 @@ export default async function LeagueResultsPage({ params }: Props) {
           pct={pct}
           currentTab="results"
           isAdmin={isAdmin}
+          showLineupLabTab={false}
         />
         {canSeeMatchEntry && (
           <PublicMatchEntrySection
@@ -222,6 +223,7 @@ export default async function LeagueResultsPage({ params }: Props) {
         pct={pct}
         currentTab="results"
         isAdmin={isAdmin}
+        showLineupLabTab={canSeeTeamBuilder}
       />
       <div className="flex flex-col gap-3">
         {canSeeMatchEntry ? (
