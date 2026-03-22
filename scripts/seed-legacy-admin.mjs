@@ -29,7 +29,7 @@ async function seed() {
     .single()
 
   if (!profile) {
-    console.error(`No profile found for ${creatorEmail}. Sign up first at m.craft-football.com/sign-in`)
+    console.error(`No profile found for ${creatorEmail}. Sign up first at craft-football.com/sign-in`)
     process.exit(1)
   }
 
