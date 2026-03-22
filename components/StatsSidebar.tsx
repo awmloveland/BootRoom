@@ -14,8 +14,8 @@ interface StatsSidebarProps {
 
 function WidgetShell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-slate-700 bg-slate-800">
-      <div className="px-3 py-2 border-b border-slate-700/60 text-xs font-semibold text-slate-400 uppercase tracking-wide">
+    <div className="rounded-lg border border-slate-700 bg-transparent overflow-hidden">
+      <div className="px-3 py-2 border-b border-slate-700/40 text-xs font-semibold text-slate-500 uppercase tracking-widest">
         {title}
       </div>
       <div className="px-3 py-3">{children}</div>
