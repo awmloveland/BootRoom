@@ -1,13 +1,12 @@
 export const dynamic = 'force-dynamic'
 
-import { notFound } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
-import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
-import { PublicPlayerList } from '@/components/PublicPlayerList'
+import { LineupLab } from '@/components/LineupLab'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
 import type { GameRole, LeagueFeature, FeatureKey, Player } from '@/lib/types'
 
@@ -15,11 +14,11 @@ interface Props {
   params: Promise<{ leagueId: string }>
 }
 
-export default async function LeaguePlayersPage({ params }: Props) {
+export default async function LineupLabPage({ params }: Props) {
   const { leagueId } = await params
   const service = createServiceClient()
 
-  // 1. Resolve league existence via service client (bypasses RLS for unauthenticated users)
+  // 1. Verify league exists
   const { data: game } = await service
     .from('games')
     .select('id, name')
@@ -45,18 +44,19 @@ export default async function LeaguePlayersPage({ params }: Props) {
       }
     }
   } catch (err) {
-    console.error('[players] auth check failed:', err)
+    console.error('[lineup-lab] auth check failed:', err)
   }
 
   const tier = resolveVisibilityTier(userRole)
   const isAdmin = tier === 'admin'
 
-  // 3. Fetch feature_experiments + league_features + played week count in parallel
+  // 3. Fetch feature flags
   const [experimentsResult, leagueFeaturesResult, weeksResult] = await Promise.all([
     service.from('feature_experiments').select('feature, available'),
     service.from('league_features').select('*').eq('game_id', leagueId),
     service.from('weeks').select('week', { count: 'exact', head: true }).eq('game_id', leagueId).in('status', ['played', 'cancelled']),
   ])
+
   const playedCount = weeksResult.count ?? 0
   const totalWeeks = 52
   const pct = Math.round((playedCount / totalWeeks) * 100)
@@ -69,21 +69,21 @@ export default async function LeaguePlayersPage({ params }: Props) {
           .map((e) => e.feature as FeatureKey)
       )
   const featureMap = Object.fromEntries((leagueFeaturesResult.data ?? []).map((f) => [f.feature, f]))
-  const rawFeatures: LeagueFeature[] = DEFAULT_FEATURES
+  const features: LeagueFeature[] = DEFAULT_FEATURES
     .filter((def) => availableSet.has(def.feature))
     .map((def) => {
       const row = featureMap[def.feature] ?? def
       return { ...row, available: true } as LeagueFeature
     })
 
-  const canSeeTeamBuilder = isAdmin || isFeatureEnabled(rawFeatures, 'team_builder', tier)
+  const canSeeTeamBuilder = isAdmin || isFeatureEnabled(features, 'team_builder', tier)
 
-  // 4. Check player_stats feature visibility
-  if (!isAdmin && !isFeatureEnabled(rawFeatures, 'player_stats', tier)) {
-    return <LeaguePrivateState leagueName={game.name} />
+  // 4. Gate access — redirect if not enabled for this user's tier
+  if (!canSeeTeamBuilder) {
+    redirect(`/${leagueId}/results`)
   }
 
-  // 5. Fetch players via RPC
+  // 5. Fetch players
   const { data: playersData } = await service.rpc('get_player_stats_public', {
     p_game_id: leagueId,
   })
@@ -105,12 +105,6 @@ export default async function LeaguePlayersPage({ params }: Props) {
     recentForm: String(row.recentForm ?? ''),
   }))
 
-  // 6. Extract visibleStats and showMentality from the appropriate tier config
-  const statsFeat = rawFeatures.find((f) => f.feature === 'player_stats')
-  const config = tier === 'public' ? (statsFeat?.public_config ?? null) : (statsFeat?.config ?? null)
-  const visibleStats = config?.visible_stats ?? undefined
-  const showMentality = config?.show_mentality ?? true
-
   return (
     <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 pb-8">
       <LeaguePageHeader
@@ -119,15 +113,11 @@ export default async function LeaguePlayersPage({ params }: Props) {
         playedCount={playedCount}
         totalWeeks={totalWeeks}
         pct={pct}
-        currentTab="players"
+        currentTab="lineup-lab"
         isAdmin={isAdmin}
-        showLineupLabTab={tier === 'public' ? false : canSeeTeamBuilder}
+        showLineupLabTab={true}
       />
-      <PublicPlayerList
-        players={players}
-        visibleStats={visibleStats}
-        showMentality={showMentality}
-      />
+      <LineupLab allPlayers={players} />
     </main>
   )
 }
