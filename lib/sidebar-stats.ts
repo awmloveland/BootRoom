@@ -65,7 +65,7 @@ function aggregateWeeks(weeks: Week[]): QuarterlyEntry[] {
       else { e.lost++ }
     }
   }
-  return [...map.values()].sort((a, b) => b.points - a.points || b.won - a.won || a.name.localeCompare(b.name))
+  return Array.from(map.values()).sort((a, b) => b.points - a.points || b.won - a.won || a.name.localeCompare(b.name))
 }
 
 export function computeQuarterlyTable(weeks: Week[], now: Date = new Date()): QuarterlyTableResult {
