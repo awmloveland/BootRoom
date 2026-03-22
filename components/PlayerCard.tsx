@@ -2,14 +2,16 @@
 
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown } from 'lucide-react'
-import { Player } from '@/lib/types'
+import type { Player, SortKey } from '@/lib/types'
 import { RecentForm } from './RecentForm'
+import { FormDots } from '@/components/FormDots'
 import { cn } from '@/lib/utils'
 
 interface PlayerCardProps {
   player: Player
   isOpen: boolean
   onToggle: () => void
+  sortBy: SortKey
   /** Stat keys to show in the expanded body — undefined means show all */
   visibleStats?: string[]
   /** Whether to show the ATT/BAL/DEF/GK mentality badge — defaults to true */
@@ -37,6 +39,25 @@ const MENTALITY_LABEL: Record<string, string> = {
   attacking: 'ATT',
 }
 
+const HEADER_METRIC: Record<SortKey, (p: Player) => React.ReactNode> = {
+  name:       (p) => `${p.played} games`,
+  played:     (p) => `${p.played} games`,
+  won:        (p) => (
+    <>
+      <span className="font-semibold text-slate-100">{p.won}</span>
+      <span className="text-xs text-slate-400"> wins</span>
+    </>
+  ),
+  winRate:    (p) => (
+    <>
+      <span className="font-semibold text-slate-100">{p.winRate.toFixed(1)}%</span>
+      <span className="text-xs text-slate-400"> win rate</span>
+    </>
+  ),
+  recentForm: (p) =>
+    p.recentForm ? <FormDots form={p.recentForm} /> : `${p.played} games`,
+}
+
 const STAT_ROWS: { key: string; label: string; render: (p: Player) => React.ReactNode }[] = [
   { key: 'played',     label: 'Games Played',        render: (p) => p.played },
   { key: 'won',        label: 'Won',                 render: (p) => p.won },
@@ -52,6 +73,7 @@ export function PlayerCard({
   player,
   isOpen,
   onToggle,
+  sortBy,
   visibleStats,
   showMentality = true,
 }: PlayerCardProps) {
@@ -82,7 +104,9 @@ export function PlayerCard({
               )}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400">{player.played} games</span>
+              <span className="text-xs text-slate-400 flex items-center gap-1">
+                {HEADER_METRIC[sortBy](player)}
+              </span>
               <ChevronDown
                 className={cn(
                   'h-4 w-4 text-slate-400 transition-transform duration-200 flex-shrink-0',

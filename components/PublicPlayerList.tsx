@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { Search, ArrowUp, ArrowDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { PlayerCard } from '@/components/PlayerCard'
-import type { Player } from '@/lib/types'
-
-type SortKey = 'name' | 'played' | 'won' | 'winRate' | 'recentForm'
+import type { Player, SortKey } from '@/lib/types'
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: 'name',       label: 'Name' },
@@ -34,6 +34,23 @@ function sortPlayers(players: Player[], sortBy: SortKey, ascending: boolean): Pl
   })
 }
 
+const DIRECTION_LABELS: Record<SortKey, [string, string]> = {
+  name:       ['A–Z',        'Z–A'],
+  played:     ['Low–High',   'High–Low'],
+  won:        ['Low–High',   'High–Low'],
+  winRate:    ['Low–High',   'High–Low'],
+  recentForm: ['Worst–Best', 'Best–Worst'],
+}
+// Index 0 = sortAsc true, index 1 = sortAsc false
+
+const DEFAULT_ASC: Record<SortKey, boolean> = {
+  name:       true,
+  played:     false,
+  won:        false,
+  winRate:    false,
+  recentForm: false,
+}
+
 interface Props {
   players: Player[]
   visibleStats?: string[]
@@ -54,42 +71,62 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true }
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Search */}
-      <input
-        type="search"
-        placeholder="Search players…"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
-        aria-label="Search players"
-      />
+      {/* Toolbar card */}
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-3">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
+          <input
+            type="search"
+            placeholder="Search players…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-slate-900 border border-slate-600 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 w-full"
+            aria-label="Search players"
+          />
+        </div>
 
-      {/* Sort */}
-      <div className="flex items-center gap-2">
-        <label htmlFor="pub-sort" className="text-xs text-slate-400 shrink-0">Sort by</label>
-        <select
-          id="pub-sort"
-          value={sortBy}
-          onChange={(e) => {
-            const key = e.target.value as SortKey
-            setSortBy(key)
-            setSortAsc(key === 'name')
-          }}
-          className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm"
-        >
+        {/* Divider */}
+        <div className="border-t border-slate-700 -mx-3 my-3" />
+
+        {/* Sort */}
+        <div role="group" aria-label="Sort by" className="flex items-center gap-2 flex-wrap">
+          <span aria-hidden="true" className="text-[10px] text-slate-500 uppercase tracking-widest shrink-0">
+            Sort
+          </span>
           {SORT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <button
+              key={opt.value}
+              type="button"
+              aria-pressed={sortBy === opt.value}
+              onClick={() => {
+                if (sortBy === opt.value) return
+                setSortBy(opt.value)
+                setSortAsc(DEFAULT_ASC[opt.value])
+              }}
+              className={cn(
+                'rounded-full text-xs px-2.5 py-1 transition-colors',
+                sortBy === opt.value
+                  ? 'bg-sky-500 border border-sky-500 text-white hover:bg-sky-400'
+                  : 'border border-slate-700 text-slate-400 hover:border-slate-500',
+              )}
+            >
+              {opt.label}
+            </button>
           ))}
-        </select>
-        {sortBy !== 'name' && (
           <button
             type="button"
+            aria-label="Toggle sort direction"
             onClick={() => setSortAsc((a) => !a)}
-            className="text-xs text-slate-400 hover:text-slate-300 shrink-0"
+            className="ml-auto shrink-0 text-xs text-slate-400 bg-slate-900 border border-slate-700 rounded-md px-2 py-1 flex items-center gap-1 hover:border-slate-500 transition-colors"
           >
-            {sortAsc ? '↑ Low to high' : '↓ High to low'}
+            {sortAsc
+              ? <ArrowUp className="h-3.5 w-3.5" />
+              : <ArrowDown className="h-3.5 w-3.5" />
+            }
+            {DIRECTION_LABELS[sortBy][sortAsc ? 0 : 1]}
           </button>
-        )}
+        </div>
       </div>
 
       {/* Player cards */}
@@ -106,6 +143,7 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true }
             onToggle={() => setOpenPlayer((prev) => (prev === player.name ? null : player.name))}
             visibleStats={visibleStats}
             showMentality={showMentality}
+            sortBy={sortBy}
           />
         ))
       )}
