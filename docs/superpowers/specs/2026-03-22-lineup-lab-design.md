@@ -21,7 +21,7 @@ Add a third tab to the league page called **The Lineup Lab** — a scratchpad fo
 
 ## Route & page
 
-**Route:** `/[leagueId]/lineup-lab` (resolves to `app/app/[leagueId]/lineup-lab/page.tsx` in the filesystem — the `app/app/` directory is the authenticated member shell, matching the existing `results` and `players` routes)
+**Route:** `/[leagueId]/lineup-lab` (resolves to `app/[leagueId]/lineup-lab/page.tsx` — matching the pattern of existing sibling routes `app/[leagueId]/results/page.tsx` and `app/[leagueId]/players/page.tsx`)
 
 - Server component (`page.tsx`) — fetches the league's player list and feature flags, enforces access control, and passes data down to the client component.
 - If the feature is not enabled for the user's tier, redirect to the league results page (consistent with how other gated routes behave).
@@ -99,6 +99,8 @@ Clicking Auto-Balance runs `autoPick([...teamA, ...teamB])` from `lib/autoPick` 
 
 The button is disabled when fewer than 2 players are selected in total (consistent with the action row threshold above). The current team distribution does not affect the disabled condition — only the total count matters.
 
+If `autoPick` returns an empty `suggestions` array (can occur with very small pools after GK pinning), the component must handle it gracefully — do nothing and leave the current teams unchanged. Do not crash on `suggestions[0]`.
+
 ### Clear all
 Resets `teamA` and `teamB` to empty arrays. All chips return to grey. The teams grid reverts to the "select players to get started" empty state.
 
@@ -138,7 +140,7 @@ The `FormDots` component and `FORM_COLOR` map should be extracted from `NextMatc
 
 | File | Role |
 |---|---|
-| `app/app/[leagueId]/lineup-lab/page.tsx` | Server component. Fetches players + features. Enforces access. Passes `allPlayers` to `LineupLab`. |
+| `app/[leagueId]/lineup-lab/page.tsx` | Server component. Fetches players + features. Enforces access. Passes `allPlayers` to `LineupLab`. |
 | `components/LineupLab.tsx` | Client component. All interactive state. Renders intro, actions, teams, balance bar, and player pool. |
 | `components/FormDots.tsx` | Extracted from `NextMatchCard.tsx`. Includes `FormDots` component and `FORM_COLOR` map. `NextMatchCard.tsx` is updated to import from this new shared location. |
 
@@ -146,10 +148,10 @@ The `FormDots` component and `FORM_COLOR` map should be extracted from `NextMatc
 
 `components/LeaguePageHeader.tsx` must be updated to add the new tab:
 
-1. Extend the `currentTab` prop type from `'results' | 'players'` to include `'lineup-lab'`.
+1. Extend the `currentTab` prop type from `'results' | 'players'` to include `'lineup-lab'`. Use the `FlaskConical` icon from `lucide-react` for the tab (consistent with the lab theme; Results uses `ClipboardList`, Players uses `Users`).
 2. Add a new `<Link>` for The Lineup Lab with href `/${leagueId}/lineup-lab` (matching the pattern used for Results and Players links).
 3. Add a `showLineupLabTab: boolean` prop. The tab link is only rendered when this is `true`.
-4. All three page server components that render `LeaguePageHeader` — `results/page.tsx`, `players/page.tsx`, and the new `lineup-lab/page.tsx` — must compute and pass `showLineupLabTab` based on the `team_builder` feature flag check for the user's tier.
+4. All three page server components that render `LeaguePageHeader` — `results/page.tsx`, `players/page.tsx`, and the new `lineup-lab/page.tsx` — must compute and pass `showLineupLabTab` based on the `team_builder` feature flag check for the user's tier. For any public-tier render of `LeaguePageHeader`, `showLineupLabTab` must always be `false` — The Lineup Lab is a members-only feature and must not appear in public-facing headers.
 
 ---
 
