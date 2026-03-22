@@ -1,4 +1,4 @@
-import { computeInForm, computeQuarterlyTable, computeTeamAB } from '@/lib/sidebar-stats'
+import { QUARTER_GAME_COUNT, computeInForm, computeQuarterlyTable, computeTeamAB } from '@/lib/sidebar-stats'
 import type { Player, Week } from '@/lib/types'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -154,7 +154,7 @@ describe('computeQuarterlyTable', () => {
 
   it('returns QUARTER_GAME_COUNT as gamesLeft when entries is empty', () => {
     const result = computeQuarterlyTable([], new Date(2026, 0, 22))
-    expect(result.gamesLeft).toBe(16)
+    expect(result.gamesLeft).toBe(QUARTER_GAME_COUNT)
   })
 
   it('clamps gamesLeft to 0 when maxPlayed exceeds QUARTER_GAME_COUNT', () => {
