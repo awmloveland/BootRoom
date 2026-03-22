@@ -12,25 +12,7 @@ import { WinnerBadge } from '@/components/WinnerBadge'
 import { TeamList } from '@/components/TeamList'
 import { AddPlayerModal } from '@/components/AddPlayerModal'
 import { ResultModal } from '@/components/ResultModal'
-
-const FORM_COLOR: Record<string, string> = {
-  W: 'text-sky-400',
-  D: 'text-slate-400',
-  L: 'text-red-400',
-  '-': 'text-slate-700',
-}
-
-function FormDots({ form }: { form: string }) {
-  return (
-    <span className="flex gap-1">
-      {form.split('').map((char, i) => (
-        <span key={i} className={cn('font-mono text-xs font-bold', FORM_COLOR[char] ?? 'text-slate-600')}>
-          {char}
-        </span>
-      ))}
-    </span>
-  )
-}
+import { FormDots } from '@/components/FormDots'
 
 interface Props {
   gameId: string
