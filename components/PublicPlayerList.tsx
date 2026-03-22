@@ -143,6 +143,7 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true }
             onToggle={() => setOpenPlayer((prev) => (prev === player.name ? null : player.name))}
             visibleStats={visibleStats}
             showMentality={showMentality}
+            sortBy={sortBy}
           />
         ))
       )}
