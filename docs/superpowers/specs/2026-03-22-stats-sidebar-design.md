@@ -50,9 +50,35 @@ Three new `FeatureKey` values added to `lib/types.ts`:
 
 All three start admin-only. Admins see all widgets immediately. Promoted independently via Settings → Features.
 
-`FeaturePanel.tsx` gains a **Stats** section below the existing feature list with one row per widget.
+### FeaturePanel wiring
 
-A migration seeds the three rows into `league_features` for all existing leagues.
+`FeaturePanel.tsx` already renders one bespoke card component per feature (e.g. `PlayerStatsCard`, `TeamBuilderCard`). The three stats widgets are simpler — they have no per-tier config — so rather than creating a new card component per widget, a single generic `StatsFeatureRow` component is introduced. It accepts `featureKey`, `label`, and the standard `features` / `leagueId` props and renders a single toggle row (enabled toggle + public toggle). The Stats section in `FeaturePanel` renders three `StatsFeatureRow` instances, one per widget.
+
+### Migration
+
+A single migration seeds:
+1. Three rows into `feature_experiments` (`available = true`) so the features are globally available and not silently dropped by the route's availability filter.
+2. Three rows into `league_features` for every existing league (`enabled = false, public_enabled = false`).
+
+```sql
+-- Step 1: register features as globally available
+INSERT INTO feature_experiments (feature, available) VALUES
+  ('stats_in_form',         true),
+  ('stats_quarterly_table', true),
+  ('stats_team_ab',         true)
+ON CONFLICT (feature) DO NOTHING;
+
+-- Step 2: seed per-league rows
+INSERT INTO league_features (game_id, feature, enabled, public_enabled)
+SELECT id, feat, false, false
+FROM games
+CROSS JOIN (VALUES
+  ('stats_in_form'),
+  ('stats_quarterly_table'),
+  ('stats_team_ab')
+) AS t(feat)
+ON CONFLICT (game_id, feature) DO NOTHING;
+```
 
 ---
 
@@ -74,12 +100,16 @@ Renders only the widgets whose feature flag passes `isFeatureEnabled(features, k
 
 Each widget is a self-contained section within the file (not separate component files).
 
+### Public render path
+
+On the results page, `players` is only fetched when `tier !== 'public'`; for public visitors it is `[]`. This is intentional — the stats widgets derive player-level data from `players` and will naturally show their empty states when the array is empty. The sidebar should not be conditionally omitted on the public path; the feature flag checks and empty states handle it correctly.
+
 ---
 
 ## Widget 1 — Most In Form
 
 ### Purpose
-Show the 5 players in the best recent form, ranked by average points per game over their last 5 games.
+Show the 5 players in the best recent form, ranked by average points per game over their last 5 played games.
 
 ### Data
 - Source: `players` prop
@@ -87,7 +117,7 @@ Show the 5 players in the best recent form, ranked by average points per game ov
 
 ### Logic
 1. Filter to players where `played >= 5`
-2. For each qualifying player, parse `recentForm`: count only non-`'-'` characters; compute points (`W=3, D=1, L=0`) over those games; PPG = points / games_in_form_string (i.e. always 5 if fully played, fewer if `'-'` placeholders exist — use actual game count, not 5)
+2. For each qualifying player, parse `recentForm`: count the number of non-`'-'` characters — call this `gamesInForm`. Compute points from those characters (`W=3, D=1, L=0`). PPG = `points / gamesInForm`. (The denominator is always the count of non-`'-'` characters, never hardcoded to 5.)
 3. Sort descending by PPG; take top 5
 
 ### Display
@@ -115,7 +145,10 @@ Determined client-side from `new Date()`:
 ### Data
 - Source: `weeks` prop
 - Filter: `status === 'played'` and `week.date` falls within the current quarter
-- `week.date` is stored as `'DD MMM YYYY'` — parse with `new Date(week.date)`
+
+### Date parsing
+
+`week.date` is stored as `'DD MMM YYYY'` (e.g. `'22 Mar 2026'`). Use the existing exported `parseWeekDate` from `lib/utils.ts` — do not duplicate it. Import it directly: `import { parseWeekDate } from '@/lib/utils'`.
 
 ### Logic
 For each qualifying week, iterate over `teamA` and `teamB` player name arrays. Using `winner` (`'teamA' | 'teamB' | 'draw' | null`), accumulate per-player W/D/L. Points = W×3 + D×1 + L×0. Sort descending by points; take top 5.
@@ -148,7 +181,7 @@ Iterate over all played weeks:
 **Streak examples:**
 - Last 3 results were all Team A wins → "Team A · 3 in a row"
 - Last result was a draw → "Draw"
-- Results alternate → "No current streak" (or omit streak line)
+- Results alternate → "No current streak" (omit streak line)
 
 ### Display
 - Widget title: **Team A vs Team B**
@@ -190,13 +223,13 @@ text-sm text-slate-500 text-center py-4
 | File | Change |
 |---|---|
 | `lib/types.ts` | Add `stats_in_form`, `stats_quarterly_table`, `stats_team_ab` to `FeatureKey` union |
-| `app/api/league/[id]/features/route.ts` | Add 3 entries to `DEFAULT_FEATURES` |
-| `components/FeaturePanel.tsx` | Add Stats section with one toggle row per widget |
-| `components/StatsSidebar.tsx` | New component — all three widgets |
-| `app/app/league/[id]/results/page.tsx` | Wrap content in new two-column layout, render `StatsSidebar` |
-| `app/app/league/[id]/players/page.tsx` | Same layout wrapper + `StatsSidebar` |
-| `app/app/league/[id]/lineup-lab/page.tsx` | Same layout wrapper + `StatsSidebar` |
-| `supabase/migrations/YYYYMMDDXXXXXX_seed_stats_features.sql` | Seed 3 new `league_features` rows for all existing leagues |
+| `lib/defaults.ts` | Add 3 entries to `DEFAULT_FEATURES` |
+| `components/FeaturePanel.tsx` | Add Stats section; introduce `StatsFeatureRow` sub-component for simple toggle-only rows |
+| `components/StatsSidebar.tsx` | New component — all three widgets + `parseWeekDate` helper + `StatsFeatureRow` |
+| `app/[leagueId]/results/page.tsx` | Wrap content in new two-column layout, render `StatsSidebar` |
+| `app/[leagueId]/players/page.tsx` | Same layout wrapper + `StatsSidebar` |
+| `app/[leagueId]/lineup-lab/page.tsx` | Same layout wrapper + `StatsSidebar` |
+| `supabase/migrations/YYYYMMDDXXXXXX_seed_stats_features.sql` | Seed `feature_experiments` (3 rows) + `league_features` (3 rows × all existing leagues) |
 
 ---
 
