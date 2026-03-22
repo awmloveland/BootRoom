@@ -96,8 +96,8 @@ export function autoPick(players: Player[], pairs?: Array<[string, string]>): Au
     pairTeamToggle = !pairTeamToggle
   }
 
-  // How many non-pinned players go into Team A (clamp to 0 to avoid negative)
-  const sizeA = Math.max(0, Math.ceil(n / 2) - (pinnedA ? 1 : 0) - pinnedTeamA.length)
+  // How many non-pinned players go into Team A (clamp to 0 to avoid negative, and to searchPool.length to avoid exceeding pool)
+  const sizeA = Math.max(0, Math.min(searchPool.length, Math.ceil(n / 2) - (pinnedA ? 1 : 0) - pinnedTeamA.length))
 
   // Generate candidate splits
   let rawSplits: [Player[], Player[]][]

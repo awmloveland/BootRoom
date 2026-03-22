@@ -52,7 +52,6 @@ describe('autoPick — one guest+associated pair', () => {
       makePlayer('Alice +1'),
     ]
     const pairs: Array<[string, string]> = [['Alice +1', 'Alice']]
-    // @ts-expect-error TODO: Task 2 adds pairs param
     const result = autoPick(players, pairs)
     expect(result.suggestions.length).toBeGreaterThan(0)
     for (const s of result.suggestions) {
@@ -78,7 +77,6 @@ describe('autoPick — two guests sharing one associated player', () => {
       ['Alice +1', 'Alice'],
       ['Alice +2', 'Alice'],
     ]
-    // @ts-expect-error TODO: Task 2 adds pairs param
     const result = autoPick(players, pairs)
     expect(result.suggestions.length).toBeGreaterThan(0)
     for (const s of result.suggestions) {
@@ -101,7 +99,6 @@ describe('autoPick — associated player is a GK', () => {
       makePlayer('Eve'),
     ]
     const pairs: Array<[string, string]> = [['Alice +1', 'Alice']]
-    // @ts-expect-error TODO: Task 2 adds pairs param
     const result = autoPick(players, pairs)
     expect(result.suggestions.length).toBeGreaterThan(0)
     for (const s of result.suggestions) {
@@ -122,7 +119,6 @@ describe('autoPick — associated player not in squad', () => {
       makePlayer('Alice +1'), // associated with 'Alice', who is NOT in the squad
     ]
     const pairs: Array<[string, string]> = [['Alice +1', 'Alice']]
-    // @ts-expect-error TODO: Task 2 adds pairs param
     const result = autoPick(players, pairs)
     expect(result.suggestions.length).toBeGreaterThan(0)
     // All 5 players must be distributed across both teams
@@ -146,7 +142,6 @@ describe('autoPick — guest has goalkeeper: true', () => {
       makePlayer('Eve'),
     ]
     const pairs: Array<[string, string]> = [['Bob +1', 'Bob']]
-    // @ts-expect-error TODO: Task 2 adds pairs param
     const result = autoPick(players, pairs)
     expect(result.suggestions.length).toBeGreaterThan(0)
     for (const s of result.suggestions) {
