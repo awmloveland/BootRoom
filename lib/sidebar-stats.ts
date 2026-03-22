@@ -1,6 +1,8 @@
 import { parseWeekDate } from '@/lib/utils'
 import type { Player, Week } from '@/lib/types'
 
+export const QUARTER_GAME_COUNT = 16
+
 // ─── computeInForm ────────────────────────────────────────────────────────────
 
 export interface InFormEntry {
@@ -38,6 +40,7 @@ export interface QuarterlyTableResult {
   entries: QuarterlyEntry[]
   lastChampion: string | null
   lastQuarterLabel: string | null
+  gamesLeft: number
 }
 
 function quarterOf(d: Date): { q: number; year: number } {
@@ -70,19 +73,24 @@ function aggregateWeeks(weeks: Week[]): QuarterlyEntry[] {
 
 export function computeQuarterlyTable(weeks: Week[], now: Date = new Date()): QuarterlyTableResult {
   const { q, year } = quarterOf(now)
-  const quarterLabel = `Q${q} ${year}`
+  const yy = String(year).slice(-2)
+  const quarterLabel = `Q${q} ${yy}`
 
   const currentWeeks = weeks.filter(w => weekInQuarter(w, q, year))
   const entries = aggregateWeeks(currentWeeks).slice(0, 5)
 
+  const maxPlayed = entries.length > 0 ? Math.max(...entries.map(e => e.played)) : 0
+  const gamesLeft = Math.max(0, QUARTER_GAME_COUNT - maxPlayed)
+
   const prevQ = q === 1 ? 4 : q - 1
   const prevYear = q === 1 ? year - 1 : year
+  const prevYY = String(prevYear).slice(-2)
   const prevWeeks = weeks.filter(w => weekInQuarter(w, prevQ, prevYear))
   const prevEntries = aggregateWeeks(prevWeeks)
   const lastChampion = prevEntries.length > 0 ? prevEntries[0].name : null
-  const lastQuarterLabel = prevEntries.length > 0 ? `Q${prevQ} ${prevYear}` : null
+  const lastQuarterLabel = prevEntries.length > 0 ? `Q${prevQ} ${prevYY}` : null
 
-  return { quarterLabel, entries, lastChampion, lastQuarterLabel }
+  return { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft }
 }
 
 // ─── computeTeamAB ────────────────────────────────────────────────────────────

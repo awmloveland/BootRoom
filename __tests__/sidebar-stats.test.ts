@@ -88,7 +88,7 @@ describe('computeQuarterlyTable', () => {
     ]
     const now = new Date(2026, 0, 22) // Jan = Q1
     const result = computeQuarterlyTable(weeks, now)
-    expect(result.quarterLabel).toBe('Q1 2026')
+    expect(result.quarterLabel).toBe('Q1 26')
     expect(result.entries.map(e => e.name)).toContain('Alice')
     expect(result.entries.find(e => e.name === 'Bob')?.won).toBe(0)
   })
@@ -125,7 +125,7 @@ describe('computeQuarterlyTable', () => {
     const now = new Date(2026, 0, 22) // Q1 2026 — prev is Q4 2025
     const result = computeQuarterlyTable(weeks, now)
     expect(result.lastChampion).toBe('Alice')
-    expect(result.lastQuarterLabel).toBe('Q4 2025')
+    expect(result.lastQuarterLabel).toBe('Q4 25')
   })
 
   it('returns null lastChampion when no previous quarter data', () => {
@@ -138,7 +138,32 @@ describe('computeQuarterlyTable', () => {
     const now = new Date(2026, 0, 15) // Q1 2026
     const result = computeQuarterlyTable([], now)
     expect(result.lastQuarterLabel).toBeNull() // no data
-    expect(result.quarterLabel).toBe('Q1 2026')
+    expect(result.quarterLabel).toBe('Q1 26')
+  })
+
+  it('returns gamesLeft as QUARTER_GAME_COUNT minus maxPlayed', () => {
+    // Two weeks played in Q1 2026, max played by any player = 2
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '05 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 2, date: '12 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamB' }),
+    ]
+    const result = computeQuarterlyTable(weeks, new Date(2026, 0, 22))
+    // QUARTER_GAME_COUNT is 16; maxPlayed = 2 → gamesLeft = 14
+    expect(result.gamesLeft).toBe(14)
+  })
+
+  it('returns QUARTER_GAME_COUNT as gamesLeft when entries is empty', () => {
+    const result = computeQuarterlyTable([], new Date(2026, 0, 22))
+    expect(result.gamesLeft).toBe(16)
+  })
+
+  it('clamps gamesLeft to 0 when maxPlayed exceeds QUARTER_GAME_COUNT', () => {
+    // Artificially create 20 weeks to exceed the constant
+    const weeks: Week[] = Array.from({ length: 20 }, (_, i) =>
+      makeWeek({ week: i + 1, date: '05 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' })
+    )
+    const result = computeQuarterlyTable(weeks, new Date(2026, 0, 22))
+    expect(result.gamesLeft).toBe(0)
   })
 })
 
