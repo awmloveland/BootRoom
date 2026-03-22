@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Settings, ClipboardList, Users } from 'lucide-react'
+import { Settings, ClipboardList, Users, FlaskConical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -9,8 +9,9 @@ interface LeaguePageHeaderProps {
   playedCount: number
   totalWeeks: number
   pct: number
-  currentTab: 'results' | 'players'
+  currentTab: 'results' | 'players' | 'lineup-lab'
   isAdmin: boolean
+  showLineupLabTab?: boolean
 }
 
 export function LeaguePageHeader({
@@ -21,6 +22,7 @@ export function LeaguePageHeader({
   pct,
   currentTab,
   isAdmin,
+  showLineupLabTab,
 }: LeaguePageHeaderProps) {
   return (
     <div className="mb-4">
@@ -64,6 +66,20 @@ export function LeaguePageHeader({
           <Users className="size-4" />
           Players
         </Link>
+        {showLineupLabTab && (
+          <Link
+            href={`/${leagueId}/lineup-lab`}
+            className={cn(
+              '-mb-px flex items-center gap-2 border-b-2 pb-2 text-base font-medium',
+              currentTab === 'lineup-lab'
+                ? 'border-slate-100 text-slate-100'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            )}
+          >
+            <FlaskConical className="size-4" />
+            The Lineup Lab
+          </Link>
+        )}
       </nav>
     </div>
   )
