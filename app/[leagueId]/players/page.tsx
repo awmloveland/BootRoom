@@ -5,11 +5,13 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
+import { sortWeeks } from '@/lib/utils'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { PublicPlayerList } from '@/components/PublicPlayerList'
+import { StatsSidebar } from '@/components/StatsSidebar'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
-import type { GameRole, LeagueFeature, FeatureKey, Player } from '@/lib/types'
+import type { GameRole, LeagueFeature, FeatureKey, Player, Week } from '@/lib/types'
 
 interface Props {
   params: Promise<{ leagueId: string }>
@@ -55,9 +57,30 @@ export default async function LeaguePlayersPage({ params }: Props) {
   const [experimentsResult, leagueFeaturesResult, weeksResult] = await Promise.all([
     service.from('feature_experiments').select('feature, available'),
     service.from('league_features').select('*').eq('game_id', leagueId),
-    service.from('weeks').select('week', { count: 'exact', head: true }).eq('game_id', leagueId).in('status', ['played', 'cancelled']),
+    service
+      .from('weeks')
+      .select('week, date, status, format, team_a, team_b, winner, notes')
+      .eq('game_id', leagueId)
+      .in('status', ['played', 'cancelled'])
+      .order('week', { ascending: false }),
   ])
-  const playedCount = weeksResult.count ?? 0
+  type WeekRow = {
+    week: number; date: string; status: string; format: string | null;
+    team_a: string[] | null; team_b: string[] | null; winner: string | null; notes: string | null;
+  }
+  const weeks: Week[] = sortWeeks(
+    ((weeksResult.data ?? []) as WeekRow[]).map((row) => ({
+      week: row.week,
+      date: row.date,
+      status: row.status as Week['status'],
+      format: row.format ?? undefined,
+      teamA: row.team_a ?? [],
+      teamB: row.team_b ?? [],
+      winner: row.winner as Week['winner'] ?? null,
+      notes: row.notes ?? undefined,
+    }))
+  )
+  const playedCount = weeks.length
   const totalWeeks = 52
   const pct = Math.round((playedCount / totalWeeks) * 100)
 
@@ -112,22 +135,34 @@ export default async function LeaguePlayersPage({ params }: Props) {
   const showMentality = config?.show_mentality ?? true
 
   return (
-    <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 pb-8">
-      <LeaguePageHeader
-        leagueName={game.name}
-        leagueId={leagueId}
-        playedCount={playedCount}
-        totalWeeks={totalWeeks}
-        pct={pct}
-        currentTab="players"
-        isAdmin={isAdmin}
-        showLineupLabTab={tier === 'public' ? false : canSeeTeamBuilder}
-      />
-      <PublicPlayerList
-        players={players}
-        visibleStats={visibleStats}
-        showMentality={showMentality}
-      />
+    <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 pb-8">
+      <div className="flex gap-6 items-start">
+        <div className="flex-1 min-w-0 max-w-2xl">
+          <LeaguePageHeader
+            leagueName={game.name}
+            leagueId={leagueId}
+            playedCount={playedCount}
+            totalWeeks={totalWeeks}
+            pct={pct}
+            currentTab="players"
+            isAdmin={isAdmin}
+            showLineupLabTab={tier === 'public' ? false : canSeeTeamBuilder}
+          />
+          <PublicPlayerList
+            players={players}
+            visibleStats={visibleStats}
+            showMentality={showMentality}
+          />
+        </div>
+        <div className="hidden lg:block w-72 shrink-0 sticky top-4">
+          <StatsSidebar
+            players={players}
+            weeks={weeks}
+            features={rawFeatures}
+            role={userRole}
+          />
+        </div>
+      </div>
     </main>
   )
 }
