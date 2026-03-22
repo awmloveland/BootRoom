@@ -77,7 +77,7 @@ export function LeaguePageHeader({
             )}
           >
             <FlaskConical className="size-4" />
-            The Lineup Lab
+            Lineup Lab
           </Link>
         )}
       </nav>
