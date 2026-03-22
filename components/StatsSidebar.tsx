@@ -36,19 +36,42 @@ function InFormWidget({ players }: { players: Player[] }) {
       {entries.length === 0 ? (
         <EmptyState message="Not enough data yet" />
       ) : (
-        <div className="space-y-2">
-          {entries.map((e) => (
-            <div key={e.name} className="flex items-center justify-between gap-2">
-              <span className="text-sm text-slate-200 truncate">{e.name}</span>
-              <div className="flex items-center gap-2 shrink-0">
-                <FormDots form={e.recentForm} />
-                <span className="text-xs text-slate-400 w-14 text-right">
-                  {e.ppg.toFixed(1)} pts/g
-                </span>
+        <>
+          {/* Hero: rank 1 */}
+          <div className={cn(entries.length > 1 && 'border-b border-slate-700/50 pb-[10px] mb-[10px]')}>
+            <p className="text-[9px] font-bold uppercase tracking-wide text-sky-300 mb-1">
+              The Gaffer&apos;s Pick
+            </p>
+            <p className="text-[15px] font-bold text-slate-100 mb-2">{entries[0].name}</p>
+            <div className="flex items-end justify-between">
+              <FormDots form={entries[0].recentForm} />
+              <div className="text-right">
+                <p className="text-[22px] font-extrabold text-sky-300 leading-none">
+                  {entries[0].ppg.toFixed(1)}
+                </p>
+                <p className="text-[9px] uppercase tracking-wide text-sky-400 mt-0.5">pts / game</p>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+
+          {/* Ranked list: ranks 2–5 */}
+          {entries.length > 1 && (
+            <div className="flex flex-col gap-[5px]">
+              {entries.slice(1).map((e, i) => (
+                <div key={e.name} className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-slate-600 w-[14px] text-right shrink-0">
+                    {i + 2}
+                  </span>
+                  <span className="text-[13px] text-slate-300 flex-1 truncate">{e.name}</span>
+                  <FormDots form={e.recentForm} />
+                  <span className="text-[10px] font-semibold px-[7px] py-px rounded-full bg-slate-700/40 text-slate-500 shrink-0">
+                    {e.ppg.toFixed(1)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </WidgetShell>
   )
