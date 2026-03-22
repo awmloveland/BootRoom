@@ -45,6 +45,14 @@ const DIRECTION_LABELS: Record<SortKey, [string, string]> = {
 }
 // Index 0 = sortAsc true, index 1 = sortAsc false
 
+const DEFAULT_ASC: Record<SortKey, boolean> = {
+  name:       true,
+  played:     false,
+  won:        false,
+  winRate:    false,
+  recentForm: false,
+}
+
 interface Props {
   players: Player[]
   visibleStats?: string[]
@@ -96,7 +104,7 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true }
               onClick={() => {
                 if (sortBy === opt.value) return
                 setSortBy(opt.value)
-                setSortAsc(opt.value === 'name')
+                setSortAsc(DEFAULT_ASC[opt.value])
               }}
               className={cn(
                 'rounded-full text-xs px-2.5 py-1 transition-colors',
@@ -110,6 +118,7 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true }
           ))}
           <button
             type="button"
+            aria-label="Toggle sort direction"
             onClick={() => setSortAsc((a) => !a)}
             className="ml-auto shrink-0 text-xs text-slate-400 bg-slate-900 border border-slate-700 rounded-md px-2 py-1 flex items-center gap-1 hover:border-slate-500 transition-colors"
           >
