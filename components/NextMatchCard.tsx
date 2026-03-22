@@ -212,71 +212,16 @@ export function NextMatchCard({
     clearSplit()
   }
 
-  function pinGuestsToAssociatedTeam(
-    teamA: Player[],
-    teamB: Player[],
-    guests: GuestEntry[],
-  ): { teamA: Player[]; teamB: Player[] } {
-    const newA = [...teamA]
-    const newB = [...teamB]
-
-  // Collect swaps: for each guest, determine if they need to move teams
-  const swaps: Array<{ fromA: boolean; guestIdx: number; displaceIdx: number }> = []
-
-  for (const guest of guests) {
-    const guestInA = newA.findIndex((p) => p.name === guest.name)
-    const guestInB = newB.findIndex((p) => p.name === guest.name)
-    const assocInA = newA.findIndex((p) => p.name === guest.associatedPlayer)
-    const assocInB = newB.findIndex((p) => p.name === guest.associatedPlayer)
-
-    // Associated player not in squad — no constraint
-    if (assocInA === -1 && assocInB === -1) continue
-
-    const guestOnA = guestInA !== -1
-    const assocOnA = assocInA !== -1
-
-    // Already on same team
-    if (guestOnA === assocOnA) continue
-
-    if (assocOnA && guestInB !== -1) {
-      // Guest is on B, assoc is on A — guest should move to A
-      swaps.push({ fromA: false, guestIdx: guestInB, displaceIdx: newA.length - 1 })
-    } else if (!assocOnA && guestInA !== -1) {
-      // Guest is on A, assoc is on B — guest should move to B
-      swaps.push({ fromA: true, guestIdx: guestInA, displaceIdx: newB.length - 1 })
-    }
-  }
-
-  // Apply all swaps
-  for (const swap of swaps) {
-    if (!swap.fromA) {
-      // Move from B to A: swap newB[guestIdx] with newA[displaceIdx]
-      const tmp = newA[swap.displaceIdx]
-      newA[swap.displaceIdx] = newB[swap.guestIdx]
-      newB[swap.guestIdx] = tmp
-    } else {
-      // Move from A to B: swap newA[guestIdx] with newB[displaceIdx]
-      const tmp = newB[swap.displaceIdx]
-      newB[swap.displaceIdx] = newA[swap.guestIdx]
-      newA[swap.guestIdx] = tmp
-    }
-  }
-
-  return { teamA: newA, teamB: newB }
-  }
-
   function handleAutoPick() {
     const resolved = resolvePlayersForAutoPick(squadNames, allPlayers, guestEntries, newPlayerEntries)
-    const result = autoPick(resolved)
+    const pairs = guestEntries
+      .filter((g) => g.associatedPlayer) // guards against empty-string from pre-submit modal state
+      .map((g) => [g.name, g.associatedPlayer] as [string, string])
+    const result = autoPick(resolved, pairs)
     setAutoPickResult(result)
     if (result.suggestions.length > 0) {
-      const pinned = pinGuestsToAssociatedTeam(
-        result.suggestions[0].teamA,
-        result.suggestions[0].teamB,
-        guestEntries,
-      )
-      setLocalTeamA(pinned.teamA)
-      setLocalTeamB(pinned.teamB)
+      setLocalTeamA(result.suggestions[0].teamA)
+      setLocalTeamB(result.suggestions[0].teamB)
     }
   }
 

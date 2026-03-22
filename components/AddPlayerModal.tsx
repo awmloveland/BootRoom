@@ -8,7 +8,7 @@ import { EyeTestSlider } from '@/components/EyeTestSlider'
 import { Toggle } from '@/components/ui/toggle'
 
 interface Props {
-  players: Player[]           // current lineup players (for "plays with" dropdown)
+  players: Player[]           // attending players (used for lineup-membership warning check)
   allLeaguePlayers: Player[]  // full league roster (for collision check)
   avgRating: number           // pre-computed average rating to default slider to
   existingGuests: GuestEntry[] // used to compute +1, +2 suffixes
@@ -147,7 +147,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
                     className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
                     <option value="">Select a player…</option>
-                    {players.map((p) => (
+                    {allLeaguePlayers.map((p) => (
                       <option key={p.name} value={p.name}>{p.name}</option>
                     ))}
                   </select>
@@ -158,7 +158,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
                   )}
                   {showWarning && (
                     <div className="mt-2 flex gap-2 bg-amber-950 border border-amber-800 rounded p-2 text-[11px] text-amber-400 leading-relaxed">
-                      ⚠ {associatedPlayer} isn&apos;t in the current lineup. The guest will be added but can&apos;t be pinned to a team until {associatedPlayer} is selected.
+                      ⚠ {associatedPlayer} isn&apos;t attending this game. Add them to the lineup first, or the guest will be distributed freely by Auto-Pick.
                     </div>
                   )}
                 </div>
