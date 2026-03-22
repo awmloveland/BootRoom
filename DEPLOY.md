@@ -8,10 +8,10 @@ After deploying to Vercel and setting env vars, complete these steps.
 
 1. Open [Vercel Dashboard](https://vercel.com/dashboard) → your project
 2. Go to **Settings** → **Domains**
-3. Add all three domains:
+3. Add:
    - `craft-football.com`
    - `www.craft-football.com` (redirect to `craft-football.com`)
-   - `m.craft-football.com`
+   - `m.craft-football.com` (redirect to `craft-football.com` — handled by `vercel.json`)
 
 Vercel will show DNS instructions for each domain.
 
@@ -35,31 +35,25 @@ Propagation can take a few minutes to 48 hours.
 
 1. Open [Supabase Dashboard](https://supabase.com/dashboard) → your project
 2. Go to **Authentication** → **URL Configuration**
-3. Set **Site URL** to `https://m.craft-football.com`
+3. Set **Site URL** to `https://craft-football.com`
 4. Under **Redirect URLs**, add:
    ```
-   https://m.craft-football.com
-   https://m.craft-football.com/auth/callback
-   https://m.craft-football.com/reset-password
+   https://craft-football.com
+   https://craft-football.com/auth/callback
+   https://craft-football.com/reset-password
    ```
-5. Save. See `SUPABASE_SETUP.md` for a full list including localhost.
+5. Save. See `SUPABASE_SETUP.md` § Auth redirect URLs for a full list including localhost.
 
 ---
 
 ## Step 6: Migrations and legacy admin
 
-1. Run the new migrations in Supabase SQL Editor (in order):
-   - `supabase/migrations/20250313100001_games_and_invites.sql`
-   - `supabase/migrations/20250313100002_add_game_id_to_data.sql`
-   - `supabase/migrations/20250313100003_open_signup_and_accept_invite.sql`
-   - `supabase/migrations/20250313100004_claim_profile_display_name.sql`
-   - `supabase/migrations/20250313100005_create_game_rpc.sql`
-   - `supabase/migrations/20250313100006_game_data_policies.sql`
-   - `supabase/migrations/20250313100007_player_stats_by_game.sql`
-   - `supabase/migrations/20250313100008_fix_game_members_rls_recursion.sql` ← **fixes "infinite recursion" error**
-   - `supabase/migrations/20250313100009_bootstrap_invite.sql` ← **open invite links (no email required)**
+1. Run all migrations in Supabase SQL Editor in filename order (there are currently 34):
+   ```
+   supabase/migrations/
+   ```
 
-2. Sign up at m.craft-football.com/sign-in (open signup)
+2. Sign up at craft-football.com/sign-in (open signup)
 
 3. Add yourself as creator of the legacy game:
    ```bash
@@ -75,7 +69,6 @@ Propagation can take a few minutes to 48 hours.
 
 ## Verify
 
-- **craft-football.com** → marketing landing page
-- **m.craft-football.com** → app (match history, sign-in)
+- **craft-football.com** → marketing landing page + member app
 - Sign in → see stats (after running seed-legacy-admin)
 - Settings → invite someone → they open link, sign in, accept → they see stats

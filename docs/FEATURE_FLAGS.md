@@ -174,7 +174,7 @@ const DEFAULT_FEATURES = [
 **Always start with `enabled: false` and `public_enabled: false`.** The
 feature is admin-only until explicitly promoted.
 
-### Step 3 — Wire the feature into the Admin Panel (`components/AdminFeaturePanel.tsx`)
+### Step 3 — Wire the feature into the Admin Panel (`components/FeaturePanel.tsx`)
 
 Features live inside **page cards** (`ResultsPageCard` or `PlayersPageCard`)
 with a `Members` / `Public` tab each. Find the card that owns your feature
@@ -297,7 +297,7 @@ Run the migration in the Supabase SQL Editor after deploying the code changes.
 ## The `public_config` seeding pattern
 
 When an admin first enables **Page visible** for the public tier, the
-`AdminFeaturePanel` seeds a default `public_config` so individual sub-settings
+`FeaturePanel` seeds a default `public_config` so individual sub-settings
 have a non-null base to build on. Without this seed, unchecking a checkbox
 would save `{ show_mentality: false }` but a subsequent "Page visible" toggle
 would overwrite it with `null`.
@@ -341,7 +341,7 @@ Apply the same pattern to any new page card that has per-tier config.
 
 ## Admin panel UI structure
 
-The admin panel (`components/AdminFeaturePanel.tsx`) uses a **page-centric,
+The admin panel (`components/FeaturePanel.tsx`) uses a **page-centric,
 tabbed layout**:
 
 ```
@@ -382,7 +382,7 @@ shows a brief **"Saved ✓"** indicator next to the tier tabs.
 | `lib/features.ts` | `isFeatureEnabled(features, key, tier)` helper |
 | `lib/roles.ts` | `resolveVisibilityTier(role)` helper, `VisibilityTier` type |
 | `app/api/league/[id]/features/route.ts` | GET (read features) + PATCH (save features) |
-| `components/AdminFeaturePanel.tsx` | Admin UI — page cards with Members/Public tabs |
+| `components/FeaturePanel.tsx` | Admin UI — page cards with Members/Public tabs |
 | `app/app/league/[id]/page.tsx` | Member results page — gated by `isFeatureEnabled` |
 | `app/app/league/[id]/players/page.tsx` | Member players page — gated by `isFeatureEnabled` |
 | `app/results/[id]/page.tsx` | Public results page — reads `public_enabled` directly |

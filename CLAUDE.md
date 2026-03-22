@@ -9,9 +9,7 @@ Read it in full before writing or editing any code.
 
 **BootRoom** is a private, invite-only league management platform for 5-a-side to 7-a-side football leagues called *The Boot Room*. It is a dark-mode-first web app built with Next.js 14 and Supabase. Members can view match history, player statistics, and league tables. Admins can manage invites, record game results, and control which features are visible to members and the public.
 
-Deployed on two domains:
-- `craft-football.com` — public marketing site + public league pages (`/results/[id]`)
-- `m.craft-football.com` — authenticated member app
+Deployed on a single domain: `craft-football.com` — public marketing pages, public league pages, and the authenticated member app all live here. `m.craft-football.com` redirects to `craft-football.com`.
 
 ---
 
@@ -47,12 +45,11 @@ BootRoom/
 │   │   ├── settings/         # User settings + invite admin
 │   │   ├── invite/           # Invite accept flow
 │   │   └── add-game/         # Create a new league
-│   ├── website/              # Public marketing pages (craft-football.com)
 │   ├── api/                  # API routes
 │   └── globals.css           # Tailwind base import only
 ├── components/
 │   ├── ui/                   # Base UI primitives (button, input, navbar…)
-│   ├── AdminFeaturePanel.tsx # Feature flag management UI (admin only)
+│   ├── FeaturePanel.tsx      # Feature flag management UI (admin only)
 │   ├── AdminMemberTable.tsx  # Member management UI (admin only)
 │   ├── MatchCard.tsx         # Collapsible match result card
 │   ├── TeamList.tsx          # Player name list for one team
@@ -96,7 +93,7 @@ Admins always bypass feature flag checks — they see every feature regardless o
 2. Promote to members by toggling **enabled** on in Settings → Features → Members tab.
 3. Promote to public by toggling **public_enabled** on in Settings → Features → Public tab.
 4. Each tier can have independent config (e.g. different visible stat columns for public vs members).
-5. To add a new feature: add a `FeatureKey` to `lib/types.ts`, add a `DEFAULT_FEATURES` entry in `app/api/league/[id]/features/route.ts`, wire it into `AdminFeaturePanel.tsx`, and write a migration to seed the row.
+5. To add a new feature: add a `FeatureKey` to `lib/types.ts`, add a `DEFAULT_FEATURES` entry in `app/api/league/[id]/features/route.ts`, wire it into `FeaturePanel.tsx`, and write a migration to seed the row.
 6. Use `isFeatureEnabled(features, key, resolveVisibilityTier(userRole))` from `lib/features.ts` to gate UI.
 
 See **`docs/FEATURE_FLAGS.md`** for the full step-by-step guide.
@@ -230,7 +227,7 @@ these colours carry strong pass/warning/error connotations in UI.
 - Purely presentational — receives `label: string` and `players: string[]`
 - Team B label is always **"Team B"** throughout the UI
 
-### AdminFeaturePanel
+### FeaturePanel
 
 - Renders per-feature rows with an enabled toggle and a visibility selector
 - Visibility selector lets admins promote a feature: `admin_only` → `members` → `public`
@@ -247,4 +244,5 @@ these colours carry strong pass/warning/error connotations in UI.
 - **Feature flags** — all new features start at `admin_only`. Promote via the UI, not code.
 - **No player profile pages** — player detail views are not in scope yet.
 - **Max-width `max-w-2xl`** — do not widen the content column.
-- **Public routing** — public league pages live at `craft-football.com/results/[id]` and require `public_results_enabled = true` on the league. Feature-level access is controlled per-feature via `public_enabled` on `league_features`.
+- **Single domain** — everything runs on `craft-football.com`. `m.craft-football.com` permanently redirects there via `vercel.json`.
+- **Public routing** — public league pages live at `/results/[id]`. Feature-level access is controlled per-feature via `public_enabled` on `league_features`.
