@@ -21,7 +21,7 @@ Add a third tab to the league page called **The Lineup Lab** — a scratchpad fo
 
 ## Route & page
 
-**Route:** `/app/league/[id]/lineup-lab`
+**Route:** `/[leagueId]/lineup-lab` (resolves to `app/app/[leagueId]/lineup-lab/page.tsx` in the filesystem — the `app/app/` directory is the authenticated member shell, matching the existing `results` and `players` routes)
 
 - Server component (`page.tsx`) — fetches the league's player list and feature flags, enforces access control, and passes data down to the client component.
 - If the feature is not enabled for the user's tier, redirect to the league results page (consistent with how other gated routes behave).
@@ -40,17 +40,15 @@ A fixed card at the top of the page. Contains:
 ### 2. Action row
 
 Two controls in a single row, space-between:
-- **Left:** `⚖️ Auto-Balance Teams` button — runs the balance algorithm on the current selection.
-- **Right:** `↺ Clear all` button — resets both teams and returns all chips to unselected. Styled as a subtle text button (not a primary action).
-
-Both buttons are disabled / hidden when no players are selected.
+- **Left:** `⚖️ Auto-Balance Teams` button — runs the balance algorithm on the current selection. Disabled (rendered but not clickable) when fewer than 2 players are selected in total.
+- **Right:** `↺ Clear all` button — resets both teams and returns all chips to unselected. Styled as a subtle text button (not a primary action). Disabled when no players are selected.
 
 ### 3. Teams grid
 
 Two columns: **Team A** (sky colour) and **Team B** (violet colour).
 
 Each column has:
-- Header row: team label (`Team A` / `Team B`) + live score badge (`ewptScore().toFixed(3)` format).
+- Header row: team label (`Team A` / `Team B`) + live score badge — computed via `ewptScore(players)` from `lib/utils`, displayed as `.toFixed(3)`.
 - Player rows — draggable, showing player name and last-5 form dots (`recentForm`). Goalkeeper players show the 🧤 emoji after their name.
 - An empty drop-zone placeholder shown when the team has no players.
 
@@ -97,9 +95,9 @@ Player rows within the teams grid are draggable. The implementation mirrors the 
 - Drop highlight colours match the team: sky for A, violet for B.
 
 ### Auto-Balance
-Clicking Auto-Balance runs `autoPick()` from `lib/autoPick` on the currently selected players (union of both teams). Takes `suggestions[0]` (most balanced result). Replaces `teamA` and `teamB` state with the suggestion's teams. No suggestion carousel — this is a scratchpad, not the match flow.
+Clicking Auto-Balance runs `autoPick([...teamA, ...teamB])` from `lib/autoPick` — the input is the flat union of all currently selected players regardless of their current team assignment. The `pairs` argument is omitted (no guests). Takes `suggestions[0]` (most balanced result). Replaces `teamA` and `teamB` state with the suggestion's teams. No suggestion carousel — this is a scratchpad, not the match flow.
 
-If fewer than 2 players are selected, the button is disabled.
+The button is disabled when fewer than 2 players are selected in total (consistent with the action row threshold above). The current team distribution does not affect the disabled condition — only the total count matters.
 
 ### Clear all
 Resets `teamA` and `teamB` to empty arrays. All chips return to grey. The teams grid reverts to the "select players to get started" empty state.
@@ -129,8 +127,8 @@ The `FormDots` component and `FORM_COLOR` map should be extracted from `NextMatc
 ## State & persistence
 
 - `LineupLab` is a client component.
-- State: `teamA: Player[]` and `teamB: Player[]` via `useState`.
-- Persists for the duration of the browser session (survives tab switches within the app).
+- State: `teamA: Player[]` and `teamB: Player[]` via `useState`. No `sessionStorage` or other Web Storage API — plain React state only.
+- Survives tab switches within the app (Next.js client-side navigation preserves component state).
 - Resets on full page refresh — intentional, matches the scratchpad nature.
 - No Supabase reads or writes from this component.
 
@@ -140,9 +138,18 @@ The `FormDots` component and `FORM_COLOR` map should be extracted from `NextMatc
 
 | File | Role |
 |---|---|
-| `app/app/league/[id]/lineup-lab/page.tsx` | Server component. Fetches players + features. Enforces access. Passes `allPlayers` to `LineupLab`. |
+| `app/app/[leagueId]/lineup-lab/page.tsx` | Server component. Fetches players + features. Enforces access. Passes `allPlayers` to `LineupLab`. |
 | `components/LineupLab.tsx` | Client component. All interactive state. Renders intro, actions, teams, balance bar, and player pool. |
-| `components/FormDots.tsx` | Extracted from `NextMatchCard.tsx`. Shared by both components. |
+| `components/FormDots.tsx` | Extracted from `NextMatchCard.tsx`. Includes `FormDots` component and `FORM_COLOR` map. `NextMatchCard.tsx` is updated to import from this new shared location. |
+
+### LeaguePageHeader updates
+
+`components/LeaguePageHeader.tsx` must be updated to add the new tab:
+
+1. Extend the `currentTab` prop type from `'results' | 'players'` to include `'lineup-lab'`.
+2. Add a new `<Link>` for The Lineup Lab with href `/${leagueId}/lineup-lab` (matching the pattern used for Results and Players links).
+3. Add a `showLineupLabTab: boolean` prop. The tab link is only rendered when this is `true`.
+4. All three page server components that render `LeaguePageHeader` — `results/page.tsx`, `players/page.tsx`, and the new `lineup-lab/page.tsx` — must compute and pass `showLineupLabTab` based on the `team_builder` feature flag check for the user's tier.
 
 ---
 
