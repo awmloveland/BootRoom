@@ -40,7 +40,7 @@ function StatsFeatureRow({ leagueId, feature, label, onChanged }: StatsFeatureRo
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        feature: feature.feature,
+        ...feature,
         [field]: !feature[field],
       }),
     })
