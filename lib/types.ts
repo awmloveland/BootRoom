@@ -109,3 +109,5 @@ export interface LineupMetadata {
   guests: GuestEntry[]
   new_players: NewPlayerEntry[]
 }
+
+export type SortKey = 'name' | 'played' | 'won' | 'winRate' | 'recentForm'

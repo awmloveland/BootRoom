@@ -4,9 +4,7 @@ import { useState, useMemo } from 'react'
 import { Search, ArrowUp, ArrowDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PlayerCard } from '@/components/PlayerCard'
-import type { Player } from '@/lib/types'
-
-type SortKey = 'name' | 'played' | 'won' | 'winRate' | 'recentForm'
+import type { Player, SortKey } from '@/lib/types'
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: 'name',       label: 'Name' },
