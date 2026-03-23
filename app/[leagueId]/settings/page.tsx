@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { Suspense, useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Check, Copy, Info, RefreshCw, Settings2, Users } from 'lucide-react'
 import { fetchGames } from '@/lib/data'
@@ -12,6 +12,17 @@ import type { LeagueMember, LeagueFeature, LeagueDetails } from '@/lib/types'
 
 type Section = 'details' | 'members' | 'features'
 
+function TabInitialiser({ onTab }: { onTab: (tab: Section) => void }) {
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab === 'details' || tab === 'members' || tab === 'features') {
+      onTab(tab)
+    }
+  }, [searchParams, onTab])
+  return null
+}
+
 function formatExpiry(iso: string | null): string {
   if (!iso) return ''
   const d = new Date(iso)
@@ -21,13 +32,9 @@ function formatExpiry(iso: string | null): string {
 export default function LeagueSettingsPage() {
   const params = useParams()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const leagueId = (params?.leagueId as string) ?? ''
 
-  const initialSection = (searchParams?.get('tab') as Section | null) ?? 'details'
-  const [section, setSection] = useState<Section>(
-    ['details', 'members', 'features'].includes(initialSection) ? initialSection : 'details'
-  )
+  const [section, setSection] = useState<Section>('details')
   const [leagueName, setLeagueName] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -96,6 +103,8 @@ export default function LeagueSettingsPage() {
       if (membersRes.ok && Array.isArray(membersData)) {
         setPlayerCount(membersData.length)
       }
+    } catch {
+      setLeagueDetails({ location: null, day: null, kickoff_time: null, bio: null })
     } finally {
       setDetailsLoading(false)
     }
@@ -186,6 +195,9 @@ export default function LeagueSettingsPage() {
 
   return (
     <main className="max-w-xl mx-auto px-4 sm:px-6 py-8">
+      <Suspense fallback={null}>
+        <TabInitialiser onTab={setSection} />
+      </Suspense>
       <div className="mb-6">
         <button
           onClick={() => router.back()}
@@ -220,12 +232,12 @@ export default function LeagueSettingsPage() {
       {/* ── LEAGUE DETAILS ── */}
       {section === 'details' && (
         <div>
-          {detailsLoading || leagueDetails === null ? (
+          {detailsLoading ? (
             <p className="text-slate-400 text-sm">Loading…</p>
           ) : (
             <LeagueDetailsForm
               leagueId={leagueId}
-              initialDetails={leagueDetails}
+              initialDetails={leagueDetails ?? { location: null, day: null, kickoff_time: null, bio: null }}
               playerCount={playerCount}
             />
           )}
