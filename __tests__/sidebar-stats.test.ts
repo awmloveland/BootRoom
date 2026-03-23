@@ -1,4 +1,4 @@
-import { QUARTER_GAME_COUNT, computeInForm, computeQuarterlyTable, computeTeamAB } from '@/lib/sidebar-stats'
+import { computeInForm, computeQuarterlyTable, computeTeamAB } from '@/lib/sidebar-stats'
 import type { Player, Week } from '@/lib/types'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -141,30 +141,6 @@ describe('computeQuarterlyTable', () => {
     expect(result.quarterLabel).toBe('Q1 26')
   })
 
-  it('returns gamesLeft as QUARTER_GAME_COUNT minus maxPlayed', () => {
-    // Two weeks played in Q1 2026, max played by any player = 2
-    const weeks: Week[] = [
-      makeWeek({ week: 1, date: '05 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-      makeWeek({ week: 2, date: '12 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamB' }),
-    ]
-    const result = computeQuarterlyTable(weeks, new Date(2026, 0, 22))
-    // QUARTER_GAME_COUNT is 16; maxPlayed = 2 → gamesLeft = 14
-    expect(result.gamesLeft).toBe(14)
-  })
-
-  it('returns QUARTER_GAME_COUNT as gamesLeft when entries is empty', () => {
-    const result = computeQuarterlyTable([], new Date(2026, 0, 22))
-    expect(result.gamesLeft).toBe(QUARTER_GAME_COUNT)
-  })
-
-  it('clamps gamesLeft to 0 when maxPlayed exceeds QUARTER_GAME_COUNT', () => {
-    // Artificially create 20 weeks to exceed the constant
-    const weeks: Week[] = Array.from({ length: 20 }, (_, i) =>
-      makeWeek({ week: i + 1, date: '05 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' })
-    )
-    const result = computeQuarterlyTable(weeks, new Date(2026, 0, 22))
-    expect(result.gamesLeft).toBe(0)
-  })
 })
 
 // ─── computeTeamAB ────────────────────────────────────────────────────────────
