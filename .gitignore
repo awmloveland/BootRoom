@@ -5,6 +5,9 @@ node_modules/
 .next/
 out/
 
+# Test coverage
+coverage/
+
 # Production build
 build/
 
