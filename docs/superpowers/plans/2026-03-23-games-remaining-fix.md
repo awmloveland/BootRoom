@@ -16,8 +16,9 @@
 
 | File | Action | What changes |
 |---|---|---|
-| `lib/sidebar-stats.ts` | Modify | Remove `QUARTER_GAME_COUNT`; add `inferGameDay` + `gamesLeftInQuarter`; update `computeQuarterlyTable` signature and `gamesLeft` logic |
+| `lib/sidebar-stats.ts` | Modify | Remove `QUARTER_GAME_COUNT`; add `inferGameDay` + `gamesLeftInQuarter`; update `computeQuarterlyTable` signature and `gamesLeft` logic; add `gamesTotal` to result |
 | `__tests__/sidebar-stats.test.ts` | Modify | Remove 3 old `gamesLeft` tests; add 10 new calendar-aware tests |
+| `components/StatsSidebar.tsx` | Modify | Remove `QUARTER_GAME_COUNT` import; use `gamesTotal` for progress bar `fillPct` |
 
 ---
 

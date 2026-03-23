@@ -131,7 +131,7 @@ All existing `gamesLeft` tests are replaced. New tests, each with concrete input
 | `now` is last day of quarter | `now = new Date(2026, 2, 31)` (31 Mar, Q1), `gameDay = 2` (Tuesday — 31 Mar 2026 is a Tuesday) | `gamesLeft === 0` (cursor starts at 1 Apr, past `quarterEnd`) |
 | `now` IS the last game day of the quarter | `now = new Date(2026, 2, 31)` (31 Mar 2026, a Tuesday), `gameDay = 2` | `gamesLeft === 0` (today excluded; cursor starts tomorrow, which is in Q2) |
 | `now` IS a game day mid-quarter | `now = new Date(2026, 0, 7)` (7 Jan 2026, a Wednesday), `gameDay = 3` | today is excluded; count starts from 14 Jan |
-| `now` is day before a game day | `now = new Date(2026, 0, 6)` (6 Jan, Tuesday), `gameDay = 3` (Wednesday) | 7 Jan counted; total = 13 |
+| `now` is day before a game day | `now = new Date(2026, 0, 6)` (6 Jan, Tuesday), `gameDay = 3` (Wednesday) | 7 Jan counted; total = 12 |
 | `gameDay = 0` (Sunday boundary) | `now = new Date(2026, 0, 1)`, `gameDay = 0` | count of Sundays from 2 Jan to 31 Mar 2026 |
 | No weeks, no `gameDay` | empty `weeks`, no `gameDay` arg | `gamesLeft === 0` |
 
