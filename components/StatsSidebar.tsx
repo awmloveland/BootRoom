@@ -39,10 +39,10 @@ function InFormWidget({ players }: { players: Player[] }) {
         <>
           {/* Hero: rank 1 */}
           <div className={cn(entries.length > 1 && 'border-b border-slate-700/50 pb-[10px] mb-[10px]')}>
-            <p className="text-[9px] font-bold uppercase tracking-wide text-sky-300 mb-1">
+            <p className="text-[9px] font-bold uppercase tracking-wide text-sky-300 mb-0">
               The Gaffer&apos;s Pick
             </p>
-            <p className="text-[15px] font-bold text-slate-100 mb-2">{entries[0].name}</p>
+            <p className="text-[15px] font-bold text-slate-100 uppercase mb-2">{entries[0].name}</p>
             <div className="flex items-end justify-between">
               <FormDots form={entries[0].recentForm} />
               <div className="text-right">
@@ -87,8 +87,8 @@ function QuarterlyTableWidget({ weeks }: { weeks: Week[] }) {
   return (
     <div className="rounded-lg border border-slate-700 bg-transparent overflow-hidden">
       {/* Header with inline column labels */}
-      <div className="px-3 py-1.5 border-b border-slate-700/40 flex items-center gap-1">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex-1">
+      <div className="px-3 py-2 border-b border-slate-700/40 flex items-center gap-1">
+        <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 flex-1">
           {quarterLabel}
         </span>
         <span className="text-[10px] font-semibold uppercase text-slate-700 w-[22px] text-center">P</span>
@@ -109,7 +109,7 @@ function QuarterlyTableWidget({ weeks }: { weeks: Week[] }) {
                 )}
               >
                 <span className={cn(
-                  'text-[11px] w-[14px] text-right shrink-0',
+                  'text-[11px] w-[14px] text-left shrink-0',
                   i === 0 ? 'font-bold text-sky-400' : 'text-slate-600'
                 )}>
                   {i + 1}
@@ -153,10 +153,10 @@ function QuarterlyTableWidget({ weeks }: { weeks: Week[] }) {
         {lastChampion && lastQuarterLabel && (
           <div className="flex items-center justify-between bg-amber-400/[0.07] border border-amber-400/[0.14] rounded-md px-[10px] py-[6px]">
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-wide text-amber-600 mb-0.5">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-amber-600 mb-0">
                 {lastQuarterLabel} Champion
               </p>
-              <p className="text-[13px] font-bold text-yellow-200">{lastChampion}</p>
+              <p className="text-[13px] font-bold text-yellow-200 uppercase">{lastChampion}</p>
             </div>
             <span className="text-lg leading-none">🏆</span>
           </div>
