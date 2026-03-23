@@ -194,7 +194,11 @@ export function getNextMatchDate(weeks: Week[]): string {
   const lastDate = parseWeekDate(played[0].date)
   const dow = lastDate.getDay()
   let daysUntil = (dow - today.getDay() + 7) % 7
-  if (daysUntil === 0) daysUntil = 7
+  if (daysUntil === 0) {
+    // Today is game day — only skip to next week if a week already exists today
+    const todayStr = formatWeekDate(today)
+    if (weeks.some((w) => w.date === todayStr)) daysUntil = 7
+  }
   const next = new Date(today)
   next.setDate(today.getDate() + daysUntil)
   return formatWeekDate(next)
