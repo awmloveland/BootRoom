@@ -105,20 +105,8 @@ export function FeaturePanel({ leagueId, features, onChanged }: FeaturePanelProp
         </div>
         <StatsFeatureRow
           leagueId={leagueId}
-          feature={getFeature(features, 'stats_in_form')}
-          label="Most In Form"
-          onChanged={onChanged}
-        />
-        <StatsFeatureRow
-          leagueId={leagueId}
-          feature={getFeature(features, 'stats_quarterly_table')}
-          label="Quarterly Table"
-          onChanged={onChanged}
-        />
-        <StatsFeatureRow
-          leagueId={leagueId}
-          feature={getFeature(features, 'stats_team_ab')}
-          label="Team A vs Team B"
+          feature={getFeature(features, 'stats_sidebar')}
+          label="Stats Sidebar"
           onChanged={onChanged}
         />
       </div>

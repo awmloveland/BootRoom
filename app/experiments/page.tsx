@@ -12,9 +12,7 @@ const FEATURE_LABELS: Record<FeatureKey, string> = {
   team_builder:      'Team Builder',
   player_stats:      'Player Stats',
   player_comparison: 'Player Comparison',
-  stats_in_form:     'Stats: In Form',
-  stats_quarterly_table: 'Stats: Quarterly Table',
-  stats_team_ab:     'Stats: Team A vs Team B',
+  stats_sidebar:     'Stats Sidebar',
 }
 
 interface Experiment {

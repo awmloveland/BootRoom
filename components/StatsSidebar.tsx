@@ -223,17 +223,15 @@ function TeamABWidget({ weeks }: { weeks: Week[] }) {
 export function StatsSidebar({ players, weeks, features, role }: StatsSidebarProps) {
   const tier = resolveVisibilityTier(role)
 
-  const showInForm    = isFeatureEnabled(features, 'stats_in_form',         tier)
-  const showQuarterly = isFeatureEnabled(features, 'stats_quarterly_table', tier)
-  const showTeamAB    = isFeatureEnabled(features, 'stats_team_ab',         tier)
+  const showStatsSidebar = isFeatureEnabled(features, 'stats_sidebar', tier)
 
-  if (!showInForm && !showQuarterly && !showTeamAB) return null
+  if (!showStatsSidebar) return null
 
   return (
     <div className="space-y-3">
-      {showInForm    && <InFormWidget    players={players} />}
-      {showQuarterly && <QuarterlyTableWidget weeks={weeks} />}
-      {showTeamAB    && <TeamABWidget    weeks={weeks} />}
+      <InFormWidget    players={players} />
+      <QuarterlyTableWidget weeks={weeks} />
+      <TeamABWidget    weeks={weeks} />
     </div>
   )
 }
