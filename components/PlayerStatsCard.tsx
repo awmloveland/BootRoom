@@ -125,7 +125,7 @@ export function PlayerStatsCard({ leagueId, feature, onChanged }: PlayerStatsCar
   const publicMentality = localPublicConfig?.show_mentality ?? true
 
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-800 overflow-hidden">
+    <div className="rounded-xl border border-slate-700 bg-slate-800 overflow-hidden mb-3">
       <div className="px-4 py-3 border-b border-slate-700/60">
         <div className="text-sm font-semibold text-slate-100">Player Stats</div>
         <div className="text-xs text-slate-500 mt-0.5">
