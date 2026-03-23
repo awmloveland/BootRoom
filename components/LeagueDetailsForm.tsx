@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils'
 import type { LeagueDetails } from '@/lib/types'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-const TIMES = ['5:00pm', '5:30pm', '6:00pm', '6:30pm', '7:00pm', '7:30pm', '8:00pm', '8:30pm', '9:00pm']
 
 interface LeagueDetailsFormProps {
   leagueId: string
@@ -119,18 +118,13 @@ export function LeagueDetailsForm({
               <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">
                 Kick-off time
               </label>
-              <select
+              <input
+                type="text"
                 value={kickoffTime}
                 onChange={(e) => { setKickoffTime(e.target.value); markDirty() }}
-                className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-slate-400"
-              >
-                <option value="">Select time</option>
-                {TIMES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+                placeholder="e.g. 7:30pm"
+                className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              />
             </div>
           </div>
 

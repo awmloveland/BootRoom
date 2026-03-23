@@ -38,9 +38,6 @@ export async function PATCH(
   if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const VALID_DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
-  const VALID_TIMES = [
-    '5:00pm','5:30pm','6:00pm','6:30pm','7:00pm','7:30pm','8:00pm','8:30pm','9:00pm',
-  ]
 
   let body: unknown
   try {
@@ -49,10 +46,11 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const location = typeof (body as Record<string, unknown>).location === 'string' ? ((body as Record<string, unknown>).location as string).trim() || null : null
-  const day = typeof (body as Record<string, unknown>).day === 'string' && VALID_DAYS.includes((body as Record<string, unknown>).day as string) ? (body as Record<string, unknown>).day : null
-  const kickoff_time = typeof (body as Record<string, unknown>).kickoff_time === 'string' && VALID_TIMES.includes((body as Record<string, unknown>).kickoff_time as string) ? (body as Record<string, unknown>).kickoff_time : null
-  const bio = typeof (body as Record<string, unknown>).bio === 'string' ? ((body as Record<string, unknown>).bio as string).trim() || null : null
+  const b = body as Record<string, unknown>
+  const location    = typeof b.location     === 'string' ? b.location.trim()     || null : null
+  const day         = typeof b.day          === 'string' && VALID_DAYS.includes(b.day) ? b.day : null
+  const kickoff_time = typeof b.kickoff_time === 'string' ? b.kickoff_time.trim() || null : null
+  const bio         = typeof b.bio          === 'string' ? b.bio.trim()          || null : null
 
   const service = createServiceClient()
   const { error } = await service
