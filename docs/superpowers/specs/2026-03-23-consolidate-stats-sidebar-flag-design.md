@@ -45,11 +45,15 @@ Remove the three stats rows. Add:
 { feature: 'stats_sidebar', enabled: true, config: null, public_enabled: true, public_config: null }
 ```
 
+**Note:** `public_enabled: true` is an intentional exception to the project convention of defaulting `public_enabled: false`. The stats sidebar is a read-only display — there is no security or privacy concern with public visibility, and defaulting it on avoids a manual admin step for every new league.
+
 ---
 
 ## Components
 
 ### `components/StatsSidebarCard.tsx` (new)
+
+Must begin with `'use client'` — uses `useState` and `fetch`.
 
 A new card component matching the style of `TeamBuilderCard`:
 
@@ -60,7 +64,7 @@ A new card component matching the style of `TeamBuilderCard`:
 - Body (`px-4`): single toggle row for **Public** only
   - Label: "Public", hint: "visible to anyone with the league link"
   - `Toggle` component from `components/ui/toggle`
-  - On change: PATCH `/api/league/[id]/features` with updated `public_enabled`
+  - On change: PATCH `/api/league/[id]/features` with the full updated `LeagueFeature` object — `{ ...feature, public_enabled: val }`. Must include `credentials: 'include'` (matches `TeamBuilderCard` pattern; required for session cookie). This ensures `enabled: true` is always preserved in the payload (it is not exposed in the UI).
 - Error and saved feedback (`px-4 pb-3 text-xs`) matching TeamBuilderCard pattern
 - No Members row — members always have access; the toggle is not exposed
 
@@ -87,7 +91,20 @@ const show = isFeatureEnabled(features, 'stats_sidebar', tier)
 if (!show) return null
 ```
 
-Remove the three individual `show*` guards on the widgets — all three render unconditionally once the sidebar is shown.
+Remove the three individual `show*` variables and their guards. Also replace the three conditional render lines:
+```tsx
+{showInForm    && <InFormWidget    players={players} />}
+{showQuarterly && <QuarterlyTableWidget weeks={weeks} />}
+{showTeamAB    && <TeamABWidget    weeks={weeks} />}
+```
+with unconditional renders of all three widgets. Each widget already handles its own empty state internally (via `EmptyState` components), so no data = graceful empty message, not a blank render.
+
+### `app/experiments/page.tsx`
+
+This page has a `FEATURE_LABELS` record typed as `Record<FeatureKey, string>`. Because it is exhaustive, TypeScript will error when `FeatureKey` changes. Remove the three old entries and add:
+```ts
+stats_sidebar: 'Stats Sidebar',
+```
 
 ---
 
@@ -95,25 +112,26 @@ Remove the three individual `show*` guards on the widgets — all three render u
 
 New file: `supabase/migrations/20260323000001_consolidate_stats_sidebar_flag.sql`
 
+The `league_features.feature` column has no FK constraint back to `feature_experiments`, so step ordering is not constrained by referential integrity. Steps are ordered for logical clarity.
+
 ```sql
 -- 1. Register the new unified flag
 INSERT INTO feature_experiments (feature, available)
 VALUES ('stats_sidebar', true)
 ON CONFLICT (feature) DO NOTHING;
 
--- 2. Seed stats_sidebar for all leagues
---    Default: enabled=true, public_enabled=true
+-- 2. Seed stats_sidebar for all leagues (enabled=true, public_enabled=true)
 INSERT INTO league_features (game_id, feature, enabled, public_enabled)
 SELECT id, 'stats_sidebar', true, true
 FROM games
 ON CONFLICT (game_id, feature) DO NOTHING;
 
--- 3. Remove the old per-widget flags from feature_experiments
-DELETE FROM feature_experiments
+-- 3. Remove the old per-widget rows from league_features
+DELETE FROM league_features
 WHERE feature IN ('stats_in_form', 'stats_quarterly_table', 'stats_team_ab');
 
--- 4. Remove the old per-widget rows from league_features
-DELETE FROM league_features
+-- 4. Remove the old per-widget flags from feature_experiments
+DELETE FROM feature_experiments
 WHERE feature IN ('stats_in_form', 'stats_quarterly_table', 'stats_team_ab');
 ```
 
@@ -137,5 +155,8 @@ WHERE feature IN ('stats_in_form', 'stats_quarterly_table', 'stats_team_ab');
 | `lib/defaults.ts` | Replace 3 rows with 1 |
 | `components/StatsSidebarCard.tsx` | New card component |
 | `components/FeaturePanel.tsx` | Remove StatsFeatureRow + old section, add StatsSidebarCard |
-| `components/StatsSidebar.tsx` | Single flag check |
+| `components/StatsSidebar.tsx` | Single flag check, remove per-widget guards |
+| `app/experiments/page.tsx` | Update FEATURE_LABELS record |
 | `supabase/migrations/20260323000001_consolidate_stats_sidebar_flag.sql` | New migration |
+
+**No changes needed to `app/api/league/[id]/features/route.ts`.** The GET handler filters `DEFAULT_FEATURES` against `feature_experiments.available` — removing the old three rows from `feature_experiments` in the migration automatically excludes them. The PATCH handler accepts `feature: FeatureKey`; once `FeatureKey` no longer includes the old keys, TypeScript enforces the stricter type automatically.
