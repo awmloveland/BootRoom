@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import LeagueInfoBar from '@/components/LeagueInfoBar'
+import { LeagueInfoBar } from '@/components/LeagueInfoBar'
 import type { LeagueDetails } from '@/lib/types'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -13,7 +13,7 @@ interface LeagueDetailsFormProps {
   playerCount: number
 }
 
-export default function LeagueDetailsForm({
+export function LeagueDetailsForm({
   leagueId,
   initialDetails,
   playerCount,
@@ -54,6 +54,7 @@ export default function LeagueDetailsForm({
         setError(data.error ?? 'Failed to save')
       } else {
         setSuccess(true)
+        setTimeout(() => setSuccess(false), 2000)
       }
     } catch {
       setError('Network error')
@@ -134,7 +135,11 @@ export default function LeagueDetailsForm({
             <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">
               Players in league
             </label>
-            <p className="text-sm text-slate-500">{playerCount} players registered</p>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-400">{playerCount} players</span>
+              <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-400">auto</span>
+            </div>
+            <p className="text-xs text-slate-600">Counted automatically from the Players tab.</p>
           </div>
 
           {/* Bio */}
@@ -149,6 +154,7 @@ export default function LeagueDetailsForm({
               rows={3}
               className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400 resize-none"
             />
+            <p className="text-xs text-slate-600">Keep it short — one or two sentences works best.</p>
           </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}

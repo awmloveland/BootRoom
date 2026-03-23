@@ -133,7 +133,7 @@ export default async function LineupLabPage({ params }: Props) {
     day: game.day ?? null,
     kickoff_time: game.kickoff_time ?? null,
     bio: game.bio ?? null,
-    player_count: players.length > 0 ? players.length : undefined,
+    player_count: players.length,
   }
 
   return (

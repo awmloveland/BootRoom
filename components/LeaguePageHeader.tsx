@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Settings, ClipboardList, Users, FlaskConical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import LeagueInfoBar from '@/components/LeagueInfoBar'
+import { LeagueInfoBar } from '@/components/LeagueInfoBar'
 import type { LeagueDetails } from '@/lib/types'
 
 interface LeaguePageHeaderProps {

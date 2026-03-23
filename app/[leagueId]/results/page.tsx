@@ -148,7 +148,8 @@ export default async function LeagueResultsPage({ params }: Props) {
   // 7. Fetch players for member/admin tier (needed for NextMatchCard squad selection + auto-pick)
   //    Also fetch for public tier when the stats sidebar is enabled (needed for InForm widget)
   let players: Player[] = []
-  if ((tier !== 'public' && (canSeeMatchHistory || canSeeMatchEntry)) || (tier === 'public' && canSeeStatsSidebar)) {
+  const playersFetched = (tier !== 'public' && (canSeeMatchHistory || canSeeMatchEntry)) || (tier === 'public' && canSeeStatsSidebar)
+  if (playersFetched) {
     const { data: playersData } = await serviceSupabase.rpc('get_player_stats_public', {
       p_game_id: leagueId,
     })
@@ -179,7 +180,7 @@ export default async function LeagueResultsPage({ params }: Props) {
     day: game.day ?? null,
     kickoff_time: game.kickoff_time ?? null,
     bio: game.bio ?? null,
-    player_count: players.length > 0 ? players.length : undefined,
+    player_count: playersFetched ? players.length : undefined,
   }
 
   const playedCount = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled').length

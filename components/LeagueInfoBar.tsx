@@ -10,7 +10,7 @@ interface LeagueInfoBarProps {
   isAdmin: boolean
 }
 
-export default function LeagueInfoBar({ details, leagueId, isAdmin }: LeagueInfoBarProps) {
+export function LeagueInfoBar({ details, leagueId, isAdmin }: LeagueInfoBarProps) {
   const filled = isLeagueDetailsFilled(details)
 
   // Hide from non-admins when empty
@@ -24,7 +24,7 @@ export default function LeagueInfoBar({ details, leagueId, isAdmin }: LeagueInfo
           Add your league details — location, schedule, and a short bio.
         </p>
         <Link
-          href={`/app/league/${leagueId}/settings?tab=details`}
+          href={`/${leagueId}/settings?tab=details`}
           className="text-sm text-slate-400 hover:text-slate-200 underline underline-offset-2 whitespace-nowrap transition-colors"
         >
           Add details

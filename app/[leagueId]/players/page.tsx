@@ -133,7 +133,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
     day: game.day ?? null,
     kickoff_time: game.kickoff_time ?? null,
     bio: game.bio ?? null,
-    player_count: players.length > 0 ? players.length : undefined,
+    player_count: players.length,
   }
 
   // 6. Extract visibleStats and showMentality from the appropriate tier config
