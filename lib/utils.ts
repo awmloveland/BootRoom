@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { Player, Week, Winner } from './types'
+import { LeagueDetails, Player, Week, Winner } from './types'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -218,4 +218,19 @@ export function deriveSeason(weeks: Week[]): string {
   const lastYear = sorted[sorted.length - 1].date.split(' ')[2]
   if (firstYear === lastYear) return firstYear
   return `${firstYear}\u2013${lastYear.slice(-2)}`  // en-dash + last 2 digits
+}
+
+/** Returns the array of non-empty line-1 fact strings for the info bar. */
+export function buildLeagueInfoFacts(details: LeagueDetails): string[] {
+  const facts: string[] = []
+  if (details.location) facts.push(`📍 ${details.location}`)
+  if (details.day && details.kickoff_time) facts.push(`🕖 ${details.day}s · ${details.kickoff_time}`)
+  if (details.player_count !== undefined) facts.push(`👥 ${details.player_count} players`)
+  return facts
+}
+
+/** Returns true if at least one LeagueDetails field is non-null and non-empty. */
+export function isLeagueDetailsFilled(details: LeagueDetails | null | undefined): boolean {
+  if (!details) return false
+  return !!(details.location || details.day || details.kickoff_time || details.bio)
 }
