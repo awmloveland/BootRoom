@@ -6,6 +6,11 @@ import { cn } from '@/lib/utils'
 import type { LeagueDetails } from '@/lib/types'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const TIMES = Array.from({ length: 48 }, (_, i) => {
+  const h = String(Math.floor(i / 2)).padStart(2, '0')
+  const m = i % 2 === 0 ? '00' : '30'
+  return `${h}:${m}`
+})
 
 interface LeagueDetailsFormProps {
   leagueId: string
@@ -118,13 +123,16 @@ export function LeagueDetailsForm({
               <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">
                 Kick-off time
               </label>
-              <input
-                type="text"
+              <select
                 value={kickoffTime}
                 onChange={(e) => { setKickoffTime(e.target.value); markDirty() }}
-                placeholder="e.g. 7:30pm"
-                className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400"
-              />
+                className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              >
+                <option value="">Select time</option>
+                {TIMES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
             </div>
           </div>
 
