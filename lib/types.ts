@@ -54,7 +54,10 @@ export type FeatureKey =
   | 'match_entry'
   | 'team_builder'
   | 'player_stats'
-  | 'player_comparison';
+  | 'player_comparison'
+  | 'stats_in_form'
+  | 'stats_quarterly_table'
+  | 'stats_team_ab';
 
 export interface FeatureConfig {
   max_players?: number | null;

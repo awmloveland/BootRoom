@@ -5,10 +5,12 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
+import { sortWeeks } from '@/lib/utils'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { LineupLab } from '@/components/LineupLab'
+import { StatsSidebar } from '@/components/StatsSidebar'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
-import type { GameRole, LeagueFeature, FeatureKey, Player } from '@/lib/types'
+import type { GameRole, LeagueFeature, FeatureKey, Player, Week } from '@/lib/types'
 
 interface Props {
   params: Promise<{ leagueId: string }>
@@ -54,10 +56,31 @@ export default async function LineupLabPage({ params }: Props) {
   const [experimentsResult, leagueFeaturesResult, weeksResult] = await Promise.all([
     service.from('feature_experiments').select('feature, available'),
     service.from('league_features').select('*').eq('game_id', leagueId),
-    service.from('weeks').select('week', { count: 'exact', head: true }).eq('game_id', leagueId).in('status', ['played', 'cancelled']),
+    service
+      .from('weeks')
+      .select('week, date, status, format, team_a, team_b, winner, notes')
+      .eq('game_id', leagueId)
+      .in('status', ['played', 'cancelled'])
+      .order('week', { ascending: false }),
   ])
 
-  const playedCount = weeksResult.count ?? 0
+  type WeekRow = {
+    week: number; date: string; status: string; format: string | null;
+    team_a: string[] | null; team_b: string[] | null; winner: string | null; notes: string | null;
+  }
+  const weeks: Week[] = sortWeeks(
+    ((weeksResult.data ?? []) as WeekRow[]).map((row) => ({
+      week: row.week,
+      date: row.date,
+      status: row.status as Week['status'],
+      format: row.format ?? undefined,
+      teamA: row.team_a ?? [],
+      teamB: row.team_b ?? [],
+      winner: row.winner as Week['winner'] ?? null,
+      notes: row.notes ?? undefined,
+    }))
+  )
+  const playedCount = weeks.length
   const totalWeeks = 52
   const pct = Math.round((playedCount / totalWeeks) * 100)
 
@@ -106,18 +129,30 @@ export default async function LineupLabPage({ params }: Props) {
   }))
 
   return (
-    <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 pb-8">
-      <LeaguePageHeader
-        leagueName={game.name}
-        leagueId={leagueId}
-        playedCount={playedCount}
-        totalWeeks={totalWeeks}
-        pct={pct}
-        currentTab="lineup-lab"
-        isAdmin={isAdmin}
-        showLineupLabTab={true}
-      />
-      <LineupLab allPlayers={players} />
+    <main className="px-4 sm:px-6 pt-4 pb-8">
+      <div className="flex justify-center gap-6 items-start">
+        <div className="w-full max-w-xl shrink-0">
+          <LeaguePageHeader
+            leagueName={game.name}
+            leagueId={leagueId}
+            playedCount={playedCount}
+            totalWeeks={totalWeeks}
+            pct={pct}
+            currentTab="lineup-lab"
+            isAdmin={isAdmin}
+            showLineupLabTab={true}
+          />
+          <LineupLab allPlayers={players} />
+        </div>
+        <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
+          <StatsSidebar
+            players={players}
+            weeks={weeks}
+            features={features}
+            role={userRole}
+          />
+        </div>
+      </div>
     </main>
   )
 }

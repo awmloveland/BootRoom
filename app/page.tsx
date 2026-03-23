@@ -126,7 +126,7 @@ export default async function HomePage() {
     }
 
     return (
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-xl mx-auto px-4 sm:px-6 py-8">
         <h1 className="text-xl font-semibold text-slate-100 mb-6">Your leagues</h1>
         {leagues.length === 0 ? (
           <p className="text-slate-400 text-sm">You&apos;re not in any leagues yet.</p>
@@ -195,7 +195,7 @@ export default async function HomePage() {
     })
 
   return (
-    <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+    <main className="max-w-xl mx-auto px-4 sm:px-6 py-8">
       <h1 className="text-xl font-semibold text-slate-100 mb-6">Leagues</h1>
       {directory.length === 0 ? (
         <p className="text-slate-400 text-sm">No public leagues yet.</p>

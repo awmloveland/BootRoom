@@ -188,7 +188,7 @@ export function Navbar({
   return (
     <header className="sticky top-0 z-50 border-b border-slate-700 bg-slate-900">
       {/* Action bar — desktop: 3-column grid to centre nav tabs */}
-      <div className="hidden sm:grid grid-cols-3 h-14 w-full max-w-2xl mx-auto items-center px-4 sm:px-6">
+      <div className="hidden sm:grid grid-cols-3 h-14 w-full max-w-2xl lg:max-w-[888px] mx-auto items-center">
         {/* Left: logo */}
         <Link href={logo.url} className="flex items-center shrink-0">
           <img src="/logo.png" alt="Crafted Football" className="h-10 w-10" />
