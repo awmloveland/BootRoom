@@ -135,9 +135,9 @@ export default async function LeaguePlayersPage({ params }: Props) {
   const showMentality = config?.show_mentality ?? true
 
   return (
-    <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 pb-8">
-      <div className="flex gap-6 items-start">
-        <div className="flex-1 min-w-0 max-w-2xl">
+    <main className="px-4 sm:px-6 pt-4 pb-8">
+      <div className="flex justify-center gap-6 items-start">
+        <div className="w-full max-w-xl shrink-0">
           <LeaguePageHeader
             leagueName={game.name}
             leagueId={leagueId}
@@ -154,7 +154,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
             showMentality={showMentality}
           />
         </div>
-        <div className="hidden lg:block w-72 shrink-0 sticky top-4">
+        <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
           <StatsSidebar
             players={players}
             weeks={weeks}

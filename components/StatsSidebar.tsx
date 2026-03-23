@@ -39,7 +39,7 @@ function InFormWidget({ players }: { players: Player[] }) {
         <>
           {/* Hero: rank 1 */}
           <div className={cn(entries.length > 1 && 'border-b border-slate-700/50 pb-[10px] mb-[10px]')}>
-            <p className="text-[9px] font-bold uppercase tracking-wide text-sky-300 mb-0">
+            <p className="text-xs font-bold uppercase tracking-wide text-sky-300 mb-0">
               The Gaffer&apos;s Pick
             </p>
             <p className="text-[15px] font-bold text-slate-100 uppercase mb-2">{entries[0].name}</p>
@@ -56,10 +56,10 @@ function InFormWidget({ players }: { players: Player[] }) {
 
           {/* Ranked list: ranks 2–5 */}
           {entries.length > 1 && (
-            <div className="flex flex-col gap-[5px]">
+            <div className="flex flex-col gap-[0.8rem]">
               {entries.slice(1).map((e, i) => (
                 <div key={e.name} className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-slate-600 w-[14px] text-right shrink-0">
+                  <span className="text-[11px] text-slate-600 w-[14px] text-left shrink-0">
                     {i + 2}
                   </span>
                   <span className="text-[13px] text-slate-300 flex-1 truncate">{e.name}</span>
@@ -92,6 +92,9 @@ function QuarterlyTableWidget({ weeks }: { weeks: Week[] }) {
           {quarterLabel}
         </span>
         <span className="text-[10px] font-semibold uppercase text-slate-700 w-[22px] text-center">P</span>
+        <span className="text-[10px] font-semibold uppercase text-slate-700 w-[18px] text-center">W</span>
+        <span className="text-[10px] font-semibold uppercase text-slate-700 w-[18px] text-center">D</span>
+        <span className="text-[10px] font-semibold uppercase text-slate-700 w-[18px] text-center">L</span>
         <span className="text-[10px] font-semibold uppercase text-slate-500 w-[28px] text-right">Pts</span>
       </div>
 
@@ -104,8 +107,8 @@ function QuarterlyTableWidget({ weeks }: { weeks: Week[] }) {
               <div
                 key={e.name}
                 className={cn(
-                  'flex items-center gap-1 px-1 py-[3px] rounded -mx-1',
-                  i === 0 && 'bg-sky-400/[0.06]'
+                  'flex items-center gap-1 py-[3px]',
+                  i === 0 ? '-mx-3 px-3 bg-sky-400/[0.06]' : '-mx-1 px-1'
                 )}
               >
                 <span className={cn(
@@ -123,6 +126,15 @@ function QuarterlyTableWidget({ weeks }: { weeks: Week[] }) {
                 <span className="text-[11px] text-slate-600 w-[22px] text-center shrink-0">
                   {e.played}
                 </span>
+                <span className="text-[11px] text-slate-600 w-[18px] text-center shrink-0">
+                  {e.won}
+                </span>
+                <span className="text-[11px] text-slate-600 w-[18px] text-center shrink-0">
+                  {e.drew}
+                </span>
+                <span className="text-[11px] text-slate-600 w-[18px] text-center shrink-0">
+                  {e.lost}
+                </span>
                 <span className={cn(
                   'text-[12px] font-bold w-[28px] text-right shrink-0',
                   i === 0 ? 'text-sky-300' : 'text-slate-300'
@@ -138,10 +150,10 @@ function QuarterlyTableWidget({ weeks }: { weeks: Week[] }) {
         {showProgress && (
           <div className="py-[7px] border-t border-b border-slate-700/40 my-2">
             <div className="flex justify-between items-baseline mb-[5px]">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
                 Quarter progress
               </span>
-              <span className="text-[10px] text-slate-600">{gamesLeft} left</span>
+              <span className="text-xs font-semibold text-slate-300">{gamesLeft} left</span>
             </div>
             <div className="h-1 rounded-full bg-slate-800 overflow-hidden">
               <div className="h-full rounded-full bg-slate-600" style={{ width: `${fillPct}%` }} />
@@ -153,7 +165,7 @@ function QuarterlyTableWidget({ weeks }: { weeks: Week[] }) {
         {lastChampion && lastQuarterLabel && (
           <div className="flex items-center justify-between bg-amber-400/[0.07] border border-amber-400/[0.14] rounded-md px-[10px] py-[6px]">
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-wide text-amber-600 mb-0">
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-600 mb-0">
                 {lastQuarterLabel} Champion
               </p>
               <p className="text-[13px] font-bold text-yellow-200 uppercase">{lastChampion}</p>
@@ -195,13 +207,13 @@ function TeamABWidget({ weeks }: { weeks: Week[] }) {
           {/* Scoreline */}
           <div className="flex justify-between items-baseline mb-[6px]">
             <div>
-              <span className="text-[9px] font-bold uppercase tracking-wide text-blue-500">Team A</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-blue-500">Team A</span>
               <span className="text-[16px] font-extrabold text-blue-300 ml-[5px]">{teamAWins}</span>
             </div>
             <span className="text-[11px] text-slate-700">{draws}D</span>
             <div>
               <span className="text-[16px] font-extrabold text-violet-300 mr-[5px]">{teamBWins}</span>
-              <span className="text-[9px] font-bold uppercase tracking-wide text-violet-700">Team B</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-violet-700">Team B</span>
             </div>
           </div>
 

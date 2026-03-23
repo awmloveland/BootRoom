@@ -28,7 +28,7 @@ export function LeaguePageHeader({
     <div className="mb-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">{leagueName}</h1>
+          <h1 className="text-2xl font-semibold text-slate-100">{leagueName}</h1>
           <p className="mt-1 text-sm text-slate-500">
             {playedCount} of {totalWeeks} weeks ({pct}% complete)
           </p>

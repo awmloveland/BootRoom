@@ -89,7 +89,7 @@ export default async function LeagueResultsPage({ params }: Props) {
   // 4. For the public tier: if nothing is visible, show private state
   if (tier === 'public' && !canSeeMatchHistory && !canSeeMatchEntry && !canSeePlayerStats) {
     return (
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
+      <main className="max-w-xl mx-auto px-4 sm:px-6 py-4">
         <LeaguePrivateState leagueName={game.name} />
       </main>
     )
@@ -179,7 +179,7 @@ export default async function LeagueResultsPage({ params }: Props) {
   // ── Public tier render ──
   if (tier === 'public') {
     return (
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4 space-y-8">
+      <main className="max-w-xl mx-auto px-4 sm:px-6 py-4 space-y-8">
         <LeaguePageHeader
           leagueName={game.name}
           leagueId={leagueId}
@@ -215,9 +215,9 @@ export default async function LeagueResultsPage({ params }: Props) {
 
   // ── Member / Admin tier render ──
   return (
-    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
-      <div className="flex gap-6 items-start">
-        <div className="flex-1 min-w-0 max-w-2xl">
+    <main className="px-4 sm:px-6 py-4">
+      <div className="flex justify-center gap-6 items-start">
+        <div className="w-full max-w-xl shrink-0">
           <LeaguePageHeader
             leagueName={game.name}
             leagueId={leagueId}
@@ -248,7 +248,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             )}
           </div>
         </div>
-        <div className="hidden lg:block w-72 shrink-0 sticky top-4">
+        <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
           <StatsSidebar
             players={players}
             weeks={weeks}
