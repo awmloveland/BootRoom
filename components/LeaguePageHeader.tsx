@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { Settings, ClipboardList, Users, FlaskConical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import LeagueInfoBar from '@/components/LeagueInfoBar'
+import type { LeagueDetails } from '@/lib/types'
 
 interface LeaguePageHeaderProps {
   leagueName: string
@@ -12,6 +14,7 @@ interface LeaguePageHeaderProps {
   currentTab: 'results' | 'players' | 'lineup-lab'
   isAdmin: boolean
   showLineupLabTab?: boolean
+  details?: LeagueDetails | null
 }
 
 export function LeaguePageHeader({
@@ -23,6 +26,7 @@ export function LeaguePageHeader({
   currentTab,
   isAdmin,
   showLineupLabTab,
+  details,
 }: LeaguePageHeaderProps) {
   return (
     <div className="mb-4">
@@ -40,6 +44,9 @@ export function LeaguePageHeader({
             </Link>
           </Button>
         )}
+      </div>
+      <div className="mt-4">
+        <LeagueInfoBar details={details} leagueId={leagueId} isAdmin={isAdmin} />
       </div>
       <nav className="flex gap-6 border-b border-slate-700 pt-6">
         <Link
