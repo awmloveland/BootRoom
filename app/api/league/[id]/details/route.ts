@@ -35,16 +35,20 @@ export async function PATCH(
 
   const VALID_DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
   const VALID_TIMES = [
-    '5:00pm','5:30pm','6:00pm','6:30pm','7:00pm','7:30pm','8:00pm','8:30pm','9:00pm','9:30pm',
-    '10:00am','10:30am','11:00am','11:30am','12:00pm','12:30pm','1:00pm','1:30pm','2:00pm','2:30pm',
-    '3:00pm','3:30pm','4:00pm','4:30pm',
+    '5:00pm','5:30pm','6:00pm','6:30pm','7:00pm','7:30pm','8:00pm','8:30pm','9:00pm',
   ]
 
-  const body = await req.json()
-  const location = typeof body.location === 'string' ? body.location.trim() || null : null
-  const day = typeof body.day === 'string' && VALID_DAYS.includes(body.day) ? body.day : null
-  const kickoff_time = typeof body.kickoff_time === 'string' && VALID_TIMES.includes(body.kickoff_time) ? body.kickoff_time : null
-  const bio = typeof body.bio === 'string' ? body.bio.trim() || null : null
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const location = typeof (body as Record<string, unknown>).location === 'string' ? ((body as Record<string, unknown>).location as string).trim() || null : null
+  const day = typeof (body as Record<string, unknown>).day === 'string' && VALID_DAYS.includes((body as Record<string, unknown>).day as string) ? (body as Record<string, unknown>).day : null
+  const kickoff_time = typeof (body as Record<string, unknown>).kickoff_time === 'string' && VALID_TIMES.includes((body as Record<string, unknown>).kickoff_time as string) ? (body as Record<string, unknown>).kickoff_time : null
+  const bio = typeof (body as Record<string, unknown>).bio === 'string' ? ((body as Record<string, unknown>).bio as string).trim() || null : null
 
   const service = createServiceClient()
   const { error } = await service
