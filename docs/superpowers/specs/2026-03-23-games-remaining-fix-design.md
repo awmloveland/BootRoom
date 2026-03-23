@@ -124,7 +124,7 @@ All existing `gamesLeft` tests are replaced. New tests, each with concrete input
 
 | Scenario | Example inputs | Expected |
 |---|---|---|
-| Explicit `gameDay`, mid-quarter | `now = new Date(2026, 0, 7)` (7 Jan, Q1), `gameDay = 3` (Wednesday) | count of Wednesdays from 8 Jan to 31 Mar 2026 = 12 |
+| Explicit `gameDay`, mid-quarter | `now = new Date(2026, 0, 7)` (7 Jan, Q1), `gameDay = 3` (Wednesday) | count of Wednesdays from 8 Jan to 31 Mar 2026 = 11 |
 | `gameDay` inferred from played weeks in current quarter | Week dated `'07 Jan 2026'` (Wednesday); omit `gameDay` | inferred `gameDay = 3`; same count as above |
 | `gameDay` inferred from prior-quarter history (current quarter has only cancelled weeks) | One played week in Q4 2025 on a Wednesday; all Q1 2026 weeks cancelled; `now` in Q1 2026 | inferred `gameDay = 3` from Q4 data; correct Q1 count |
 | `now` is first day of quarter | `now = new Date(2026, 0, 1)` (1 Jan, Q1), `gameDay = 3` (Wednesday) | count of Wednesdays from 2 Jan to 31 Mar 2026 = 12 |
