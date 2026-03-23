@@ -11,7 +11,7 @@ import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { PublicPlayerList } from '@/components/PublicPlayerList'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
-import type { GameRole, LeagueFeature, FeatureKey, Player, Week } from '@/lib/types'
+import type { GameRole, LeagueFeature, FeatureKey, Player, Week, LeagueDetails } from '@/lib/types'
 
 interface Props {
   params: Promise<{ leagueId: string }>
@@ -24,7 +24,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
   // 1. Resolve league existence via service client (bypasses RLS for unauthenticated users)
   const { data: game } = await service
     .from('games')
-    .select('id, name')
+    .select('id, name, location, day, kickoff_time, bio')
     .eq('id', leagueId)
     .maybeSingle()
 
@@ -128,6 +128,14 @@ export default async function LeaguePlayersPage({ params }: Props) {
     recentForm: String(row.recentForm ?? ''),
   }))
 
+  const details: LeagueDetails = {
+    location: game.location ?? null,
+    day: game.day ?? null,
+    kickoff_time: game.kickoff_time ?? null,
+    bio: game.bio ?? null,
+    player_count: players.length > 0 ? players.length : undefined,
+  }
+
   // 6. Extract visibleStats and showMentality from the appropriate tier config
   const statsFeat = rawFeatures.find((f) => f.feature === 'player_stats')
   const config = tier === 'public' ? (statsFeat?.public_config ?? null) : (statsFeat?.config ?? null)
@@ -147,6 +155,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
             currentTab="players"
             isAdmin={isAdmin}
             showLineupLabTab={tier === 'public' ? false : canSeeTeamBuilder}
+            details={details}
           />
           <PublicPlayerList
             players={players}
