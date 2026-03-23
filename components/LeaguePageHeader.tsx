@@ -45,10 +45,10 @@ export function LeaguePageHeader({
           </Button>
         )}
       </div>
-      <div className="mt-4">
+      <div className="mt-3">
         <LeagueInfoBar details={details} leagueId={leagueId} isAdmin={isAdmin} />
       </div>
-      <nav className="flex gap-6 border-b border-slate-700 pt-6">
+      <nav className="flex gap-6 border-b border-slate-700 pt-3">
         <Link
           href={`/${leagueId}/results`}
           className={cn(
