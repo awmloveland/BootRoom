@@ -85,6 +85,7 @@ export default async function LeagueResultsPage({ params }: Props) {
   const canSeeMatchEntry = isAdmin || isFeatureEnabled(features, 'match_entry', tier)
   const canSeePlayerStats = isAdmin || isFeatureEnabled(features, 'player_stats', tier)
   const canSeeTeamBuilder = isAdmin || isFeatureEnabled(features, 'team_builder', tier)
+  const canSeeStatsSidebar = isAdmin || isFeatureEnabled(features, 'stats_sidebar', tier)
 
   // 4. For the public tier: if nothing is visible, show private state
   if (tier === 'public' && !canSeeMatchHistory && !canSeeMatchEntry && !canSeePlayerStats) {
@@ -145,8 +146,9 @@ export default async function LeagueResultsPage({ params }: Props) {
   }
 
   // 7. Fetch players for member/admin tier (needed for NextMatchCard squad selection + auto-pick)
+  //    Also fetch for public tier when the stats sidebar is enabled (needed for InForm widget)
   let players: Player[] = []
-  if (tier !== 'public' && (canSeeMatchHistory || canSeeMatchEntry)) {
+  if ((tier !== 'public' && (canSeeMatchHistory || canSeeMatchEntry)) || (tier === 'public' && canSeeStatsSidebar)) {
     const { data: playersData } = await serviceSupabase.rpc('get_player_stats_public', {
       p_game_id: leagueId,
     })
@@ -179,36 +181,50 @@ export default async function LeagueResultsPage({ params }: Props) {
   // ── Public tier render ──
   if (tier === 'public') {
     return (
-      <main className="max-w-xl mx-auto px-4 sm:px-6 py-4 space-y-8">
-        <LeaguePageHeader
-          leagueName={game.name}
-          leagueId={leagueId}
-          playedCount={playedCount}
-          totalWeeks={totalWeeks}
-          pct={pct}
-          currentTab="results"
-          isAdmin={isAdmin}
-          showLineupLabTab={false}
-        />
-        {canSeeMatchEntry && (
-          <PublicMatchEntrySection
-            gameId={leagueId}
-            weeks={weeks}
-            initialScheduledWeek={nextWeek}
-          />
-        )}
+      <main className="px-4 sm:px-6 py-4">
+        <div className="flex justify-center gap-6 items-start">
+          <div className="w-full max-w-xl shrink-0 space-y-8">
+            <LeaguePageHeader
+              leagueName={game.name}
+              leagueId={leagueId}
+              playedCount={playedCount}
+              totalWeeks={totalWeeks}
+              pct={pct}
+              currentTab="results"
+              isAdmin={isAdmin}
+              showLineupLabTab={false}
+            />
+            {canSeeMatchEntry && (
+              <PublicMatchEntrySection
+                gameId={leagueId}
+                weeks={weeks}
+                initialScheduledWeek={nextWeek}
+              />
+            )}
 
-        {canSeeMatchHistory && (
-          <section>
-            <PublicMatchList weeks={weeks} />
-          </section>
-        )}
+            {canSeeMatchHistory && (
+              <section>
+                <PublicMatchList weeks={weeks} />
+              </section>
+            )}
 
-        {!isAuthenticated && (
-          <p className="text-xs text-slate-600 text-center pb-4">
-            Sign in for full access to your league.
-          </p>
-        )}
+            {!isAuthenticated && (
+              <p className="text-xs text-slate-600 text-center pb-4">
+                Sign in for full access to your league.
+              </p>
+            )}
+          </div>
+          {canSeeStatsSidebar && (
+            <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
+              <StatsSidebar
+                players={players}
+                weeks={weeks}
+                features={features}
+                role={userRole}
+              />
+            </div>
+          )}
+        </div>
       </main>
     )
   }
