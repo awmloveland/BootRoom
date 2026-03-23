@@ -1,15 +1,16 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Check, Copy, RefreshCw, Settings2, Users } from 'lucide-react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { ArrowLeft, Check, Copy, Info, RefreshCw, Settings2, Users } from 'lucide-react'
 import { fetchGames } from '@/lib/data'
 import { AdminMemberTable } from '@/components/AdminMemberTable'
 import { FeaturePanel } from '@/components/FeaturePanel'
+import { LeagueDetailsForm } from '@/components/LeagueDetailsForm'
 import { cn } from '@/lib/utils'
-import type { LeagueMember, LeagueFeature } from '@/lib/types'
+import type { LeagueMember, LeagueFeature, LeagueDetails } from '@/lib/types'
 
-type Section = 'members' | 'features'
+type Section = 'details' | 'members' | 'features'
 
 function formatExpiry(iso: string | null): string {
   if (!iso) return ''
@@ -20,12 +21,21 @@ function formatExpiry(iso: string | null): string {
 export default function LeagueSettingsPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const leagueId = (params?.leagueId as string) ?? ''
 
-  const [section, setSection] = useState<Section>('members')
+  const initialSection = (searchParams?.get('tab') as Section | null) ?? 'details'
+  const [section, setSection] = useState<Section>(
+    ['details', 'members', 'features'].includes(initialSection) ? initialSection : 'details'
+  )
   const [leagueName, setLeagueName] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  // League details state
+  const [leagueDetails, setLeagueDetails] = useState<LeagueDetails | null>(null)
+  const [playerCount, setPlayerCount] = useState(0)
+  const [detailsLoading, setDetailsLoading] = useState(false)
 
   // Members state
   const [members, setMembers] = useState<LeagueMember[]>([])
@@ -65,6 +75,31 @@ export default function LeagueSettingsPage() {
     }
     init()
   }, [leagueId, router])
+
+  const loadDetails = useCallback(async () => {
+    setDetailsLoading(true)
+    try {
+      const [detailsRes, membersRes] = await Promise.all([
+        fetch(`/api/league/${leagueId}/details`, { credentials: 'include' }),
+        fetch(`/api/league/${leagueId}/members`, { credentials: 'include' }),
+      ])
+      const detailsData = await detailsRes.json()
+      const membersData = await membersRes.json()
+      if (detailsRes.ok) {
+        setLeagueDetails({
+          location: detailsData.location ?? null,
+          day: detailsData.day ?? null,
+          kickoff_time: detailsData.kickoff_time ?? null,
+          bio: detailsData.bio ?? null,
+        })
+      }
+      if (membersRes.ok && Array.isArray(membersData)) {
+        setPlayerCount(membersData.length)
+      }
+    } finally {
+      setDetailsLoading(false)
+    }
+  }, [leagueId])
 
   const loadMembers = useCallback(async () => {
     setMembersLoading(true)
@@ -124,6 +159,7 @@ export default function LeagueSettingsPage() {
 
   useEffect(() => {
     if (!isAdmin) return
+    if (section === 'details') loadDetails()
     if (section === 'members') {
       loadMembers()
       // Auto-create both invite links on members tab mount
@@ -132,7 +168,7 @@ export default function LeagueSettingsPage() {
     }
     if (section === 'features') loadFeatures()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [section, isAdmin, loadMembers, loadFeatures])
+  }, [section, isAdmin, loadDetails, loadMembers, loadFeatures])
 
   if (loading) {
     return (
@@ -143,8 +179,9 @@ export default function LeagueSettingsPage() {
   }
 
   const NAV: { id: Section; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'members',  label: 'Members',  Icon: Users },
-    { id: 'features', label: 'Features', Icon: Settings2 },
+    { id: 'details',  label: 'League Details', Icon: Info },
+    { id: 'members',  label: 'Members',        Icon: Users },
+    { id: 'features', label: 'Features',       Icon: Settings2 },
   ]
 
   return (
@@ -179,6 +216,21 @@ export default function LeagueSettingsPage() {
           </button>
         ))}
       </div>
+
+      {/* ── LEAGUE DETAILS ── */}
+      {section === 'details' && (
+        <div>
+          {detailsLoading || leagueDetails === null ? (
+            <p className="text-slate-400 text-sm">Loading…</p>
+          ) : (
+            <LeagueDetailsForm
+              leagueId={leagueId}
+              initialDetails={leagueDetails}
+              playerCount={playerCount}
+            />
+          )}
+        </div>
+      )}
 
       {/* ── MEMBERS ── */}
       {section === 'members' && (
