@@ -17,7 +17,11 @@ export async function GET(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!game) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  return NextResponse.json(game)
+
+  const { data: playersData } = await supabase.rpc('get_player_stats_public', { p_game_id: id })
+  const player_count = (playersData as unknown[])?.length ?? 0
+
+  return NextResponse.json({ ...game, player_count })
 }
 
 /** PATCH — admin-only, validates caller is game admin via RPC then updates */

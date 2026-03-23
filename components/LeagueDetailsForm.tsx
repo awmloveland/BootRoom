@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { LeagueInfoBar } from '@/components/LeagueInfoBar'
+import { cn } from '@/lib/utils'
 import type { LeagueDetails } from '@/lib/types'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -158,17 +159,21 @@ export function LeagueDetailsForm({
           </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
-          {success && <p className="text-sm text-slate-400">Saved.</p>}
         </div>
 
         {/* Footer with full-width button */}
         <div className="border-t border-slate-700 p-4">
           <button
             onClick={handleSave}
-            disabled={saving}
-            className="w-full rounded-md bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-white disabled:opacity-50 transition-colors"
+            disabled={saving || success}
+            className={cn(
+              'w-full rounded-md px-4 py-2 text-sm font-medium transition-colors',
+              success
+                ? 'bg-slate-700 text-slate-300 cursor-default'
+                : 'bg-slate-100 text-slate-900 hover:bg-white disabled:opacity-50'
+            )}
           >
-            {saving ? 'Saving…' : 'Save details'}
+            {saving ? 'Saving…' : success ? 'Saved' : 'Save details'}
           </button>
         </div>
       </div>

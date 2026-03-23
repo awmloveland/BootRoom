@@ -86,12 +86,8 @@ export default function LeagueSettingsPage() {
   const loadDetails = useCallback(async () => {
     setDetailsLoading(true)
     try {
-      const [detailsRes, membersRes] = await Promise.all([
-        fetch(`/api/league/${leagueId}/details`, { credentials: 'include' }),
-        fetch(`/api/league/${leagueId}/members`, { credentials: 'include' }),
-      ])
+      const detailsRes = await fetch(`/api/league/${leagueId}/details`, { credentials: 'include' })
       const detailsData = await detailsRes.json()
-      const membersData = await membersRes.json()
       if (detailsRes.ok) {
         setLeagueDetails({
           location: detailsData.location ?? null,
@@ -99,9 +95,7 @@ export default function LeagueSettingsPage() {
           kickoff_time: detailsData.kickoff_time ?? null,
           bio: detailsData.bio ?? null,
         })
-      }
-      if (membersRes.ok && Array.isArray(membersData)) {
-        setPlayerCount(membersData.length)
+        setPlayerCount(detailsData.player_count ?? 0)
       }
     } catch {
       setLeagueDetails({ location: null, day: null, kickoff_time: null, bio: null })
