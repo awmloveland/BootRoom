@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
 import { isFeatureEnabled } from '@/lib/features'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { computeInForm, computeQuarterlyTable, computeTeamAB, QUARTER_GAME_COUNT } from '@/lib/sidebar-stats'
+import { computeInForm, computeQuarterlyTable, computeTeamAB } from '@/lib/sidebar-stats'
 import { FormDots } from '@/components/FormDots'
 import type { Player, Week, LeagueFeature, GameRole } from '@/lib/types'
 
@@ -42,7 +42,7 @@ function InFormWidget({ players }: { players: Player[] }) {
             <p className="text-xs font-bold uppercase tracking-wide text-sky-300 mb-0">
               The Gaffer&apos;s Pick
             </p>
-            <p className="text-[15px] font-bold text-slate-100 uppercase mb-2">{entries[0].name}</p>
+            <p className="text-[15px] font-bold text-slate-100 uppercase mb-0">{entries[0].name}</p>
             <div className="flex items-end justify-between">
               <FormDots form={entries[0].recentForm} />
               <div className="text-right">
@@ -81,16 +81,22 @@ function InFormWidget({ players }: { players: Player[] }) {
 
 function QuarterlyTableWidget({ weeks }: { weeks: Week[] }) {
   const { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft } = computeQuarterlyTable(weeks)
-  const fillPct = Math.round(((QUARTER_GAME_COUNT - gamesLeft) / QUARTER_GAME_COUNT) * 100)
-  const showProgress = entries.length > 0 && gamesLeft > 0
+  const showGamesLeft = entries.length > 0 && gamesLeft > 0
 
   return (
     <div className="rounded-lg border border-slate-700 bg-transparent overflow-hidden">
       {/* Header with inline column labels */}
       <div className="px-3 py-2 border-b border-slate-700/40 flex items-center gap-1">
-        <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 flex-1">
-          {quarterLabel}
-        </span>
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 shrink-0">
+            {quarterLabel}
+          </span>
+          {showGamesLeft && (
+            <span className="text-[10px] font-semibold text-slate-400 bg-slate-800 border border-slate-700 rounded px-[5px] py-[1px]">
+              {gamesLeft} games left
+            </span>
+          )}
+        </div>
         <span className="text-[10px] font-semibold uppercase text-slate-700 w-[22px] text-center">P</span>
         <span className="text-[10px] font-semibold uppercase text-slate-700 w-[18px] text-center">W</span>
         <span className="text-[10px] font-semibold uppercase text-slate-700 w-[18px] text-center">D</span>
@@ -146,32 +152,21 @@ function QuarterlyTableWidget({ weeks }: { weeks: Week[] }) {
           </div>
         )}
 
-        {/* Quarter progress bar */}
-        {showProgress && (
-          <div className="py-[7px] border-t border-b border-slate-700/40 my-2">
-            <div className="flex justify-between items-baseline mb-[5px]">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-                Quarter progress
-              </span>
-              <span className="text-xs font-semibold text-slate-300">{gamesLeft} left</span>
-            </div>
-            <div className="h-1 rounded-full bg-slate-800 overflow-hidden">
-              <div className="h-full rounded-full bg-slate-600" style={{ width: `${fillPct}%` }} />
-            </div>
-          </div>
-        )}
 
         {/* Previous quarter champion */}
         {lastChampion && lastQuarterLabel && (
-          <div className="flex items-center justify-between bg-amber-400/[0.07] border border-amber-400/[0.14] rounded-md px-[10px] py-[6px]">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-amber-600 mb-0">
-                {lastQuarterLabel} Champion
-              </p>
-              <p className="text-[13px] font-bold text-yellow-200 uppercase">{lastChampion}</p>
+          <>
+            <div className="border-t border-slate-700/40 mt-2 mb-3" />
+            <div className="flex items-center justify-between bg-amber-400/[0.07] border border-amber-400/[0.14] rounded-md px-[10px] py-[6px]">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-amber-600 mb-0">
+                  {lastQuarterLabel} Champion
+                </p>
+                <p className="text-[13px] font-bold text-yellow-200 uppercase">{lastChampion}</p>
+              </div>
+              <span className="text-lg leading-none">🏆</span>
             </div>
-            <span className="text-lg leading-none">🏆</span>
-          </div>
+          </>
         )}
       </div>
     </div>
@@ -181,22 +176,7 @@ function QuarterlyTableWidget({ weeks }: { weeks: Week[] }) {
 // ─── Widget 3: Head to Head ───────────────────────────────────────────────
 
 function TeamABWidget({ weeks }: { weeks: Week[] }) {
-  const { teamAWins, draws, teamBWins, total, streakTeam, streakLength } = computeTeamAB(weeks)
-
-  const streakDotClass =
-    streakTeam === 'teamA' ? 'bg-blue-500' :
-    streakTeam === 'teamB' ? 'bg-violet-500' :
-    'bg-slate-500'
-
-  const streakNameClass =
-    streakTeam === 'teamA' ? 'text-blue-300' :
-    streakTeam === 'teamB' ? 'text-violet-300' :
-    'text-slate-400'
-
-  const streakName =
-    streakTeam === 'teamA' ? 'Team A' :
-    streakTeam === 'teamB' ? 'Team B' :
-    'Draw'
+  const { teamAWins, draws, teamBWins, total } = computeTeamAB(weeks)
 
   return (
     <WidgetShell title="Head to Head">
@@ -205,16 +185,12 @@ function TeamABWidget({ weeks }: { weeks: Week[] }) {
       ) : (
         <>
           {/* Scoreline */}
-          <div className="flex justify-between items-baseline mb-[6px]">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wide text-blue-500">Team A</span>
-              <span className="text-[16px] font-extrabold text-blue-300 ml-[5px]">{teamAWins}</span>
-            </div>
-            <span className="text-[11px] text-slate-700">{draws}D</span>
-            <div>
-              <span className="text-[16px] font-extrabold text-violet-300 mr-[5px]">{teamBWins}</span>
-              <span className="text-xs font-bold uppercase tracking-wide text-violet-700">Team B</span>
-            </div>
+          <div className="flex items-baseline mb-[6px]">
+            <span className="flex-1 text-xs font-bold uppercase tracking-wide text-blue-500">Team A</span>
+            <span className="text-[16px] font-extrabold text-blue-300 mr-[6px]">{teamAWins}</span>
+            <span className="text-[13px] font-semibold text-slate-600 mx-[4px]">{draws}D</span>
+            <span className="text-[16px] font-extrabold text-violet-300 ml-[6px]">{teamBWins}</span>
+            <span className="flex-1 text-right text-xs font-bold uppercase tracking-wide text-violet-700">Team B</span>
           </div>
 
           {/* Gradient bar */}
@@ -236,14 +212,6 @@ function TeamABWidget({ weeks }: { weeks: Week[] }) {
             )}
           </div>
 
-          {/* Streak */}
-          {streakTeam !== null && (
-            <div className="flex items-center gap-1.5 pt-2 border-t border-slate-700/40">
-              <span className={cn('w-[7px] h-[7px] rounded-full shrink-0', streakDotClass)} />
-              <span className={cn('text-[12px] font-semibold', streakNameClass)}>{streakName}</span>
-              <span className="text-[11px] text-slate-500">on a {streakLength}-game streak</span>
-            </div>
-          )}
         </>
       )}
     </WidgetShell>
@@ -262,7 +230,7 @@ export function StatsSidebar({ players, weeks, features, role }: StatsSidebarPro
   if (!showInForm && !showQuarterly && !showTeamAB) return null
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {showInForm    && <InFormWidget    players={players} />}
       {showQuarterly && <QuarterlyTableWidget weeks={weeks} />}
       {showTeamAB    && <TeamABWidget    weeks={weeks} />}

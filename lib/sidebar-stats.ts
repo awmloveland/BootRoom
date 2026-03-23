@@ -1,7 +1,44 @@
 import { parseWeekDate } from '@/lib/utils'
 import type { Player, Week } from '@/lib/types'
 
-export const QUARTER_GAME_COUNT = 16
+// ─── gamesLeftInQuarter ───────────────────────────────────────────────────────
+
+/**
+ * Count occurrences of `gameDay` (0=Sun…6=Sat) from tomorrow to the last day
+ * of the given quarter. `cursor` is normalized to midnight so the comparison
+ * with `quarterEnd` (also midnight) is not skewed by time-of-day.
+ */
+function gamesLeftInQuarter(q: number, year: number, gameDay: number, now: Date): number {
+  // quarterEndMonthIdx: 0-indexed last month of quarter (Q1→2, Q2→5, Q3→8, Q4→11)
+  // new Date(year, month+1, 0) = last day of `month`, constructed at local midnight
+  const quarterEndMonthIdx = q * 3 - 1
+  const quarterEnd = new Date(year, quarterEndMonthIdx + 1, 0)
+
+  let count = 0
+  const cursor = new Date(now)
+  cursor.setDate(cursor.getDate() + 1) // start from tomorrow — today excluded
+  cursor.setHours(0, 0, 0, 0)          // normalize to midnight
+  while (cursor <= quarterEnd) {
+    if (cursor.getDay() === gameDay) count++
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  return count
+}
+
+// ─── inferGameDay ─────────────────────────────────────────────────────────────
+
+/**
+ * Infer the league's recurring game day from the most recent played week across
+ * ALL history (not just the current quarter). Returns null only when there are
+ * zero played weeks ever — e.g. a brand new league.
+ */
+function inferGameDay(weeks: Week[]): number | null {
+  const played = weeks.filter(w => w.status === 'played')
+  if (played.length === 0) return null
+  // reduce without initial value is safe: `played` is non-empty after the guard above
+  const latest = played.reduce((a, b) => (parseWeekDate(a.date) > parseWeekDate(b.date) ? a : b))
+  return parseWeekDate(latest.date).getDay()
+}
 
 // ─── computeInForm ────────────────────────────────────────────────────────────
 
@@ -41,6 +78,7 @@ export interface QuarterlyTableResult {
   lastChampion: string | null
   lastQuarterLabel: string | null
   gamesLeft: number
+  gamesTotal: number
 }
 
 function quarterOf(d: Date): { q: number; year: number } {
@@ -71,7 +109,7 @@ function aggregateWeeks(weeks: Week[]): QuarterlyEntry[] {
   return Array.from(map.values()).sort((a, b) => b.points - a.points || b.won - a.won || a.name.localeCompare(b.name))
 }
 
-export function computeQuarterlyTable(weeks: Week[], now: Date = new Date()): QuarterlyTableResult {
+export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gameDay?: number): QuarterlyTableResult {
   const { q, year } = quarterOf(now)
   const yy = String(year).slice(-2)
   const quarterLabel = `Q${q} ${yy}`
@@ -79,8 +117,13 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = new Date()): Qu
   const currentWeeks = weeks.filter(w => weekInQuarter(w, q, year))
   const entries = aggregateWeeks(currentWeeks).slice(0, 5)
 
-  const maxPlayed = entries.length > 0 ? Math.max(...entries.map(e => e.played)) : 0
-  const gamesLeft = Math.max(0, QUARTER_GAME_COUNT - maxPlayed)
+  const resolvedGameDay = gameDay ?? inferGameDay(weeks)
+  const gamesLeft = resolvedGameDay !== null
+    ? gamesLeftInQuarter(q, year, resolvedGameDay, now)
+    : 0
+
+  const gamesPlayed = currentWeeks.filter(w => w.status === 'played').length
+  const gamesTotal = gamesPlayed + gamesLeft
 
   const prevQ = q === 1 ? 4 : q - 1
   const prevYear = q === 1 ? year - 1 : year
@@ -90,7 +133,7 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = new Date()): Qu
   const lastChampion = prevEntries.length > 0 ? prevEntries[0].name : null
   const lastQuarterLabel = prevEntries.length > 0 ? `Q${prevQ} ${prevYY}` : null
 
-  return { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft }
+  return { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft, gamesTotal }
 }
 
 // ─── computeTeamAB ────────────────────────────────────────────────────────────
