@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
 import { isFeatureEnabled } from '@/lib/features'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { computeInForm, computeQuarterlyTable, computeTeamAB, QUARTER_GAME_COUNT } from '@/lib/sidebar-stats'
+import { computeInForm, computeQuarterlyTable, computeTeamAB } from '@/lib/sidebar-stats'
 import { FormDots } from '@/components/FormDots'
 import type { Player, Week, LeagueFeature, GameRole } from '@/lib/types'
 
@@ -80,8 +80,8 @@ function InFormWidget({ players }: { players: Player[] }) {
 // ─── Widget 2: Quarterly Table ────────────────────────────────────────────────
 
 function QuarterlyTableWidget({ weeks }: { weeks: Week[] }) {
-  const { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft } = computeQuarterlyTable(weeks)
-  const fillPct = Math.round(((QUARTER_GAME_COUNT - gamesLeft) / QUARTER_GAME_COUNT) * 100)
+  const { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft, gamesTotal } = computeQuarterlyTable(weeks)
+  const fillPct = gamesTotal > 0 ? Math.round(((gamesTotal - gamesLeft) / gamesTotal) * 100) : 0
   const showProgress = entries.length > 0 && gamesLeft > 0
 
   return (

@@ -78,6 +78,7 @@ export interface QuarterlyTableResult {
   lastChampion: string | null
   lastQuarterLabel: string | null
   gamesLeft: number
+  gamesTotal: number
 }
 
 function quarterOf(d: Date): { q: number; year: number } {
@@ -121,6 +122,9 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gam
     ? gamesLeftInQuarter(q, year, resolvedGameDay, now)
     : 0
 
+  const gamesPlayed = currentWeeks.filter(w => w.status === 'played').length
+  const gamesTotal = gamesPlayed + gamesLeft
+
   const prevQ = q === 1 ? 4 : q - 1
   const prevYear = q === 1 ? year - 1 : year
   const prevYY = String(prevYear).slice(-2)
@@ -129,7 +133,7 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gam
   const lastChampion = prevEntries.length > 0 ? prevEntries[0].name : null
   const lastQuarterLabel = prevEntries.length > 0 ? `Q${prevQ} ${prevYY}` : null
 
-  return { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft }
+  return { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft, gamesTotal }
 }
 
 // ─── computeTeamAB ────────────────────────────────────────────────────────────
