@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { cn } from '@/lib/utils'
 import { buildLeagueInfoFacts, isLeagueDetailsFilled } from '@/lib/utils'
 import type { LeagueDetails } from '@/lib/types'
 
@@ -51,8 +50,8 @@ export default function LeagueInfoBar({ details, leagueId, isAdmin }: LeagueInfo
           ))}
         </div>
       )}
-      {details?.bio && (
-        <p className="text-sm text-slate-400 leading-relaxed">{details.bio}</p>
+      {details!.bio && (
+        <p className="text-sm text-slate-400 leading-relaxed">{details!.bio}</p>
       )}
     </div>
   )
