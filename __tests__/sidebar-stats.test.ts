@@ -141,6 +141,113 @@ describe('computeQuarterlyTable', () => {
     expect(result.quarterLabel).toBe('Q1 26')
   })
 
+  // ─── gamesLeft (calendar-based) ───────────────────────────────────────────────
+
+  describe('gamesLeft — calendar-based', () => {
+    // Test 1: explicit gameDay, mid-quarter, now is the game day (today excluded)
+    it('excludes today and counts remaining Wednesdays when now is a Wednesday', () => {
+      // now = 7 Jan 2026 (Wednesday). Cursor starts 8 Jan.
+      // Wednesdays 8 Jan→31 Mar: Jan 14,21,28, Feb 4,11,18,25, Mar 4,11,18,25 = 11
+      const now = new Date(2026, 0, 7)
+      const result = computeQuarterlyTable([], now, 3) // gameDay 3 = Wednesday
+      expect(result.gamesLeft).toBe(11)
+    })
+
+    // Test 2: first day of quarter
+    it('counts correctly when now is the first day of the quarter', () => {
+      // now = 1 Jan 2026 (Thursday). Cursor starts 2 Jan.
+      // Wednesdays 2 Jan→31 Mar: Jan 7,14,21,28, Feb 4,11,18,25, Mar 4,11,18,25 = 12
+      const now = new Date(2026, 0, 1)
+      const result = computeQuarterlyTable([], now, 3)
+      expect(result.gamesLeft).toBe(12)
+    })
+
+    // Test 3: now is the last day of the quarter (also the game day)
+    it('returns 0 when now is the last day of the quarter even if it is the game day', () => {
+      // now = 31 Mar 2026 (Tuesday = gameDay 2). Cursor starts 1 Apr = Q2.
+      // Loop never executes → 0. Works regardless of whether 31 Mar is the game day.
+      const now = new Date(2026, 2, 31)
+      const result = computeQuarterlyTable([], now, 2) // gameDay 2 = Tuesday = 31 Mar
+      expect(result.gamesLeft).toBe(0)
+    })
+
+    // Test 4: now is day before a game day (tomorrow counted)
+    it('includes tomorrow when now is the day before the game day', () => {
+      // now = 6 Jan 2026 (Tuesday). Cursor starts 7 Jan (Wednesday).
+      // Wednesdays 7 Jan→31 Mar: Jan 7,14,21,28, Feb 4,11,18,25, Mar 4,11,18,25 = 12
+      const now = new Date(2026, 0, 6)
+      const result = computeQuarterlyTable([], now, 3)
+      expect(result.gamesLeft).toBe(12)
+    })
+
+    // Test 5: now = Jan 1 vs now = Jan 6 produce different counts (off-by-one guard)
+    it('produces one more count when now is Jan 1 than when now is Jan 6', () => {
+      // Jan 1 → cursor Jan 2 → 12 Wednesdays
+      // Jan 6 → cursor Jan 7 → 12 Wednesdays
+      // These are equal — both start before the first Wednesday (Jan 7)
+      // Shift: Jan 7 (Wednesday) → cursor Jan 8 → 11. Confirms today IS excluded.
+      const fromJan1 = computeQuarterlyTable([], new Date(2026, 0, 1), 3).gamesLeft
+      const fromJan7 = computeQuarterlyTable([], new Date(2026, 0, 7), 3).gamesLeft
+      expect(fromJan1).toBe(12)
+      expect(fromJan7).toBe(11) // one fewer: Jan 7 itself excluded
+    })
+
+    // Test 6: gameDay = 0 (Sunday boundary value)
+    it('handles gameDay = 0 (Sunday) correctly', () => {
+      // now = 1 Jan 2026 (Thursday). Cursor starts 2 Jan.
+      // Sundays 2 Jan→31 Mar: Jan 4,11,18,25, Feb 1,8,15,22, Mar 1,8,15,22,29 = 13
+      const now = new Date(2026, 0, 1)
+      const result = computeQuarterlyTable([], now, 0)
+      expect(result.gamesLeft).toBe(13)
+    })
+
+    // Test 7: no weeks, no gameDay — fallback to 0
+    it('returns 0 when no weeks exist and gameDay is not provided', () => {
+      const result = computeQuarterlyTable([], new Date(2026, 0, 22))
+      expect(result.gamesLeft).toBe(0)
+    })
+
+    // Test 8: gameDay inferred from played weeks in current quarter
+    it('infers gameDay from played weeks in the current quarter', () => {
+      // Played week on 7 Jan 2026 (Wednesday = gameDay 3)
+      // now = 22 Jan 2026 (Thursday). Cursor starts 23 Jan.
+      // Wednesdays 23 Jan→31 Mar: Jan 28, Feb 4,11,18,25, Mar 4,11,18,25 = 9
+      const weeks: Week[] = [
+        makeWeek({ week: 1, date: '07 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      ]
+      const now = new Date(2026, 0, 22)
+      const result = computeQuarterlyTable(weeks, now) // no explicit gameDay
+      expect(result.gamesLeft).toBe(9)
+    })
+
+    // Test 9: gameDay inferred from prior-quarter history (current quarter has only cancelled weeks)
+    it('infers gameDay from prior-quarter history when current quarter has only cancelled weeks', () => {
+      // Played week in Q4 2025 on 17 Dec (Wednesday = gameDay 3)
+      // Cancelled week in Q1 2026 — no played weeks this quarter
+      // now = 22 Jan 2026. Cursor starts 23 Jan.
+      // Wednesdays 23 Jan→31 Mar: Jan 28, Feb 4,11,18,25, Mar 4,11,18,25 = 9
+      const weeks: Week[] = [
+        makeWeek({ week: 1, date: '17 Dec 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+        makeWeek({ week: 2, date: '07 Jan 2026', status: 'cancelled', teamA: [], teamB: [], winner: null }),
+      ]
+      const now = new Date(2026, 0, 22)
+      const result = computeQuarterlyTable(weeks, now) // no explicit gameDay
+      expect(result.gamesLeft).toBe(9)
+    })
+
+    // Test 10: explicit gameDay overrides inference
+    it('uses explicit gameDay even when played weeks exist with a different day', () => {
+      // Played week on Wednesday, but we explicitly pass gameDay = 1 (Monday)
+      // now = 1 Jan 2026. Mondays in Q1 from Jan 2: Jan 5,12,19,26, Feb 2,9,16,23, Mar 2,9,16,23,30 = 13
+      const weeks: Week[] = [
+        makeWeek({ week: 1, date: '07 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      ]
+      const now = new Date(2026, 0, 1)
+      const result = computeQuarterlyTable(weeks, now, 1) // explicit Monday
+      expect(result.gamesLeft).toBe(13)
+    })
+  })
+
 })
 
 // ─── computeTeamAB ────────────────────────────────────────────────────────────
