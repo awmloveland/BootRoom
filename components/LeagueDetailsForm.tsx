@@ -25,7 +25,7 @@ export function LeagueDetailsForm({
   const [bio, setBio] = useState(initialDetails.bio ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   const previewDetails: LeagueDetails = {
     location: location || null,
@@ -35,10 +35,14 @@ export function LeagueDetailsForm({
     player_count: playerCount,
   }
 
+  function markDirty() {
+    setSaved(false)
+    setError(null)
+  }
+
   async function handleSave() {
     setSaving(true)
     setError(null)
-    setSuccess(false)
     try {
       const res = await fetch(`/api/league/${leagueId}/details`, {
         method: 'PATCH',
@@ -54,8 +58,7 @@ export function LeagueDetailsForm({
         const data = await res.json()
         setError(data.error ?? 'Failed to save')
       } else {
-        setSuccess(true)
-        setTimeout(() => setSuccess(false), 2000)
+        setSaved(true)
       }
     } catch {
       setError('Network error')
@@ -87,7 +90,7 @@ export function LeagueDetailsForm({
             <input
               type="text"
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              onChange={(e) => { setLocation(e.target.value); markDirty() }}
               placeholder="e.g. Hackney Marshes"
               className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400"
             />
@@ -101,7 +104,7 @@ export function LeagueDetailsForm({
               </label>
               <select
                 value={day}
-                onChange={(e) => setDay(e.target.value)}
+                onChange={(e) => { setDay(e.target.value); markDirty() }}
                 className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-slate-400"
               >
                 <option value="">Select day</option>
@@ -118,7 +121,7 @@ export function LeagueDetailsForm({
               </label>
               <select
                 value={kickoffTime}
-                onChange={(e) => setKickoffTime(e.target.value)}
+                onChange={(e) => { setKickoffTime(e.target.value); markDirty() }}
                 className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-slate-400"
               >
                 <option value="">Select time</option>
@@ -150,7 +153,7 @@ export function LeagueDetailsForm({
             </label>
             <textarea
               value={bio}
-              onChange={(e) => setBio(e.target.value)}
+              onChange={(e) => { setBio(e.target.value); markDirty() }}
               placeholder="A short description of your league..."
               rows={3}
               className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400 resize-none"
@@ -165,15 +168,15 @@ export function LeagueDetailsForm({
         <div className="border-t border-slate-700 p-4">
           <button
             onClick={handleSave}
-            disabled={saving || success}
+            disabled={saving || saved}
             className={cn(
               'w-full rounded-md px-4 py-2 text-sm font-medium transition-colors',
-              success
+              saved
                 ? 'bg-slate-700 text-slate-300 cursor-default'
                 : 'bg-slate-100 text-slate-900 hover:bg-white disabled:opacity-50'
             )}
           >
-            {saving ? 'Saving…' : success ? 'Saved' : 'Save details'}
+            {saving ? 'Saving…' : saved ? 'Saved' : 'Save details'}
           </button>
         </div>
       </div>
