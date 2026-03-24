@@ -29,47 +29,61 @@ Extend the existing `LeagueDetailsForm` component and `PATCH /api/league/[id]/de
 
 #### `components/LeagueDetailsForm.tsx`
 
-- Add `leagueName: string` prop (required)
-- Add `name` to the form's controlled state, initialised from the prop
+- Add `leagueName: string` prop (required). This is passed separately from `initialDetails` because `name` lives on the `Game` type, not `LeagueDetails` — extending `LeagueDetails` would conflate two distinct data shapes.
+- Add `onNameSaved: (name: string) => void` prop so the settings page can update its local `leagueName` state after a successful save, keeping the header subtitle in sync without a full page reload.
+- Add `name` to the form's controlled state, initialised from the `leagueName` prop.
 - Render a text input above the location field:
   - Label: "League name"
-  - Required; validate non-empty before submit
-- Include `name` in the save payload sent to the API
+  - Required; `maxLength={80}`; validate non-empty before submit
+- Include `name` in the save payload sent to the API on every save (not optional).
+- The `LeagueInfoBar` live preview rendered inside the form does not need to reflect live name edits — the info bar displays location, day/time, player count, and bio. The name update becomes visible to the admin via the settings page subtitle (updated through `onNameSaved`) after a successful save.
 
 #### `app/api/league/[id]/details/route.ts` (PATCH handler)
 
-- Accept an optional `name` field in the request body
-- If present and non-empty, include it in the Supabase `update()` on the `games` table
-- `games.name` already exists (NOT NULL) — no migration needed
+- Accept `name` in the request body. `name` must not follow the nullable coercion pattern used for other fields. Extract it explicitly:
+  ```ts
+  const name = typeof b.name === 'string' ? b.name.trim() : ''
+  if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+  ```
+- Include `name` in the Supabase `update()` on the `games` table alongside the other fields.
+- `games.name` already exists (NOT NULL) — no migration needed.
 
 #### `app/[leagueId]/settings/page.tsx`
 
-- Already fetches and holds `leagueName` from the `games` row
-- Pass it as the `leagueName` prop to `<LeagueDetailsForm>`
+- Already fetches and holds `leagueName` from the `games` row via `fetchGames()`.
+- Pass `leagueName` as the `leagueName` prop to `<LeagueDetailsForm>`. **The form does not source `name` from `loadDetails` / the GET `/api/league/[id]/details` endpoint** — those only return `location`, `day`, `kickoff_time`, and `bio`. The GET handler does not need to change.
+- Pass a handler for `onNameSaved` that calls `setLeagueName(name)` so the subtitle updates immediately after save.
 
 ### Data flow
 
 ```
 Settings page
-  → fetches games row (id, name, location, day, kickoff_time, bio)
-  → passes leagueName + leagueDetails to <LeagueDetailsForm>
+  → fetchGames() → leagueName state
+  → loadDetails() → leagueDetails state (location, day, kickoff_time, bio)
+  → passes leagueName + leagueDetails + onNameSaved to <LeagueDetailsForm>
 
 LeagueDetailsForm (admin only)
-  → controlled inputs for: name, location, day, kickoff_time, bio
+  → controlled inputs for: name (from leagueName prop), location, day, kickoff_time, bio
+  → client validates name is non-empty and ≤ 80 chars before submit
   → on save: PATCH /api/league/[id]/details { name, location, day, kickoff_time, bio }
+  → on success: calls onNameSaved(name) so page header subtitle updates immediately
 
 PATCH handler
   → verifies caller is admin
+  → returns 400 if name is absent or blank
   → updates games row with all provided fields
 ```
 
 ### Validation
 
-- `name` must be a non-empty string (client + server)
-- No maximum length enforced (consistent with other text fields)
+| Field  | Client              | Server                        |
+|--------|---------------------|-------------------------------|
+| `name` | Required, maxLength 80 | Required; 400 if absent/blank |
+| Others | Unchanged           | Unchanged (nullable, no max)  |
 
 ### No changes needed
 
-- `lib/types.ts` — `name` lives on `Game`, not `LeagueDetails`; no type changes required
+- `lib/types.ts` — `name` lives on `Game`, not `LeagueDetails`; `LeagueDetails` is not extended
 - DB migrations — `games.name` already exists
+- GET `/api/league/[id]/details` — does not need to return `name`; the settings page already has it from `fetchGames()`
 - Feature flags — settings form is already admin-only
