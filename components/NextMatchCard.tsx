@@ -29,6 +29,8 @@ interface Props {
   allPlayers?: Player[]
   /** Called when the user enters building state — used to collapse open match cards. */
   onBuildStart?: () => void
+  /** Day-of-week index (0=Sun…6=Sat) from league config — used to compute next match date. */
+  leagueDayIndex?: number
 }
 
 type CardState = 'loading' | 'idle' | 'building' | 'lineup' | 'cancelled'
@@ -121,6 +123,7 @@ export function NextMatchCard({
   canAutoPick = false,
   allPlayers = [],
   onBuildStart,
+  leagueDayIndex,
 }: Props) {
   const [cardState, setCardState] = useState<CardState>('loading')
   const [scheduledWeek, setScheduledWeek] = useState<ScheduledWeek | null>(null)
@@ -167,7 +170,7 @@ export function NextMatchCard({
     [selectedNames, guestEntries, newPlayerEntries]
   )
 
-  const nextDate = useMemo(() => getNextMatchDate(weeks), [weeks])
+  const nextDate = useMemo(() => getNextMatchDate(weeks, leagueDayIndex), [weeks, leagueDayIndex])
   const nextWeekNum = useMemo(() => getNextWeekNumber(weeks), [weeks])
   const season = useMemo(() => deriveSeason(weeks), [weeks])
 

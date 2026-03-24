@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
-import { sortWeeks } from '@/lib/utils'
+import { sortWeeks, dayNameToIndex } from '@/lib/utils'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
@@ -179,6 +179,8 @@ export default async function LeagueResultsPage({ params }: Props) {
 
   const goalkeepers = players.filter(p => p.goalkeeper).map(p => p.name)
 
+  const leagueDayIndex = dayNameToIndex(game.day ?? null) ?? undefined
+
   const details: LeagueDetails = {
     location: game.location ?? null,
     day: game.day ?? null,
@@ -235,6 +237,7 @@ export default async function LeagueResultsPage({ params }: Props) {
                 weeks={weeks}
                 features={features}
                 role={userRole}
+                leagueDayIndex={leagueDayIndex}
               />
             </div>
           )}
@@ -269,6 +272,7 @@ export default async function LeagueResultsPage({ params }: Props) {
                 canAutoPick={canSeeTeamBuilder}
                 allPlayers={players}
                 showMatchHistory={canSeeMatchHistory}
+                leagueDayIndex={leagueDayIndex}
               />
             ) : canSeeMatchHistory ? (
               <WeekList weeks={weeks} goalkeepers={goalkeepers} />
@@ -285,6 +289,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             weeks={weeks}
             features={features}
             role={userRole}
+            leagueDayIndex={leagueDayIndex}
           />
         </div>
       </div>
