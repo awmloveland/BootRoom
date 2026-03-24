@@ -233,6 +233,8 @@ export default function LeagueSettingsPage() {
               leagueId={leagueId}
               initialDetails={leagueDetails ?? { location: null, day: null, kickoff_time: null, bio: null }}
               playerCount={playerCount}
+              leagueName={leagueName}
+              onNameSaved={setLeagueName}
             />
           )}
         </div>
