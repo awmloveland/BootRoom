@@ -44,12 +44,12 @@ Each team column shows:
 2. Player rows: coloured background + border matching team
 
 **Team A** (sky palette — matches Lineup Lab):
-- Heading: `text-sky-300`
+- Heading: `text-sm font-semibold text-slate-100` (plain white, matches Lineup Lab label style)
 - Score chip: `bg-sky-900/60 border border-sky-700 text-sky-300`
 - Player rows: `bg-sky-950/40 border-sky-900/60 text-sky-100`
 
 **Team B** (violet palette — matches Lineup Lab):
-- Heading: `text-violet-300`
+- Heading: `text-sm font-semibold text-slate-100` (plain white, matches Lineup Lab label style)
 - Score chip: `bg-violet-900/60 border border-violet-700 text-violet-300`
 - Player rows: `bg-violet-950/40 border-violet-900/60 text-violet-100`
 
@@ -140,7 +140,7 @@ interface TeamListProps {
 ```
 
 Rendering:
-- Header row: coloured label (`TEAM A` / `TEAM B`) + score chip (only if `rating != null`)
+- Header row: `text-sm font-semibold text-slate-100` label (`Team A` / `Team B`) + coloured score chip aligned right (only rendered if `rating != null`)
 - Player rows: coloured background + border (`bg-sky-950/40 border-sky-900/60` for A, `bg-violet-950/40 border-violet-900/60` for B)
 - Goalkeeper emoji retained: `{player}{goalkeepers?.includes(player) ? ' 🧤' : ''}`
 
