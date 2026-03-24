@@ -799,8 +799,8 @@ export function NextMatchCard({
         {cardState === 'lineup' && scheduledWeek && (
           <div className="px-4 py-3">
             <div className="grid grid-cols-2 gap-4">
-              <TeamList label="Team A" players={scheduledWeek.teamA} goalkeepers={goalkeepers} />
-              <TeamList label="Team B" players={scheduledWeek.teamB} goalkeepers={goalkeepers} />
+              <TeamList label="Team A" team="A" players={scheduledWeek.teamA} goalkeepers={goalkeepers} />
+              <TeamList label="Team B" team="B" players={scheduledWeek.teamB} goalkeepers={goalkeepers} />
             </div>
           </div>
         )}

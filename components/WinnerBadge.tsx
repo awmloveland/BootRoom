@@ -15,7 +15,7 @@ const BADGE_CLASSES: Record<NonNullable<Winner>, string> = {
 const BADGE_LABELS: Record<NonNullable<Winner>, string> = {
   teamA: 'Team A Won',
   teamB: 'Team B Won',
-  draw: 'Draw',
+  draw: 'Match Drawn',
 }
 
 export function WinnerBadge({ winner, cancelled = false }: WinnerBadgeProps) {
