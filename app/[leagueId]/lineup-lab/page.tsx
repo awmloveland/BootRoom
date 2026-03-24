@@ -10,7 +10,7 @@ import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { LineupLab } from '@/components/LineupLab'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
-import type { GameRole, LeagueFeature, FeatureKey, Player, Week } from '@/lib/types'
+import type { GameRole, LeagueFeature, FeatureKey, Player, Week, LeagueDetails } from '@/lib/types'
 
 interface Props {
   params: Promise<{ leagueId: string }>
@@ -23,7 +23,7 @@ export default async function LineupLabPage({ params }: Props) {
   // 1. Verify league exists
   const { data: game } = await service
     .from('games')
-    .select('id, name')
+    .select('id, name, location, day, kickoff_time, bio')
     .eq('id', leagueId)
     .maybeSingle()
 
@@ -128,6 +128,14 @@ export default async function LineupLabPage({ params }: Props) {
     recentForm: String(row.recentForm ?? ''),
   }))
 
+  const details: LeagueDetails = {
+    location: game.location ?? null,
+    day: game.day ?? null,
+    kickoff_time: game.kickoff_time ?? null,
+    bio: game.bio ?? null,
+    player_count: players.length,
+  }
+
   return (
     <main className="px-4 sm:px-6 pt-4 pb-8">
       <div className="flex justify-center gap-6 items-start">
@@ -141,6 +149,7 @@ export default async function LineupLabPage({ params }: Props) {
             currentTab="lineup-lab"
             isAdmin={isAdmin}
             showLineupLabTab={true}
+            details={details}
           />
           <LineupLab allPlayers={players} />
         </div>

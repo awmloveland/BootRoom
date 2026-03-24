@@ -1,15 +1,27 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Check, Copy, RefreshCw, Settings2, Users } from 'lucide-react'
+import { Suspense, useEffect, useState, useCallback } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { ArrowLeft, Check, Copy, Info, RefreshCw, Settings2, Users } from 'lucide-react'
 import { fetchGames } from '@/lib/data'
 import { AdminMemberTable } from '@/components/AdminMemberTable'
 import { FeaturePanel } from '@/components/FeaturePanel'
+import { LeagueDetailsForm } from '@/components/LeagueDetailsForm'
 import { cn } from '@/lib/utils'
-import type { LeagueMember, LeagueFeature } from '@/lib/types'
+import type { LeagueMember, LeagueFeature, LeagueDetails } from '@/lib/types'
 
-type Section = 'members' | 'features'
+type Section = 'details' | 'members' | 'features'
+
+function TabInitialiser({ onTab }: { onTab: (tab: Section) => void }) {
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab === 'details' || tab === 'members' || tab === 'features') {
+      onTab(tab)
+    }
+  }, [searchParams, onTab])
+  return null
+}
 
 function formatExpiry(iso: string | null): string {
   if (!iso) return ''
@@ -22,10 +34,15 @@ export default function LeagueSettingsPage() {
   const router = useRouter()
   const leagueId = (params?.leagueId as string) ?? ''
 
-  const [section, setSection] = useState<Section>('members')
+  const [section, setSection] = useState<Section>('details')
   const [leagueName, setLeagueName] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  // League details state
+  const [leagueDetails, setLeagueDetails] = useState<LeagueDetails | null>(null)
+  const [playerCount, setPlayerCount] = useState(0)
+  const [detailsLoading, setDetailsLoading] = useState(false)
 
   // Members state
   const [members, setMembers] = useState<LeagueMember[]>([])
@@ -65,6 +82,27 @@ export default function LeagueSettingsPage() {
     }
     init()
   }, [leagueId, router])
+
+  const loadDetails = useCallback(async () => {
+    setDetailsLoading(true)
+    try {
+      const detailsRes = await fetch(`/api/league/${leagueId}/details`, { credentials: 'include' })
+      const detailsData = await detailsRes.json()
+      if (detailsRes.ok) {
+        setLeagueDetails({
+          location: detailsData.location ?? null,
+          day: detailsData.day ?? null,
+          kickoff_time: detailsData.kickoff_time ?? null,
+          bio: detailsData.bio ?? null,
+        })
+        setPlayerCount(detailsData.player_count ?? 0)
+      }
+    } catch {
+      setLeagueDetails({ location: null, day: null, kickoff_time: null, bio: null })
+    } finally {
+      setDetailsLoading(false)
+    }
+  }, [leagueId])
 
   const loadMembers = useCallback(async () => {
     setMembersLoading(true)
@@ -124,6 +162,7 @@ export default function LeagueSettingsPage() {
 
   useEffect(() => {
     if (!isAdmin) return
+    if (section === 'details') loadDetails()
     if (section === 'members') {
       loadMembers()
       // Auto-create both invite links on members tab mount
@@ -132,7 +171,7 @@ export default function LeagueSettingsPage() {
     }
     if (section === 'features') loadFeatures()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [section, isAdmin, loadMembers, loadFeatures])
+  }, [section, isAdmin, loadDetails, loadMembers, loadFeatures])
 
   if (loading) {
     return (
@@ -143,12 +182,16 @@ export default function LeagueSettingsPage() {
   }
 
   const NAV: { id: Section; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'members',  label: 'Members',  Icon: Users },
-    { id: 'features', label: 'Features', Icon: Settings2 },
+    { id: 'details',  label: 'League Details', Icon: Info },
+    { id: 'members',  label: 'Members',        Icon: Users },
+    { id: 'features', label: 'Features',       Icon: Settings2 },
   ]
 
   return (
     <main className="max-w-xl mx-auto px-4 sm:px-6 py-8">
+      <Suspense fallback={null}>
+        <TabInitialiser onTab={setSection} />
+      </Suspense>
       <div className="mb-6">
         <button
           onClick={() => router.back()}
@@ -179,6 +222,21 @@ export default function LeagueSettingsPage() {
           </button>
         ))}
       </div>
+
+      {/* ── LEAGUE DETAILS ── */}
+      {section === 'details' && (
+        <div>
+          {detailsLoading ? (
+            <p className="text-slate-400 text-sm">Loading…</p>
+          ) : (
+            <LeagueDetailsForm
+              leagueId={leagueId}
+              initialDetails={leagueDetails ?? { location: null, day: null, kickoff_time: null, bio: null }}
+              playerCount={playerCount}
+            />
+          )}
+        </div>
+      )}
 
       {/* ── MEMBERS ── */}
       {section === 'members' && (

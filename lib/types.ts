@@ -49,6 +49,14 @@ export interface Game {
   role: GameRole;
 }
 
+export interface LeagueDetails {
+  location: string | null;
+  day: string | null;           // stored singular: "Thursday"
+  kickoff_time: string | null;  // e.g. "6:30pm"
+  bio: string | null;
+  player_count?: number;        // derived from players.length — omitted if players not fetched
+}
+
 export type FeatureKey =
   | 'match_history'
   | 'match_entry'

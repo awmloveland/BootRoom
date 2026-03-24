@@ -13,7 +13,7 @@ import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { ResultsSection } from '@/components/ResultsSection'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { StatsSidebar } from '@/components/StatsSidebar'
-import type { Week, GameRole, LeagueFeature, FeatureKey, Player, ScheduledWeek } from '@/lib/types'
+import type { Week, GameRole, LeagueFeature, FeatureKey, Player, ScheduledWeek, LeagueDetails } from '@/lib/types'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
 
 interface Props {
@@ -28,7 +28,7 @@ export default async function LeagueResultsPage({ params }: Props) {
   //    users can't read games rows via anon key)
   const { data: game } = await serviceSupabase
     .from('games')
-    .select('id, name')
+    .select('id, name, location, day, kickoff_time, bio')
     .eq('id', leagueId)
     .maybeSingle()
 
@@ -148,7 +148,8 @@ export default async function LeagueResultsPage({ params }: Props) {
   // 7. Fetch players for member/admin tier (needed for NextMatchCard squad selection + auto-pick)
   //    Also fetch for public tier when the stats sidebar is enabled (needed for InForm widget)
   let players: Player[] = []
-  if ((tier !== 'public' && (canSeeMatchHistory || canSeeMatchEntry)) || (tier === 'public' && canSeeStatsSidebar)) {
+  const playersFetched = (tier !== 'public' && (canSeeMatchHistory || canSeeMatchEntry)) || (tier === 'public' && canSeeStatsSidebar)
+  if (playersFetched) {
     const { data: playersData } = await serviceSupabase.rpc('get_player_stats_public', {
       p_game_id: leagueId,
     })
@@ -174,6 +175,14 @@ export default async function LeagueResultsPage({ params }: Props) {
 
   const goalkeepers = players.filter(p => p.goalkeeper).map(p => p.name)
 
+  const details: LeagueDetails = {
+    location: game.location ?? null,
+    day: game.day ?? null,
+    kickoff_time: game.kickoff_time ?? null,
+    bio: game.bio ?? null,
+    player_count: playersFetched ? players.length : undefined,
+  }
+
   const playedCount = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled').length
   const totalWeeks = 52
   const pct = Math.round((playedCount / totalWeeks) * 100)
@@ -193,6 +202,7 @@ export default async function LeagueResultsPage({ params }: Props) {
               currentTab="results"
               isAdmin={isAdmin}
               showLineupLabTab={false}
+              details={details}
             />
             {canSeeMatchEntry && (
               <PublicMatchEntrySection
@@ -243,6 +253,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             currentTab="results"
             isAdmin={isAdmin}
             showLineupLabTab={canSeeTeamBuilder}
+            details={details}
           />
           <div className="flex flex-col gap-3">
             {canSeeMatchEntry ? (
