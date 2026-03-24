@@ -1,7 +1,7 @@
 # League Day & Schedule Sync — Design Spec
 
 **Date:** 2026-03-24
-**Status:** Draft
+**Status:** Draft (v2 — spec review fixes applied)
 
 ---
 
@@ -73,21 +73,31 @@ export function getNextMatchDate(weeks: Week[], leagueDayIndex?: number): string
 
 When `leagueDayIndex` is provided, use it as the day-of-week instead of deriving from `played[0].date`. Inference from played weeks remains when `leagueDayIndex` is `undefined`.
 
+**Important:** The guard inside the updated function must use `leagueDayIndex !== undefined` (not a truthiness check), because `0` represents Sunday and is falsy — `if (leagueDayIndex)` would incorrectly fall through to inference for Sunday leagues.
+
 ---
 
 ### 3. `StatsSidebar` — add `leagueDayIndex` prop
 
-Current call site (`StatsSidebar.tsx` line 83):
+`StatsSidebar.tsx` contains an inline sub-component `QuarterlyTableWidget` (line 82) which is the actual call site for `computeQuarterlyTable`:
+
 ```ts
-const { ... gamesLeft } = computeQuarterlyTable(weeks)
+function QuarterlyTableWidget({ weeks }: { weeks: Week[] }) {
+  const { ... gamesLeft } = computeQuarterlyTable(weeks)  // line 83
 ```
 
-Updated:
-```ts
-const { ... gamesLeft } = computeQuarterlyTable(weeks, new Date(), leagueDayIndex ?? undefined)
+`leagueDayIndex` must be threaded through both:
+
+1. Add `leagueDayIndex?: number` to the `StatsSidebar` props interface and pass it to `QuarterlyTableWidget`:
+```tsx
+<QuarterlyTableWidget weeks={weeks} leagueDayIndex={leagueDayIndex} />
 ```
 
-Add `leagueDayIndex?: number` to the `StatsSidebar` props interface.
+2. Add `leagueDayIndex?: number` to `QuarterlyTableWidget`'s props and forward it:
+```ts
+function QuarterlyTableWidget({ weeks, leagueDayIndex }: { weeks: Week[]; leagueDayIndex?: number }) {
+  const { ... gamesLeft } = computeQuarterlyTable(weeks, new Date(), leagueDayIndex)
+```
 
 ---
 
@@ -99,21 +109,37 @@ Add `leagueDayIndex?: number` to the `StatsSidebar` props interface.
 const leagueDayIndex = dayNameToIndex(game.day ?? null) ?? undefined
 ```
 
-Pass to both consumer components:
+**`NextMatchCard` is not rendered directly by the results page** — it is rendered by `ResultsSection` (`components/ResultsSection.tsx`). `leagueDayIndex` must be threaded through `ResultsSection` first:
 
 ```tsx
-<NextMatchCard
+// In results/page.tsx:
+<ResultsSection
   ...
   leagueDayIndex={leagueDayIndex}
 />
 
-<StatsSidebar
+// In ResultsSection.tsx Props interface — add:
+leagueDayIndex?: number
+
+// In ResultsSection.tsx render — forward to NextMatchCard:
+<NextMatchCard
   ...
   leagueDayIndex={leagueDayIndex}
 />
 ```
 
-`NextMatchCard` passes it to `getNextMatchDate(weeks, leagueDayIndex)` at line 170.
+**`NextMatchCard` Props interface** — add `leagueDayIndex?: number` to the interface (lines 17–32), then update line 170:
+```ts
+const nextDate = useMemo(() => getNextMatchDate(weeks, leagueDayIndex), [weeks, leagueDayIndex])
+```
+
+**`StatsSidebar`** is rendered directly from the results page:
+```tsx
+<StatsSidebar
+  ...
+  leagueDayIndex={leagueDayIndex}
+/>
+```
 
 ---
 
@@ -137,6 +163,8 @@ Returns `{ week: ScheduledWeek } | { week: null }`.
 >
 > **Move this match** — reschedule [existing date, e.g. "Thu 26 Mar"] to [next occurrence of new day, e.g. "Wed 25 Mar"]
 > **Keep this match** — leave [Thu 26 Mar] as-is, apply [NewDay] from next game
+
+**Date formatting in the modal:** The human-readable label (e.g. "Thu 26 Mar") uses `toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })` — matching the `formatDisplayDate` pattern used elsewhere. The `date` value sent in the PATCH body must be `"DD MMM YYYY"` format from `formatWeekDate` (already exported from `lib/utils.ts`).
 
 **"Move this match" flow:**
 1. `PATCH /api/league/[id]/details` — saves new `day` (and all other changed fields)
@@ -176,7 +204,7 @@ New lightweight route. Returns the first scheduled week for the league (or null)
 
 ### 7. API: `PATCH /api/league/[id]/weeks/[weekId]`
 
-Check whether this route already exists for week editing. If so, confirm it accepts a `date` field update on a scheduled week. If not, add a minimal admin-only route:
+This route does not currently exist and must be created as a new minimal admin-only route:
 
 - **Auth:** `is_game_admin` RPC check (same as details PATCH)
 - **Body:** `{ date: string }` — validated as `"DD MMM YYYY"` format
@@ -189,9 +217,10 @@ Check whether this route already exists for week editing. If so, confirm it acce
 | File | Change |
 |---|---|
 | `lib/utils.ts` | Add `dayNameToIndex`; update `getNextMatchDate` signature |
-| `components/NextMatchCard.tsx` | Add `leagueDayIndex` prop; pass to `getNextMatchDate` |
-| `components/StatsSidebar.tsx` | Add `leagueDayIndex` prop; pass to `computeQuarterlyTable` |
-| `app/[leagueId]/results/page.tsx` | Derive `leagueDayIndex`; pass to `NextMatchCard` and `StatsSidebar` |
+| `components/NextMatchCard.tsx` | Add `leagueDayIndex?: number` to Props interface; pass to `getNextMatchDate` |
+| `components/ResultsSection.tsx` | Add `leagueDayIndex?: number` to Props interface; forward to `NextMatchCard` |
+| `components/StatsSidebar.tsx` | Add `leagueDayIndex?: number` to StatsSidebar and `QuarterlyTableWidget` props; forward to `computeQuarterlyTable` |
+| `app/[leagueId]/results/page.tsx` | Derive `leagueDayIndex`; pass to `ResultsSection` and `StatsSidebar` |
 | `app/[leagueId]/settings/page.tsx` | Track original day; check scheduled week on save; show modal |
 | `app/api/league/[id]/weeks/scheduled/route.ts` | New GET route |
 | `app/api/league/[id]/weeks/[weekId]/route.ts` | New or updated PATCH route (date field) |
@@ -201,5 +230,5 @@ Check whether this route already exists for week editing. If so, confirm it acce
 ## Out of scope
 
 - Updating `kickoff_time` does not affect any scheduling computation — it is display-only in the info bar. No changes needed for time.
-- The home page league card (`app/page.tsx`) uses a separate `computeNextMatchDate` function. It is not wired to `games.day` in this spec; that is a follow-on.
+- The home page league card (`app/page.tsx`) uses a separate locally-defined `computeNextMatchDate` function and does not fetch `game.day` at all (it only selects `games(id, name)`). Wiring it to `games.day` is a known follow-on. Until that is done, the home page card will continue to show an inference-based next-match date even after this spec ships — this is a known inconsistency between the home page and the results page.
 - Public tier (`PublicMatchEntrySection`) is not affected — it uses `initialScheduledWeek` directly.
