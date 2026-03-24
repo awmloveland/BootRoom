@@ -26,7 +26,23 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const body = await request.json()
-  const { weekId, winner, notes } = body as { weekId: string; winner: Winner; notes?: string }
+  const { weekId, winner, notes, goalDifference } = body as {
+    weekId: string
+    winner: Winner
+    notes?: string
+    goalDifference: unknown
+  }
+
+  // Validate goalDifference — must be present and a whole number.
+  // Both wins (1–20) and draws (0) must always include this field.
+  // Number.isInteger(null) and Number.isInteger(undefined) both return false,
+  // so absent or null values are rejected here too.
+  if (!Number.isInteger(goalDifference)) {
+    return NextResponse.json({ error: 'goalDifference must be an integer' }, { status: 400 })
+  }
+
+  // Safe to cast — we've validated it is an integer
+  const goalDiff = goalDifference as number
 
   // Verify the week belongs to this game
   const { data: weekRow } = await service
@@ -45,6 +61,7 @@ export async function POST(request: Request, { params }: Params) {
       status: 'played',
       winner,
       notes: notes?.trim() || null,
+      goal_difference: goalDiff,
     })
     .eq('id', weekId)
 
