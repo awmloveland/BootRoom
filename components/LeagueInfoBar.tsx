@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { buildLeagueInfoFacts, isLeagueDetailsFilled } from '@/lib/utils'
+import { MapPin, Calendar, Users } from 'lucide-react'
+import { isLeagueDetailsFilled } from '@/lib/utils'
 import type { LeagueDetails } from '@/lib/types'
 
 interface LeagueInfoBarProps {
@@ -33,25 +34,39 @@ export function LeagueInfoBar({ details, leagueId, isAdmin }: LeagueInfoBarProps
     )
   }
 
-  // Filled state
-  const facts = buildLeagueInfoFacts(details!)
+  // Build pills inline — bypasses buildLeagueInfoFacts (incompatible: returns string[], not JSX)
+  const d = details!
+  const dayTime = d.day && d.kickoff_time
+    ? `${d.day} ${d.kickoff_time}`
+    : d.day ?? d.kickoff_time ?? null
+
+  const pillClass = 'inline-flex items-center gap-1.5 text-xs text-slate-400 bg-slate-800 border border-slate-800 rounded px-2 py-0.5'
+  const iconClass = 'size-[11px] shrink-0'  // shrink-0 prevents flex compression on narrow screens
 
   return (
     <div className="space-y-2">
-      {facts.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {facts.map((fact) => (
-            <span
-              key={fact}
-              className="inline-flex items-center gap-1.5 text-sm text-slate-300 bg-slate-800 border border-slate-700 rounded-full px-3 py-1"
-            >
-              {fact}
-            </span>
-          ))}
-        </div>
-      )}
-      {details!.bio && (
-        <p className="text-sm text-slate-400 leading-relaxed">{details!.bio}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {d.location && (
+          <span className={pillClass}>
+            <MapPin className={iconClass} />
+            {d.location}
+          </span>
+        )}
+        {dayTime && (
+          <span className={pillClass}>
+            <Calendar className={iconClass} />
+            {dayTime}
+          </span>
+        )}
+        {d.player_count != null && (
+          <span className={pillClass}>
+            <Users className={iconClass} />
+            {d.player_count} players
+          </span>
+        )}
+      </div>
+      {d.bio && (
+        <p className="text-xs text-slate-500 leading-relaxed">{d.bio}</p>
       )}
     </div>
   )
