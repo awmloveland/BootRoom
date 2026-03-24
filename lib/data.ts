@@ -29,12 +29,13 @@ export async function fetchWeeks(gameId: string): Promise<Week[]> {
       teamB: row.team_b ?? [],
       winner: row.winner ?? null,
       notes: row.notes ?? undefined,
+      goal_difference: row.goal_difference ?? null,
     })) as Week[]
   }
   const supabase = createClient()
   const { data, error } = await supabase
     .from('weeks')
-    .select('week, date, status, format, team_a, team_b, winner, notes')
+    .select('week, date, status, format, team_a, team_b, winner, notes, goal_difference')
     .eq('game_id', gameId)
     .in('status', ['played', 'cancelled'])
     .order('week', { ascending: false })
@@ -48,6 +49,7 @@ export async function fetchWeeks(gameId: string): Promise<Week[]> {
     teamB: row.team_b ?? [],
     winner: row.winner ?? null,
     notes: row.notes ?? undefined,
+    goal_difference: row.goal_difference ?? null,
   })) as Week[]
 }
 
