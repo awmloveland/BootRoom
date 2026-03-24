@@ -15,6 +15,7 @@ interface Props {
   canAutoPick: boolean
   allPlayers: Player[]
   showMatchHistory: boolean
+  leagueDayIndex?: number
 }
 
 export function ResultsSection({
@@ -25,6 +26,7 @@ export function ResultsSection({
   canAutoPick,
   allPlayers,
   showMatchHistory,
+  leagueDayIndex,
 }: Props) {
   const router = useRouter()
 
@@ -49,6 +51,7 @@ export function ResultsSection({
         canAutoPick={canAutoPick}
         allPlayers={allPlayers}
         onBuildStart={handleBuildStart}
+        leagueDayIndex={leagueDayIndex}
       />
       {showMatchHistory && weeks.length > 0 && (
         <WeekList

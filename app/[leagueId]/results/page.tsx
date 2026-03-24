@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
-import { sortWeeks } from '@/lib/utils'
+import { sortWeeks, dayNameToIndex } from '@/lib/utils'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
@@ -15,6 +15,7 @@ import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import type { Week, GameRole, LeagueFeature, FeatureKey, Player, ScheduledWeek, LeagueDetails } from '@/lib/types'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
+import { BfcacheRefresh } from '@/components/BfcacheRefresh'
 
 interface Props {
   params: Promise<{ leagueId: string }>
@@ -179,6 +180,8 @@ export default async function LeagueResultsPage({ params }: Props) {
 
   const goalkeepers = players.filter(p => p.goalkeeper).map(p => p.name)
 
+  const leagueDayIndex = dayNameToIndex(game.day ?? null) ?? undefined
+
   const details: LeagueDetails = {
     location: game.location ?? null,
     day: game.day ?? null,
@@ -195,6 +198,7 @@ export default async function LeagueResultsPage({ params }: Props) {
   if (tier === 'public') {
     return (
       <main className="px-4 sm:px-6 py-4">
+        <BfcacheRefresh />
         <div className="flex justify-center gap-6 items-start">
           <div className="w-full max-w-xl shrink-0 space-y-8">
             <LeaguePageHeader
@@ -235,6 +239,7 @@ export default async function LeagueResultsPage({ params }: Props) {
                 weeks={weeks}
                 features={features}
                 role={userRole}
+                leagueDayIndex={leagueDayIndex}
               />
             </div>
           )}
@@ -246,6 +251,7 @@ export default async function LeagueResultsPage({ params }: Props) {
   // ── Member / Admin tier render ──
   return (
     <main className="px-4 sm:px-6 py-4">
+      <BfcacheRefresh />
       <div className="flex justify-center gap-6 items-start">
         <div className="w-full max-w-xl shrink-0">
           <LeaguePageHeader
@@ -269,6 +275,7 @@ export default async function LeagueResultsPage({ params }: Props) {
                 canAutoPick={canSeeTeamBuilder}
                 allPlayers={players}
                 showMatchHistory={canSeeMatchHistory}
+                leagueDayIndex={leagueDayIndex}
               />
             ) : canSeeMatchHistory ? (
               <WeekList weeks={weeks} goalkeepers={goalkeepers} />
@@ -285,6 +292,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             weeks={weeks}
             features={features}
             role={userRole}
+            leagueDayIndex={leagueDayIndex}
           />
         </div>
       </div>

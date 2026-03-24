@@ -10,6 +10,7 @@ interface StatsSidebarProps {
   weeks: Week[]
   features: LeagueFeature[]
   role: GameRole | null
+  leagueDayIndex?: number
 }
 
 function WidgetShell({ title, children }: { title: string; children: React.ReactNode }) {
@@ -79,8 +80,8 @@ function InFormWidget({ players }: { players: Player[] }) {
 
 // ─── Widget 2: Quarterly Table ────────────────────────────────────────────────
 
-function QuarterlyTableWidget({ weeks }: { weeks: Week[] }) {
-  const { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft } = computeQuarterlyTable(weeks)
+function QuarterlyTableWidget({ weeks, leagueDayIndex }: { weeks: Week[]; leagueDayIndex?: number }) {
+  const { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft } = computeQuarterlyTable(weeks, new Date(), leagueDayIndex)
   const showGamesLeft = entries.length > 0 && gamesLeft > 0
 
   return (
@@ -220,7 +221,7 @@ function TeamABWidget({ weeks }: { weeks: Week[] }) {
 
 // ─── StatsSidebar ─────────────────────────────────────────────────────────────
 
-export function StatsSidebar({ players, weeks, features, role }: StatsSidebarProps) {
+export function StatsSidebar({ players, weeks, features, role, leagueDayIndex }: StatsSidebarProps) {
   const tier = resolveVisibilityTier(role)
 
   const showStatsSidebar = isFeatureEnabled(features, 'stats_sidebar', tier)
@@ -230,7 +231,7 @@ export function StatsSidebar({ players, weeks, features, role }: StatsSidebarPro
   return (
     <div className="space-y-3">
       <InFormWidget    players={players} />
-      <QuarterlyTableWidget weeks={weeks} />
+      <QuarterlyTableWidget weeks={weeks} leagueDayIndex={leagueDayIndex} />
       <TeamABWidget    weeks={weeks} />
     </div>
   )
