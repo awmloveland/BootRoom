@@ -156,7 +156,7 @@ Pass `team="A"`, `team="B"`, and the rating fields down to `TeamList`:
 In `ResultModal.handleSave()`, before calling the RPC or the public API route:
 
 1. Resolve each name in `scheduledWeek.teamA` / `scheduledWeek.teamB` against `allPlayers`.
-2. For guests and new players (present in `lineupMetadata` but not in `allPlayers`), construct a minimal synthetic `Player` object using their recorded `rating` (from `lineupMetadata`), with `played: 0`, `recentForm: ''`, etc. Use the updated `guestStates` / `newPlayerStates` ratings (in case the admin adjusted them in the review step).
+2. For guests and new players (present in `lineupMetadata` but not in `allPlayers`), construct a minimal synthetic `Player` object. Use ratings from **`guestStates` / `newPlayerStates` component state** — not from `lineupMetadata` directly — so that any admin adjustments made during the review step are captured. Required fields for `ewptScore`: `rating` (1–3), `played: 0`, `recentForm: ''`, `goalkeeper` (from the state), `mentality: 'balanced'`, all win/loss counters at 0.
 3. Call `ewptScore(resolvedTeamA)` and `ewptScore(resolvedTeamB)`.
 4. Pass the results as `p_team_a_rating` / `p_team_b_rating` to the RPC, or include as `teamARating` / `teamBRating` in the public API POST body.
 
@@ -176,10 +176,6 @@ Add `team_a_rating, team_b_rating` to the weeks `SELECT` and map them onto the `
 team_a_rating: row.team_a_rating ?? null,
 team_b_rating: row.team_b_rating ?? null,
 ```
-
-### Lineup-lab page (`app/[leagueId]/lineup-lab/page.tsx`)
-
-Same — add `team_a_rating, team_b_rating` to the select and mapping (weeks are shown in the StatsSidebar).
 
 ---
 
