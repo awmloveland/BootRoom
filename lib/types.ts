@@ -13,6 +13,8 @@ export interface Week {
   // Non-negative integer. 0 = draw. Positive = win margin (UI enforces 1–20, DB has no constraint).
   // null = not recorded or cancelled. Display code must handle any positive integer gracefully.
   goal_difference?: number | null;
+  team_a_rating?: number | null;  // ewptScore snapshot at game time; null for pre-migration games
+  team_b_rating?: number | null;
 }
 
 export type Mentality = 'balanced' | 'attacking' | 'defensive' | 'goalkeeper';
