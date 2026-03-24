@@ -3,7 +3,7 @@
 
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { cn } from '@/lib/utils'
+import { cn, ewptScore } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, ScheduledWeek, LineupMetadata, Player } from '@/lib/types'
 import { EyeTestSlider } from '@/components/EyeTestSlider'
@@ -155,6 +155,32 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
     if (!winner) return
     setSaving(true)
     setError(null)
+
+    // Compute frozen team strength scores to store alongside the result.
+    const guestMap = new Map(guestStates.map((g) => [g.name, g]))
+    const newPlayerMap = new Map(newPlayerStates.map((p) => [p.name, p]))
+
+    function resolveTeam(names: string[]): Player[] {
+      return names.map((name) => {
+        const known = allPlayers.find((p) => p.name === name)
+        if (known) return known
+        const src = guestMap.get(name) ?? newPlayerMap.get(name)
+        return {
+          name,
+          played: 0, won: 0, drew: 0, lost: 0,
+          timesTeamA: 0, timesTeamB: 0,
+          winRate: 0, qualified: false, points: 0,
+          recentForm: '',
+          mentality: 'balanced' as const,
+          rating: src?.rating ?? 2,
+          goalkeeper: src?.goalkeeper ?? false,
+        }
+      })
+    }
+
+    const teamAScore = parseFloat(ewptScore(resolveTeam(scheduledWeek.teamA)).toFixed(3))
+    const teamBScore = parseFloat(ewptScore(resolveTeam(scheduledWeek.teamB)).toFixed(3))
+
     try {
       if (publicMode) {
         const res = await fetch(`/api/public/league/${gameId}/result`, {
@@ -165,6 +191,8 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
             winner,
             notes: notes.trim() || null,
             goalDifference: winner === 'draw' ? 0 : goalDifference,
+            teamARating: teamAScore,
+            teamBRating: teamBScore,
           }),
         })
         if (!res.ok) {
@@ -179,6 +207,8 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           p_winner: winner,
           p_notes: notes.trim() || null,
           p_goal_difference: winner === 'draw' ? 0 : goalDifference,
+          p_team_a_rating: teamAScore,
+          p_team_b_rating: teamBScore,
         })
         if (resultErr) throw resultErr
 
