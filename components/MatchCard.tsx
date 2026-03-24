@@ -51,12 +51,11 @@ function PlayedCard({ week, isOpen, onToggle, goalkeepers }: MatchCardProps) {
               <p className="text-xs text-slate-400">
                 {week.date}
                 {week.format && (
-                  <span className="ml-2 text-slate-500">· {week.format}</span>
+                  <span className="ml-2 text-slate-400">· {week.format}</span>
                 )}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">Winner</span>
               <WinnerBadge winner={week.winner} />
               <ChevronDown
                 className={cn(
