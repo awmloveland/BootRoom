@@ -26,11 +26,18 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const body = await request.json()
-  const { weekId, winner, notes, goalDifference } = body as {
+  const { weekId, winner, notes, goalDifference, teamARating, teamBRating } = body as {
     weekId: string
     winner: Winner
     notes?: string
     goalDifference: unknown
+    teamARating: unknown
+    teamBRating: unknown
+  }
+
+  function safeRating(val: unknown): number | null {
+    if (typeof val === 'number' && isFinite(val)) return val
+    return null
   }
 
   // Validate goalDifference — must be present and a whole number.
@@ -62,6 +69,8 @@ export async function POST(request: Request, { params }: Params) {
       winner,
       notes: notes?.trim() || null,
       goal_difference: goalDiff,
+      team_a_rating: safeRating(teamARating),
+      team_b_rating: safeRating(teamBRating),
     })
     .eq('id', weekId)
 
