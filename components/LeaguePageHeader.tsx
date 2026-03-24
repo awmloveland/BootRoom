@@ -48,42 +48,42 @@ export function LeaguePageHeader({
       <div className="mt-3">
         <LeagueInfoBar details={details} leagueId={leagueId} isAdmin={isAdmin} />
       </div>
-      <nav className="flex gap-6 border-b border-slate-700 pt-3">
+      <nav className="flex gap-6 border-b border-slate-700 pt-5">
         <Link
           href={`/${leagueId}/results`}
           className={cn(
-            '-mb-px flex items-center gap-2 border-b-2 pb-2 text-xs font-medium',
+            '-mb-px flex items-center gap-2 border-b-2 pb-2 text-sm font-medium',
             currentTab === 'results'
               ? 'border-slate-200 text-slate-200'
               : 'border-transparent text-slate-700 hover:text-slate-400'
           )}
         >
-          <ClipboardList className="size-3" />
+          <ClipboardList className="size-3.5" />
           Results
         </Link>
         <Link
           href={`/${leagueId}/players`}
           className={cn(
-            '-mb-px flex items-center gap-2 border-b-2 pb-2 text-xs font-medium',
+            '-mb-px flex items-center gap-2 border-b-2 pb-2 text-sm font-medium',
             currentTab === 'players'
               ? 'border-slate-200 text-slate-200'
               : 'border-transparent text-slate-700 hover:text-slate-400'
           )}
         >
-          <Users className="size-3" />
+          <Users className="size-3.5" />
           Players
         </Link>
         {showLineupLabTab && (
           <Link
             href={`/${leagueId}/lineup-lab`}
             className={cn(
-              '-mb-px flex items-center gap-2 border-b-2 pb-2 text-xs font-medium',
+              '-mb-px flex items-center gap-2 border-b-2 pb-2 text-sm font-medium',
               currentTab === 'lineup-lab'
                 ? 'border-slate-200 text-slate-200'
                 : 'border-transparent text-slate-700 hover:text-slate-400'
             )}
           >
-            <FlaskConical className="size-3" />
+            <FlaskConical className="size-3.5" />
             Lineup Lab
           </Link>
         )}
