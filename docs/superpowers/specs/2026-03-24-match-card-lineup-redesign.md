@@ -15,7 +15,7 @@ Redesign the expanded match card to show colour-coded team lineups and frozen te
 
 | Topic | Decision |
 |---|---|
-| Player row colours | Blue/violet — matching the WinnerBadge palette (not sky/violet) |
+| Player row colours | Sky/violet — matching the Lineup Lab palette |
 | Team ratings | Stored as a snapshot in the DB at result-recording time |
 | Balance bar | Not included — score chips only |
 | Winner badge labels | "Team A Won", "Team B Won", "Draw" |
@@ -43,15 +43,15 @@ Each team column shows:
 1. Coloured heading (`TEAM A` / `TEAM B`) + score chip aligned right
 2. Player rows: coloured background + border matching team
 
-**Team A** (blue palette):
-- Heading: `text-blue-300`
-- Score chip: `bg-blue-900 border-blue-700 text-blue-300`
-- Player rows: `bg-blue-900 border-blue-700 text-blue-200`
+**Team A** (sky palette — matches Lineup Lab):
+- Heading: `text-sky-300`
+- Score chip: `bg-sky-900/60 border border-sky-700 text-sky-300`
+- Player rows: `bg-sky-950/40 border-sky-900/60 text-sky-100`
 
-**Team B** (violet palette):
+**Team B** (violet palette — matches Lineup Lab):
 - Heading: `text-violet-300`
-- Score chip: `bg-violet-900 border-violet-700 text-violet-300`
-- Player rows: `bg-violet-900 border-violet-700 text-violet-200`
+- Score chip: `bg-violet-900/60 border border-violet-700 text-violet-300`
+- Player rows: `bg-violet-950/40 border-violet-900/60 text-violet-100`
 
 Score chip format: `ewptScore` rounded to 3 decimal places, e.g. `4.210`. If rating is `null` (pre-migration historical games), the chip is not rendered.
 
@@ -104,13 +104,19 @@ Update the `UPDATE weeks SET ...` to include `team_a_rating = p_team_a_rating, t
 
 ### `WinnerBadge`
 
-Update `BADGE_LABELS`:
+Update `BADGE_LABELS` and `BADGE_CLASSES`:
 
 ```ts
 const BADGE_LABELS: Record<NonNullable<Winner>, string> = {
   teamA: 'Team A Won',
   teamB: 'Team B Won',
   draw: 'Draw',
+}
+
+const BADGE_CLASSES: Record<NonNullable<Winner>, string> = {
+  teamA: 'bg-sky-900/60 text-sky-300 border border-sky-700',
+  teamB: 'bg-violet-900/60 text-violet-300 border border-violet-700',
+  draw: 'bg-slate-700 text-slate-300 border border-slate-600',
 }
 ```
 
@@ -135,7 +141,7 @@ interface TeamListProps {
 
 Rendering:
 - Header row: coloured label (`TEAM A` / `TEAM B`) + score chip (only if `rating != null`)
-- Player rows: coloured background + border (`bg-blue-900 border-blue-700` for A, `bg-violet-900 border-violet-700` for B)
+- Player rows: coloured background + border (`bg-sky-950/40 border-sky-900/60` for A, `bg-violet-950/40 border-violet-900/60` for B)
 - Goalkeeper emoji retained: `{player}{goalkeepers?.includes(player) ? ' 🧤' : ''}`
 
 ### `MatchCard`
