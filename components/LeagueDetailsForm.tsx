@@ -16,17 +16,22 @@ interface LeagueDetailsFormProps {
   leagueId: string
   initialDetails: LeagueDetails
   playerCount: number
+  leagueName: string
+  onNameSaved: (name: string) => void
 }
 
 export function LeagueDetailsForm({
   leagueId,
   initialDetails,
   playerCount,
+  leagueName,
+  onNameSaved,
 }: LeagueDetailsFormProps) {
   const [location, setLocation] = useState(initialDetails.location ?? '')
   const [day, setDay] = useState(initialDetails.day ?? '')
   const [kickoffTime, setKickoffTime] = useState(initialDetails.kickoff_time ?? '')
   const [bio, setBio] = useState(initialDetails.bio ?? '')
+  const [name, setName] = useState(leagueName)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -45,6 +50,10 @@ export function LeagueDetailsForm({
   }
 
   async function handleSave() {
+    if (!name.trim()) {
+      setError('League name is required')
+      return
+    }
     setSaving(true)
     setError(null)
     try {
@@ -52,6 +61,7 @@ export function LeagueDetailsForm({
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          name: name.trim(),
           location: location || null,
           day: day || null,
           kickoff_time: kickoffTime || null,
@@ -63,6 +73,7 @@ export function LeagueDetailsForm({
         setError(data.error ?? 'Failed to save')
       } else {
         setSaved(true)
+        onNameSaved(name.trim())
       }
     } catch {
       setError('Network error')
@@ -86,6 +97,22 @@ export function LeagueDetailsForm({
 
         {/* Fields */}
         <div className="space-y-4 p-4">
+          {/* League name */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+              League name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => { setName(e.target.value); markDirty() }}
+              placeholder="e.g. Craft Football"
+              maxLength={80}
+              required
+              className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400"
+            />
+          </div>
+
           {/* Location */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">
