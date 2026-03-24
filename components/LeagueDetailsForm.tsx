@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { LeagueInfoBar } from '@/components/LeagueInfoBar'
-import { cn, dayNameToIndex, formatWeekDate } from '@/lib/utils'
+import { cn, dayNameToIndex, nextOccurrenceAfterToday } from '@/lib/utils'
 import type { LeagueDetails } from '@/lib/types'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -124,13 +124,9 @@ export function LeagueDetailsForm({
         if (scheduledWeek) {
           // Compute next occurrence of the new day
           const newDayIndex = dayNameToIndex(day)!
-          const today = new Date()
-          today.setHours(0, 0, 0, 0)
-          let daysUntil = (newDayIndex - today.getDay() + 7) % 7
-          if (daysUntil === 0) daysUntil = 7
-          const nextDate = new Date(today)
-          nextDate.setDate(today.getDate() + daysUntil)
-          const newDayPatchDate = formatWeekDate(nextDate)
+          const newDayPatchDate = nextOccurrenceAfterToday(newDayIndex)
+          const [ndd, nmmm, nyyyy] = newDayPatchDate.split(' ')
+          const nextDate = new Date(`${nmmm} ${ndd} ${nyyyy}`)
           const newDayDisplay = nextDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
 
           // Parse existing scheduled week date for display
