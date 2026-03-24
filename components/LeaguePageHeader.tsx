@@ -32,13 +32,13 @@ export function LeaguePageHeader({
     <div className="mb-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-100">{leagueName}</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {playedCount} of {totalWeeks} weeks ({pct}% complete)
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-100">{leagueName}</h1>
+          <p className="mt-1 text-xs text-slate-500">
+            {playedCount} of {totalWeeks} weeks · {pct}% complete
           </p>
         </div>
         {isAdmin && (
-          <Button asChild variant="ghost" size="icon">
+          <Button asChild variant="ghost" size="icon" className="text-slate-500 hover:text-slate-400">
             <Link href={`/${leagueId}/settings`} aria-label="League settings">
               <Settings className="size-4" />
             </Link>
@@ -52,38 +52,38 @@ export function LeaguePageHeader({
         <Link
           href={`/${leagueId}/results`}
           className={cn(
-            '-mb-px flex items-center gap-2 border-b-2 pb-2 text-base font-medium',
+            '-mb-px flex items-center gap-2 border-b-2 pb-2 text-xs font-medium',
             currentTab === 'results'
-              ? 'border-slate-100 text-slate-100'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-slate-200 text-slate-200'
+              : 'border-transparent text-slate-700 hover:text-slate-400'
           )}
         >
-          <ClipboardList className="size-4" />
+          <ClipboardList className="size-3" />
           Results
         </Link>
         <Link
           href={`/${leagueId}/players`}
           className={cn(
-            '-mb-px flex items-center gap-2 border-b-2 pb-2 text-base font-medium',
+            '-mb-px flex items-center gap-2 border-b-2 pb-2 text-xs font-medium',
             currentTab === 'players'
-              ? 'border-slate-100 text-slate-100'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-slate-200 text-slate-200'
+              : 'border-transparent text-slate-700 hover:text-slate-400'
           )}
         >
-          <Users className="size-4" />
+          <Users className="size-3" />
           Players
         </Link>
         {showLineupLabTab && (
           <Link
             href={`/${leagueId}/lineup-lab`}
             className={cn(
-              '-mb-px flex items-center gap-2 border-b-2 pb-2 text-base font-medium',
+              '-mb-px flex items-center gap-2 border-b-2 pb-2 text-xs font-medium',
               currentTab === 'lineup-lab'
-                ? 'border-slate-100 text-slate-100'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-slate-200 text-slate-200'
+                : 'border-transparent text-slate-700 hover:text-slate-400'
             )}
           >
-            <FlaskConical className="size-4" />
+            <FlaskConical className="size-3" />
             Lineup Lab
           </Link>
         )}
