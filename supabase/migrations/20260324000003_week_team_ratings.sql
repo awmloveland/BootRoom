@@ -5,16 +5,16 @@
 -- Updates record_result RPC to accept and store the new params.
 
 ALTER TABLE weeks
-  ADD COLUMN IF NOT EXISTS team_a_rating NUMERIC(6,3),
-  ADD COLUMN IF NOT EXISTS team_b_rating NUMERIC(6,3);
+  ADD COLUMN IF NOT EXISTS team_a_rating NUMERIC(6,3) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS team_b_rating NUMERIC(6,3) DEFAULT NULL;
 
 CREATE OR REPLACE FUNCTION record_result(
   p_week_id         UUID,
   p_winner          TEXT,
-  p_notes           TEXT    DEFAULT NULL,
-  p_goal_difference INTEGER DEFAULT NULL,
-  p_team_a_rating   NUMERIC DEFAULT NULL,
-  p_team_b_rating   NUMERIC DEFAULT NULL
+  p_notes           TEXT         DEFAULT NULL,
+  p_goal_difference INTEGER      DEFAULT NULL,
+  p_team_a_rating   NUMERIC(6,3) DEFAULT NULL,  -- Precision matches weeks table columns
+  p_team_b_rating   NUMERIC(6,3) DEFAULT NULL   -- DEFAULT NULL is permanent, not a compat shim
 )
 RETURNS VOID
 LANGUAGE plpgsql
@@ -41,3 +41,5 @@ BEGIN
   WHERE id = p_week_id;
 END;
 $$;
+
+GRANT EXECUTE ON FUNCTION public.record_result(UUID, TEXT, TEXT, INTEGER, NUMERIC(6,3), NUMERIC(6,3)) TO authenticated;
