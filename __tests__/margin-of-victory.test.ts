@@ -1,5 +1,6 @@
 // __tests__/margin-of-victory.test.ts
 import type { Week } from '@/lib/types'
+import { shouldShowMeta } from '@/lib/utils'
 
 describe('Week type — goal_difference', () => {
   it('accepts goal_difference as a number', () => {
@@ -44,11 +45,6 @@ describe('Week type — goal_difference', () => {
 // ── shouldShowMeta ──────────────────────────────────────────────
 // Tests the display condition: show the meta row when there's a
 // non-null, non-zero margin OR non-empty notes.
-// This function will live in lib/utils.ts (Task 8).
-// Define it inline here so the tests run before that task.
-function shouldShowMeta(goal_difference: number | null | undefined, notes: string | undefined): boolean {
-  return (goal_difference != null && goal_difference !== 0) || !!(notes && notes.trim() !== '')
-}
 
 describe('shouldShowMeta', () => {
   it('returns true when goal_difference is a positive win margin', () => {

@@ -238,3 +238,11 @@ export function isLeagueDetailsFilled(details: LeagueDetails | null | undefined)
   if (!details) return false
   return !!(details.location || details.day || details.kickoff_time || details.bio)
 }
+
+/** Returns true if the match card should render the meta row (margin and/or notes). */
+export function shouldShowMeta(
+  goal_difference: number | null | undefined,
+  notes: string | undefined
+): boolean {
+  return (goal_difference != null && goal_difference !== 0) || !!(notes && notes.trim() !== '')
+}
