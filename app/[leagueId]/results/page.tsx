@@ -100,11 +100,11 @@ export default async function LeagueResultsPage({ params }: Props) {
   type WeekRow = {
     week: number; date: string; status: string; format: string | null;
     team_a: string[] | null; team_b: string[] | null; winner: string | null; notes: string | null;
-    goal_difference: number | null;
+    goal_difference: number | null; team_a_rating: number | null; team_b_rating: number | null;
   }
   const { data: rawWeeks } = await serviceSupabase
     .from('weeks')
-    .select('week, date, status, format, team_a, team_b, winner, notes, goal_difference')
+    .select('week, date, status, format, team_a, team_b, winner, notes, goal_difference, team_a_rating, team_b_rating')
     .eq('game_id', leagueId)
     .in('status', ['played', 'cancelled'])
     .order('week', { ascending: false })
@@ -120,6 +120,8 @@ export default async function LeagueResultsPage({ params }: Props) {
       winner: row.winner as Week['winner'] ?? null,
       notes: row.notes ?? undefined,
       goal_difference: row.goal_difference ?? null,
+      team_a_rating: row.team_a_rating ?? null,
+      team_b_rating: row.team_b_rating ?? null,
     }))
   )
 
