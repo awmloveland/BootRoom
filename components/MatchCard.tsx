@@ -75,8 +75,8 @@ function PlayedCard({ week, isOpen, onToggle, goalkeepers }: MatchCardProps) {
         >
           <div className="border-t border-slate-700">
             <div className="p-4">
-              {/* Team line-ups — 2 cols on sm+, 1 col on mobile */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Team line-ups — 2 cols always */}
+              <div className="grid grid-cols-2 gap-4">
                 <TeamList
                   label="Team A"
                   players={week.teamA}
