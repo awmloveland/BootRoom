@@ -77,8 +77,20 @@ function PlayedCard({ week, isOpen, onToggle, goalkeepers }: MatchCardProps) {
             <div className="p-4">
               {/* Team line-ups — 2 cols on sm+, 1 col on mobile */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <TeamList label="Team A" players={week.teamA} goalkeepers={goalkeepers} />
-                <TeamList label="Team B" players={week.teamB} goalkeepers={goalkeepers} />
+                <TeamList
+                  label="Team A"
+                  players={week.teamA}
+                  team="A"
+                  rating={week.team_a_rating}
+                  goalkeepers={goalkeepers}
+                />
+                <TeamList
+                  label="Team B"
+                  players={week.teamB}
+                  team="B"
+                  rating={week.team_b_rating}
+                  goalkeepers={goalkeepers}
+                />
               </div>
 
               {/* Meta row — margin of victory + notes pills */}
