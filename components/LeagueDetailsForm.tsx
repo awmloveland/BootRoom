@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { LeagueInfoBar } from '@/components/LeagueInfoBar'
-import { cn } from '@/lib/utils'
+import { cn, dayNameToIndex, formatWeekDate } from '@/lib/utils'
 import type { LeagueDetails } from '@/lib/types'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -20,6 +20,13 @@ interface LeagueDetailsFormProps {
   onNameSaved: (name: string) => void
 }
 
+interface DayChangeModal {
+  scheduledWeekId: string
+  oldDayDisplay: string
+  newDayPatchDate: string
+  newDayDisplay: string
+}
+
 export function LeagueDetailsForm({
   leagueId,
   initialDetails,
@@ -35,6 +42,8 @@ export function LeagueDetailsForm({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const [initialDay, setInitialDay] = useState(initialDetails.day ?? '')
+  const [dayChangeModal, setDayChangeModal] = useState<DayChangeModal | null>(null)
 
   const previewDetails: LeagueDetails = {
     location: location || null,
@@ -49,11 +58,7 @@ export function LeagueDetailsForm({
     setError(null)
   }
 
-  async function handleSave() {
-    if (!name.trim()) {
-      setError('League name is required')
-      return
-    }
+  async function commitSave(rescheduleWeekId?: string) {
     setSaving(true)
     setError(null)
     try {
@@ -71,19 +76,126 @@ export function LeagueDetailsForm({
       if (!res.ok) {
         const data = await res.json()
         setError(data.error ?? 'Failed to save')
-      } else {
-        setSaved(true)
-        onNameSaved(name.trim())
+        return
       }
+
+      if (rescheduleWeekId && dayChangeModal) {
+        const weekRes = await fetch(`/api/league/${leagueId}/weeks/${rescheduleWeekId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: dayChangeModal.newDayPatchDate }),
+        })
+        if (!weekRes.ok) {
+          const data = await weekRes.json()
+          setError(data.error ?? 'Failed to reschedule match')
+          return
+        }
+      }
+
+      setSaved(true)
+      setInitialDay(day)
+      onNameSaved(name.trim())
     } catch {
       setError('Network error')
     } finally {
       setSaving(false)
+      setDayChangeModal(null)
     }
+  }
+
+  async function handleSave() {
+    if (!name.trim()) {
+      setError('League name is required')
+      return
+    }
+
+    // If the league day changed, check for a scheduled week first
+    if (day && day !== initialDay) {
+      setSaving(true)
+      setError(null)
+      try {
+        const res = await fetch(`/api/league/${leagueId}/weeks/scheduled`)
+        if (!res.ok) {
+          setError('Failed to check scheduled matches')
+          setSaving(false)
+          return
+        }
+        const { week: scheduledWeek } = await res.json()
+        if (scheduledWeek) {
+          // Compute next occurrence of the new day
+          const newDayIndex = dayNameToIndex(day)!
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          let daysUntil = (newDayIndex - today.getDay() + 7) % 7
+          if (daysUntil === 0) daysUntil = 7
+          const nextDate = new Date(today)
+          nextDate.setDate(today.getDate() + daysUntil)
+          const newDayPatchDate = formatWeekDate(nextDate)
+          const newDayDisplay = nextDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+
+          // Parse existing scheduled week date for display
+          const [dd, mmm, yyyy] = scheduledWeek.date.split(' ')
+          const existingDate = new Date(`${mmm} ${dd} ${yyyy}`)
+          const oldDayDisplay = existingDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+
+          setDayChangeModal({ scheduledWeekId: scheduledWeek.id, oldDayDisplay, newDayPatchDate, newDayDisplay })
+          setSaving(false)
+          return
+        }
+      } catch {
+        setError('Network error')
+        setSaving(false)
+        return
+      }
+      setSaving(false)
+    }
+
+    await commitSave()
   }
 
   return (
     <div className="space-y-4">
+      {/* Day-change confirmation modal */}
+      {dayChangeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-800 p-5 space-y-4 shadow-xl">
+            <p className="text-sm text-slate-200">
+              You&apos;ve changed the match day from{' '}
+              <span className="font-semibold text-slate-100">{initialDay}</span> to{' '}
+              <span className="font-semibold text-slate-100">{day}</span>.
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={() => commitSave(dayChangeModal.scheduledWeekId)}
+                disabled={saving}
+                className="w-full rounded-md border border-slate-600 bg-slate-700 px-4 py-2.5 text-left text-sm text-slate-100 hover:bg-slate-600 disabled:opacity-50"
+              >
+                <p className="font-medium">Move this match</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Reschedule {dayChangeModal.oldDayDisplay} → {dayChangeModal.newDayDisplay}
+                </p>
+              </button>
+              <button
+                onClick={() => commitSave()}
+                disabled={saving}
+                className="w-full rounded-md border border-slate-600 bg-slate-700 px-4 py-2.5 text-left text-sm text-slate-100 hover:bg-slate-600 disabled:opacity-50"
+              >
+                <p className="font-medium">Keep this match</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Leave {dayChangeModal.oldDayDisplay} as-is, apply {day} from next game
+                </p>
+              </button>
+            </div>
+            <button
+              onClick={() => setDayChangeModal(null)}
+              className="w-full text-xs text-slate-500 hover:text-slate-400 py-1"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Preview */}
       <LeagueInfoBar details={previewDetails} leagueId={leagueId} isAdmin={false} />
 
