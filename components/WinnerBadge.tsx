@@ -7,14 +7,14 @@ interface WinnerBadgeProps {
 }
 
 const BADGE_CLASSES: Record<NonNullable<Winner>, string> = {
-  teamA: 'bg-blue-900 text-blue-300 border border-blue-700',
-  teamB: 'bg-violet-900 text-violet-300 border border-violet-700',
+  teamA: 'bg-sky-900/60 text-sky-300 border border-sky-700',
+  teamB: 'bg-violet-900/60 text-violet-300 border border-violet-700',
   draw: 'bg-slate-700 text-slate-300 border border-slate-600',
 }
 
 const BADGE_LABELS: Record<NonNullable<Winner>, string> = {
-  teamA: 'Team A',
-  teamB: 'Team B',
+  teamA: 'Team A Won',
+  teamB: 'Team B Won',
   draw: 'Draw',
 }
 
