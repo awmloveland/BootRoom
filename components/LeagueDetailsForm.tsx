@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { LeagueInfoBar } from '@/components/LeagueInfoBar'
 import { cn, dayNameToIndex, nextOccurrenceAfterToday } from '@/lib/utils'
 import type { LeagueDetails } from '@/lib/types'
@@ -34,6 +35,7 @@ export function LeagueDetailsForm({
   leagueName,
   onNameSaved,
 }: LeagueDetailsFormProps) {
+  const router = useRouter()
   const [location, setLocation] = useState(initialDetails.location ?? '')
   const [day, setDay] = useState(initialDetails.day ?? '')
   const [kickoffTime, setKickoffTime] = useState(initialDetails.kickoff_time ?? '')
@@ -95,6 +97,7 @@ export function LeagueDetailsForm({
       setSaved(true)
       setInitialDay(day)
       onNameSaved(name.trim())
+      router.refresh()
     } catch {
       setError('Network error')
     } finally {

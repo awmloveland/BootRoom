@@ -15,6 +15,7 @@ import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import type { Week, GameRole, LeagueFeature, FeatureKey, Player, ScheduledWeek, LeagueDetails } from '@/lib/types'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
+import { BfcacheRefresh } from '@/components/BfcacheRefresh'
 
 interface Props {
   params: Promise<{ leagueId: string }>
@@ -197,6 +198,7 @@ export default async function LeagueResultsPage({ params }: Props) {
   if (tier === 'public') {
     return (
       <main className="px-4 sm:px-6 py-4">
+        <BfcacheRefresh />
         <div className="flex justify-center gap-6 items-start">
           <div className="w-full max-w-xl shrink-0 space-y-8">
             <LeaguePageHeader
@@ -249,6 +251,7 @@ export default async function LeagueResultsPage({ params }: Props) {
   // ── Member / Admin tier render ──
   return (
     <main className="px-4 sm:px-6 py-4">
+      <BfcacheRefresh />
       <div className="flex justify-center gap-6 items-start">
         <div className="w-full max-w-xl shrink-0">
           <LeaguePageHeader
