@@ -5,7 +5,7 @@ import { ChevronDown } from 'lucide-react'
 import { Week } from '@/lib/types'
 import { WinnerBadge } from './WinnerBadge'
 import { TeamList } from './TeamList'
-import { cn } from '@/lib/utils'
+import { cn, shouldShowMeta } from '@/lib/utils'
 
 interface MatchCardProps {
   week: Week
@@ -82,11 +82,29 @@ function PlayedCard({ week, isOpen, onToggle, goalkeepers }: MatchCardProps) {
                 <TeamList label="Team B" players={week.teamB} goalkeepers={goalkeepers} />
               </div>
 
-              {/* Notes */}
-              {week.notes && week.notes.trim() !== '' && (
-                <p className="mt-3 text-sm text-slate-400 italic">
-                  Note: {week.notes}
-                </p>
+              {/* Meta row — margin of victory + notes pills */}
+              {shouldShowMeta(week.goal_difference, week.notes) && (
+                <>
+                  <div className="border-t border-slate-700 mt-3" />
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {week.goal_difference != null && week.goal_difference !== 0 && (
+                      <div className="bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-400 italic">
+                        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide not-italic mr-1">
+                          Margin
+                        </span>
+                        +{week.goal_difference} goals
+                      </div>
+                    )}
+                    {week.notes && week.notes.trim() !== '' && (
+                      <div className="bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-400 italic">
+                        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide not-italic mr-1">
+                          Notes
+                        </span>
+                        {week.notes}
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>

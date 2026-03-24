@@ -10,6 +10,9 @@ export interface Week {
   teamB: string[];     // empty array for cancelled weeks
   winner: Winner;      // null for cancelled weeks
   notes?: string;      // result notes or cancellation reason
+  // Non-negative integer. 0 = draw. Positive = win margin (UI enforces 1–20, DB has no constraint).
+  // null = not recorded or cancelled. Display code must handle any positive integer gracefully.
+  goal_difference?: number | null;
 }
 
 export type Mentality = 'balanced' | 'attacking' | 'defensive' | 'goalkeeper';

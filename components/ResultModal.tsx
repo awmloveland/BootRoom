@@ -53,6 +53,38 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
   )
 }
 
+function Stepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex items-center border border-slate-700 rounded-md overflow-hidden">
+      <button
+        type="button"
+        onClick={() => onChange(Math.max(1, value - 1))}
+        disabled={value <= 1}
+        className={cn(
+          'w-8 h-8 flex items-center justify-center bg-slate-800 text-slate-400 hover:text-slate-100 text-lg leading-none select-none',
+          value <= 1 && 'opacity-40 cursor-not-allowed'
+        )}
+      >
+        −
+      </button>
+      <span className="w-9 h-8 flex items-center justify-center bg-slate-900 text-slate-100 font-bold text-sm border-x border-slate-700">
+        {value}
+      </span>
+      <button
+        type="button"
+        onClick={() => onChange(Math.min(20, value + 1))}
+        disabled={value >= 20}
+        className={cn(
+          'w-8 h-8 flex items-center justify-center bg-slate-800 text-slate-400 hover:text-slate-100 text-lg leading-none select-none',
+          value >= 20 && 'opacity-40 cursor-not-allowed'
+        )}
+      >
+        +
+      </button>
+    </div>
+  )
+}
+
 export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId, publicMode, onSaved, onClose }: Props) {
   const guests = lineupMetadata?.guests ?? []
   const newPlayers = lineupMetadata?.new_players ?? []
@@ -62,6 +94,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   const [step, setStep] = useState<ResultStep>('winner')
   const [winner, setWinner] = useState<Winner>(null)
   const [notes, setNotes] = useState('')
+  const [goalDifference, setGoalDifference] = useState<number>(1)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -127,7 +160,12 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         const res = await fetch(`/api/public/league/${gameId}/result`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ weekId: scheduledWeek.id, winner, notes: notes.trim() || null }),
+          body: JSON.stringify({
+            weekId: scheduledWeek.id,
+            winner,
+            notes: notes.trim() || null,
+            goalDifference: winner === 'draw' ? 0 : goalDifference,
+          }),
         })
         if (!res.ok) {
           const d = await res.json()
@@ -140,6 +178,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           p_week_id: scheduledWeek.id,
           p_winner: winner,
           p_notes: notes.trim() || null,
+          p_goal_difference: winner === 'draw' ? 0 : goalDifference,
         })
         if (resultErr) throw resultErr
 
@@ -196,7 +235,10 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                     <button
                       key={opt}
                       type="button"
-                      onClick={() => setWinner(opt)}
+                      onClick={() => {
+                        setWinner(opt)
+                        if (opt !== 'draw') setGoalDifference(1)
+                      }}
                       className={cn(
                         'flex-1 py-2 rounded border text-sm font-medium transition-colors',
                         opt === 'teamA' && (winner === 'teamA'
@@ -214,6 +256,18 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                     </button>
                   ))}
                 </div>
+
+                {winner && winner !== 'draw' && (
+                  <div className="flex items-center justify-between bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 mb-4">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-100">Margin of Victory</p>
+                      <p className="text-[10px] text-slate-500 mt-px">
+                        Goals {winner === 'teamA' ? 'Team A' : 'Team B'} won by
+                      </p>
+                    </div>
+                    <Stepper value={goalDifference} onChange={setGoalDifference} />
+                  </div>
+                )}
 
                 <textarea
                   value={notes}
@@ -233,7 +287,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                   <button
                     type="button"
                     onClick={() => setStep('review')}
-                    disabled={!winner}
+                    disabled={!winner || (winner !== 'draw' && (goalDifference < 1 || goalDifference > 20))}
                     className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold disabled:opacity-40"
                   >
                     Next →
@@ -242,7 +296,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                   <button
                     type="button"
                     onClick={handleSave}
-                    disabled={saving || !winner}
+                    disabled={saving || !winner || (winner !== 'draw' && (goalDifference < 1 || goalDifference > 20))}
                     className="px-4 py-2 rounded bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold disabled:opacity-50"
                   >
                     {saving ? 'Saving…' : 'Confirm Result'}
@@ -362,6 +416,13 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                     {winner === 'teamA' ? 'Team A' : winner === 'teamB' ? 'Team B' : 'Draw'}
                   </span>
                 </div>
+
+                {winner && winner !== 'draw' && (
+                  <div className="flex justify-between items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
+                    <span className="text-slate-400">Margin</span>
+                    <span className="font-semibold text-slate-300">+{goalDifference} goals</span>
+                  </div>
+                )}
 
                 {newPlayerStates.map((p) => (
                   <div key={p.name} className="flex justify-between items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
