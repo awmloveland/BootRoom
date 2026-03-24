@@ -178,27 +178,60 @@ export function formatWeekDate(date: Date): string {
 }
 
 /**
- * Compute the next match date by detecting the recurring day-of-week
- * from recent played weeks, then finding the next occurrence of that
- * day from today. Falls back to +7 days if no pattern is available.
+ * Compute the next match date. If `leagueDayIndex` is provided (0=Sun…6=Sat),
+ * it is used directly. Otherwise the day-of-week is inferred from the most
+ * recent played week. Falls back to +7 days if no pattern is available.
+ *
+ * NOTE: 0 (Sunday) is a valid leagueDayIndex — use `!== undefined`, not truthiness.
  */
-export function getNextMatchDate(weeks: Week[]): string {
+export function getNextMatchDate(weeks: Week[], leagueDayIndex?: number): string {
   const played = getPlayedWeeks(sortWeeks(weeks))
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  if (played.length === 0) {
+
+  // Use leagueDayIndex if provided (note: 0 = Sunday is valid, use !== undefined not truthiness)
+  const dow = leagueDayIndex !== undefined
+    ? leagueDayIndex
+    : played.length > 0
+      ? parseWeekDate(played[0].date).getDay()
+      : null
+
+  if (dow === null) {
     const next = new Date(today)
     next.setDate(today.getDate() + 7)
     return formatWeekDate(next)
   }
-  const lastDate = parseWeekDate(played[0].date)
-  const dow = lastDate.getDay()
+
   let daysUntil = (dow - today.getDay() + 7) % 7
   if (daysUntil === 0) {
-    // Today is game day — only skip to next week if a week already exists today
     const todayStr = formatWeekDate(today)
     if (weeks.some((w) => w.date === todayStr)) daysUntil = 7
   }
+  const next = new Date(today)
+  next.setDate(today.getDate() + daysUntil)
+  return formatWeekDate(next)
+}
+
+const DAY_NAME_TO_INDEX: Record<string, number> = {
+  Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3,
+  Thursday: 4, Friday: 5, Saturday: 6,
+}
+
+/** Convert a day name string (e.g. "Thursday") to a Date.getDay() index (0=Sun…6=Sat). Returns null if null or unrecognised. */
+export function dayNameToIndex(day: string | null): number | null {
+  if (!day) return null
+  return DAY_NAME_TO_INDEX[day] ?? null
+}
+
+/**
+ * Return the next calendar occurrence of `dayIndex` (0=Sun…6=Sat) after today
+ * as a 'DD MMM YYYY' string. Never returns today — always at least tomorrow.
+ */
+export function nextOccurrenceAfterToday(dayIndex: number): string {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  let daysUntil = (dayIndex - today.getDay() + 7) % 7
+  if (daysUntil === 0) daysUntil = 7
   const next = new Date(today)
   next.setDate(today.getDate() + daysUntil)
   return formatWeekDate(next)
