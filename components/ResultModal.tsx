@@ -417,6 +417,13 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                   </span>
                 </div>
 
+                {winner && winner !== 'draw' && (
+                  <div className="flex justify-between items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
+                    <span className="text-slate-400">Margin</span>
+                    <span className="font-semibold text-slate-300">+{goalDifference} goals</span>
+                  </div>
+                )}
+
                 {newPlayerStates.map((p) => (
                   <div key={p.name} className="flex justify-between items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
                     <span className="text-slate-300 font-medium">{p.name}</span>
