@@ -51,11 +51,13 @@ export async function PATCH(
   const day         = typeof b.day          === 'string' && VALID_DAYS.includes(b.day) ? b.day : null
   const kickoff_time = typeof b.kickoff_time === 'string' ? b.kickoff_time.trim() || null : null
   const bio         = typeof b.bio          === 'string' ? b.bio.trim()          || null : null
+  const name = typeof b.name === 'string' ? b.name.trim() : ''
+  if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
   const service = createServiceClient()
   const { error } = await service
     .from('games')
-    .update({ location, day, kickoff_time, bio })
+    .update({ name, location, day, kickoff_time, bio })
     .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
