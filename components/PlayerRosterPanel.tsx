@@ -69,9 +69,12 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">
-        {players.length} {players.length === 1 ? 'Player' : 'Players'}
-      </p>
+      <div className="bg-sky-950/40 border border-sky-900/40 rounded-lg px-3.5 py-2.5 mb-3.5">
+        <div className="text-xs font-semibold text-sky-400 mb-0.5">Eye test &amp; mentality influence Auto-Pick</div>
+        <div className="text-xs text-slate-400">
+          <span className="text-slate-300">Eye test</span> is your private read on each player — only admins ever see it. <span className="text-slate-300">1</span> = developing, <span className="text-slate-300">2</span> = solid, <span className="text-slate-300">3</span> = top player. <span className="text-slate-300">Mentality</span> (GK · DEF · BAL · ATT) tells Auto-Pick where they&apos;re best deployed. Changes save as you tap.
+        </div>
+      </div>
 
       {players.map((player) => {
         const isExpanded = expandedName === player.name
@@ -95,7 +98,7 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
               <div className="hidden sm:flex items-center gap-3">
                 {/* Rating dots */}
                 <div className="flex items-center gap-1">
-                  <span className="text-[10px] text-slate-500 mr-1">Rating</span>
+                  <span className="text-[10px] text-slate-500 mr-1">Eye Test</span>
                   {[1, 2, 3].map((dot) => (
                     <button
                       key={dot}
@@ -155,7 +158,7 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
             {isExpanded && (
               <div className="sm:hidden border-t border-slate-700 px-3 py-3 flex flex-col gap-3">
                 <div>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">Rating</p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">Eye Test</p>
                   <div className="flex gap-2">
                     {[1, 2, 3].map((n) => (
                       <button
@@ -193,7 +196,6 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
         )
       })}
 
-      <p className="text-[10px] text-slate-600 text-center mt-1">Changes saved automatically</p>
     </div>
   )
 }
