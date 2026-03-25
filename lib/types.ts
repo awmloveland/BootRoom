@@ -1,20 +1,22 @@
 export type Winner = 'teamA' | 'teamB' | 'draw' | null;
-export type WeekStatus = 'played' | 'cancelled';
+export type WeekStatus = 'played' | 'cancelled' | 'unrecorded' | 'scheduled';
 
 export interface Week {
+  id?: string;         // DB row id — present for rows fetched from DB; absent in legacy test fixtures
   week: number;
   date: string;        // 'DD MMM YYYY'
-  status: WeekStatus;  // 'played' | 'cancelled'
-  format?: string;     // e.g. '6-a-side' (absent for cancelled)
-  teamA: string[];     // empty array for cancelled weeks
-  teamB: string[];     // empty array for cancelled weeks
-  winner: Winner;      // null for cancelled weeks
+  status: WeekStatus;
+  format?: string;     // e.g. '6-a-side' (absent for cancelled/unrecorded)
+  teamA: string[];     // empty array for cancelled/unrecorded weeks
+  teamB: string[];     // empty array for cancelled/unrecorded weeks
+  winner: Winner;      // null for non-played weeks
   notes?: string;      // result notes or cancellation reason
   // Non-negative integer. 0 = draw. Positive = win margin (UI enforces 1–20, DB has no constraint).
   // null = not recorded or cancelled. Display code must handle any positive integer gracefully.
   goal_difference?: number | null;
   team_a_rating?: number | null;  // ewptScore snapshot at game time; null for pre-migration games
   team_b_rating?: number | null;
+  lineupMetadata?: LineupMetadata | null; // populated for 'scheduled' (awaiting result) weeks
 }
 
 export type Mentality = 'balanced' | 'attacking' | 'defensive' | 'goalkeeper';
