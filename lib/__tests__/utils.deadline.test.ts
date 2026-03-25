@@ -36,7 +36,6 @@ describe('isPastDeadline', () => {
 function makeWeek(overrides: Partial<Week> & { date: string }): Week {
   return {
     week: 1,
-    date: overrides.date,
     status: 'played',
     teamA: [],
     teamB: [],
@@ -65,20 +64,18 @@ describe('getMostRecentExpectedGameDate', () => {
 
   it('returns the date in DD MMM YYYY format', () => {
     const result = getMostRecentExpectedGameDate([], 3) // Wednesday
-    if (result) {
-      expect(result).toMatch(/^\d{2} [A-Z][a-z]{2} \d{4}$/)
-    }
+    expect(result).not.toBeNull()
+    expect(result!).toMatch(/^\d{2} [A-Z][a-z]{2} \d{4}$/)
   })
 
   it('infers day-of-week from most recent played week when no leagueDayIndex', () => {
     // Thursday played week
     const weeks = [makeWeek({ date: '19 Mar 2026', week: 1 })] // Thursday
     const result = getMostRecentExpectedGameDate(weeks, undefined)
-    if (result) {
-      const parts = result.split(' ')
-      const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-      const date = new Date(parseInt(parts[2]), MONTHS.indexOf(parts[1]), parseInt(parts[0]))
-      expect(date.getDay()).toBe(4) // Thursday
-    }
+    expect(result).not.toBeNull()
+    const parts = result!.split(' ')
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    const date = new Date(parseInt(parts[2]), MONTHS.indexOf(parts[1]), parseInt(parts[0]))
+    expect(date.getDay()).toBe(4) // Thursday
   })
 })
