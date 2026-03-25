@@ -16,6 +16,7 @@ interface Props {
   allPlayers: Player[]
   showMatchHistory: boolean
   leagueDayIndex?: number
+  isAdmin?: boolean
 }
 
 export function ResultsSection({
