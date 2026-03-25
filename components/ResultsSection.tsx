@@ -28,6 +28,7 @@ export function ResultsSection({
   allPlayers,
   showMatchHistory,
   leagueDayIndex,
+  isAdmin = false,
 }: Props) {
   const router = useRouter()
 
@@ -60,6 +61,10 @@ export function ResultsSection({
           goalkeepers={goalkeepers}
           openWeek={openWeek}
           onOpenWeekChange={setOpenWeek}
+          isAdmin={isAdmin}
+          gameId={gameId}
+          allPlayers={allPlayers}
+          onResultSaved={() => router.refresh()}
         />
       )}
     </div>

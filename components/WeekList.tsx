@@ -18,7 +18,16 @@ interface Props {
   onResultSaved?: () => void
 }
 
-export function WeekList({ weeks, goalkeepers, openWeek: controlledOpenWeek, onOpenWeekChange }: Props) {
+export function WeekList({
+  weeks,
+  goalkeepers,
+  openWeek: controlledOpenWeek,
+  onOpenWeekChange,
+  isAdmin = false,
+  gameId = '',
+  allPlayers = [],
+  onResultSaved = () => {},
+}: Props) {
   const playedWeeks = getPlayedWeeks(weeks)
   const mostRecent = playedWeeks.length > 0
     ? playedWeeks.reduce((a, b) => (a.week > b.week ? a : b))
@@ -55,6 +64,10 @@ export function WeekList({ weeks, goalkeepers, openWeek: controlledOpenWeek, onO
               isOpen={openWeek === week.week}
               onToggle={() => handleToggle(week.week)}
               goalkeepers={goalkeepers}
+              isAdmin={isAdmin}
+              gameId={gameId}
+              allPlayers={allPlayers}
+              onResultSaved={onResultSaved}
             />
           </Fragment>
         )
