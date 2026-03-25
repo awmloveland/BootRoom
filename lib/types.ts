@@ -21,6 +21,12 @@ export interface Week {
 
 export type Mentality = 'balanced' | 'attacking' | 'defensive' | 'goalkeeper';
 
+export interface PlayerAttribute {
+  name: string;
+  rating: number;   // 1–3
+  mentality: Mentality;
+}
+
 export interface Player {
   name: string;
   played: number;
