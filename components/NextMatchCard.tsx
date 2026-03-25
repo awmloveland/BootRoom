@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
@@ -35,16 +35,6 @@ interface Props {
 
 type CardState = 'loading' | 'idle' | 'building' | 'lineup' | 'cancelled'
 
-/** Parse 'DD MMM YYYY' and return deadline Date (game day at 20:00). */
-function getReactivateDeadline(dateStr: string): Date {
-  const [day, mon, yr] = dateStr.split(' ')
-  const d = new Date(`${mon} ${day}, ${yr} 20:00:00`)
-  return d
-}
-
-function canReactivate(dateStr: string): boolean {
-  return Date.now() < getReactivateDeadline(dateStr).getTime()
-}
 
 function medianRating(players: Player[]): number {
   if (players.length === 0) return 2
@@ -245,12 +235,18 @@ export function NextMatchCard({
         .from('weeks')
         .select('id, week, date, format, team_a, team_b, status, lineup_metadata')
         .eq('game_id', gameId)
-        .in('status', ['scheduled', 'cancelled'])
+        .in('status', ['scheduled', 'cancelled', 'unrecorded'])
         .order('week', { ascending: false })
         .limit(1)
         .maybeSingle()
 
       if (data) {
+        // Unrecorded row — advance to next week
+        if (data.status === 'unrecorded') {
+          setCardState('idle')
+          return
+        }
+
         const week: ScheduledWeek = {
           id: data.id,
           week: data.week,
@@ -275,12 +271,21 @@ export function NextMatchCard({
               }
             : null,
         }
-        if (week.status === 'cancelled' && !canReactivate(week.date)) {
+
+        // Past-deadline scheduled row — lineup exists but game day has passed
+        // The row stays in DB and appears in the results list as "Awaiting Result"
+        if (week.status === 'scheduled' && isPastDeadline(week.date)) {
           setCardState('idle')
-        } else {
-          setScheduledWeek(week)
-          setCardState(week.status === 'cancelled' ? 'cancelled' : 'lineup')
+          return
         }
+        // Cancelled past deadline — treat as idle
+        if (week.status === 'cancelled' && isPastDeadline(week.date)) {
+          setCardState('idle')
+          return
+        }
+
+        setScheduledWeek(week)
+        setCardState(week.status === 'cancelled' ? 'cancelled' : 'lineup')
       } else {
         setCardState('idle')
       }
@@ -763,7 +768,7 @@ export function NextMatchCard({
                 )}
               </p>
             </div>
-            {getReactivateDeadline(scheduledWeek.date).getTime() <= Date.now() ? (
+            {isPastDeadline(scheduledWeek.date) ? (
               <span className="px-2 py-0.5 rounded text-[10px] font-semibold tracking-widest uppercase bg-slate-700/60 border border-slate-500 text-slate-300">
                 Awaiting Result
               </span>
@@ -785,7 +790,7 @@ export function NextMatchCard({
               </div>
               <WinnerBadge winner={null} cancelled />
             </div>
-            {canEdit && canReactivate(scheduledWeek.date) && (
+            {canEdit && !isPastDeadline(scheduledWeek.date) && (
               <button
                 type="button"
                 onClick={handleReactivate}

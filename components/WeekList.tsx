@@ -4,16 +4,30 @@ import { Fragment, useState } from 'react'
 import { MatchCard } from '@/components/MatchCard'
 import { MonthDivider } from '@/components/MonthDivider'
 import { getPlayedWeeks, getMonthKey, formatMonthYear } from '@/lib/utils'
-import type { Week } from '@/lib/types'
+import type { Player, Week } from '@/lib/types'
 
 interface Props {
   weeks: Week[]
   goalkeepers?: string[]
   openWeek?: number | null           // controlled: if provided, overrides internal state
   onOpenWeekChange?: (week: number | null) => void  // controlled setter
+  // Props wired up in Task 7
+  isAdmin?: boolean
+  gameId?: string
+  allPlayers?: Player[]
+  onResultSaved?: () => void
 }
 
-export function WeekList({ weeks, goalkeepers, openWeek: controlledOpenWeek, onOpenWeekChange }: Props) {
+export function WeekList({
+  weeks,
+  goalkeepers,
+  openWeek: controlledOpenWeek,
+  onOpenWeekChange,
+  isAdmin = false,
+  gameId = '',
+  allPlayers = [],
+  onResultSaved = () => {},
+}: Props) {
   const playedWeeks = getPlayedWeeks(weeks)
   const mostRecent = playedWeeks.length > 0
     ? playedWeeks.reduce((a, b) => (a.week > b.week ? a : b))
@@ -50,6 +64,10 @@ export function WeekList({ weeks, goalkeepers, openWeek: controlledOpenWeek, onO
               isOpen={openWeek === week.week}
               onToggle={() => handleToggle(week.week)}
               goalkeepers={goalkeepers}
+              isAdmin={isAdmin}
+              gameId={gameId}
+              allPlayers={allPlayers}
+              onResultSaved={onResultSaved}
             />
           </Fragment>
         )

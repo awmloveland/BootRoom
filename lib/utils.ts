@@ -279,3 +279,47 @@ export function shouldShowMeta(
 ): boolean {
   return (goal_difference != null && goal_difference !== 0) || !!(notes && notes.trim() !== '')
 }
+
+/**
+ * Returns true if the game day 20:00 deadline has passed for the given date string.
+ * Matches the local-time behavior of the existing NextMatchCard deadline logic.
+ * Input format: 'DD MMM YYYY', e.g. '25 Mar 2026'
+ */
+export function isPastDeadline(dateStr: string): boolean {
+  const [day, mon, yr] = dateStr.split(' ')
+  const deadline = new Date(`${mon} ${day}, ${yr} 20:00:00`)
+  return Date.now() > deadline.getTime()
+}
+
+/**
+ * Returns the date string ('DD MMM YYYY') of the most recent expected game day
+ * that has already passed, or null if no game day can be determined.
+ *
+ * Uses leagueDayIndex if provided (0=Sun…6=Sat), otherwise infers from the most
+ * recent played week. Returns null if neither source is available.
+ *
+ * NOTE: Only returns the immediately preceding game date — does not backfill
+ * multiple missed weeks. Multi-week gaps are resolved by successive page loads.
+ */
+export function getMostRecentExpectedGameDate(
+  weeks: Week[],
+  leagueDayIndex?: number
+): string | null {
+  const played = getPlayedWeeks(sortWeeks(weeks))
+  const dow = leagueDayIndex !== undefined
+    ? leagueDayIndex
+    : played.length > 0
+      ? parseWeekDate(played[0].date).getDay()
+      : null
+
+  if (dow === null) return null
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  // Walk backwards from today to find the most recent occurrence of this day-of-week
+  const daysBack = (today.getDay() - dow + 7) % 7
+  // If today IS the game day, include today (deadline check in caller decides if it's past)
+  const candidate = new Date(today)
+  candidate.setDate(today.getDate() - daysBack)
+  return formatWeekDate(candidate)
+}

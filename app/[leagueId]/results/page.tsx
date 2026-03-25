@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
-import { sortWeeks, dayNameToIndex } from '@/lib/utils'
+import { sortWeeks, dayNameToIndex, isPastDeadline, getMostRecentExpectedGameDate, getNextWeekNumber, deriveSeason } from '@/lib/utils'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
@@ -19,6 +19,45 @@ import { BfcacheRefresh } from '@/components/BfcacheRefresh'
 
 interface Props {
   params: Promise<{ leagueId: string }>
+}
+
+type WeekRow = {
+  id: string; week: number; date: string; status: string; format: string | null;
+  team_a: string[] | null; team_b: string[] | null; winner: string | null; notes: string | null;
+  goal_difference: number | null; team_a_rating: number | null; team_b_rating: number | null;
+  lineup_metadata: Record<string, unknown> | null;
+}
+
+function mapWeekRow(row: WeekRow): Week {
+  return {
+    id: row.id,
+    week: row.week,
+    date: row.date,
+    status: row.status as Week['status'],
+    format: row.format ?? undefined,
+    teamA: row.team_a ?? [],
+    teamB: row.team_b ?? [],
+    winner: row.winner as Week['winner'] ?? null,
+    notes: row.notes ?? undefined,
+    goal_difference: row.goal_difference ?? null,
+    team_a_rating: row.team_a_rating ?? null,
+    team_b_rating: row.team_b_rating ?? null,
+    lineupMetadata: row.lineup_metadata
+      ? {
+          guests: ((row.lineup_metadata.guests as any[]) ?? []).map((g: any) => ({
+            type: 'guest' as const,
+            name: g.name,
+            associatedPlayer: g.associated_player,
+            rating: g.rating,
+          })),
+          new_players: ((row.lineup_metadata.new_players as any[]) ?? []).map((p: any) => ({
+            type: 'new_player' as const,
+            name: p.name,
+            rating: p.rating,
+          })),
+        }
+      : null,
+  }
 }
 
 export default async function LeagueResultsPage({ params }: Props) {
@@ -97,34 +136,42 @@ export default async function LeagueResultsPage({ params }: Props) {
     )
   }
 
-  // 5. Fetch weeks (played + cancelled — always needed for history and NextMatchCard context)
-  type WeekRow = {
-    week: number; date: string; status: string; format: string | null;
-    team_a: string[] | null; team_b: string[] | null; winner: string | null; notes: string | null;
-    goal_difference: number | null; team_a_rating: number | null; team_b_rating: number | null;
-  }
+  const leagueDayIndex = dayNameToIndex(game.day ?? null) ?? undefined
+
+  // 5. Fetch weeks (played + cancelled + unrecorded + scheduled — needed for history and NextMatchCard context)
   const { data: rawWeeks } = await serviceSupabase
     .from('weeks')
-    .select('week, date, status, format, team_a, team_b, winner, notes, goal_difference, team_a_rating, team_b_rating')
+    .select('id, week, date, status, format, team_a, team_b, winner, notes, goal_difference, team_a_rating, team_b_rating, lineup_metadata')
     .eq('game_id', leagueId)
-    .in('status', ['played', 'cancelled'])
+    .in('status', ['played', 'cancelled', 'unrecorded', 'scheduled'])
     .order('week', { ascending: false })
 
-  const weeks: Week[] = sortWeeks(
-    (rawWeeks as WeekRow[] ?? []).map((row) => ({
-      week: row.week,
-      date: row.date,
-      status: row.status as Week['status'],
-      format: row.format ?? undefined,
-      teamA: row.team_a ?? [],
-      teamB: row.team_b ?? [],
-      winner: row.winner as Week['winner'] ?? null,
-      notes: row.notes ?? undefined,
-      goal_difference: row.goal_difference ?? null,
-      team_a_rating: row.team_a_rating ?? null,
-      team_b_rating: row.team_b_rating ?? null,
-    }))
-  )
+  let weeks: Week[] = sortWeeks((rawWeeks as WeekRow[] ?? []).map(mapWeekRow))
+
+  // 5b. Lazily create an unrecorded row if the most recent expected game day passed
+  //     with no row. Only runs when the league has a determinable game day.
+  const recentDate = getMostRecentExpectedGameDate(weeks, leagueDayIndex)
+  if (recentDate && isPastDeadline(recentDate)) {
+    const recentWeekNum = getNextWeekNumber(weeks) // max(week) + 1
+    const existingRow = weeks.find((w) => w.week === recentWeekNum)
+    if (!existingRow) {
+      const season = deriveSeason(weeks) || String(new Date().getFullYear())
+      await serviceSupabase.rpc('create_unrecorded_week', {
+        p_game_id: leagueId,
+        p_season: season,
+        p_week: recentWeekNum,
+        p_date: recentDate,
+      })
+      // Re-fetch weeks so the new unrecorded row appears in the list
+      const { data: refreshedWeeks } = await serviceSupabase
+        .from('weeks')
+        .select('id, week, date, status, format, team_a, team_b, winner, notes, goal_difference, team_a_rating, team_b_rating, lineup_metadata')
+        .eq('game_id', leagueId)
+        .in('status', ['played', 'cancelled', 'unrecorded', 'scheduled'])
+        .order('week', { ascending: false })
+      weeks = sortWeeks((refreshedWeeks as WeekRow[] ?? []).map(mapWeekRow))
+    }
+  }
 
   // 6. Fetch next scheduled week when match_entry is visible
   let nextWeek: ScheduledWeek | null = null
@@ -147,6 +194,11 @@ export default async function LeagueResultsPage({ params }: Props) {
         teamB: (row.team_b as string[]) ?? [],
         status: 'scheduled' as const,
       }
+    }
+    // If the scheduled week's game day has passed, treat as absent —
+    // NextMatchCard will advance to the next week.
+    if (nextWeek && isPastDeadline(nextWeek.date)) {
+      nextWeek = null
     }
   }
 
@@ -179,8 +231,6 @@ export default async function LeagueResultsPage({ params }: Props) {
   }
 
   const goalkeepers = players.filter(p => p.goalkeeper).map(p => p.name)
-
-  const leagueDayIndex = dayNameToIndex(game.day ?? null) ?? undefined
 
   const details: LeagueDetails = {
     location: game.location ?? null,
@@ -276,9 +326,17 @@ export default async function LeagueResultsPage({ params }: Props) {
                 allPlayers={players}
                 showMatchHistory={canSeeMatchHistory}
                 leagueDayIndex={leagueDayIndex}
+                isAdmin={isAdmin}
               />
             ) : canSeeMatchHistory ? (
-              <WeekList weeks={weeks} goalkeepers={goalkeepers} />
+              <WeekList
+                weeks={weeks}
+                goalkeepers={goalkeepers}
+                isAdmin={isAdmin}
+                gameId={leagueId}
+                allPlayers={players}
+                onResultSaved={() => {}}
+              />
             ) : (
               <div className="py-16 text-center">
                 <p className="text-sm text-slate-500">Nothing to show here yet.</p>
