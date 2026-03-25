@@ -3,9 +3,10 @@
 
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import type { Player, GuestEntry, NewPlayerEntry } from '@/lib/types'
+import type { Player, GuestEntry, NewPlayerEntry, Mentality } from '@/lib/types'
 import { EyeTestSlider } from '@/components/EyeTestSlider'
 import { Toggle } from '@/components/ui/toggle'
+import { cn } from '@/lib/utils'
 
 interface Props {
   players: Player[]           // attending players (used for lineup-membership warning check)
@@ -31,7 +32,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
   const [nameError, setNameError] = useState<string | null>(null)
 
   const [guestIsGoalkeeper, setGuestIsGoalkeeper] = useState(false)
-  const [newPlayerIsGoalkeeper, setNewPlayerIsGoalkeeper] = useState(false)
+  const [newMentality, setNewMentality] = useState<Mentality>('balanced')
 
   const selectedPlayerInLineup = players.some((p) => p.name === associatedPlayer)
   const showWarning = associatedPlayer && !selectedPlayerInLineup
@@ -69,7 +70,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
       type: 'new_player',
       name: trimmed,
       rating: newRating,
-      goalkeeper: newPlayerIsGoalkeeper,
+      goalkeeper: newMentality === 'goalkeeper',
     })
     onClose()
   }
@@ -234,23 +235,45 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
                   <EyeTestSlider value={newRating} onChange={setNewRating} showNote />
                 </div>
 
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-                      Dedicated goalkeeper
-                    </label>
-                    <p className="text-[11px] text-slate-400 leading-relaxed mt-px">
-                      Plays in goal all game, every game.
-                    </p>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                    Mentality
+                  </label>
+                  <div className="flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden text-[10px] font-semibold">
+                    {(
+                      [
+                        { value: 'goalkeeper', label: 'GK' },
+                        { value: 'defensive',  label: 'DEF' },
+                        { value: 'balanced',   label: 'BAL' },
+                        { value: 'attacking',  label: 'ATT' },
+                      ] as { value: Mentality; label: string }[]
+                    ).map(({ value, label }, i) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => { if (value !== newMentality) setNewMentality(value) }}
+                        className={cn(
+                          'flex-1 py-1.5 transition-colors',
+                          i < 3 && 'border-r',
+                          value === newMentality
+                            ? 'bg-blue-950 text-blue-300 border-blue-800'
+                            : 'text-slate-500 border-slate-700 hover:text-slate-300'
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
-                  <Toggle enabled={newPlayerIsGoalkeeper} onChange={(v) => setNewPlayerIsGoalkeeper(v)} />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    GK = dedicated goalkeeper, plays in goal every game.
+                  </p>
                 </div>
               </div>
 
               <div className="flex gap-2 justify-end px-5 pb-4">
                 <button
                   type="button"
-                  onClick={() => { setStep('choose'); setNewPlayerIsGoalkeeper(false) }}
+                  onClick={() => { setStep('choose'); setNewMentality('balanced') }}
                   className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500"
                 >
                   Back

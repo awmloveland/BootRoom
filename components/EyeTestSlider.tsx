@@ -26,7 +26,7 @@ export function EyeTestSlider({ value, onChange, showNote = false }: Props) {
           {value}
         </span>
       </div>
-      <div className="flex justify-between text-[10px] text-slate-600 mt-1">
+      <div className="flex justify-between text-[10px] text-slate-400 mt-1">
         <span>1 — Below avg</span>
         <span>2 — Average</span>
         <span>3 — Strong</span>
