@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown } from 'lucide-react'
 import { Week } from '@/lib/types'
@@ -75,7 +74,6 @@ function AwaitingResultCard({
   onResultSaved,
 }: AwaitingResultCardProps) {
   const [showResultModal, setShowResultModal] = useState(false)
-  const router = useRouter()
 
   const scheduledWeek: ScheduledWeek = {
     id: week.id ?? '',
@@ -101,6 +99,7 @@ function AwaitingResultCard({
             <button
               className="w-full flex items-center justify-between px-4 py-3 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer"
               aria-expanded={isOpen}
+              aria-controls={`week-${week.week}-awaiting-content`}
             >
               <div className="text-left">
                 <p className="text-sm font-semibold text-slate-100">Week {week.week}</p>
@@ -124,7 +123,10 @@ function AwaitingResultCard({
             </button>
           </Collapsible.Trigger>
 
-          <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+          <Collapsible.Content
+            id={`week-${week.week}-awaiting-content`}
+            className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up"
+          >
             <div className="border-t border-slate-700">
               <div className="p-4">
                 <div className="grid grid-cols-2 gap-4">
