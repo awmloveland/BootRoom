@@ -153,7 +153,7 @@ export default async function LeagueResultsPage({ params }: Props) {
   const recentDate = getMostRecentExpectedGameDate(weeks, leagueDayIndex)
   if (recentDate && isPastDeadline(recentDate)) {
     const recentWeekNum = getNextWeekNumber(weeks) // max(week) + 1
-    const existingRow = weeks.find((w) => w.week === recentWeekNum)
+    const existingRow = weeks.find((w) => w.date === recentDate)
     if (!existingRow) {
       const season = deriveSeason(weeks) || String(new Date().getFullYear())
       await serviceSupabase.rpc('create_unrecorded_week', {
