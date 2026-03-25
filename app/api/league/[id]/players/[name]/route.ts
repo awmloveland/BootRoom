@@ -7,8 +7,7 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string; name: string }> }
 ) {
-  const { id, name } = await params
-  const playerName = decodeURIComponent(name)
+  const { id, name: playerName } = await params
 
   const supabase = await createClient()
 
