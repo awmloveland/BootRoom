@@ -201,8 +201,8 @@ export default function LeagueSettingsPage() {
   const NAV: { id: Section; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'details',  label: 'League Details', Icon: Info },
     { id: 'members',  label: 'Members',        Icon: Users },
-    { id: 'features', label: 'Features',       Icon: Settings2 },
     { id: 'players',  label: 'Players',        Icon: UserCog },
+    { id: 'features', label: 'Features',       Icon: Settings2 },
   ]
 
   return (
