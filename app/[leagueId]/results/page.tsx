@@ -152,9 +152,9 @@ export default async function LeagueResultsPage({ params }: Props) {
   //     with no row. Only runs when the league has a determinable game day.
   const recentDate = getMostRecentExpectedGameDate(weeks, leagueDayIndex)
   if (recentDate && isPastDeadline(recentDate)) {
-    const existingRow = weeks.find((w) => w.date === recentDate)
+    const recentWeekNum = getNextWeekNumber(weeks) // max(week) + 1
+    const existingRow = weeks.find((w) => w.week === recentWeekNum)
     if (!existingRow) {
-      const recentWeekNum = getNextWeekNumber(weeks) // max(week) + 1
       const season = deriveSeason(weeks) || String(new Date().getFullYear())
       await serviceSupabase.rpc('create_unrecorded_week', {
         p_game_id: leagueId,
