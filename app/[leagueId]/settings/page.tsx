@@ -2,21 +2,22 @@
 
 import { Suspense, useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Check, Copy, Info, RefreshCw, Settings2, Users } from 'lucide-react'
+import { ArrowLeft, Check, Copy, Info, RefreshCw, Settings2, UserCog, Users } from 'lucide-react'
 import { fetchGames } from '@/lib/data'
 import { AdminMemberTable } from '@/components/AdminMemberTable'
 import { FeaturePanel } from '@/components/FeaturePanel'
 import { LeagueDetailsForm } from '@/components/LeagueDetailsForm'
+import { PlayerRosterPanel } from '@/components/PlayerRosterPanel'
 import { cn } from '@/lib/utils'
-import type { LeagueMember, LeagueFeature, LeagueDetails } from '@/lib/types'
+import type { LeagueMember, LeagueFeature, LeagueDetails, PlayerAttribute } from '@/lib/types'
 
-type Section = 'details' | 'members' | 'features'
+type Section = 'details' | 'members' | 'features' | 'players'
 
 function TabInitialiser({ onTab }: { onTab: (tab: Section) => void }) {
   const searchParams = useSearchParams()
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab === 'details' || tab === 'members' || tab === 'features') {
+    if (tab === 'details' || tab === 'members' || tab === 'features' || tab === 'players') {
       onTab(tab)
     }
   }, [searchParams, onTab])
@@ -60,6 +61,10 @@ export default function LeagueSettingsPage() {
   // Features state
   const [features, setFeatures] = useState<LeagueFeature[]>([])
   const [featuresLoading, setFeaturesLoading] = useState(false)
+
+  // Players state
+  const [players, setPlayers] = useState<PlayerAttribute[]>([])
+  const [playersLoading, setPlayersLoading] = useState(false)
 
   useEffect(() => {
     async function init() {
@@ -160,6 +165,17 @@ export default function LeagueSettingsPage() {
     }
   }, [leagueId])
 
+  const loadPlayers = useCallback(async () => {
+    setPlayersLoading(true)
+    try {
+      const res = await fetch(`/api/league/${leagueId}/players`, { credentials: 'include' })
+      const data = await res.json()
+      setPlayers(Array.isArray(data) ? data : [])
+    } finally {
+      setPlayersLoading(false)
+    }
+  }, [leagueId])
+
   useEffect(() => {
     if (!isAdmin) return
     if (section === 'details') loadDetails()
@@ -170,8 +186,9 @@ export default function LeagueSettingsPage() {
       fetchInviteLink('admin')
     }
     if (section === 'features') loadFeatures()
+    if (section === 'players') loadPlayers()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [section, isAdmin, loadDetails, loadMembers, loadFeatures])
+  }, [section, isAdmin, loadDetails, loadMembers, loadFeatures, loadPlayers])
 
   if (loading) {
     return (
@@ -184,6 +201,7 @@ export default function LeagueSettingsPage() {
   const NAV: { id: Section; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'details',  label: 'League Details', Icon: Info },
     { id: 'members',  label: 'Members',        Icon: Users },
+    { id: 'players',  label: 'Players',        Icon: UserCog },
     { id: 'features', label: 'Features',       Icon: Settings2 },
   ]
 
@@ -319,6 +337,20 @@ export default function LeagueSettingsPage() {
               leagueId={leagueId}
               features={features}
               onChanged={loadFeatures}
+            />
+          )}
+        </div>
+      )}
+
+      {/* ── PLAYERS ── */}
+      {section === 'players' && (
+        <div>
+          {playersLoading ? (
+            <p className="text-slate-400 text-sm">Loading…</p>
+          ) : (
+            <PlayerRosterPanel
+              leagueId={leagueId}
+              initialPlayers={players}
             />
           )}
         </div>
