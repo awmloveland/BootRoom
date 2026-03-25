@@ -28,7 +28,7 @@ export async function PATCH(
     .eq('game_id', id)
     .eq('name', playerName)
     .select('name, rating, mentality')
-    .single()
+    .maybeSingle()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!data) return NextResponse.json({ error: 'Player not found' }, { status: 404 })
