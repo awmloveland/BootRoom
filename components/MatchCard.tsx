@@ -275,6 +275,8 @@ export function MatchCard({
 }: MatchCardProps) {
   if (week.status === 'cancelled') return <CancelledCard week={week} />
   if (week.status === 'unrecorded') return <UnrecordedCard week={week} />
+  // Current (not-past-deadline) scheduled weeks belong to NextMatchCard, not the history list
+  if (week.status === 'scheduled' && !isPastDeadline(week.date)) return null
   if (week.status === 'scheduled' && isPastDeadline(week.date)) {
     return (
       <AwaitingResultCard
