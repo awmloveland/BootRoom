@@ -10,7 +10,7 @@ export const FORM_COLOR: Record<string, string> = {
 export function FormDots({ form }: { form: string }) {
   return (
     <span className="flex gap-1">
-      {form.split('').map((char, i) => (
+      {[...form].reverse().map((char, i) => (
         <span key={i} className={cn('font-mono text-xs font-bold', FORM_COLOR[char] ?? 'text-slate-600')}>
           {char}
         </span>
