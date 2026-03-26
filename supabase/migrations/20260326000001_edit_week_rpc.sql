@@ -3,6 +3,7 @@
 -- Admin-only RPC to edit any existing week.
 -- Clears team_a_rating / team_b_rating on every call (no stale snapshots).
 -- When status != 'played', also clears all result/lineup fields.
+-- Notes are intentionally preserved on all statuses (edit modal always shows the notes field).
 
 CREATE OR REPLACE FUNCTION edit_week(
   p_week_id         UUID,
@@ -27,6 +28,10 @@ BEGIN
 
   IF NOT is_game_admin(v_game_id) THEN
     RAISE EXCEPTION 'Access denied';
+  END IF;
+
+  IF p_status NOT IN ('played', 'cancelled', 'unrecorded') THEN
+    RAISE EXCEPTION 'Invalid status: %. Must be played, cancelled, or unrecorded', p_status;
   END IF;
 
   IF p_status = 'played' THEN
