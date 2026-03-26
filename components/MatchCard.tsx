@@ -352,10 +352,10 @@ function PlayedCard({
                   />
                 </div>
 
-                {shouldShowMeta(week.goal_difference, week.notes) && (
+                {(shouldShowMeta(week.goal_difference, week.notes) || isAdmin) && (
                   <>
                     <div className="border-t border-slate-700 mt-3" />
-                    <div className="flex flex-wrap gap-2 mt-3">
+                    <div className="flex flex-wrap items-center gap-2 mt-3">
                       {week.goal_difference != null && week.goal_difference !== 0 && (
                         <div className="bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-400 italic">
                           <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide not-italic mr-1">
@@ -372,14 +372,13 @@ function PlayedCard({
                           {week.notes}
                         </div>
                       )}
+                      {isAdmin && (
+                        <div className="ml-auto">
+                          <EditResultButton onClick={() => setShowEditModal(true)} />
+                        </div>
+                      )}
                     </div>
                   </>
-                )}
-
-                {isAdmin && (
-                  <div className="border-t border-slate-700 mt-4 pt-4 flex justify-end">
-                    <EditResultButton onClick={() => setShowEditModal(true)} />
-                  </div>
                 )}
               </div>
             </div>
