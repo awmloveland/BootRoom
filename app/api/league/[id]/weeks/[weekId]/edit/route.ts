@@ -50,13 +50,9 @@ export async function PATCH(
   const goalDifference = typeof b.goalDifference === 'number' ? b.goalDifference : null
   const teamA = Array.isArray(b.teamA) && b.teamA.every((e: unknown) => typeof e === 'string')
     ? (b.teamA as string[])
-    : Array.isArray(b.teamA)
-    ? null
     : null
   const teamB = Array.isArray(b.teamB) && b.teamB.every((e: unknown) => typeof e === 'string')
     ? (b.teamB as string[])
-    : Array.isArray(b.teamB)
-    ? null
     : null
 
   const { error } = await supabase.rpc('edit_week', {
