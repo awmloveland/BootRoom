@@ -364,7 +364,7 @@ export function EditWeekModal({
               </div>
 
               {/* Margin */}
-              {winner && winner !== 'draw' && (
+              {winner !== 'draw' && (
                 <div>
                   <label className="block text-xs font-medium uppercase tracking-wide text-slate-500 mb-1.5">
                     Margin of victory
