@@ -70,14 +70,16 @@ function CancelledCard({
 
   return (
     <>
-      <div className="rounded-lg border border-slate-800 bg-slate-900 opacity-60">
+      <div className="rounded-lg border border-slate-800 bg-slate-900">
         <div className="flex items-center justify-between px-4 py-3">
-          <div>
+          <div className="opacity-60">
             <p className="text-sm font-medium text-slate-500">Week {week.week}</p>
             <p className="text-xs text-slate-600">{week.date}</p>
           </div>
           <div className="flex items-center gap-1.5">
-            <WinnerBadge winner={null} cancelled />
+            <div className="opacity-60">
+              <WinnerBadge winner={null} cancelled />
+            </div>
             {isAdmin && (
               <EditIconButton onClick={() => setShowEditModal(true)} />
             )}
@@ -145,6 +147,17 @@ interface AwaitingResultCardProps {
   week: Week
   isOpen: boolean
   onToggle: () => void
+  isAdmin: boolean
+  gameId: string
+  allPlayers: Player[]
+  onResultSaved: () => void
+}
+
+interface PlayedCardProps {
+  week: Week
+  isOpen: boolean
+  onToggle: () => void
+  goalkeepers?: string[]
   isAdmin: boolean
   gameId: string
   allPlayers: Player[]
@@ -276,7 +289,7 @@ function PlayedCard({
   gameId,
   allPlayers,
   onResultSaved,
-}: MatchCardProps) {
+}: PlayedCardProps) {
   const [showEditModal, setShowEditModal] = useState(false)
 
   return (
@@ -377,9 +390,9 @@ function PlayedCard({
       {showEditModal && (
         <EditWeekModal
           week={week}
-          gameId={gameId ?? ''}
-          allPlayers={allPlayers ?? []}
-          onSaved={() => { setShowEditModal(false); onResultSaved?.() }}
+          gameId={gameId}
+          allPlayers={allPlayers}
+          onSaved={() => { setShowEditModal(false); onResultSaved() }}
           onClose={() => setShowEditModal(false)}
         />
       )}
