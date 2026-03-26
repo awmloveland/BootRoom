@@ -12,7 +12,7 @@ const CHAR_CLASS: Record<string, string> = {
 export function RecentForm({ form }: RecentFormProps) {
   return (
     <span className="flex gap-1.5">
-      {form.split('').map((char, i) => (
+      {[...form].reverse().map((char, i) => (
         <span
           key={i}
           className={`font-mono text-sm font-bold tracking-wide ${CHAR_CLASS[char] ?? 'text-slate-500'}`}
