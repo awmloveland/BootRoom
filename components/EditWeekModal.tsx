@@ -106,7 +106,9 @@ function LineupEditor({
         {/* Team A */}
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOverA(true) }}
-          onDragLeave={() => setDragOverA(false)}
+          onDragLeave={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverA(false)
+          }}
           onDrop={(e) => handleDrop('A', e)}
           className={cn(
             'rounded-lg border p-2.5 min-h-[80px] flex flex-col gap-1.5 transition-colors',
@@ -134,7 +136,9 @@ function LineupEditor({
         {/* Team B */}
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOverB(true) }}
-          onDragLeave={() => setDragOverB(false)}
+          onDragLeave={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverB(false)
+          }}
           onDrop={(e) => handleDrop('B', e)}
           className={cn(
             'rounded-lg border p-2.5 min-h-[80px] flex flex-col gap-1.5 transition-colors',
@@ -239,6 +243,11 @@ export function EditWeekModal({
       return
     }
 
+    if (!week.id) {
+      setError('Cannot edit this week — missing ID')
+      return
+    }
+
     setSaving(true)
 
     const body: Record<string, unknown> = {
@@ -327,7 +336,7 @@ export function EditWeekModal({
 
           {/* Clear warning */}
           {showClearWarning && (
-            <p className="text-xs text-amber-400 bg-amber-950/30 border border-amber-900/50 rounded-md px-3 py-2">
+            <p className="text-xs text-red-400 bg-red-950/30 border border-red-900/50 rounded-md px-3 py-2">
               This will clear the recorded result and lineups.
             </p>
           )}
