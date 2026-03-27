@@ -12,7 +12,7 @@ export function LineupLabLoginPrompt({ leagueId }: LineupLabLoginPromptProps) {
         <Lock size={22} className="text-slate-500" />
       </div>
       <div className="flex flex-col items-center gap-1">
-        <p className="text-slate-100 font-semibold text-sm">Sign in to use Lineup Lab</p>
+        <p className="text-slate-100 font-semibold text-base">Sign in to use Lineup Lab</p>
         <p className="text-slate-500 text-sm max-w-xs">
           Build and save lineups for your league matches.
         </p>
