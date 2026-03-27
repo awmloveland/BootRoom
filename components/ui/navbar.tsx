@@ -2,8 +2,8 @@
 
 import type { ReactElement } from 'react'
 import Link from 'next/link'
-import { usePathname, useParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { usePathname, useParams, useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
 import { Settings, User, LogOut, FlaskConical } from 'lucide-react'
 
 import {
@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 
 interface MenuItem {
   title: string
@@ -131,6 +132,25 @@ export function Navbar({
   const [profileRole, setProfileRole] = useState<string | null>(null)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
+
+  const router = useRouter()
+
+  const fetchUser = useCallback(async () => {
+    const res = await fetch('/api/auth/me', { credentials: 'include' })
+    const data = await res.json().catch(() => ({}))
+    setUser(data?.user ?? null)
+    setDisplayName(data?.profile?.display_name ?? data?.user?.email ?? null)
+    if (data?.user?.id) {
+      const supabase = createClient()
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .maybeSingle()
+      setProfileRole(profile?.role ?? null)
+    }
+  }, [])
+
   const showNav = pathname !== '/sign-in' && pathname !== '/reset-password'
 
   useEffect(() => {
@@ -139,23 +159,8 @@ export function Navbar({
 
   useEffect(() => {
     if (pathname === '/sign-in' || pathname === '/reset-password') return
-    fetch('/api/auth/me', { credentials: 'include' })
-      .then((res) => res.json().catch(() => ({})))
-      .then(async (data) => {
-        setUser(data?.user ?? null)
-        setDisplayName(data?.profile?.display_name ?? data?.user?.email ?? null)
-        if (data?.user?.id) {
-          const { createClient } = await import('@/lib/supabase/client')
-          const supabase = createClient()
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', data.user.id)
-            .maybeSingle()
-          setProfileRole(profile?.role ?? null)
-        }
-      })
-  }, [pathname])
+    fetchUser()
+  }, [pathname, fetchUser])
 
   useEffect(() => {
     if (!leagueId) {
