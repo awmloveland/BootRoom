@@ -117,7 +117,7 @@ export default async function LeagueResultsPage({ params }: Props) {
     day: game!.day ?? null,
     kickoff_time: game!.kickoff_time ?? null,
     bio: game!.bio ?? null,
-    player_count: players.length,
+    player_count: (tier !== 'public' || canSeeStatsSidebar) ? players.length : undefined,
   }
 
   // ── Public tier ──
