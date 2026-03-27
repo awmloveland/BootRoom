@@ -741,7 +741,13 @@ export function NextMatchCard({
                     Back
                   </button>
                 ) : (
-                  <div />
+                  <button
+                    type="button"
+                    onClick={() => setCardState(scheduledWeek ? 'lineup' : 'idle')}
+                    className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
+                  >
+                    Cancel
+                  </button>
                 )}
                 <div className="flex items-center gap-2">
                   {isAutoPickMode && autoPickResult && (
