@@ -319,7 +319,7 @@ export default async function LeagueResultsPage({ params }: Props) {
                 weeks={weeks}
                 goalkeepers={goalkeepers}
                 initialScheduledWeek={nextWeek}
-                canAutoPick={isAdmin}
+                canAutoPick={true}
                 allPlayers={players}
                 showMatchHistory={canSeeMatchHistory}
                 leagueDayIndex={leagueDayIndex}
