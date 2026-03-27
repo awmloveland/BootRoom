@@ -193,7 +193,7 @@ export function Navbar({
 
   async function handleSignOut() {
     await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' })
-    window.location.href = '/sign-in'
+    router.refresh()
   }
 
   const resolvedMenu: MenuItem[] = menu.length > 0 ? menu : []
