@@ -179,6 +179,7 @@ export function NextMatchCard({
 
   function clearSplit() {
     setAutoPickResult(null)
+    setSuggestionIndex(0)
   }
 
   function togglePlayer(name: string) {
