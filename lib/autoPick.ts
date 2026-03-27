@@ -139,9 +139,22 @@ export function autoPick(players: Player[], pairs?: Array<[string, string]>): Au
   // Collect 5% pool: all splits within 5% of bestDiff (+ small float tolerance)
   const pool = scored.filter((s) => s.diff <= bestDiff * 1.05 + 0.001)
 
-  // Randomly sample up to 3 from the pool, then sort by diff ascending
+  // Randomly sample up to 3 from the pool, deduplicating team-swaps, then sort by diff ascending
   const shuffledPool = [...pool].sort(() => Math.random() - 0.5)
-  const suggestions = shuffledPool.slice(0, 3).sort((a, b) => a.diff - b.diff)
+  const seen = new Set<string>()
+  const suggestions: typeof shuffledPool = []
+  for (const candidate of shuffledPool) {
+    const key = [
+      [...candidate.teamA].map((p) => p.name).sort().join(','),
+      [...candidate.teamB].map((p) => p.name).sort().join(','),
+    ].sort().join('|')
+    if (!seen.has(key)) {
+      seen.add(key)
+      suggestions.push(candidate)
+    }
+    if (suggestions.length === 3) break
+  }
+  suggestions.sort((a, b) => a.diff - b.diff)
 
   return { suggestions, bestDiff, poolSize: pool.length }
 }
