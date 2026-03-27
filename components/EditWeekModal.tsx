@@ -171,6 +171,7 @@ function LineupEditor({
         </p>
         <input
           type="text"
+          name="player-search"
           placeholder="Search players"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -312,6 +313,7 @@ export function EditWeekModal({
               </label>
               <input
                 type="text"
+                name="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 placeholder="DD MMM YYYY"
@@ -323,6 +325,7 @@ export function EditWeekModal({
                 Status
               </label>
               <select
+                name="status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value as EditStatus)}
                 className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
@@ -422,6 +425,7 @@ export function EditWeekModal({
               Notes
             </label>
             <textarea
+              name="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}

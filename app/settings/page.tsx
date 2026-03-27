@@ -74,6 +74,7 @@ export default function AccountSettingsPage() {
           </label>
           <input
             id="displayName"
+            name="displayName"
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
