@@ -136,8 +136,11 @@ export function autoPick(players: Player[], pairs?: Array<[string, string]>): Au
   // Find best (minimum) diff
   const bestDiff = scored.reduce((min, s) => (s.diff < min ? s.diff : min), Infinity)
 
-  // Collect 5% pool: all splits within 5% of bestDiff (+ small float tolerance)
-  const pool = scored.filter((s) => s.diff <= bestDiff * 1.05 + 0.001)
+  // Collect pool: all splits within 5% of bestDiff or within 3 absolute points,
+  // whichever is larger. The absolute floor ensures that even when the optimal
+  // split is nearly perfect (small bestDiff), enough alternatives surface for
+  // the "Try another" feature to offer distinct options after swap-deduplication.
+  const pool = scored.filter((s) => s.diff <= Math.max(bestDiff * 1.05, bestDiff + 3) + 0.001)
 
   // Randomly sample up to 3 from the pool, deduplicating team-swaps, then sort by diff ascending
   const shuffledPool = [...pool].sort(() => Math.random() - 0.5)
