@@ -57,7 +57,7 @@ export default async function LeagueResultsPage({ params }: Props) {
   // — no second DB fetch needed.
   let weeks: Week[] = rawWeeks
   const recentDate = getMostRecentExpectedGameDate(weeks, leagueDayIndex)
-  if (recentDate && isPastDeadline(recentDate)) {
+  if (recentDate && isPastDeadline(recentDate) && tier !== 'public') {
     const recentWeekNum = getNextWeekNumber(weeks)
     const existingRow = weeks.find((w) => w.date === recentDate)
     if (!existingRow) {
