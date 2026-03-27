@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
 export function WebsiteHeader() {
@@ -9,10 +10,10 @@ export function WebsiteHeader() {
         <img src="/logo.png" alt="Crafted Football" className="h-10 w-10" />
         <nav className="flex items-center gap-2">
           <Button size="xs" asChild>
-            <a href="/sign-in">Log in</a>
+            <Link href="/sign-in">Log in</Link>
           </Button>
           <Button size="xs" variant="secondary" asChild>
-            <a href="/sign-in?mode=signup">Join</a>
+            <Link href="/sign-in?mode=signup">Join</Link>
           </Button>
         </nav>
       </div>
