@@ -54,44 +54,7 @@ export default async function LineupLabPage({ params }: Props) {
   const tier = resolveVisibilityTier(userRole)
   const isAdmin = tier === 'admin'
 
-  // 3. If not authenticated — slim render with login prompt
-  if (!isAuthenticated) {
-    const { data: weeksData } = await service
-      .from('weeks')
-      .select('week')
-      .eq('game_id', leagueId)
-      .in('status', ['played', 'cancelled'])
-
-    const playedCount = weeksData?.length ?? 0
-    const totalWeeks = 52
-    const pct = Math.round((playedCount / totalWeeks) * 100)
-    const details: LeagueDetails = {
-      location: game.location ?? null,
-      day: game.day ?? null,
-      kickoff_time: game.kickoff_time ?? null,
-      bio: game.bio ?? null,
-    }
-
-    return (
-      <main className="px-4 sm:px-6 pt-4 pb-8">
-        <div className="w-full max-w-xl mx-auto">
-          <LeaguePageHeader
-            leagueName={game.name}
-            leagueId={leagueId}
-            playedCount={playedCount}
-            totalWeeks={totalWeeks}
-            pct={pct}
-            currentTab="lineup-lab"
-            isAdmin={isAdmin}
-            details={details}
-          />
-          <LineupLabLoginPrompt leagueId={leagueId} />
-        </div>
-      </main>
-    )
-  }
-
-  // 4. Authenticated — full data fetch
+  // 3. Full data fetch (needed for sidebar regardless of auth state)
   const [experimentsResult, leagueFeaturesResult, weeksResult] = await Promise.all([
     service.from('feature_experiments').select('feature, available'),
     service.from('league_features').select('*').eq('game_id', leagueId),
@@ -181,7 +144,10 @@ export default async function LineupLabPage({ params }: Props) {
             isAdmin={isAdmin}
             details={details}
           />
-          <LineupLab allPlayers={players} />
+          {isAuthenticated
+            ? <LineupLab allPlayers={players} />
+            : <LineupLabLoginPrompt leagueId={leagueId} />
+          }
         </div>
         <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
           <StatsSidebar
