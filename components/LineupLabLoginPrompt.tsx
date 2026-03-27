@@ -17,7 +17,7 @@ export function LineupLabLoginPrompt({ leagueId }: LineupLabLoginPromptProps) {
       </p>
       <Link
         href={`/sign-in?redirect=/${leagueId}/lineup-lab`}
-        className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-5 py-2 rounded-md"
+        className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-5 py-2 rounded-md transition-colors"
       >
         Sign in
       </Link>
