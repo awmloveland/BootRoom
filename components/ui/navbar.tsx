@@ -163,6 +163,20 @@ export function Navbar({
   }, [pathname, fetchUser])
 
   useEffect(() => {
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        fetchUser()
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setDisplayName(null)
+        setProfileRole(null)
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [fetchUser])
+
+  useEffect(() => {
     if (!leagueId) {
       setIsLeagueAdmin(false)
       return
