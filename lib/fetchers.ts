@@ -25,6 +25,7 @@ export const getAuthAndRole = cache(async (leagueId: string) => {
     const authSupabase = await createClient()
     const { data: { user } } = await authSupabase.auth.getUser()
     if (!user) return { user: null, userRole: null as GameRole | null, isAuthenticated: false }
+    // Sequential by necessity: user.id is required to look up the league role.
     const service = createServiceClient()
     const { data: memberRow } = await service
       .from('game_members')
@@ -151,6 +152,5 @@ export const getWeeks = cache(async (leagueId: string): Promise<Week[]> => {
     .select('id, week, date, status, format, team_a, team_b, winner, notes, goal_difference, team_a_rating, team_b_rating, lineup_metadata')
     .eq('game_id', leagueId)
     .in('status', ['played', 'cancelled', 'unrecorded', 'scheduled'])
-    .order('week', { ascending: false })
   return sortWeeks(((data ?? []) as WeekRow[]).map(mapWeekRow))
 })
