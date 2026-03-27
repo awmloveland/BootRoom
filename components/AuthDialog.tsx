@@ -20,6 +20,8 @@ interface AuthDialogProps {
   redirect?: string
   /** Button size variant */
   size?: 'xs' | 'sm' | 'default'
+  /** Optional custom trigger. Receives a function to open the sign-in dialog. */
+  trigger?: (openSignIn: () => void) => React.ReactNode
 }
 
 function AuthForm({
@@ -306,7 +308,7 @@ const TITLES: Record<AuthMode, string> = {
   forgot: 'Reset password',
 }
 
-export function AuthDialog({ redirect = '/', size = 'xs' }: AuthDialogProps) {
+export function AuthDialog({ redirect = '/', size = 'xs', trigger }: AuthDialogProps) {
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<AuthMode>('signin')
 
@@ -317,14 +319,19 @@ export function AuthDialog({ redirect = '/', size = 'xs' }: AuthDialogProps) {
 
   return (
     <>
-      <div className="flex items-center gap-2">
-        <Button size={size} onClick={() => openAs('signin')}>
-          Log in
-        </Button>
-        <Button size={size} variant="secondary" onClick={() => openAs('signup')}>
-          Join
-        </Button>
-      </div>
+      {trigger
+        ? trigger(() => openAs('signin'))
+        : (
+          <div className="flex items-center gap-2">
+            <Button size={size} onClick={() => openAs('signin')}>
+              Log in
+            </Button>
+            <Button size={size} variant="secondary" onClick={() => openAs('signup')}>
+              Join
+            </Button>
+          </div>
+        )
+      }
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
