@@ -1,7 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { TeamBuilderCard } from '@/components/TeamBuilderCard'
 import { PlayerStatsCard } from '@/components/PlayerStatsCard'
 import { StatsSidebarCard } from '@/components/StatsSidebarCard'
 import type { FeatureKey, LeagueFeature } from '@/lib/types'
@@ -33,11 +31,6 @@ export function FeaturePanel({ leagueId, features, onChanged }: FeaturePanelProp
           affect members and public visitors — test with a member account to verify.
         </div>
       </div>
-      <TeamBuilderCard
-        leagueId={leagueId}
-        feature={getFeature(features, 'team_builder')}
-        onChanged={onChanged}
-      />
       <PlayerStatsCard
         leagueId={leagueId}
         feature={getFeature(features, 'player_stats')}

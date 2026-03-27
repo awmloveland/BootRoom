@@ -9,7 +9,6 @@ import type { FeatureKey } from '@/lib/types'
 const FEATURE_LABELS: Record<FeatureKey, string> = {
   match_history:     'Match History',
   match_entry:       'Match Entry',
-  team_builder:      'Team Builder',
   player_stats:      'Player Stats',
   player_comparison: 'Player Comparison',
   stats_sidebar:     'Stats Sidebar',
