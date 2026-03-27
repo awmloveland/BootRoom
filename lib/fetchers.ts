@@ -128,11 +128,13 @@ function mapWeekRow(row: WeekRow): Week {
             name: g.name,
             associatedPlayer: g.associated_player,
             rating: g.rating,
+            goalkeeper: g.goalkeeper ?? false,
           })),
           new_players: ((row.lineup_metadata.new_players as any[]) ?? []).map((p: any) => ({
             type: 'new_player' as const,
             name: p.name,
             rating: p.rating,
+            goalkeeper: p.goalkeeper ?? false,
           })),
         }
       : null,
