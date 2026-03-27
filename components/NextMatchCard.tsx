@@ -768,7 +768,7 @@ export function NextMatchCard({
                         }}
                         className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
                       >
-                        Try another ({suggestionIndex + 1}/{autoPickResult.suggestions.length})
+                        Shuffle teams ({suggestionIndex + 1}/{autoPickResult.suggestions.length})
                       </button>
                     ) : null
                   )}
