@@ -136,9 +136,9 @@ Defined in `lib/types.ts`. Never redefine or shadow them locally.
 export type FeatureKey =
   | 'match_history'
   | 'match_entry'
-  | 'team_builder'
   | 'player_stats'
-  | 'player_comparison';
+  | 'player_comparison'
+  | 'stats_sidebar';
 
 export interface LeagueFeature {
   feature: FeatureKey;
