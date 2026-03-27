@@ -13,7 +13,6 @@ interface LeaguePageHeaderProps {
   pct: number
   currentTab: 'results' | 'players' | 'lineup-lab'
   isAdmin: boolean
-  showLineupLabTab?: boolean
   details?: LeagueDetails | null
 }
 
@@ -25,7 +24,6 @@ export function LeaguePageHeader({
   pct,
   currentTab,
   isAdmin,
-  showLineupLabTab,
   details,
 }: LeaguePageHeaderProps) {
   return (
@@ -73,20 +71,18 @@ export function LeaguePageHeader({
           <Users className="size-3.5" />
           Players
         </Link>
-        {showLineupLabTab && (
-          <Link
-            href={`/${leagueId}/lineup-lab`}
-            className={cn(
-              '-mb-px flex items-center gap-2 border-b-2 pb-2 text-sm font-medium',
-              currentTab === 'lineup-lab'
-                ? 'border-slate-200 text-slate-200'
-                : 'border-transparent text-slate-700 hover:text-slate-400'
-            )}
-          >
-            <FlaskConical className="size-3.5" />
-            Lineup Lab
-          </Link>
-        )}
+        <Link
+          href={`/${leagueId}/lineup-lab`}
+          className={cn(
+            '-mb-px flex items-center gap-2 border-b-2 pb-2 text-sm font-medium',
+            currentTab === 'lineup-lab'
+              ? 'border-slate-200 text-slate-200'
+              : 'border-transparent text-slate-700 hover:text-slate-400'
+          )}
+        >
+          <FlaskConical className="size-3.5" />
+          Lineup Lab
+        </Link>
       </nav>
     </div>
   )

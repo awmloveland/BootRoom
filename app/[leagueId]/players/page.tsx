@@ -99,8 +99,6 @@ export default async function LeaguePlayersPage({ params }: Props) {
       return { ...row, available: true } as LeagueFeature
     })
 
-  const canSeeTeamBuilder = isAdmin || isFeatureEnabled(rawFeatures, 'team_builder', tier)
-
   // 4. Check player_stats feature visibility
   if (!isAdmin && !isFeatureEnabled(rawFeatures, 'player_stats', tier)) {
     return <LeaguePrivateState leagueName={game.name} />
@@ -154,7 +152,6 @@ export default async function LeaguePlayersPage({ params }: Props) {
             pct={pct}
             currentTab="players"
             isAdmin={isAdmin}
-            showLineupLabTab={tier === 'public' ? false : canSeeTeamBuilder}
             details={details}
           />
           <PublicPlayerList

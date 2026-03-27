@@ -11,7 +11,6 @@ const MOCK = {
   totalWeeks: 52,
   currentTab: 'results' as const,
   isAdmin: true,
-  showLineupLabTab: true,
   details: {
     location: 'Hackney Marshes',
     day: 'Thursday',
@@ -22,11 +21,10 @@ const MOCK = {
 }
 
 function Tabs({ accentBlue = false }: { accentBlue?: boolean }) {
-  const { currentTab, showLineupLabTab } = MOCK
+  const { currentTab } = MOCK
   return (
     <nav className="flex gap-6 border-b border-slate-700">
       {(['results', 'players', 'lineup-lab'] as const).map((tab) => {
-        if (tab === 'lineup-lab' && !showLineupLabTab) return null
         const active = currentTab === tab
         return (
           <button key={tab} className={cn(

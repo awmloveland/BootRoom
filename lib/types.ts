@@ -73,7 +73,6 @@ export interface LeagueDetails {
 export type FeatureKey =
   | 'match_history'
   | 'match_entry'
-  | 'team_builder'
   | 'player_stats'
   | 'player_comparison'
   | 'stats_sidebar';

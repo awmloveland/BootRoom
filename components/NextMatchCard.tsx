@@ -23,7 +23,7 @@ interface Props {
   publicMode?: boolean
   /** Pre-loaded scheduled week from the server (used when publicMode=true). */
   initialScheduledWeek?: ScheduledWeek | null
-  /** When true, shows the Auto-Pick Teams button (gated by team_builder feature flag). */
+  /** When true, shows the Auto-Pick Teams button. */
   canAutoPick?: boolean
   /** Full player list for the league — used for squad selection and auto-pick ratings. */
   allPlayers?: Player[]

@@ -1,13 +1,13 @@
 export const dynamic = 'force-dynamic'
 
-import { redirect, notFound } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { isFeatureEnabled } from '@/lib/features'
 import { sortWeeks } from '@/lib/utils'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { LineupLab } from '@/components/LineupLab'
+import { LineupLabLoginPrompt } from '@/components/LineupLabLoginPrompt'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
 import type { GameRole, LeagueFeature, FeatureKey, Player, Week, LeagueDetails } from '@/lib/types'
@@ -29,12 +29,14 @@ export default async function LineupLabPage({ params }: Props) {
 
   if (!game) notFound()
 
-  // 2. Resolve auth + league membership
+  // 2. Resolve auth
   let userRole: GameRole | null = null
+  let isAuthenticated = false
   try {
     const authSupabase = await createClient()
     const { data: { user } } = await authSupabase.auth.getUser()
     if (user) {
+      isAuthenticated = true
       const { data: memberRow } = await service
         .from('game_members')
         .select('role')
@@ -52,7 +54,7 @@ export default async function LineupLabPage({ params }: Props) {
   const tier = resolveVisibilityTier(userRole)
   const isAdmin = tier === 'admin'
 
-  // 3. Fetch feature flags
+  // 3. Full data fetch (needed for sidebar regardless of auth state)
   const [experimentsResult, leagueFeaturesResult, weeksResult] = await Promise.all([
     service.from('feature_experiments').select('feature, available'),
     service.from('league_features').select('*').eq('game_id', leagueId),
@@ -99,14 +101,6 @@ export default async function LineupLabPage({ params }: Props) {
       return { ...row, available: true } as LeagueFeature
     })
 
-  const canSeeTeamBuilder = isAdmin || isFeatureEnabled(features, 'team_builder', tier)
-
-  // 4. Gate access — redirect if not enabled for this user's tier
-  if (!canSeeTeamBuilder) {
-    redirect(`/${leagueId}/results`)
-  }
-
-  // 5. Fetch players
   const { data: playersData } = await service.rpc('get_player_stats_public', {
     p_game_id: leagueId,
   })
@@ -148,10 +142,12 @@ export default async function LineupLabPage({ params }: Props) {
             pct={pct}
             currentTab="lineup-lab"
             isAdmin={isAdmin}
-            showLineupLabTab={true}
             details={details}
           />
-          <LineupLab allPlayers={players} />
+          {isAuthenticated
+            ? <LineupLab allPlayers={players} />
+            : <LineupLabLoginPrompt leagueId={leagueId} />
+          }
         </div>
         <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
           <StatsSidebar
