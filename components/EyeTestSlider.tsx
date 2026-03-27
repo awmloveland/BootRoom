@@ -15,6 +15,7 @@ export function EyeTestSlider({ value, onChange, showNote = false }: Props) {
       <div className="flex items-center gap-3">
         <input
           type="range"
+          name="eye-test-rating"
           min={1}
           max={3}
           step={1}

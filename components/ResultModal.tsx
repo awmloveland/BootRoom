@@ -300,6 +300,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                 )}
 
                 <textarea
+                  name="notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
@@ -404,6 +405,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                         <div className="mt-2">
                           <input
                             type="text"
+                            name="roster-name"
                             value={g.rosterName}
                             onChange={(e) => updateGuestRosterName(i, e.target.value)}
                             placeholder="Enter their name…"

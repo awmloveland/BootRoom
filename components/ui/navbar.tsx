@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactElement } from 'react'
 import Link from 'next/link'
 import { usePathname, useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -33,7 +34,7 @@ interface MenuItem {
   title: string
   url: string
   description?: string
-  icon?: JSX.Element
+  icon?: ReactElement
   items?: MenuItem[]
 }
 

@@ -215,6 +215,7 @@ export function LeagueDetailsForm({
             </label>
             <input
               type="text"
+              name="league-name"
               value={name}
               onChange={(e) => { setName(e.target.value); markDirty() }}
               placeholder="e.g. Craft Football"
@@ -231,6 +232,7 @@ export function LeagueDetailsForm({
             </label>
             <input
               type="text"
+              name="location"
               value={location}
               onChange={(e) => { setLocation(e.target.value); markDirty() }}
               placeholder="e.g. Hackney Marshes"
@@ -245,6 +247,7 @@ export function LeagueDetailsForm({
                 Day
               </label>
               <select
+                name="day"
                 value={day}
                 onChange={(e) => { setDay(e.target.value); markDirty() }}
                 className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-slate-400"
@@ -262,6 +265,7 @@ export function LeagueDetailsForm({
                 Kick-off time
               </label>
               <select
+                name="kickoff-time"
                 value={kickoffTime}
                 onChange={(e) => { setKickoffTime(e.target.value); markDirty() }}
                 className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-slate-400"
@@ -292,6 +296,7 @@ export function LeagueDetailsForm({
               Bio
             </label>
             <textarea
+              name="bio"
               value={bio}
               onChange={(e) => { setBio(e.target.value); markDirty() }}
               placeholder="A short description of your league..."

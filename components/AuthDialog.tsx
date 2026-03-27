@@ -173,6 +173,7 @@ function AuthForm({
           <label htmlFor="auth-email-forgot" className="block text-sm text-slate-400 mb-1">Email</label>
           <input
             id="auth-email-forgot"
+            name="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -212,6 +213,7 @@ function AuthForm({
             <label htmlFor="auth-username" className="block text-sm text-slate-400 mb-1">Username</label>
             <input
               id="auth-username"
+              name="username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -225,6 +227,7 @@ function AuthForm({
           <label htmlFor="auth-email" className="block text-sm text-slate-400 mb-1">Email</label>
           <input
             id="auth-email"
+            name="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -238,6 +241,7 @@ function AuthForm({
           <label htmlFor="auth-password" className="block text-sm text-slate-400 mb-1">Password</label>
           <input
             id="auth-password"
+            name="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
