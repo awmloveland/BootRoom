@@ -124,7 +124,6 @@ export default async function LeagueResultsPage({ params }: Props) {
   const canSeeMatchHistory = isAdmin || isFeatureEnabled(features, 'match_history', tier)
   const canSeeMatchEntry = isAdmin || isFeatureEnabled(features, 'match_entry', tier)
   const canSeePlayerStats = isAdmin || isFeatureEnabled(features, 'player_stats', tier)
-  const canSeeTeamBuilder = isAdmin || isFeatureEnabled(features, 'team_builder', tier)
   const canSeeStatsSidebar = isAdmin || isFeatureEnabled(features, 'stats_sidebar', tier)
 
   // 4. For the public tier: if nothing is visible, show private state
@@ -259,7 +258,6 @@ export default async function LeagueResultsPage({ params }: Props) {
               pct={pct}
               currentTab="results"
               isAdmin={isAdmin}
-              showLineupLabTab={false}
               details={details}
             />
             {canSeeMatchEntry && (
@@ -312,7 +310,6 @@ export default async function LeagueResultsPage({ params }: Props) {
             pct={pct}
             currentTab="results"
             isAdmin={isAdmin}
-            showLineupLabTab={canSeeTeamBuilder}
             details={details}
           />
           <div className="flex flex-col gap-3">
@@ -322,7 +319,7 @@ export default async function LeagueResultsPage({ params }: Props) {
                 weeks={weeks}
                 goalkeepers={goalkeepers}
                 initialScheduledWeek={nextWeek}
-                canAutoPick={canSeeTeamBuilder}
+                canAutoPick={isAdmin}
                 allPlayers={players}
                 showMatchHistory={canSeeMatchHistory}
                 leagueDayIndex={leagueDayIndex}
