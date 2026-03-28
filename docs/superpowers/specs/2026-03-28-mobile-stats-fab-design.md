@@ -85,10 +85,10 @@ The same pattern is applied to all three pages. The existing `hidden lg:block` d
 **`app/[leagueId]/players/page.tsx`**
 - Added outside the main content column
 - Uses `playedWeeks` for the `weeks` prop (same as the desktop sidebar)
-- No separate feature flag guard needed — page already returns early if player_stats is disabled; StatsSidebar's own `isFeatureEnabled` check handles the rest
+- Derive `canSeeStatsSidebar = isAdmin || isFeatureEnabled(features, 'stats_sidebar', tier)` and guard `<MobileStatsFAB>` with it — without this the pill would still render with an empty sheet when the feature is disabled
 
 **`app/[leagueId]/lineup-lab/page.tsx`**
-- Same pattern, no guard needed beyond StatsSidebar's internal check
+- Same pattern — derive `canSeeStatsSidebar` and guard `<MobileStatsFAB>` with it
 
 **Usage pattern (same in all three pages):**
 ```tsx
