@@ -130,6 +130,33 @@ describe('autoPick — associated player not in squad', () => {
   })
 })
 
+// ─── Swap deduplication ───────────────────────────────────────────────────────
+
+describe('autoPick — swap deduplication', () => {
+  it('does not return two suggestions that are team-swaps of each other', () => {
+    // 10 identical-rated players → many valid exhaustive splits, so the pool
+    // will be large enough to potentially surface swaps without deduplication.
+    const players = Array.from({ length: 10 }, (_, i) =>
+      makePlayer(`Player ${i + 1}`, { rating: 2 })
+    )
+    // Run many times to exercise the random sampling path
+    for (let run = 0; run < 20; run++) {
+      const result = autoPick(players)
+      for (let i = 0; i < result.suggestions.length; i++) {
+        for (let j = i + 1; j < result.suggestions.length; j++) {
+          const a = result.suggestions[i]
+          const b = result.suggestions[j]
+          const namesA = (t: typeof a) =>
+            [[...t.teamA].map((p) => p.name).sort(), [...t.teamB].map((p) => p.name).sort()]
+              .sort()
+              .join('|')
+          expect(namesA(a)).not.toBe(namesA(b))
+        }
+      }
+    }
+  })
+})
+
 // ─── Guest is themselves a GK ─────────────────────────────────────────────────
 
 describe('autoPick — guest has goalkeeper: true', () => {

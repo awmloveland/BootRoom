@@ -128,6 +128,8 @@ export function NextMatchCard({
   const [format, setFormat] = useState('')
 
   const [autoPickResult, setAutoPickResult] = useState<AutoPickResult | null>(null)
+  const [suggestionIndex, setSuggestionIndex] = useState(0)
+  const [isManuallyEdited, setIsManuallyEdited] = useState(false)
   const [localTeamA, setLocalTeamA] = useState<Player[]>([])
   const [localTeamB, setLocalTeamB] = useState<Player[]>([])
   const [dragOver, setDragOver] = useState<{ team: 'A' | 'B'; index: number } | null>(null)
@@ -178,6 +180,8 @@ export function NextMatchCard({
 
   function clearSplit() {
     setAutoPickResult(null)
+    setSuggestionIndex(0)
+    setIsManuallyEdited(false)
   }
 
   function togglePlayer(name: string) {
@@ -194,6 +198,8 @@ export function NextMatchCard({
       .map((g) => [g.name, g.associatedPlayer] as [string, string])
     const result = autoPick(resolved, pairs)
     setAutoPickResult(result)
+    setSuggestionIndex(0)
+    setIsManuallyEdited(false)
     if (result.suggestions.length > 0) {
       setLocalTeamA(result.suggestions[0].teamA)
       setLocalTeamB(result.suggestions[0].teamB)
@@ -214,6 +220,7 @@ export function NextMatchCard({
     tgtArr[targetIndex] = srcPlayer
     setLocalTeamA(newA)
     setLocalTeamB(newB)
+    setIsManuallyEdited(true)
     dragSource.current = null
     setDragOver(null)
   }
@@ -629,7 +636,6 @@ export function NextMatchCard({
 
                 {/* Auto-pick result — replaces player list once built */}
                 {isAutoPickMode && autoPickResult.suggestions.length > 0 && (() => {
-                  const suggestion = autoPickResult.suggestions[0]
                   const liveScoreA = ewptScore(localTeamA)
                   const liveScoreB = ewptScore(localTeamB)
                   const renderTeam = (team: 'A' | 'B', players: Player[], score: number) => (
@@ -735,9 +741,43 @@ export function NextMatchCard({
                     Back
                   </button>
                 ) : (
-                  <div />
+                  <button
+                    type="button"
+                    onClick={() => setCardState(scheduledWeek ? 'lineup' : 'idle')}
+                    className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
+                  >
+                    Cancel
+                  </button>
                 )}
                 <div className="flex items-center gap-2">
+                  {isAutoPickMode && autoPickResult && (
+                    isManuallyEdited ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLocalTeamA(autoPickResult.suggestions[suggestionIndex].teamA)
+                          setLocalTeamB(autoPickResult.suggestions[suggestionIndex].teamB)
+                          setIsManuallyEdited(false)
+                        }}
+                        className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
+                      >
+                        Auto Balance Teams
+                      </button>
+                    ) : autoPickResult.suggestions.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = (suggestionIndex + 1) % autoPickResult.suggestions.length
+                          setSuggestionIndex(next)
+                          setLocalTeamA(autoPickResult.suggestions[next].teamA)
+                          setLocalTeamB(autoPickResult.suggestions[next].teamB)
+                        }}
+                        className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
+                      >
+                        Shuffle teams ({suggestionIndex + 1}/{autoPickResult.suggestions.length})
+                      </button>
+                    ) : null
+                  )}
                   <button
                     type="button"
                     onClick={isAutoPickMode ? handleSaveLineup : handleAutoPick}
