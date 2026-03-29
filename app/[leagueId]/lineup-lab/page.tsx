@@ -7,6 +7,8 @@ import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { LineupLab } from '@/components/LineupLab'
 import { LineupLabLoginPrompt } from '@/components/LineupLabLoginPrompt'
 import { StatsSidebar } from '@/components/StatsSidebar'
+import { isFeatureEnabled } from '@/lib/features'
+import { MobileStatsFAB } from '@/components/MobileStatsFAB'
 import type { LeagueDetails } from '@/lib/types'
 
 interface Props {
@@ -28,6 +30,7 @@ export default async function LineupLabPage({ params }: Props) {
 
   const tier = resolveVisibilityTier(userRole)
   const isAdmin = tier === 'admin'
+  const canSeeStatsSidebar = isAdmin || isFeatureEnabled(features, 'stats_sidebar', tier)
 
   const playedWeeks = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled')
   const playedCount = playedWeeks.length
@@ -70,6 +73,16 @@ export default async function LineupLabPage({ params }: Props) {
           />
         </div>
       </div>
-    </main>
+    {canSeeStatsSidebar && (
+      <MobileStatsFAB>
+        <StatsSidebar
+          players={players}
+          weeks={playedWeeks}
+          features={features}
+          role={userRole}
+        />
+      </MobileStatsFAB>
+    )}
+  </main>
   )
 }
