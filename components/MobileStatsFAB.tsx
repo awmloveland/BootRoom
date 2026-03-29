@@ -44,12 +44,12 @@ export function MobileStatsFAB({ children }: MobileStatsFABProps) {
         Stats
       </button>
 
-      {/* z-40 intentionally higher than FAB z-30 — backdrop overlays the pill while sheet is open */}
+      {/* z-[60] intentionally higher than FAB z-30 and navbar z-50 — backdrop covers everything while sheet is open */}
       {/* Backdrop */}
       <div
         onClick={() => setOpen(false)}
         className={cn(
-          'fixed inset-0 bg-slate-900/80 z-40 lg:hidden transition-opacity duration-300',
+          'fixed inset-0 bg-slate-900/80 z-[60] lg:hidden transition-opacity duration-300',
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         )}
       />
@@ -57,7 +57,7 @@ export function MobileStatsFAB({ children }: MobileStatsFABProps) {
       {/* Bottom sheet */}
       <div
         className={cn(
-          'fixed inset-x-0 bottom-0 z-50 lg:hidden bg-slate-800 border-t border-slate-700 rounded-t-2xl max-h-[85vh] flex flex-col transition-transform duration-300 ease-in-out',
+          'fixed inset-x-0 bottom-0 z-[70] lg:hidden bg-slate-800 border-t border-slate-700 rounded-t-2xl max-h-[85vh] flex flex-col transition-transform duration-300 ease-in-out',
           open ? 'translate-y-0' : 'translate-y-full'
         )}
       >
@@ -66,12 +66,12 @@ export function MobileStatsFAB({ children }: MobileStatsFABProps) {
           <div className="w-10 h-1 bg-slate-600 rounded-full" />
         </div>
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 flex-shrink-0">
-          <span className="text-sm font-semibold text-slate-100">Live Stats</span>
+        <div className="flex items-center justify-between pl-5 pr-4 py-3 flex-shrink-0">
+          <span className="text-lg font-bold text-slate-100 tracking-tight">League Stats</span>
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="text-slate-400 hover:text-slate-200 p-1"
+            className="text-slate-400 hover:text-slate-200 bg-slate-700/50 hover:bg-slate-700 rounded-lg p-1.5"
             aria-label="Close stats"
           >
             <X size={18} />
