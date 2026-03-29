@@ -13,6 +13,7 @@ import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { ResultsSection } from '@/components/ResultsSection'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { StatsSidebar } from '@/components/StatsSidebar'
+import { MobileStatsFAB } from '@/components/MobileStatsFAB'
 import { BfcacheRefresh } from '@/components/BfcacheRefresh'
 import type { Week, ScheduledWeek, LeagueDetails } from '@/lib/types'
 
@@ -167,6 +168,17 @@ export default async function LeagueResultsPage({ params }: Props) {
             </div>
           )}
         </div>
+        {canSeeStatsSidebar && (
+          <MobileStatsFAB>
+            <StatsSidebar
+              players={players}
+              weeks={weeks}
+              features={features}
+              role={userRole}
+              leagueDayIndex={leagueDayIndex}
+            />
+          </MobileStatsFAB>
+        )}
       </main>
     )
   }
@@ -226,6 +238,17 @@ export default async function LeagueResultsPage({ params }: Props) {
           />
         </div>
       </div>
+      {canSeeStatsSidebar && (
+        <MobileStatsFAB>
+          <StatsSidebar
+            players={players}
+            weeks={weeks}
+            features={features}
+            role={userRole}
+            leagueDayIndex={leagueDayIndex}
+          />
+        </MobileStatsFAB>
+      )}
     </main>
   )
 }
