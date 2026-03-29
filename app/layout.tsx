@@ -15,11 +15,12 @@ export const metadata: Metadata = {
     url: 'https://craft-football.com',
     siteName: 'Crafted Football',
   },
+  themeColor: '#0f172a',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark bg-slate-900">
       <body className={`${inter.className} bg-slate-900 text-slate-100 antialiased min-h-screen`}>
         <Navbar />
         {children}
