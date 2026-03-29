@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 
@@ -82,8 +83,13 @@ export default async function HomePage() {
       }
     })
 
+    const validLeagues = leagues.filter((l) => l.id)
+    if (validLeagues.length === 1) {
+      redirect(`/${validLeagues[0].id}/results`)
+    }
+
     const service = createServiceClient()
-    const gameIds = leagues.map((l) => l.id).filter(Boolean)
+    const gameIds = validLeagues.map((l) => l.id)
 
     // Batch-fetch all relevant weeks for these leagues in 2 queries
     const [scheduledRes, playedRes, cancelledRes] = await Promise.all([
