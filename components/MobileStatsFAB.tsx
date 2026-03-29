@@ -13,26 +13,19 @@ export function MobileStatsFAB({ children }: MobileStatsFABProps) {
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    if (open) {
-      const scrollY = window.scrollY
-      document.body.style.position = 'fixed'
-      document.body.style.top = `-${scrollY}px`
-      document.body.style.width = '100%'
-    } else {
-      const top = document.body.style.top
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.width = ''
-      if (top) {
-        window.scrollTo(0, -parseInt(top, 10))
-      }
-    }
+    if (!open) return
+
+    const scrollY = window.scrollY
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
+
     return () => {
       const top = document.body.style.top
       document.body.style.position = ''
       document.body.style.top = ''
       document.body.style.width = ''
-      if (top) {
+      if (top && !isNaN(-parseInt(top, 10))) {
         window.scrollTo(0, -parseInt(top, 10))
       }
     }
