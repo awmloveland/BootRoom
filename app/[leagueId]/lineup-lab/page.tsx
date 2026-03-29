@@ -73,16 +73,16 @@ export default async function LineupLabPage({ params }: Props) {
           />
         </div>
       </div>
-    {canSeeStatsSidebar && (
-      <MobileStatsFAB>
-        <StatsSidebar
-          players={players}
-          weeks={playedWeeks}
-          features={features}
-          role={userRole}
-        />
-      </MobileStatsFAB>
-    )}
-  </main>
+      {canSeeStatsSidebar && (
+        <MobileStatsFAB>
+          <StatsSidebar
+            players={players}
+            weeks={playedWeeks}
+            features={features}
+            role={userRole}
+          />
+        </MobileStatsFAB>
+      )}
+    </main>
   )
 }
