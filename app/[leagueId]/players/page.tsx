@@ -7,6 +7,7 @@ import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { PublicPlayerList } from '@/components/PublicPlayerList'
 import { StatsSidebar } from '@/components/StatsSidebar'
+import { MobileStatsFAB } from '@/components/MobileStatsFAB'
 import type { LeagueDetails } from '@/lib/types'
 
 interface Props {
@@ -28,6 +29,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
 
   const tier = resolveVisibilityTier(userRole)
   const isAdmin = tier === 'admin'
+  const canSeeStatsSidebar = isAdmin || isFeatureEnabled(features, 'stats_sidebar', tier)
 
   if (!isAdmin && !isFeatureEnabled(features, 'player_stats', tier)) {
     return <LeaguePrivateState leagueName={game!.name} />
@@ -80,6 +82,16 @@ export default async function LeaguePlayersPage({ params }: Props) {
           />
         </div>
       </div>
+      {canSeeStatsSidebar && (
+        <MobileStatsFAB>
+          <StatsSidebar
+            players={players}
+            weeks={playedWeeks}
+            features={features}
+            role={userRole}
+          />
+        </MobileStatsFAB>
+      )}
     </main>
   )
 }
