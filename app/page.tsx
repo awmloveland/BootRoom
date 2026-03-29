@@ -83,12 +83,13 @@ export default async function HomePage() {
       }
     })
 
-    if (leagues.length === 1) {
-      redirect(`/${leagues[0].id}/results`)
+    const validLeagues = leagues.filter((l) => l.id)
+    if (validLeagues.length === 1) {
+      redirect(`/${validLeagues[0].id}/results`)
     }
 
     const service = createServiceClient()
-    const gameIds = leagues.map((l) => l.id).filter(Boolean)
+    const gameIds = validLeagues.map((l) => l.id)
 
     // Batch-fetch all relevant weeks for these leagues in 2 queries
     const [scheduledRes, playedRes, cancelledRes] = await Promise.all([
