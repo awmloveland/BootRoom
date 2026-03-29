@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 
@@ -81,6 +82,10 @@ export default async function HomePage() {
         role: m.role,
       }
     })
+
+    if (leagues.length === 1) {
+      redirect(`/${leagues[0].id}/results`)
+    }
 
     const service = createServiceClient()
     const gameIds = leagues.map((l) => l.id).filter(Boolean)
