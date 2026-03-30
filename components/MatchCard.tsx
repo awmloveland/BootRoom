@@ -231,8 +231,18 @@ function AwaitingResultCard({
             <div className="border-t border-slate-700">
               <div className="p-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <TeamList label="Team A" players={week.teamA} team="A" />
-                  <TeamList label="Team B" players={week.teamB} team="B" />
+                  <TeamList
+                    label="Team A"
+                    players={week.teamA}
+                    team="A"
+                    rating={week.team_a_rating ?? null}
+                  />
+                  <TeamList
+                    label="Team B"
+                    players={week.teamB}
+                    team="B"
+                    rating={week.team_b_rating ?? null}
+                  />
                 </div>
                 {isAdmin && (
                   <div className="border-t border-slate-700 mt-4 pt-4 flex justify-end gap-2">
