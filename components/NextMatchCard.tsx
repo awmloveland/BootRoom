@@ -5,7 +5,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
 import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata } from '@/lib/types'
+import type { Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
 import { X } from 'lucide-react'
 import { WinnerBadge } from '@/components/WinnerBadge'
@@ -274,6 +274,7 @@ export function NextMatchCard({
                   type: 'new_player' as const,
                   name: p.name,
                   rating: p.rating,
+                  mentality: (p.mentality as Mentality) ?? (p.goalkeeper ? 'goalkeeper' : 'balanced'),
                   goalkeeper: p.goalkeeper ?? false,
                 })),
               }
@@ -328,6 +329,7 @@ export function NextMatchCard({
       new_players: newPlayerEntries.map((p) => ({
         name: p.name,
         rating: p.rating,
+        mentality: p.mentality,
         goalkeeper: p.goalkeeper ?? false,
       })),
     }

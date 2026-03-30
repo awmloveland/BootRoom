@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sortWeeks } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
-import type { GameRole, LeagueFeature, FeatureKey, Player, Week } from '@/lib/types'
+import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality } from '@/lib/types'
 
 // ── Game ─────────────────────────────────────────────────────────────────────
 
@@ -135,6 +135,7 @@ function mapWeekRow(row: WeekRow): Week {
             type: 'new_player' as const,
             name: p.name,
             rating: p.rating,
+            mentality: (p.mentality as Mentality) ?? (p.goalkeeper ? 'goalkeeper' : 'balanced'),
             goalkeeper: p.goalkeeper ?? false,
           })),
         }

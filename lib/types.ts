@@ -125,7 +125,8 @@ export interface NewPlayerEntry {
   type: 'new_player'       // runtime discriminant — not persisted to DB
   name: string
   rating: number           // 1–3
-  goalkeeper?: boolean     // whether this new player is a goalkeeper
+  mentality: Mentality     // balanced | attacking | defensive | goalkeeper
+  goalkeeper?: boolean     // derived: mentality === 'goalkeeper'. Keep for DB backwards compat.
 }
 
 export interface LineupMetadata {
