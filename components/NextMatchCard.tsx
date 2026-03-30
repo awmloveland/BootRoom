@@ -307,6 +307,8 @@ export function NextMatchCard({
     }
     const teamA = localTeamA.map((p) => p.name)
     const teamB = localTeamB.map((p) => p.name)
+    const teamARating = ewptScore(localTeamA)
+    const teamBRating = ewptScore(localTeamB)
     // When editing an existing scheduled week, use its week number and date
     const saveWeek = scheduledWeek?.week ?? nextWeekNum
     const saveDate = scheduledWeek?.date ?? nextDate
@@ -333,7 +335,7 @@ export function NextMatchCard({
         const res = await fetch(`/api/public/league/${gameId}/lineup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ season, week: saveWeek, date: saveDate, format: format || null, teamA, teamB }),
+          body: JSON.stringify({ season, week: saveWeek, date: saveDate, format: format || null, teamA, teamB, teamARating, teamBRating }),
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error ?? 'Failed to save lineup')
@@ -349,11 +351,13 @@ export function NextMatchCard({
           p_team_a: teamA,
           p_team_b: teamB,
           p_lineup_metadata: JSON.stringify(lineupMetadataForDB),
+          p_team_a_rating: teamARating,
+          p_team_b_rating: teamBRating,
         })
         if (err) throw err
         weekId = data as string
       }
-      setScheduledWeek({ id: weekId, week: saveWeek, date: saveDate, format, teamA, teamB, status: 'scheduled', lineupMetadata })
+      setScheduledWeek({ id: weekId, week: saveWeek, date: saveDate, format, teamA, teamB, status: 'scheduled', lineupMetadata, team_a_rating: teamARating, team_b_rating: teamBRating })
       setCardState('lineup')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save lineup')
@@ -847,8 +851,20 @@ export function NextMatchCard({
         {cardState === 'lineup' && scheduledWeek && (
           <div className="px-4 py-3">
             <div className="grid grid-cols-2 gap-4">
-              <TeamList label="Team A" team="A" players={scheduledWeek.teamA} goalkeepers={goalkeepers} />
-              <TeamList label="Team B" team="B" players={scheduledWeek.teamB} goalkeepers={goalkeepers} />
+              <TeamList
+                label="Team A"
+                team="A"
+                players={scheduledWeek.teamA}
+                goalkeepers={goalkeepers}
+                rating={scheduledWeek.team_a_rating ?? null}
+              />
+              <TeamList
+                label="Team B"
+                team="B"
+                players={scheduledWeek.teamB}
+                goalkeepers={goalkeepers}
+                rating={scheduledWeek.team_b_rating ?? null}
+              />
             </div>
           </div>
         )}
