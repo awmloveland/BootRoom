@@ -70,6 +70,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
       type: 'new_player',
       name: trimmed,
       rating: newRating,
+      mentality: newMentality,
       goalkeeper: newMentality === 'goalkeeper',
     })
     onClose()
