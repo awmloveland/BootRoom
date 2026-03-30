@@ -5,7 +5,7 @@ import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn, ewptScore } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { Winner, ScheduledWeek, LineupMetadata, Player } from '@/lib/types'
+import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality } from '@/lib/types'
 import { EyeTestSlider } from '@/components/EyeTestSlider'
 import { Toggle } from '@/components/ui/toggle'
 
@@ -33,7 +33,7 @@ interface GuestReviewState {
 interface NewPlayerReviewState {
   name: string
   rating: number
-  goalkeeper: boolean
+  mentality: Mentality
 }
 
 function StepIndicator({ current, total }: { current: number; total: number }) {
@@ -109,7 +109,11 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
     }))
   )
   const [newPlayerStates, setNewPlayerStates] = useState<NewPlayerReviewState[]>(
-    newPlayers.map((p) => ({ name: p.name, rating: p.rating, goalkeeper: p.goalkeeper ?? false }))
+    newPlayers.map((p) => ({
+      name: p.name,
+      rating: p.rating,
+      mentality: p.mentality ?? (p.goalkeeper ? 'goalkeeper' : 'balanced'),
+    }))
   )
 
   function updateGuestRating(i: number, rating: number) {
@@ -127,8 +131,8 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   function updateGuestGoalkeeper(i: number, goalkeeper: boolean) {
     setGuestStates((prev) => prev.map((g, idx) => idx === i ? { ...g, goalkeeper } : g))
   }
-  function updateNewPlayerGoalkeeper(i: number, goalkeeper: boolean) {
-    setNewPlayerStates((prev) => prev.map((p, idx) => idx === i ? { ...p, goalkeeper } : p))
+  function updateNewPlayerMentality(i: number, mentality: Mentality) {
+    setNewPlayerStates((prev) => prev.map((p, idx) => idx === i ? { ...p, mentality } : p))
   }
 
   function validateReview(): boolean {
@@ -173,7 +177,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           recentForm: '',
           mentality: 'balanced' as const,
           rating: src?.rating ?? 2,
-          goalkeeper: src?.goalkeeper ?? false,
+          goalkeeper: src ? ('mentality' in src ? src.mentality === 'goalkeeper' : src.goalkeeper) : false,
         }
       })
     }
@@ -213,7 +217,12 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         if (resultErr) throw resultErr
 
         const entries = [
-          ...newPlayerStates.map((p) => ({ name: p.name, rating: p.rating, goalkeeper: p.goalkeeper })),
+          ...newPlayerStates.map((p) => ({
+            name: p.name,
+            rating: p.rating,
+            mentality: p.mentality,
+            goalkeeper: p.mentality === 'goalkeeper',
+          })),
           ...guestStates
             .filter((g) => g.addToRoster && g.rosterName.trim())
             .map((g) => ({ name: g.rosterName.trim(), rating: g.rating, goalkeeper: g.goalkeeper })),
@@ -221,7 +230,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         if (entries.length > 0) {
           const { error: promoteErr } = await supabase.rpc('promote_roster', {
             p_game_id: gameId,
-            p_entries: JSON.stringify(entries),
+            p_entries: entries,
           })
           if (promoteErr) throw promoteErr
         }
@@ -353,12 +362,31 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                     <EyeTestSlider value={p.rating} onChange={(v) => updateNewPlayerRating(i, v)} />
 
                     <div className="mt-3 pt-3 border-t border-slate-800">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Dedicated goalkeeper</p>
-                          <p className="text-[11px] text-slate-400 leading-relaxed mt-px">Plays in goal all game, every game.</p>
-                        </div>
-                        <Toggle enabled={p.goalkeeper} onChange={(v) => updateNewPlayerGoalkeeper(i, v)} />
+                      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Mentality</p>
+                      <div className="flex bg-slate-800 border border-slate-700 rounded-md overflow-hidden text-[10px] font-semibold">
+                        {(
+                          [
+                            { value: 'goalkeeper', label: 'GK' },
+                            { value: 'defensive',  label: 'DEF' },
+                            { value: 'balanced',   label: 'BAL' },
+                            { value: 'attacking',  label: 'ATT' },
+                          ] as { value: Mentality; label: string }[]
+                        ).map(({ value, label }, idx) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => { if (value !== p.mentality) updateNewPlayerMentality(i, value) }}
+                            className={cn(
+                              'flex-1 py-1.5 transition-colors',
+                              idx < 3 && 'border-r',
+                              value === p.mentality
+                                ? 'bg-blue-950 text-blue-300 border-blue-800'
+                                : 'text-slate-500 border-slate-700 hover:text-slate-300'
+                            )}
+                          >
+                            {label}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>
