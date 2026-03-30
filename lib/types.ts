@@ -109,6 +109,8 @@ export interface ScheduledWeek {
   teamB: string[];
   status: 'scheduled' | 'cancelled';
   lineupMetadata?: LineupMetadata | null;
+  team_a_rating?: number | null;
+  team_b_rating?: number | null;
 }
 
 export interface GuestEntry {

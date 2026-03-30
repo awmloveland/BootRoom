@@ -16,7 +16,7 @@ async function verifyPublicMatchEntry(service: ReturnType<typeof createServiceCl
 
 /**
  * POST — save (or update) a lineup for the next match.
- * Body: { season, week, date, format, teamA, teamB }
+ * Body: { season, week, date, format, teamA, teamB, teamARating?, teamBRating? }
  * Returns: { id: string }
  */
 export async function POST(request: Request, { params }: Params) {
@@ -28,13 +28,15 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const body = await request.json()
-  const { season, week, date, format, teamA, teamB } = body as {
+  const { season, week, date, format, teamA, teamB, teamARating, teamBRating } = body as {
     season: string
     week: number
     date: string
     format: string | null
     teamA: string[]
     teamB: string[]
+    teamARating?: number | null
+    teamBRating?: number | null
   }
 
   const { data, error } = await service
@@ -51,6 +53,8 @@ export async function POST(request: Request, { params }: Params) {
         team_b: teamB,
         winner: null,
         notes: null,
+        team_a_rating: teamARating ?? null,
+        team_b_rating: teamBRating ?? null,
       },
       { onConflict: 'game_id,season,week' }
     )
