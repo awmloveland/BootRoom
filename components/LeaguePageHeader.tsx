@@ -53,7 +53,7 @@ export function LeaguePageHeader({
             '-mb-px flex items-center gap-2 border-b-2 pb-2 text-sm font-medium',
             currentTab === 'results'
               ? 'border-slate-200 text-slate-200'
-              : 'border-transparent text-slate-700 hover:text-slate-400'
+              : 'border-transparent text-slate-400 hover:text-slate-300'
           )}
         >
           <ClipboardList className="size-3.5" />
@@ -65,7 +65,7 @@ export function LeaguePageHeader({
             '-mb-px flex items-center gap-2 border-b-2 pb-2 text-sm font-medium',
             currentTab === 'players'
               ? 'border-slate-200 text-slate-200'
-              : 'border-transparent text-slate-700 hover:text-slate-400'
+              : 'border-transparent text-slate-400 hover:text-slate-300'
           )}
         >
           <Users className="size-3.5" />
@@ -77,7 +77,7 @@ export function LeaguePageHeader({
             '-mb-px flex items-center gap-2 border-b-2 pb-2 text-sm font-medium',
             currentTab === 'lineup-lab'
               ? 'border-slate-200 text-slate-200'
-              : 'border-transparent text-slate-700 hover:text-slate-400'
+              : 'border-transparent text-slate-400 hover:text-slate-300'
           )}
         >
           <FlaskConical className="size-3.5" />
