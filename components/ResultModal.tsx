@@ -363,7 +363,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
 
                     <div className="mt-3 pt-3 border-t border-slate-800">
                       <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Mentality</p>
-                      <div className="flex bg-slate-800 border border-slate-700 rounded-md overflow-hidden text-[10px] font-semibold">
+                      <div className="flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden text-[10px] font-semibold">
                         {(
                           [
                             { value: 'goalkeeper', label: 'GK' },
