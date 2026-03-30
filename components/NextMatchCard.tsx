@@ -274,6 +274,7 @@ export function NextMatchCard({
                   type: 'new_player' as const,
                   name: p.name,
                   rating: p.rating,
+                  goalkeeper: p.goalkeeper ?? false,
                 })),
               }
             : null,
@@ -327,6 +328,7 @@ export function NextMatchCard({
       new_players: newPlayerEntries.map((p) => ({
         name: p.name,
         rating: p.rating,
+        goalkeeper: p.goalkeeper ?? false,
       })),
     }
     setSaving(true)
@@ -352,7 +354,7 @@ export function NextMatchCard({
           p_format: format || null,
           p_team_a: teamA,
           p_team_b: teamB,
-          p_lineup_metadata: JSON.stringify(lineupMetadataForDB),
+          p_lineup_metadata: lineupMetadataForDB,
           p_team_a_rating: teamARating,
           p_team_b_rating: teamBRating,
         })
