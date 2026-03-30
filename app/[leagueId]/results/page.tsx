@@ -104,6 +104,8 @@ export default async function LeagueResultsPage({ params }: Props) {
         teamB: first.teamB,
         status: 'scheduled',
         lineupMetadata: first.lineupMetadata ?? null,
+        team_a_rating: first.team_a_rating ?? null,
+        team_b_rating: first.team_b_rating ?? null,
       }
     }
   }
