@@ -240,7 +240,7 @@ export function NextMatchCard({
       const supabase = createClient()
       const { data } = await supabase
         .from('weeks')
-        .select('id, week, date, format, team_a, team_b, status, lineup_metadata')
+        .select('id, week, date, format, team_a, team_b, status, lineup_metadata, team_a_rating, team_b_rating')
         .eq('game_id', gameId)
         .in('status', ['scheduled', 'cancelled', 'unrecorded'])
         .order('week', { ascending: false })
@@ -277,6 +277,8 @@ export function NextMatchCard({
                 })),
               }
             : null,
+          team_a_rating: data.team_a_rating ?? null,
+          team_b_rating: data.team_b_rating ?? null,
         }
 
         // Past-deadline scheduled row — lineup exists but game day has passed
