@@ -51,10 +51,10 @@ export async function POST(request: Request, { params }: Params) {
   // Safe to cast — we've validated it is an integer
   const goalDiff = goalDifference as number
 
-  // Verify the week belongs to this game
+  // Verify the week belongs to this game and fetch team rosters for player sync
   const { data: weekRow } = await service
     .from('weeks')
-    .select('game_id')
+    .select('game_id, team_a, team_b')
     .eq('id', weekId)
     .single()
 
@@ -75,5 +75,22 @@ export async function POST(request: Request, { params }: Params) {
     .eq('id', weekId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Sync all players from this match into player_attributes.
+  // ignoreDuplicates: true preserves existing eye test ratings and mentalities.
+  function toStringArray(val: unknown): string[] {
+    return Array.isArray(val) ? val.filter((v): v is string => typeof v === 'string') : []
+  }
+  const names = [...toStringArray(weekRow.team_a), ...toStringArray(weekRow.team_b)]
+  if (names.length > 0) {
+    const { error: syncError } = await service
+      .from('player_attributes')
+      .upsert(
+        names.map((name) => ({ game_id: id, name })),
+        { onConflict: 'game_id,name', ignoreDuplicates: true }
+      )
+    if (syncError) console.error('[result] player_attributes sync failed:', syncError.message)
+  }
+
   return NextResponse.json({ ok: true })
 }
