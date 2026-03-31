@@ -48,9 +48,26 @@ export interface InFormEntry {
   ppg: number
 }
 
-export function computeInForm(players: Player[]): InFormEntry[] {
+export function computeInForm(players: Player[], weeks: Week[], now: Date = new Date()): InFormEntry[] {
+  const cutoff = new Date(now)
+  cutoff.setDate(cutoff.getDate() - 56) // 8 weeks = 56 days
+
+  const lastPlayed = new Map<string, Date>()
+  for (const w of weeks) {
+    if (w.status !== 'played') continue
+    const d = parseWeekDate(w.date)
+    for (const name of [...w.teamA, ...w.teamB]) {
+      const existing = lastPlayed.get(name)
+      if (!existing || d > existing) lastPlayed.set(name, d)
+    }
+  }
+
   return players
-    .filter(p => p.played >= 5)
+    .filter(p => {
+      if (p.played < 5) return false
+      const last = lastPlayed.get(p.name)
+      return last !== undefined && last >= cutoff
+    })
     .map(p => {
       const chars = p.recentForm.split('').filter(c => c !== '-')
       if (chars.length === 0) return { name: p.name, recentForm: p.recentForm, ppg: 0 }

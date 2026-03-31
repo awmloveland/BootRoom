@@ -33,12 +33,18 @@ function makeWeek(overrides: Partial<Week> & { week: number }): Week {
 // ─── computeInForm ────────────────────────────────────────────────────────────
 
 describe('computeInForm', () => {
+  // Fixed reference date used across all recency-aware calls
+  const NOW = new Date(2026, 2, 31) // 31 Mar 2026
+
   it('excludes players with played < 5', () => {
     const players = [
       makePlayer({ name: 'Alice', played: 4, recentForm: 'WWWW' }),
       makePlayer({ name: 'Bob',   played: 5, recentForm: 'WWWWW' }),
     ]
-    const result = computeInForm(players)
+    const weeks = [
+      makeWeek({ week: 1, date: '17 Mar 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    ]
+    const result = computeInForm(players, weeks, NOW)
     expect(result.map(r => r.name)).toEqual(['Bob'])
   })
 
@@ -47,16 +53,21 @@ describe('computeInForm', () => {
       makePlayer({ name: 'Alice', played: 5, recentForm: 'WWWWW' }), // 15/5 = 3.0
       makePlayer({ name: 'Bob',   played: 5, recentForm: 'WDDLL' }), // 5/5  = 1.0
     ]
-    const result = computeInForm(players)
+    const weeks = [
+      makeWeek({ week: 1, date: '17 Mar 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    ]
+    const result = computeInForm(players, weeks, NOW)
     expect(result[0].name).toBe('Alice')
     expect(result[0].ppg).toBeCloseTo(3.0)
     expect(result[1].ppg).toBeCloseTo(1.0)
   })
 
   it('uses count of non-dash chars as denominator, not 5', () => {
-    // '--WLW': 3 games played, points = 3+0+3 = 6, PPG = 6/3 = 2.0
     const players = [makePlayer({ name: 'Alice', played: 5, recentForm: '--WLW' })]
-    const result = computeInForm(players)
+    const weeks = [
+      makeWeek({ week: 1, date: '17 Mar 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    ]
+    const result = computeInForm(players, weeks, NOW)
     expect(result[0].ppg).toBeCloseTo(2.0)
   })
 
@@ -64,7 +75,16 @@ describe('computeInForm', () => {
     const players = Array.from({ length: 8 }, (_, i) =>
       makePlayer({ name: `P${i}`, played: 5, recentForm: 'W'.repeat(Math.max(0, 5 - i)) + 'L'.repeat(Math.min(i, 5)) })
     )
-    const result = computeInForm(players)
+    const weeks = [
+      makeWeek({
+        week: 1,
+        date: '17 Mar 2026',
+        teamA: ['P0', 'P1', 'P2', 'P3'],
+        teamB: ['P4', 'P5', 'P6', 'P7'],
+        winner: 'teamA',
+      }),
+    ]
+    const result = computeInForm(players, weeks, NOW)
     expect(result).toHaveLength(5)
     for (let i = 1; i < result.length; i++) {
       expect(result[i - 1].ppg).toBeGreaterThanOrEqual(result[i].ppg)
@@ -73,9 +93,67 @@ describe('computeInForm', () => {
 
   it('returns empty array when no qualifying players', () => {
     const players = [makePlayer({ name: 'Alice', played: 3 })]
-    expect(computeInForm(players)).toEqual([])
+    const weeks = [
+      makeWeek({ week: 1, date: '17 Mar 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    ]
+    expect(computeInForm(players, weeks, NOW)).toEqual([])
   })
-})
+
+  describe('recency cutoff (8 weeks)', () => {
+    // now = 31 Mar 2026; cutoff = 3 Feb 2026 (56 days earlier)
+    const NOW = new Date(2026, 2, 31)
+
+    it('includes a player whose last game was 4 weeks ago', () => {
+      // 3 Mar 2026 — within 8 weeks
+      const players = [makePlayer({ name: 'Alice', played: 5, recentForm: 'WWWWW' })]
+      const weeks = [
+        makeWeek({ week: 1, date: '03 Mar 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      ]
+      const result = computeInForm(players, weeks, NOW)
+      expect(result.map(r => r.name)).toContain('Alice')
+    })
+
+    it('includes a player whose last game was exactly 8 weeks ago (boundary inclusive)', () => {
+      // 3 Feb 2026 — exactly on the cutoff
+      const players = [makePlayer({ name: 'Alice', played: 5, recentForm: 'WWWWW' })]
+      const weeks = [
+        makeWeek({ week: 1, date: '03 Feb 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      ]
+      const result = computeInForm(players, weeks, NOW)
+      expect(result.map(r => r.name)).toContain('Alice')
+    })
+
+    it('excludes a player whose last game was 9 weeks ago', () => {
+      // 27 Jan 2026 — just outside the cutoff
+      const players = [makePlayer({ name: 'Alice', played: 5, recentForm: 'WWWWW' })]
+      const weeks = [
+        makeWeek({ week: 1, date: '27 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      ]
+      const result = computeInForm(players, weeks, NOW)
+      expect(result.map(r => r.name)).not.toContain('Alice')
+    })
+
+    it('excludes a player with no week entry', () => {
+      // Player exists in the players array but never appears in any week
+      const players = [makePlayer({ name: 'Ghost', played: 5, recentForm: 'WWWWW' })]
+      const weeks: Week[] = []
+      const result = computeInForm(players, weeks, NOW)
+      expect(result).toHaveLength(0)
+    })
+
+    it('uses the most recent week when a player appears in multiple weeks', () => {
+      // Old game: 10 Jan 2026 (> 8 weeks ago). Recent game: 17 Mar 2026 (2 weeks ago).
+      // Should be included because the most recent game is within the window.
+      const players = [makePlayer({ name: 'Alice', played: 5, recentForm: 'WWWWW' })]
+      const weeks = [
+        makeWeek({ week: 1, date: '10 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+        makeWeek({ week: 2, date: '17 Mar 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      ]
+      const result = computeInForm(players, weeks, NOW)
+      expect(result.map(r => r.name)).toContain('Alice')
+    })
+  })
+}) // closes describe('computeInForm')
 
 // ─── computeQuarterlyTable ────────────────────────────────────────────────────
 
