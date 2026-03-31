@@ -193,6 +193,8 @@ export function Navbar({
 
   async function handleSignOut() {
     await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' })
+    const supabase = createClient()
+    await supabase.auth.signOut()
     router.refresh()
   }
 
