@@ -16,7 +16,7 @@ import {
 type AuthMode = 'signin' | 'forgot'
 
 interface AuthDialogProps {
-  /** Where to redirect after successful sign-in/sign-up */
+  /** Where to redirect after successful sign-in */
   redirect?: string
   /** Button size variant */
   size?: 'xs' | 'sm' | 'default'
