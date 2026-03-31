@@ -12,9 +12,6 @@ export function WebsiteHeader() {
           <Button size="xs" asChild>
             <Link href="/sign-in">Log in</Link>
           </Button>
-          <Button size="xs" variant="secondary" asChild>
-            <Link href="/sign-in?mode=signup">Join</Link>
-          </Button>
         </nav>
       </div>
     </header>
