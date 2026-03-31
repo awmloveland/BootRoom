@@ -30,8 +30,8 @@ function EmptyState({ message }: { message: string }) {
 
 // ─── Widget 1: Most In Form ───────────────────────────────────────────────────
 
-function InFormWidget({ players }: { players: Player[] }) {
-  const entries = computeInForm(players)
+function InFormWidget({ players, weeks }: { players: Player[]; weeks: Week[] }) {
+  const entries = computeInForm(players, weeks)
   return (
     <WidgetShell title="Most In Form">
       {entries.length === 0 ? (
@@ -230,7 +230,7 @@ export function StatsSidebar({ players, weeks, features, role, leagueDayIndex }:
 
   return (
     <div className="space-y-3">
-      <InFormWidget    players={players} />
+      <InFormWidget    players={players} weeks={weeks} />
       <QuarterlyTableWidget weeks={weeks} leagueDayIndex={leagueDayIndex} />
       <TeamABWidget    weeks={weeks} />
     </div>
