@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sortWeeks } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
-import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality } from '@/lib/types'
+import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality, JoinRequestStatus } from '@/lib/types'
 
 // ── Game ─────────────────────────────────────────────────────────────────────
 
@@ -142,6 +142,27 @@ function mapWeekRow(row: WeekRow): Week {
       : null,
   }
 }
+
+// ── Join request status ───────────────────────────────────────────────────────
+
+// Not wrapped in cache() — depends on userId which is derived from auth,
+// not just leagueId.
+export async function getJoinRequestStatus(
+  leagueId: string,
+  userId: string
+): Promise<JoinRequestStatus | 'none'> {
+  const service = createServiceClient()
+  const { data } = await service
+    .from('game_join_requests')
+    .select('status')
+    .eq('game_id', leagueId)
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (!data) return 'none'
+  return data.status as JoinRequestStatus
+}
+
+// ── Weeks ─────────────────────────────────────────────────────────────────────
 
 // Fetches all weeks in all statuses — pages filter in-memory as needed.
 // Includes 'scheduled' so the results page can derive nextWeek without a
