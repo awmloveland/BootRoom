@@ -5,7 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
 import { sortWeeks, dayNameToIndex, isPastDeadline, getMostRecentExpectedGameDate, getNextWeekNumber, deriveSeason } from '@/lib/utils'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks } from '@/lib/fetchers'
+import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus } from '@/lib/fetchers'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
@@ -15,7 +15,7 @@ import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import { MobileStatsFAB } from '@/components/MobileStatsFAB'
 import { BfcacheRefresh } from '@/components/BfcacheRefresh'
-import type { Week, ScheduledWeek, LeagueDetails } from '@/lib/types'
+import type { Week, ScheduledWeek, LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
 interface Props {
   params: Promise<{ leagueId: string }>
@@ -26,13 +26,28 @@ export default async function LeagueResultsPage({ params }: Props) {
 
   // getGame, getAuthAndRole, getFeatures are cache hits from the layout.
   // getPlayerStats and getWeeks run fresh — both start in parallel.
-  const [{ userRole, isAuthenticated }, game, features, players, rawWeeks] = await Promise.all([
+  const [{ user, userRole, isAuthenticated }, game, features, players, rawWeeks] = await Promise.all([
     getAuthAndRole(leagueId),
     getGame(leagueId),
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
   ])
+
+  // Resolve joinStatus for the Join/Share button
+  let joinStatus: JoinRequestStatus | 'member' | 'not-member' | null = null
+
+  if (!isAuthenticated) {
+    joinStatus = null  // not signed in → show Join → opens AuthDialog signup
+  } else if (userRole !== null) {
+    joinStatus = 'member'  // already a member/admin/creator → show Share
+  } else {
+    // Signed in, not a member — check for an existing request
+    joinStatus = await getJoinRequestStatus(leagueId, user!.id)
+    // Returns 'pending' | 'approved' | 'declined' | 'none'
+    // 'none' and 'declined' both → show Join button
+    // 'approved' shouldn't happen (would be in game_members) but handle gracefully
+  }
 
   // game is guaranteed non-null — the layout already called notFound() if missing.
   const tier = resolveVisibilityTier(userRole)
@@ -139,6 +154,7 @@ export default async function LeagueResultsPage({ params }: Props) {
               currentTab="results"
               isAdmin={isAdmin}
               details={details}
+              joinStatus={joinStatus}
             />
             {canSeeMatchEntry && (
               <PublicMatchEntrySection
@@ -200,6 +216,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             currentTab="results"
             isAdmin={isAdmin}
             details={details}
+            joinStatus={joinStatus}
           />
           <div className="flex flex-col gap-3">
             {canSeeMatchEntry ? (

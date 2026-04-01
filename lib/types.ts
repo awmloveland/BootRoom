@@ -135,3 +135,18 @@ export interface LineupMetadata {
 }
 
 export type SortKey = 'name' | 'played' | 'won' | 'winRate' | 'recentForm'
+
+export type JoinRequestStatus = 'none' | 'pending' | 'approved' | 'declined'
+
+export interface JoinRequest {
+  id: string
+  game_id: string
+  user_id: string
+  email: string
+  display_name: string | null
+  message: string | null
+  status: JoinRequestStatus
+  reviewed_by: string | null
+  created_at: string
+  updated_at: string
+}

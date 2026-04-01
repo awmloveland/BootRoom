@@ -50,7 +50,6 @@ interface NavbarProps {
   mobileExtraLinks?: { name: string; url: string }[]
   auth?: {
     login?: { text: string; url: string }
-    signup?: { text: string; url: string }
     signOut?: { text: string; onSignOut: () => void }
   }
 }
