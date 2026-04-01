@@ -150,7 +150,7 @@ function mapWeekRow(row: WeekRow): Week {
 export async function getJoinRequestStatus(
   leagueId: string,
   userId: string
-): Promise<JoinRequestStatus | 'none'> {
+): Promise<JoinRequestStatus> {
   const service = createServiceClient()
   const { data } = await service
     .from('game_join_requests')

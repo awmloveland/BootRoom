@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -27,6 +28,7 @@ export function JoinRequestDialog({
   onOpenChange,
   onSuccess,
 }: JoinRequestDialogProps) {
+  const router = useRouter()
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -75,6 +77,7 @@ export function JoinRequestDialog({
 
   function handleDone() {
     handleOpenChange(false)
+    router.refresh()
     onSuccess()
   }
 

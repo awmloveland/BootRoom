@@ -46,7 +46,7 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin }: Le
     }
   }
 
-  const showJoin = joinStatus === null || joinStatus === 'not-member' || joinStatus === 'none'
+  const showJoin = joinStatus === null || joinStatus === 'not-member' || joinStatus === 'none' || joinStatus === 'declined'
   const showPending = joinStatus === 'pending'
   const showShare = isMemberStatus(joinStatus)
 

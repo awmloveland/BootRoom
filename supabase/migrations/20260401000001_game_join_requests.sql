@@ -86,7 +86,7 @@ BEGIN
   END IF;
 
   INSERT INTO game_join_requests (game_id, user_id, email, display_name, message)
-  VALUES (p_game_id, v_user_id, v_email, v_display_name, p_message);
+  VALUES (p_game_id, v_user_id, v_email, COALESCE(v_display_name, v_email), p_message);
 END;
 $$;
 
