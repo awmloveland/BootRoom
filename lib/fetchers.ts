@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sortWeeks } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
-import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality } from '@/lib/types'
+import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality, JoinRequestStatus, PendingJoinRequest } from '@/lib/types'
 
 // ── Game ─────────────────────────────────────────────────────────────────────
 
@@ -142,6 +142,53 @@ function mapWeekRow(row: WeekRow): Week {
       : null,
   }
 }
+
+// ── Join request status ───────────────────────────────────────────────────────
+
+// Not wrapped in cache() — depends on userId which is derived from auth,
+// not just leagueId.
+export async function getJoinRequestStatus(
+  leagueId: string,
+  userId: string
+): Promise<JoinRequestStatus> {
+  const service = createServiceClient()
+  const { data } = await service
+    .from('game_join_requests')
+    .select('status')
+    .eq('game_id', leagueId)
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (!data) return 'none'
+  return data.status as JoinRequestStatus
+}
+
+// ── Pending join requests ─────────────────────────────────────────────────────
+
+// Fetches all pending join requests for a league. Returns [] if the caller
+// is not an admin (the RPC raises 'Access denied' which the catch swallows).
+export const getPendingJoinRequests = cache(async (leagueId: string): Promise<PendingJoinRequest[]> => {
+  try {
+    const authSupabase = await createClient()
+    const { data: { user } } = await authSupabase.auth.getUser()
+    if (!user) return []
+
+    const { data, error } = await authSupabase.rpc('get_join_requests', {
+      p_game_id: leagueId,
+    })
+
+    if (error) return []
+    return (data ?? []) as PendingJoinRequest[]
+  } catch {
+    return []
+  }
+})
+
+export const getPendingJoinCount = cache(async (leagueId: string): Promise<number> => {
+  const requests = await getPendingJoinRequests(leagueId)
+  return requests.length
+})
+
+// ── Weeks ─────────────────────────────────────────────────────────────────────
 
 // Fetches all weeks in all statuses — pages filter in-memory as needed.
 // Includes 'scheduled' so the results page can derive nextWeek without a

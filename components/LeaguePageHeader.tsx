@@ -1,9 +1,9 @@
 import Link from 'next/link'
-import { Settings, ClipboardList, Users, FlaskConical } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { ClipboardList, Users, FlaskConical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LeagueInfoBar } from '@/components/LeagueInfoBar'
-import type { LeagueDetails } from '@/lib/types'
+import { LeagueJoinArea } from '@/components/LeagueJoinArea'
+import type { LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
 interface LeaguePageHeaderProps {
   leagueName: string
@@ -14,6 +14,8 @@ interface LeaguePageHeaderProps {
   currentTab: 'results' | 'players' | 'lineup-lab'
   isAdmin: boolean
   details?: LeagueDetails | null
+  joinStatus?: JoinRequestStatus | 'member' | 'not-member' | null
+  pendingRequestCount?: number
 }
 
 export function LeaguePageHeader({
@@ -25,6 +27,8 @@ export function LeaguePageHeader({
   currentTab,
   isAdmin,
   details,
+  joinStatus = null,
+  pendingRequestCount = 0,
 }: LeaguePageHeaderProps) {
   return (
     <div className="mb-4">
@@ -35,13 +39,13 @@ export function LeaguePageHeader({
             {playedCount} of {totalWeeks} weeks · {pct}% complete
           </p>
         </div>
-        {isAdmin && (
-          <Button asChild variant="ghost" size="icon" className="text-slate-500 hover:text-slate-400">
-            <Link href={`/${leagueId}/settings`} aria-label="League settings">
-              <Settings className="size-4" />
-            </Link>
-          </Button>
-        )}
+        <LeagueJoinArea
+          leagueId={leagueId}
+          leagueName={leagueName}
+          joinStatus={joinStatus}
+          isAdmin={isAdmin}
+          pendingRequestCount={pendingRequestCount}
+        />
       </div>
       <div className="mt-3">
         <LeagueInfoBar details={details} leagueId={leagueId} isAdmin={isAdmin} />

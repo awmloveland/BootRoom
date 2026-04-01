@@ -9,7 +9,8 @@ import { FeaturePanel } from '@/components/FeaturePanel'
 import { LeagueDetailsForm } from '@/components/LeagueDetailsForm'
 import { PlayerRosterPanel } from '@/components/PlayerRosterPanel'
 import { cn } from '@/lib/utils'
-import type { LeagueMember, LeagueFeature, LeagueDetails, PlayerAttribute } from '@/lib/types'
+import type { LeagueMember, LeagueFeature, LeagueDetails, PlayerAttribute, PendingJoinRequest } from '@/lib/types'
+import { PendingRequestsTable } from '@/components/PendingRequestsTable'
 
 type Section = 'details' | 'members' | 'features' | 'players'
 
@@ -48,6 +49,10 @@ export default function LeagueSettingsPage() {
   // Members state
   const [members, setMembers] = useState<LeagueMember[]>([])
   const [membersLoading, setMembersLoading] = useState(false)
+
+  // Pending join requests state
+  const [pendingRequests, setPendingRequests] = useState<PendingJoinRequest[]>([])
+  const [pendingLoading, setPendingLoading] = useState(false)
 
   // Invite links state
   const [memberLink, setMemberLink] = useState<string | null>(null)
@@ -111,14 +116,24 @@ export default function LeagueSettingsPage() {
 
   const loadMembers = useCallback(async () => {
     setMembersLoading(true)
+    setPendingLoading(true)
     try {
-      const res = await fetch(`/api/league/${leagueId}/members`, { credentials: 'include' })
-      const data = await res.json()
-      setMembers(Array.isArray(data) ? data : [])
+      const [membersRes, pendingRes] = await Promise.all([
+        fetch(`/api/league/${leagueId}/members`, { credentials: 'include' }),
+        fetch(`/api/league/${leagueId}/join-requests`, { credentials: 'include' }),
+      ])
+      const [membersData, pendingData] = await Promise.all([
+        membersRes.json(),
+        pendingRes.ok ? pendingRes.json() : Promise.resolve([]),
+      ])
+      setMembers(Array.isArray(membersData) ? membersData : [])
+      setPendingRequests(Array.isArray(pendingData) ? pendingData : [])
     } catch {
       setMembers([])
+      setPendingRequests([])
     } finally {
       setMembersLoading(false)
+      setPendingLoading(false)
     }
   }, [leagueId])
 
@@ -310,6 +325,18 @@ export default function LeagueSettingsPage() {
               ))}
             </div>
           </div>
+
+          {/* Pending join requests */}
+          {(pendingLoading || pendingRequests.length > 0) && (
+            pendingLoading ? (
+              <p className="text-slate-400 text-sm">Loading requests…</p>
+            ) : (
+              <PendingRequestsTable
+                leagueId={leagueId}
+                initialRequests={pendingRequests}
+              />
+            )
+          )}
 
           {/* Member list */}
           <div>

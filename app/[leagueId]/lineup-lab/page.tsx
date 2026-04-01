@@ -2,14 +2,14 @@
 export const dynamic = 'force-dynamic'
 
 import { resolveVisibilityTier } from '@/lib/roles'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks } from '@/lib/fetchers'
+import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingJoinCount } from '@/lib/fetchers'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { LineupLab } from '@/components/LineupLab'
 import { LineupLabLoginPrompt } from '@/components/LineupLabLoginPrompt'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import { isFeatureEnabled } from '@/lib/features'
 import { MobileStatsFAB } from '@/components/MobileStatsFAB'
-import type { LeagueDetails } from '@/lib/types'
+import type { LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
 interface Props {
   params: Promise<{ leagueId: string }>
@@ -20,13 +20,24 @@ export default async function LineupLabPage({ params }: Props) {
 
   // getGame, getAuthAndRole, getFeatures are cache hits from the layout.
   // getPlayerStats and getWeeks run fresh — both start in parallel.
-  const [{ userRole, isAuthenticated }, game, features, players, weeks] = await Promise.all([
+  const [{ user, userRole, isAuthenticated }, game, features, players, weeks, pendingRequestCount] = await Promise.all([
     getAuthAndRole(leagueId),
     getGame(leagueId),
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
+    getPendingJoinCount(leagueId),
   ])
+
+  // Resolve joinStatus for the Join/Share button
+  let joinStatus: JoinRequestStatus | 'member' | 'not-member' | null = null
+  if (!isAuthenticated) {
+    joinStatus = null
+  } else if (userRole !== null) {
+    joinStatus = 'member'
+  } else {
+    joinStatus = await getJoinRequestStatus(leagueId, user!.id)
+  }
 
   const tier = resolveVisibilityTier(userRole)
   const isAdmin = tier === 'admin'
@@ -58,6 +69,8 @@ export default async function LineupLabPage({ params }: Props) {
             currentTab="lineup-lab"
             isAdmin={isAdmin}
             details={details}
+            joinStatus={joinStatus}
+            pendingRequestCount={pendingRequestCount}
           />
           {isAuthenticated
             ? <LineupLab allPlayers={players} />

@@ -23,7 +23,6 @@ export function PublicHeader({
 }: PublicHeaderProps) {
   const redirectParam = encodeURIComponent(`/league/${leagueId}`)
   const signInHref = `/sign-in?redirect=${redirectParam}`
-  const signUpHref = `/sign-in?mode=signup&redirect=${redirectParam}`
 
   return (
     <header className="sticky top-0 z-50 bg-slate-900 border-b border-slate-700">
@@ -66,14 +65,9 @@ export function PublicHeader({
               Open app
             </Link>
           ) : (
-            <div className="flex items-center gap-2">
-              <Button size="xs" asChild>
-                <a href={signInHref}>Log in</a>
-              </Button>
-              <Button size="xs" variant="secondary" asChild>
-                <a href={signUpHref}>Join</a>
-              </Button>
-            </div>
+            <Button size="xs" asChild>
+              <a href={signInHref}>Log in</a>
+            </Button>
           )}
         </div>
       </div>
