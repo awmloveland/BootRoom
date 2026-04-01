@@ -22,8 +22,6 @@ interface AuthDialogProps {
   size?: 'xs' | 'sm' | 'default'
   /** Optional custom trigger. Receives a function to open the sign-in dialog. */
   trigger?: (openSignIn: () => void) => React.ReactNode
-  /** If present, post-signup triggers join request flow */
-  leagueId?: string
   /** Displayed in the signup form description */
   leagueName?: string
   /** Defaults to 'signin' */
@@ -73,10 +71,19 @@ function SignupForm({
         email,
         password,
         options: {
-          data: { first_name: firstName, last_name: lastName },
+          data: {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            display_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+          },
         },
       })
       if (error) throw new Error(error.message)
+      const { error: claimErr } = await supabase.rpc('claim_profile')
+      if (claimErr) {
+        setMessage({ type: 'error', text: `Profile setup failed: ${claimErr.message}` })
+        return
+      }
       onSuccess()
       onSignedUp?.()
     } catch (err: unknown) {
@@ -92,11 +99,6 @@ function SignupForm({
 
   return (
     <>
-      <p className="text-slate-400 text-sm">
-        {leagueName
-          ? `Create an account to request access to ${leagueName}.`
-          : 'Create your Boot Room account.'}
-      </p>
       <form onSubmit={handleSubmit} className="space-y-4 mt-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -438,7 +440,6 @@ export function AuthDialog({
   redirect = '/',
   size = 'xs',
   trigger,
-  leagueId,
   leagueName,
   initialMode = 'signin',
   onSignedUp,

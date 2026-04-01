@@ -16,7 +16,7 @@ interface LeagueJoinAreaProps {
 }
 
 function isMemberStatus(s: JoinRequestStatus | 'member' | 'not-member' | null): boolean {
-  return s === 'member' || s === 'approved' || s === 'creator' || s === 'admin'
+  return s === 'member' || s === 'approved'
 }
 
 export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin }: LeagueJoinAreaProps) {
@@ -100,7 +100,6 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin }: Le
         open={authDialogOpen}
         onOpenChange={setAuthDialogOpen}
         initialMode="signup"
-        leagueId={leagueId}
         leagueName={leagueName}
         onSignedUp={() => {
           setAuthDialogOpen(false)
