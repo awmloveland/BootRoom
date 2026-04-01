@@ -110,7 +110,7 @@ function QuarterlyTableWidget({ weeks, leagueDayIndex }: { weeks: Week[]; league
 
       <div className="px-3 py-3">
         {entries.length === 0 ? (
-          <EmptyState message="Quarter just started" />
+          <EmptyState message={isHoldover ? 'No data yet' : 'Quarter just started'} />
         ) : (
           <div className="flex flex-col gap-[2px]">
             {entries.map((e, i) => (
