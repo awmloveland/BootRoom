@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Settings, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { JoinRequestDialog } from '@/components/JoinRequestDialog'
+import { AuthDialog } from '@/components/AuthDialog'
 import type { JoinRequestStatus } from '@/lib/types'
 
 interface LeagueJoinAreaProps {
@@ -21,6 +22,7 @@ function isMemberStatus(s: JoinRequestStatus | 'member' | 'not-member' | null): 
 export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin }: LeagueJoinAreaProps) {
   const [showToast, setShowToast] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [authDialogOpen, setAuthDialogOpen] = useState(false)
 
   useEffect(() => {
     if (showToast) {
@@ -34,6 +36,16 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin }: Le
     setShowToast(true)
   }
 
+  function handleJoinClick() {
+    if (joinStatus === null) {
+      // Unauthenticated — open signup flow first
+      setAuthDialogOpen(true)
+    } else {
+      // Authenticated, not a member — open join request directly
+      setDialogOpen(true)
+    }
+  }
+
   const showJoin = joinStatus === null || joinStatus === 'not-member' || joinStatus === 'none'
   const showPending = joinStatus === 'pending'
   const showShare = isMemberStatus(joinStatus)
@@ -45,7 +57,7 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin }: Le
           <Button
             size="xs"
             className="h-7 bg-sky-600 text-white hover:bg-sky-500"
-            onClick={() => setDialogOpen(true)}
+            onClick={handleJoinClick}
           >
             Join
           </Button>
@@ -83,6 +95,18 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin }: Le
           </Button>
         )}
       </div>
+
+      <AuthDialog
+        open={authDialogOpen}
+        onOpenChange={setAuthDialogOpen}
+        initialMode="signup"
+        leagueId={leagueId}
+        leagueName={leagueName}
+        onSignedUp={() => {
+          setAuthDialogOpen(false)
+          setDialogOpen(true)
+        }}
+      />
 
       <JoinRequestDialog
         leagueId={leagueId}
