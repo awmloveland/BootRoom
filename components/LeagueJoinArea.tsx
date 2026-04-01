@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { SlidersHorizontal, Link as LinkIcon } from 'lucide-react'
+import { SlidersHorizontal, Link as LinkIcon, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { JoinRequestDialog } from '@/components/JoinRequestDialog'
 import { AuthDialog } from '@/components/AuthDialog'
@@ -60,6 +60,7 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin, pend
             className="h-7 bg-sky-600 text-white hover:bg-sky-500"
             onClick={handleJoinClick}
           >
+            <UserPlus className="mr-1.5 size-3.5" />
             Join League
           </Button>
         )}
