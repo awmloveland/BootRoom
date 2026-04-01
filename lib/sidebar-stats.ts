@@ -96,6 +96,7 @@ export interface QuarterlyTableResult {
   lastQuarterLabel: string | null
   gamesLeft: number
   gamesTotal: number
+  isHoldover: boolean
 }
 
 function quarterOf(d: Date): { q: number; year: number } {
@@ -150,7 +151,7 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gam
   const lastChampion = prevEntries.length > 0 ? prevEntries[0].name : null
   const lastQuarterLabel = prevEntries.length > 0 ? `Q${prevQ} ${prevYY}` : null
 
-  return { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft, gamesTotal }
+  return { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft, gamesTotal, isHoldover: false }
 }
 
 // ─── computeTeamAB ────────────────────────────────────────────────────────────

@@ -326,6 +326,45 @@ describe('computeQuarterlyTable', () => {
     })
   })
 
+  describe('holdover — shows previous quarter when current quarter has no played games', () => {
+    it('returns previous quarter data and isHoldover=true when current quarter is empty', () => {
+      // now = 1 Apr 2026 (Q2). Q1 has played data, Q2 has none.
+      const weeks: Week[] = [
+        makeWeek({ week: 1, date: '15 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Q1
+        makeWeek({ week: 2, date: '22 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Q1
+      ]
+      const now = new Date(2026, 3, 1) // 1 Apr 2026 = Q2
+      const result = computeQuarterlyTable(weeks, now)
+      expect(result.isHoldover).toBe(true)
+      expect(result.quarterLabel).toBe('Q1 26')
+      expect(result.entries.find(e => e.name === 'Alice')?.won).toBe(2)
+      expect(result.gamesLeft).toBe(0)
+    })
+
+    it('returns current quarter data and isHoldover=false once first Q2 game is played', () => {
+      const weeks: Week[] = [
+        makeWeek({ week: 1, date: '15 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Q1
+        makeWeek({ week: 2, date: '02 Apr 2026', teamA: ['Charlie'], teamB: ['Dave'], winner: 'teamA' }), // Q2
+      ]
+      const now = new Date(2026, 3, 3) // 3 Apr 2026 = Q2
+      const result = computeQuarterlyTable(weeks, now)
+      expect(result.isHoldover).toBe(false)
+      expect(result.quarterLabel).toBe('Q2 26')
+      expect(result.entries.find(e => e.name === 'Charlie')).toBeDefined()
+    })
+
+    it('steps back to Q4 of prior year when Q1 has no played games', () => {
+      const weeks: Week[] = [
+        makeWeek({ week: 1, date: '10 Dec 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Q4 2025
+      ]
+      const now = new Date(2026, 0, 5) // 5 Jan 2026 = Q1 (no Q1 games yet)
+      const result = computeQuarterlyTable(weeks, now)
+      expect(result.isHoldover).toBe(true)
+      expect(result.quarterLabel).toBe('Q4 25')
+      expect(result.entries.find(e => e.name === 'Alice')).toBeDefined()
+    })
+  })
+
 })
 
 // ─── computeTeamAB ────────────────────────────────────────────────────────────
