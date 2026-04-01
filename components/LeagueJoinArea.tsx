@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Settings, Share2 } from 'lucide-react'
+import { SlidersHorizontal, Link as LinkIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { JoinRequestDialog } from '@/components/JoinRequestDialog'
 import { AuthDialog } from '@/components/AuthDialog'
@@ -60,7 +60,7 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin, pend
             className="h-7 bg-sky-600 text-white hover:bg-sky-500"
             onClick={handleJoinClick}
           >
-            Join
+            Join League
           </Button>
         )}
         {showPending && (
@@ -80,7 +80,7 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin, pend
             className="h-7 border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-300"
             onClick={handleShareClick}
           >
-            <Share2 className="mr-1.5 size-3.5" />
+            <LinkIcon className="mr-1.5 size-3.5" />
             Share
           </Button>
         )}
@@ -88,11 +88,12 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin, pend
           <div className="relative">
             <Button
               asChild
+              size="xs"
               variant="ghost"
-              className="h-7 w-7 border border-slate-700 text-slate-500 hover:bg-slate-800 hover:text-slate-400"
+              className="w-7 p-0 border border-slate-700 text-slate-500 hover:bg-slate-800 hover:text-slate-400"
             >
               <Link href={`/${leagueId}/settings`} aria-label="League settings">
-                <Settings className="size-4" />
+                <SlidersHorizontal className="size-4" />
               </Link>
             </Button>
             {pendingRequestCount > 0 && (
