@@ -213,10 +213,15 @@ describe('computeQuarterlyTable', () => {
   })
 
   it('handles Q1 rollover correctly (prev = Q4 of prior year)', () => {
+    // A Q1 played week is needed so holdover does not trigger
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '07 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    ]
     const now = new Date(2026, 0, 15) // Q1 2026
-    const result = computeQuarterlyTable([], now)
-    expect(result.lastQuarterLabel).toBeNull() // no data
+    const result = computeQuarterlyTable(weeks, now)
+    expect(result.lastQuarterLabel).toBeNull() // no Q4 2025 data
     expect(result.quarterLabel).toBe('Q1 26')
+    expect(result.isHoldover).toBe(false)
   })
 
   // ─── gamesLeft (calendar-based) ───────────────────────────────────────────────
@@ -226,8 +231,11 @@ describe('computeQuarterlyTable', () => {
     it('excludes today and counts remaining Wednesdays when now is a Wednesday', () => {
       // now = 7 Jan 2026 (Wednesday). Cursor starts 8 Jan.
       // Wednesdays 8 Jan→31 Mar: Jan 14,21,28, Feb 4,11,18,25, Mar 4,11,18,25 = 11
+      const weeks: Week[] = [
+        makeWeek({ week: 1, date: '07 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      ]
       const now = new Date(2026, 0, 7)
-      const result = computeQuarterlyTable([], now, 3) // gameDay 3 = Wednesday
+      const result = computeQuarterlyTable(weeks, now, 3) // gameDay 3 = Wednesday
       expect(result.gamesLeft).toBe(11)
     })
 
@@ -235,8 +243,11 @@ describe('computeQuarterlyTable', () => {
     it('counts correctly when now is the first day of the quarter', () => {
       // now = 1 Jan 2026 (Thursday). Cursor starts 2 Jan.
       // Wednesdays 2 Jan→31 Mar: Jan 7,14,21,28, Feb 4,11,18,25, Mar 4,11,18,25 = 12
+      const weeks: Week[] = [
+        makeWeek({ week: 1, date: '01 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      ]
       const now = new Date(2026, 0, 1)
-      const result = computeQuarterlyTable([], now, 3)
+      const result = computeQuarterlyTable(weeks, now, 3)
       expect(result.gamesLeft).toBe(12)
     })
 
@@ -244,8 +255,11 @@ describe('computeQuarterlyTable', () => {
     it('returns 0 when now is the last day of the quarter even if it is the game day', () => {
       // now = 31 Mar 2026 (Tuesday = gameDay 2). Cursor starts 1 Apr = Q2.
       // Loop never executes → 0. Works regardless of whether 31 Mar is the game day.
+      const weeks: Week[] = [
+        makeWeek({ week: 1, date: '31 Mar 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      ]
       const now = new Date(2026, 2, 31)
-      const result = computeQuarterlyTable([], now, 2) // gameDay 2 = Tuesday = 31 Mar
+      const result = computeQuarterlyTable(weeks, now, 2) // gameDay 2 = Tuesday = 31 Mar
       expect(result.gamesLeft).toBe(0)
     })
 
@@ -253,8 +267,11 @@ describe('computeQuarterlyTable', () => {
     it('includes tomorrow when now is the day before the game day', () => {
       // now = 6 Jan 2026 (Tuesday). Cursor starts 7 Jan (Wednesday).
       // Wednesdays 7 Jan→31 Mar: Jan 7,14,21,28, Feb 4,11,18,25, Mar 4,11,18,25 = 12
+      const weeks: Week[] = [
+        makeWeek({ week: 1, date: '01 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      ]
       const now = new Date(2026, 0, 6)
-      const result = computeQuarterlyTable([], now, 3)
+      const result = computeQuarterlyTable(weeks, now, 3)
       expect(result.gamesLeft).toBe(12)
     })
 
@@ -264,8 +281,11 @@ describe('computeQuarterlyTable', () => {
       // Jan 6 → cursor Jan 7 → 12 Wednesdays
       // These are equal — both start before the first Wednesday (Jan 7)
       // Shift: Jan 7 (Wednesday) → cursor Jan 8 → 11. Confirms today IS excluded.
-      const fromJan1 = computeQuarterlyTable([], new Date(2026, 0, 1), 3).gamesLeft
-      const fromJan7 = computeQuarterlyTable([], new Date(2026, 0, 7), 3).gamesLeft
+      const weeksWithGame = [
+        makeWeek({ week: 1, date: '01 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      ]
+      const fromJan1 = computeQuarterlyTable(weeksWithGame, new Date(2026, 0, 1), 3).gamesLeft
+      const fromJan7 = computeQuarterlyTable(weeksWithGame, new Date(2026, 0, 7), 3).gamesLeft
       expect(fromJan1).toBe(12)
       expect(fromJan7).toBe(11) // one fewer: Jan 7 itself excluded
     })
@@ -274,8 +294,11 @@ describe('computeQuarterlyTable', () => {
     it('handles gameDay = 0 (Sunday) correctly', () => {
       // now = 1 Jan 2026 (Thursday). Cursor starts 2 Jan.
       // Sundays 2 Jan→31 Mar: Jan 4,11,18,25, Feb 1,8,15,22, Mar 1,8,15,22,29 = 13
+      const weeks: Week[] = [
+        makeWeek({ week: 1, date: '01 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      ]
       const now = new Date(2026, 0, 1)
-      const result = computeQuarterlyTable([], now, 0)
+      const result = computeQuarterlyTable(weeks, now, 0)
       expect(result.gamesLeft).toBe(13)
     })
 
@@ -301,12 +324,14 @@ describe('computeQuarterlyTable', () => {
     // Test 9: gameDay inferred from prior-quarter history (current quarter has only cancelled weeks)
     it('infers gameDay from prior-quarter history when current quarter has only cancelled weeks', () => {
       // Played week in Q4 2025 on 17 Dec (Wednesday = gameDay 3)
-      // Cancelled week in Q1 2026 — no played weeks this quarter
+      // Played week in Q1 2026 — needed to prevent holdover
+      // Cancelled week in Q1 2026
       // now = 22 Jan 2026. Cursor starts 23 Jan.
       // Wednesdays 23 Jan→31 Mar: Jan 28, Feb 4,11,18,25, Mar 4,11,18,25 = 9
       const weeks: Week[] = [
         makeWeek({ week: 1, date: '17 Dec 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-        makeWeek({ week: 2, date: '07 Jan 2026', status: 'cancelled', teamA: [], teamB: [], winner: null }),
+        makeWeek({ week: 2, date: '07 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Q1 played → prevents holdover
+        makeWeek({ week: 3, date: '14 Jan 2026', status: 'cancelled', teamA: [], teamB: [], winner: null }),
       ]
       const now = new Date(2026, 0, 22)
       const result = computeQuarterlyTable(weeks, now) // no explicit gameDay
