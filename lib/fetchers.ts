@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sortWeeks } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
-import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality, JoinRequestStatus } from '@/lib/types'
+import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality, JoinRequestStatus, PendingJoinRequest } from '@/lib/types'
 
 // ── Game ─────────────────────────────────────────────────────────────────────
 
@@ -161,6 +161,32 @@ export async function getJoinRequestStatus(
   if (!data) return 'none'
   return data.status as JoinRequestStatus
 }
+
+// ── Pending join requests ─────────────────────────────────────────────────────
+
+// Fetches all pending join requests for a league. Returns [] if the caller
+// is not an admin (the RPC raises 'Access denied' which the catch swallows).
+export const getPendingJoinRequests = cache(async (leagueId: string): Promise<PendingJoinRequest[]> => {
+  try {
+    const authSupabase = await createClient()
+    const { data: { user } } = await authSupabase.auth.getUser()
+    if (!user) return []
+
+    const { data, error } = await authSupabase.rpc('get_join_requests', {
+      p_game_id: leagueId,
+    })
+
+    if (error) return []
+    return (data ?? []) as PendingJoinRequest[]
+  } catch {
+    return []
+  }
+})
+
+export const getPendingJoinCount = cache(async (leagueId: string): Promise<number> => {
+  const requests = await getPendingJoinRequests(leagueId)
+  return requests.length
+})
 
 // ── Weeks ─────────────────────────────────────────────────────────────────────
 

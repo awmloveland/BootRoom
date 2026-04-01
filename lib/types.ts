@@ -138,6 +138,16 @@ export type SortKey = 'name' | 'played' | 'won' | 'winRate' | 'recentForm'
 
 export type JoinRequestStatus = 'none' | 'pending' | 'approved' | 'declined'
 
+export interface PendingJoinRequest {
+  id: string
+  user_id: string
+  email: string
+  display_name: string
+  message: string | null
+  status: JoinRequestStatus
+  created_at: string
+}
+
 export interface JoinRequest {
   id: string
   game_id: string
