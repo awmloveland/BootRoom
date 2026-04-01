@@ -1,9 +1,12 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
-import { Settings, ClipboardList, Users, FlaskConical } from 'lucide-react'
+import { Settings, ClipboardList, Users, FlaskConical, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { LeagueInfoBar } from '@/components/LeagueInfoBar'
-import type { LeagueDetails } from '@/lib/types'
+import type { LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
 interface LeaguePageHeaderProps {
   leagueName: string
@@ -14,6 +17,12 @@ interface LeaguePageHeaderProps {
   currentTab: 'results' | 'players' | 'lineup-lab'
   isAdmin: boolean
   details?: LeagueDetails | null
+  joinStatus?: JoinRequestStatus | 'member' | 'not-member' | null
+  onJoinClick?: () => void
+}
+
+function isMemberStatus(status: JoinRequestStatus | 'member' | 'not-member' | null): boolean {
+  return status === 'member' || status === 'approved' || status === 'creator' || status === 'admin'
 }
 
 export function LeaguePageHeader({
@@ -25,7 +34,21 @@ export function LeaguePageHeader({
   currentTab,
   isAdmin,
   details,
+  joinStatus = null,
+  onJoinClick,
 }: LeaguePageHeaderProps) {
+  const [showToast, setShowToast] = useState(false)
+
+  function handleShareClick() {
+    navigator.clipboard.writeText(window.location.href).catch(() => {})
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 2000)
+  }
+
+  const showJoin = joinStatus === null || joinStatus === 'not-member'
+  const showPending = joinStatus === 'pending'
+  const showShare = isMemberStatus(joinStatus)
+
   return (
     <div className="mb-4">
       <div className="flex items-center justify-between">
@@ -35,13 +58,49 @@ export function LeaguePageHeader({
             {playedCount} of {totalWeeks} weeks · {pct}% complete
           </p>
         </div>
-        {isAdmin && (
-          <Button asChild variant="ghost" size="icon" className="text-slate-500 hover:text-slate-400">
-            <Link href={`/${leagueId}/settings`} aria-label="League settings">
-              <Settings className="size-4" />
-            </Link>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {showJoin && (
+            <Button
+              size="xs"
+              className="h-7 bg-sky-600 text-white hover:bg-sky-500"
+              onClick={onJoinClick}
+            >
+              Join
+            </Button>
+          )}
+          {showPending && (
+            <Button
+              size="xs"
+              variant="ghost"
+              disabled
+              className="h-7 cursor-default text-slate-400"
+            >
+              Request pending
+            </Button>
+          )}
+          {showShare && (
+            <Button
+              size="xs"
+              variant="ghost"
+              className="h-7 border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-300"
+              onClick={handleShareClick}
+            >
+              <Share2 className="mr-1.5 size-3.5" />
+              Share
+            </Button>
+          )}
+          {isAdmin && (
+            <Button
+              asChild
+              variant="ghost"
+              className="h-7 w-7 border border-slate-700 text-slate-500 hover:bg-slate-800 hover:text-slate-400"
+            >
+              <Link href={`/${leagueId}/settings`} aria-label="League settings">
+                <Settings className="size-4" />
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
       <div className="mt-3">
         <LeagueInfoBar details={details} leagueId={leagueId} isAdmin={isAdmin} />
@@ -84,6 +143,13 @@ export function LeaguePageHeader({
           Lineup Lab
         </Link>
       </nav>
+
+      {showToast && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm text-slate-100 shadow-lg">
+          <span className="size-2 rounded-full bg-green-500" />
+          Link copied
+        </div>
+      )}
     </div>
   )
 }
