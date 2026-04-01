@@ -136,7 +136,7 @@ export interface LineupMetadata {
 
 export type SortKey = 'name' | 'played' | 'won' | 'winRate' | 'recentForm'
 
-export type JoinRequestStatus = 'pending' | 'approved' | 'declined'
+export type JoinRequestStatus = 'none' | 'pending' | 'approved' | 'declined'
 
 export interface JoinRequest {
   id: string

@@ -17,9 +17,30 @@ CREATE TABLE game_join_requests (
                  CHECK (status IN ('pending', 'approved', 'declined')),
   reviewed_by  uuid REFERENCES auth.users(id),
   created_at   timestamptz NOT NULL DEFAULT now(),
-  updated_at   timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (game_id, user_id)
+  updated_at   timestamptz NOT NULL DEFAULT now()
 );
+
+-- Only one pending request per user per league; declined users may re-request
+CREATE UNIQUE INDEX game_join_requests_pending_unique
+  ON game_join_requests (game_id, user_id)
+  WHERE status = 'pending';
+
+ALTER TABLE game_join_requests ENABLE ROW LEVEL SECURITY;
+
+-- Users can read their own requests; admins can read all for their leagues
+CREATE POLICY "Users view own join requests" ON game_join_requests
+  FOR SELECT TO authenticated
+  USING (user_id = auth.uid() OR is_game_admin(game_id));
+
+-- Admins can update status/reviewed_by when approving or declining (Phase 2)
+CREATE POLICY "Admins update join request status" ON game_join_requests
+  FOR UPDATE TO authenticated
+  USING (is_game_admin(game_id))
+  WITH CHECK (is_game_admin(game_id));
+
+CREATE TRIGGER game_join_requests_set_updated_at
+  BEFORE UPDATE ON game_join_requests
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- ── submit_join_request ───────────────────────────────────────────────────────
 -- Called by an authenticated user to request membership in a league.
@@ -39,7 +60,6 @@ DECLARE
   v_user_id      uuid;
   v_email        text;
   v_display_name text;
-  v_existing     text;
 BEGIN
   v_user_id := auth.uid();
 
@@ -57,14 +77,11 @@ BEGIN
   FROM profiles
   WHERE id = v_user_id;
 
-  -- Check for an existing pending request before attempting insert
-  SELECT status INTO v_existing
-  FROM game_join_requests
-  WHERE game_id = p_game_id
-    AND user_id = v_user_id
-  LIMIT 1;
-
-  IF v_existing = 'pending' THEN
+  -- Check for duplicate pending request
+  IF EXISTS (
+    SELECT 1 FROM game_join_requests
+    WHERE game_id = p_game_id AND user_id = v_user_id AND status = 'pending'
+  ) THEN
     RAISE EXCEPTION 'duplicate_request';
   END IF;
 
