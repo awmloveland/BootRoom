@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { resolveVisibilityTier } from '@/lib/roles'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus } from '@/lib/fetchers'
+import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingJoinCount } from '@/lib/fetchers'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { LineupLab } from '@/components/LineupLab'
 import { LineupLabLoginPrompt } from '@/components/LineupLabLoginPrompt'
@@ -20,12 +20,13 @@ export default async function LineupLabPage({ params }: Props) {
 
   // getGame, getAuthAndRole, getFeatures are cache hits from the layout.
   // getPlayerStats and getWeeks run fresh — both start in parallel.
-  const [{ user, userRole, isAuthenticated }, game, features, players, weeks] = await Promise.all([
+  const [{ user, userRole, isAuthenticated }, game, features, players, weeks, pendingRequestCount] = await Promise.all([
     getAuthAndRole(leagueId),
     getGame(leagueId),
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
+    getPendingJoinCount(leagueId),
   ])
 
   // Resolve joinStatus for the Join/Share button
@@ -69,6 +70,7 @@ export default async function LineupLabPage({ params }: Props) {
             isAdmin={isAdmin}
             details={details}
             joinStatus={joinStatus}
+            pendingRequestCount={pendingRequestCount}
           />
           {isAuthenticated
             ? <LineupLab allPlayers={players} />

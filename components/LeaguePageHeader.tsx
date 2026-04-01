@@ -15,6 +15,7 @@ interface LeaguePageHeaderProps {
   isAdmin: boolean
   details?: LeagueDetails | null
   joinStatus?: JoinRequestStatus | 'member' | 'not-member' | null
+  pendingRequestCount?: number
 }
 
 export function LeaguePageHeader({
@@ -27,6 +28,7 @@ export function LeaguePageHeader({
   isAdmin,
   details,
   joinStatus = null,
+  pendingRequestCount = 0,
 }: LeaguePageHeaderProps) {
   return (
     <div className="mb-4">
@@ -42,6 +44,7 @@ export function LeaguePageHeader({
           leagueName={leagueName}
           joinStatus={joinStatus}
           isAdmin={isAdmin}
+          pendingRequestCount={pendingRequestCount}
         />
       </div>
       <div className="mt-3">

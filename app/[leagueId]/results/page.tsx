@@ -5,7 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
 import { sortWeeks, dayNameToIndex, isPastDeadline, getMostRecentExpectedGameDate, getNextWeekNumber, deriveSeason } from '@/lib/utils'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus } from '@/lib/fetchers'
+import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingJoinCount } from '@/lib/fetchers'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
@@ -26,12 +26,13 @@ export default async function LeagueResultsPage({ params }: Props) {
 
   // getGame, getAuthAndRole, getFeatures are cache hits from the layout.
   // getPlayerStats and getWeeks run fresh — both start in parallel.
-  const [{ user, userRole, isAuthenticated }, game, features, players, rawWeeks] = await Promise.all([
+  const [{ user, userRole, isAuthenticated }, game, features, players, rawWeeks, pendingRequestCount] = await Promise.all([
     getAuthAndRole(leagueId),
     getGame(leagueId),
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
+    getPendingJoinCount(leagueId),  // returns 0 for non-admins (RPC denies access)
   ])
 
   // Resolve joinStatus for the Join/Share button
@@ -155,6 +156,7 @@ export default async function LeagueResultsPage({ params }: Props) {
               isAdmin={isAdmin}
               details={details}
               joinStatus={joinStatus}
+              pendingRequestCount={pendingRequestCount}
             />
             {canSeeMatchEntry && (
               <PublicMatchEntrySection

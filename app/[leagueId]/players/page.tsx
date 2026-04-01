@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus } from '@/lib/fetchers'
+import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingJoinCount } from '@/lib/fetchers'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { PublicPlayerList } from '@/components/PublicPlayerList'
@@ -19,12 +19,13 @@ export default async function LeaguePlayersPage({ params }: Props) {
 
   // getGame, getAuthAndRole, getFeatures are cache hits from the layout.
   // getPlayerStats and getWeeks run fresh — both start in parallel.
-  const [{ user, userRole, isAuthenticated }, game, features, players, weeks] = await Promise.all([
+  const [{ user, userRole, isAuthenticated }, game, features, players, weeks, pendingRequestCount] = await Promise.all([
     getAuthAndRole(leagueId),
     getGame(leagueId),
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
+    getPendingJoinCount(leagueId),
   ])
 
   // Resolve joinStatus for the Join/Share button
@@ -77,6 +78,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
             isAdmin={isAdmin}
             details={details}
             joinStatus={joinStatus}
+            pendingRequestCount={pendingRequestCount}
           />
           <PublicPlayerList
             players={players}

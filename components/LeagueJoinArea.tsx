@@ -13,13 +13,14 @@ interface LeagueJoinAreaProps {
   leagueName: string
   joinStatus: JoinRequestStatus | 'member' | 'not-member' | null
   isAdmin: boolean
+  pendingRequestCount?: number
 }
 
 function isMemberStatus(s: JoinRequestStatus | 'member' | 'not-member' | null): boolean {
   return s === 'member' || s === 'approved'
 }
 
-export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin }: LeagueJoinAreaProps) {
+export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin, pendingRequestCount = 0 }: LeagueJoinAreaProps) {
   const [showToast, setShowToast] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
@@ -84,15 +85,23 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin }: Le
           </Button>
         )}
         {isAdmin && (
-          <Button
-            asChild
-            variant="ghost"
-            className="h-7 w-7 border border-slate-700 text-slate-500 hover:bg-slate-800 hover:text-slate-400"
-          >
-            <Link href={`/${leagueId}/settings`} aria-label="League settings">
-              <Settings className="size-4" />
-            </Link>
-          </Button>
+          <div className="relative">
+            <Button
+              asChild
+              variant="ghost"
+              className="h-7 w-7 border border-slate-700 text-slate-500 hover:bg-slate-800 hover:text-slate-400"
+            >
+              <Link href={`/${leagueId}/settings`} aria-label="League settings">
+                <Settings className="size-4" />
+              </Link>
+            </Button>
+            {pendingRequestCount > 0 && (
+              <span
+                aria-label={`${pendingRequestCount} pending request${pendingRequestCount === 1 ? '' : 's'}`}
+                className="pointer-events-none absolute right-0.5 top-0.5 size-2 rounded-full bg-red-500 ring-1 ring-slate-900"
+              />
+            )}
+          </div>
         )}
       </div>
 
