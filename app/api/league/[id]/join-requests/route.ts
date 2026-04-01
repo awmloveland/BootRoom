@@ -20,7 +20,7 @@ export async function POST(
   })
 
   if (error) {
-    if (error.message === 'duplicate_request') {
+    if (error.message?.includes('duplicate_request')) {
       return NextResponse.json({ error: 'already_requested' }, { status: 409 })
     }
     return NextResponse.json({ error: error.message }, { status: 500 })
