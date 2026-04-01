@@ -60,7 +60,7 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin, pend
             className="h-7 bg-sky-600 text-white hover:bg-sky-500"
             onClick={handleJoinClick}
           >
-            Join
+            Join League
           </Button>
         )}
         {showPending && (
