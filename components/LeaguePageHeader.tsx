@@ -45,7 +45,7 @@ export function LeaguePageHeader({
     setTimeout(() => setShowToast(false), 2000)
   }
 
-  const showJoin = joinStatus === null || joinStatus === 'not-member'
+  const showJoin = joinStatus === null || joinStatus === 'not-member' || joinStatus === 'none'
   const showPending = joinStatus === 'pending'
   const showShare = isMemberStatus(joinStatus)
 
