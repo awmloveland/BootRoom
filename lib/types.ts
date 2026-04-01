@@ -143,7 +143,7 @@ export interface JoinRequest {
   game_id: string
   user_id: string
   email: string
-  display_name: string
+  display_name: string | null
   message: string | null
   status: JoinRequestStatus
   reviewed_by: string | null

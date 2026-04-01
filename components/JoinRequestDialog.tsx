@@ -74,13 +74,8 @@ export function JoinRequestDialog({
   }
 
   function handleDone() {
-    onOpenChange(false)
+    handleOpenChange(false)
     onSuccess()
-    // Reset state after callbacks
-    setMessage('')
-    setLoading(false)
-    setError(null)
-    setSubmitted(false)
   }
 
   return (
@@ -129,6 +124,7 @@ export function JoinRequestDialog({
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="e.g. I play on Tuesdays with the 5-a-side crew"
                   rows={3}
+                  maxLength={500}
                   className={cn(
                     'w-full px-4 py-2 rounded-lg resize-none',
                     'bg-slate-800 border border-slate-700',
@@ -142,16 +138,16 @@ export function JoinRequestDialog({
               </div>
 
               {error && (
-                <p className="text-sm text-red-400">{error}</p>
+                <p role="alert" className="text-sm text-red-400">{error}</p>
               )}
 
-              <button
+              <Button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2 px-4 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full py-2 px-4 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium transition-colors"
               >
                 {loading ? 'Sending\u2026' : 'Send request'}
-              </button>
+              </Button>
             </form>
           </>
         )}
