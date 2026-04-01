@@ -219,6 +219,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             isAdmin={isAdmin}
             details={details}
             joinStatus={joinStatus}
+            pendingRequestCount={pendingRequestCount}
           />
           <div className="flex flex-col gap-3">
             {canSeeMatchEntry ? (
