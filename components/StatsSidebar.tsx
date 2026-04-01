@@ -81,7 +81,7 @@ function InFormWidget({ players, weeks }: { players: Player[]; weeks: Week[] }) 
 // ─── Widget 2: Quarterly Table ────────────────────────────────────────────────
 
 function QuarterlyTableWidget({ weeks, leagueDayIndex }: { weeks: Week[]; leagueDayIndex?: number }) {
-  const { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft } = computeQuarterlyTable(weeks, new Date(), leagueDayIndex)
+  const { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft, isHoldover } = computeQuarterlyTable(weeks, new Date(), leagueDayIndex)
   const showGamesLeft = entries.length > 0 && gamesLeft > 0
 
   return (
@@ -92,6 +92,9 @@ function QuarterlyTableWidget({ weeks, leagueDayIndex }: { weeks: Week[]; league
           <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 shrink-0">
             {quarterLabel}
           </span>
+          {isHoldover && (
+            <span className="text-[10px] font-semibold text-slate-500 shrink-0">· Final</span>
+          )}
           {showGamesLeft && (
             <span className="text-[10px] font-semibold text-slate-400 bg-slate-800 border border-slate-700 rounded px-[5px] py-[1px]">
               {gamesLeft} games left
@@ -107,7 +110,7 @@ function QuarterlyTableWidget({ weeks, leagueDayIndex }: { weeks: Week[]; league
 
       <div className="px-3 py-3">
         {entries.length === 0 ? (
-          <EmptyState message="Quarter just started" />
+          <EmptyState message={isHoldover ? 'No data yet' : 'Quarter just started'} />
         ) : (
           <div className="flex flex-col gap-[2px]">
             {entries.map((e, i) => (

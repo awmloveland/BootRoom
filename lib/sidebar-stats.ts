@@ -96,6 +96,7 @@ export interface QuarterlyTableResult {
   lastQuarterLabel: string | null
   gamesLeft: number
   gamesTotal: number
+  isHoldover: boolean
 }
 
 function quarterOf(d: Date): { q: number; year: number } {
@@ -128,20 +129,29 @@ function aggregateWeeks(weeks: Week[]): QuarterlyEntry[] {
 
 export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gameDay?: number): QuarterlyTableResult {
   const { q, year } = quarterOf(now)
-  const yy = String(year).slice(-2)
-  const quarterLabel = `Q${q} ${yy}`
 
-  const currentWeeks = weeks.filter(w => weekInQuarter(w, q, year))
-  const entries = aggregateWeeks(currentWeeks).slice(0, 5)
+  // Holdover: if no played games in the current calendar quarter, show the previous quarter
+  const currentPlayedCount = weeks.filter(w => weekInQuarter(w, q, year) && w.status === 'played').length
+  const isHoldover = currentPlayedCount === 0
 
+  const displayQ = isHoldover ? (q === 1 ? 4 : q - 1) : q
+  const displayYear = isHoldover ? (q === 1 ? year - 1 : year) : year
+  const yy = String(displayYear).slice(-2)
+  const quarterLabel = `Q${displayQ} ${yy}`
+
+  const displayWeeks = weeks.filter(w => weekInQuarter(w, displayQ, displayYear))
+  const entries = aggregateWeeks(displayWeeks).slice(0, 5)
+
+  // gamesLeft is 0 during holdover (the displayed quarter is complete)
   const resolvedGameDay = gameDay ?? inferGameDay(weeks)
-  const gamesLeft = resolvedGameDay !== null
+  const gamesLeft = !isHoldover && resolvedGameDay !== null
     ? gamesLeftInQuarter(q, year, resolvedGameDay, now)
     : 0
 
-  const gamesPlayed = currentWeeks.filter(w => w.status === 'played').length
+  const gamesPlayed = displayWeeks.filter(w => w.status === 'played').length
   const gamesTotal = gamesPlayed + gamesLeft
 
+  // Champion banner: always based on the calendar previous quarter (not the displayed quarter)
   const prevQ = q === 1 ? 4 : q - 1
   const prevYear = q === 1 ? year - 1 : year
   const prevYY = String(prevYear).slice(-2)
@@ -150,7 +160,7 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gam
   const lastChampion = prevEntries.length > 0 ? prevEntries[0].name : null
   const lastQuarterLabel = prevEntries.length > 0 ? `Q${prevQ} ${prevYY}` : null
 
-  return { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft, gamesTotal }
+  return { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft, gamesTotal, isHoldover }
 }
 
 // ─── computeTeamAB ────────────────────────────────────────────────────────────
