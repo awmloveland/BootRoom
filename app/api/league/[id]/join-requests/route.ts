@@ -44,10 +44,17 @@ export async function POST(
   })
 
   if (error) {
-    if (error.message?.includes('duplicate_request')) {
-      return NextResponse.json({ error: 'already_requested' }, { status: 409 })
+    if (
+      error.message?.includes('Request already pending') ||
+      error.message?.includes('Already a member')
+    ) {
+      return NextResponse.json(
+        { error: 'Request already exists or you are already a member' },
+        { status: 409 }
+      )
     }
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[join-requests POST]', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true }, { status: 201 })
