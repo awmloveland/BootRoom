@@ -93,7 +93,7 @@ function QuarterlyTableWidget({ weeks, leagueDayIndex }: { weeks: Week[]; league
             {quarterLabel}
           </span>
           {isHoldover && (
-            <span className="text-[10px] font-semibold text-slate-500 shrink-0">· Final</span>
+            <span className="text-[10px] font-semibold text-slate-400 bg-slate-800 border border-slate-700 rounded px-[5px] py-[1px]">Final</span>
           )}
           {showGamesLeft && (
             <span className="text-[10px] font-semibold text-slate-400 bg-slate-800 border border-slate-700 rounded px-[5px] py-[1px]">
