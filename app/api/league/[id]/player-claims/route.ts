@@ -1,6 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+/** GET — return unclaimed player names for the league. Member only. */
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { data, error } = await supabase.rpc('get_unclaimed_players', { p_game_id: id })
+
+  if (error) {
+    if (error.message?.includes('Access denied')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    console.error('[player-claims GET]', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+
+  const players = (data ?? []).map((row: { player_name: string }) => row.player_name)
+  return NextResponse.json({ players })
+}
+
 /** POST — submit a player identity claim. Member only. */
 export async function POST(
   request: NextRequest,
