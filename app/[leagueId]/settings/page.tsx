@@ -8,8 +8,9 @@ import { AdminMemberTable } from '@/components/AdminMemberTable'
 import { FeaturePanel } from '@/components/FeaturePanel'
 import { LeagueDetailsForm } from '@/components/LeagueDetailsForm'
 import { PlayerRosterPanel } from '@/components/PlayerRosterPanel'
+import { PlayerClaimsTable } from '@/components/PlayerClaimsTable'
 import { cn } from '@/lib/utils'
-import type { LeagueMember, LeagueFeature, LeagueDetails, PlayerAttribute, PendingJoinRequest } from '@/lib/types'
+import type { LeagueMember, LeagueFeature, LeagueDetails, PlayerAttribute, PendingJoinRequest, PlayerClaim } from '@/lib/types'
 import { PendingRequestsTable } from '@/components/PendingRequestsTable'
 
 type Section = 'details' | 'members' | 'features' | 'players'
@@ -53,6 +54,10 @@ export default function LeagueSettingsPage() {
   // Pending join requests state
   const [pendingRequests, setPendingRequests] = useState<PendingJoinRequest[]>([])
   const [pendingLoading, setPendingLoading] = useState(false)
+
+  // Player claims state
+  const [pendingClaims, setPendingClaims] = useState<PlayerClaim[]>([])
+  const [claimsMap, setClaimsMap] = useState<Record<string, string>>({})
 
   // Invite links state
   const [memberLink, setMemberLink] = useState<string | null>(null)
@@ -118,19 +123,33 @@ export default function LeagueSettingsPage() {
     setMembersLoading(true)
     setPendingLoading(true)
     try {
-      const [membersRes, pendingRes] = await Promise.all([
+      const [membersRes, pendingRes, claimsRes] = await Promise.all([
         fetch(`/api/league/${leagueId}/members`, { credentials: 'include' }),
         fetch(`/api/league/${leagueId}/join-requests`, { credentials: 'include' }),
+        fetch(`/api/league/${leagueId}/player-claims/all`, { credentials: 'include' }),
       ])
-      const [membersData, pendingData] = await Promise.all([
+      const [membersData, pendingData, claimsData] = await Promise.all([
         membersRes.json(),
         pendingRes.ok ? pendingRes.json() : Promise.resolve([]),
+        claimsRes.ok ? claimsRes.json() : Promise.resolve([]),
       ])
       setMembers(Array.isArray(membersData) ? membersData : [])
       setPendingRequests(Array.isArray(pendingData) ? pendingData : [])
+
+      const allClaims: PlayerClaim[] = Array.isArray(claimsData) ? claimsData : []
+      setPendingClaims(allClaims.filter((c) => c.status === 'pending'))
+      const map: Record<string, string> = {}
+      for (const c of allClaims) {
+        if (c.status === 'approved') {
+          map[c.user_id] = c.admin_override_name ?? c.player_name
+        }
+      }
+      setClaimsMap(map)
     } catch {
       setMembers([])
       setPendingRequests([])
+      setPendingClaims([])
+      setClaimsMap({})
     } finally {
       setMembersLoading(false)
       setPendingLoading(false)
@@ -338,6 +357,15 @@ export default function LeagueSettingsPage() {
             )
           )}
 
+          {/* Player identity claims */}
+          {pendingClaims.length > 0 && (
+            <PlayerClaimsTable
+              leagueId={leagueId}
+              initialClaims={pendingClaims}
+              onChanged={loadMembers}
+            />
+          )}
+
           {/* Member list */}
           <div>
             <p className="text-xs text-slate-500 uppercase tracking-wide mb-3">League Members</p>
@@ -347,6 +375,7 @@ export default function LeagueSettingsPage() {
               <AdminMemberTable
                 leagueId={leagueId}
                 members={members}
+                claimsMap={claimsMap}
                 onChanged={loadMembers}
               />
             )}
