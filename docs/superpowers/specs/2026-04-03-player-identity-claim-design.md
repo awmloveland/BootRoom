@@ -184,25 +184,129 @@ export interface PlayerClaim {
 
 ## Phasing
 
-### Phase 1 — Core claim lifecycle
-- DB migration: `player_claims` table + all RPCs
+### Phase 1 — DB + API foundation
+Backend only. No UI changes. All subsequent phases depend on this being merged first.
+
+- `supabase/migrations/20260403000001_player_claims.sql` — `player_claims` table + partial unique index + all RPCs + RLS policies
 - `lib/types.ts` — add `PlayerClaim`, `PlayerClaimStatus`
-- `/settings` page — add League identity section with per-league claim rows + inline picker
-- League settings → Player identity claims section (standalone claims from existing members)
-- Admin member list — add linked badge + "+ Link player" button
-- `components/PlayerClaimPicker.tsx` — reusable picker component (shared across all entry points)
-- `components/PlayerClaimsTable.tsx` — admin standalone claims review component
-- API routes: POST, DELETE, review, assign
+- `app/api/league/[id]/player-claims/route.ts` — POST (submit claim)
+- `app/api/league/[id]/player-claims/[claimId]/route.ts` — DELETE (cancel claim)
+- `app/api/league/[id]/player-claims/[claimId]/review/route.ts` — POST (admin approve/reject/amend)
+- `app/api/league/[id]/player-claims/assign/route.ts` — POST (admin direct assign)
 
-### Phase 2 — Join flow integration + onboarding
-- `components/JoinRequestDialog.tsx` — add Yes/No cards + inline picker
-- `POST /api/league/[id]/join-requests` — extended to optionally create a claim row
-- `components/PendingRequestsTable.tsx` — extend request cards to show claim chip + review actions
-- Onboarding banner on league page (localStorage dismiss, no claim check)
+### Phase 2 — Member settings UI
+Member-facing claim management in the global `/settings` page. Depends on Phase 1.
 
-### Phase 3 — Polish
-- Notification badge extended to include pending claims count
-- Edge cases: cancel then resubmit, admin assigns after rejection, member deleted (cascade)
+- `components/PlayerClaimPicker.tsx` — new reusable picker (fetches unclaimed players, search input, inline expand/collapse)
+- `app/settings/page.tsx` — add League identity section with per-league rows and all four claim states
+
+### Phase 3 — Admin UI
+Admin claim review and member list link management. Depends on Phase 1.
+
+- `components/PlayerClaimsTable.tsx` — new standalone claims review component (approve/reject/amend actions)
+- `components/AdminMemberTable.tsx` — add green linked badge + dashed "+ Link player" button per row
+- `app/[leagueId]/settings/page.tsx` — add Player identity claims section (uses PlayerClaimsTable)
+
+### Phase 4 — Join flow integration + onboarding
+Surface claim entry during join and as a first-visit prompt. Depends on Phases 1–3.
+
+- `components/JoinRequestDialog.tsx` — add Yes/No cards + inline PlayerClaimPicker below note textarea
+- `app/api/league/[id]/join-requests/route.ts` — extend POST to accept optional `player_name` and create a claim row atomically
+- `components/PendingRequestsTable.tsx` — extend request cards to show inline claim chip with approve/reject/amend actions
+- `app/[leagueId]/results/page.tsx` — add onboarding banner (localStorage dismiss, hidden if claim exists)
+- `components/LeaguePageHeader.tsx` — extend notification badge count to include pending claims
+
+---
+
+## Implementation Prompts
+
+Each prompt below is self-contained and can be pasted directly into a new workspace instance.
+
+---
+
+### Phase 1 Prompt
+
+```
+Implement Phase 1 of the player identity claim feature for the BootRoom app.
+
+Spec: docs/superpowers/specs/2026-04-03-player-identity-claim-design.md (read this in full first).
+
+This phase is backend only — no UI changes.
+
+Tasks:
+1. Write a Supabase migration creating the `player_claims` table exactly as specified in the spec (columns, constraints, partial unique index on player name). Include all six RPCs: `submit_player_claim`, `review_player_claim`, `assign_player_link`, `cancel_player_claim`, `get_player_claims`, `get_unclaimed_players`. Apply RLS: members can read/delete only their own rows; admins can read/update all rows for their leagues.
+2. Add `PlayerClaimStatus` and `PlayerClaim` types to `lib/types.ts`.
+3. Create `POST /api/league/[id]/player-claims/route.ts` — requires authenticated member, calls `submit_player_claim`, returns 201 or 409.
+4. Create `DELETE /api/league/[id]/player-claims/[claimId]/route.ts` — requires claim owner, calls `cancel_player_claim`, returns 204.
+5. Create `POST /api/league/[id]/player-claims/[claimId]/review/route.ts` — requires admin/creator, body: `{ action: 'approved' | 'rejected', override_name?: string }`, calls `review_player_claim`.
+6. Create `POST /api/league/[id]/player-claims/assign/route.ts` — requires admin/creator, body: `{ user_id, player_name }`, calls `assign_player_link`.
+
+Follow all conventions in CLAUDE.md: TypeScript strict, no ORMs, use existing Supabase server client helpers.
+```
+
+---
+
+### Phase 2 Prompt
+
+```
+Implement Phase 2 of the player identity claim feature for the BootRoom app.
+
+Spec: docs/superpowers/specs/2026-04-03-player-identity-claim-design.md (read this in full first). Phase 1 must already be merged.
+
+This phase adds the member-facing claim UI to the global /settings page.
+
+Tasks:
+1. Create `components/PlayerClaimPicker.tsx` — a reusable component that accepts `leagueId` and `onClaim(playerName: string)` / `onCancel()` callbacks. It fetches unclaimed player names from `GET /api/league/[id]/player-claims` (or a dedicated endpoint — check what Phase 1 provides), renders a search input and scrollable list, and calls `onClaim` when a name is selected and submitted. Shows the footer copy from the spec. This component will be reused in Phase 3 and 4.
+2. Update `app/settings/page.tsx` — add a League identity section below the existing Account section. Fetch the user's leagues and their claim status for each. Render one row per league showing the league name and the correct state (no claim / pending / approved / rejected) as specified in the spec. Wire up the PlayerClaimPicker inline expand, cancel claim, and resubmit flows.
+
+IMPORTANT: Before writing any code, present UI mockups for the League identity section (all four states) and get approval before implementing.
+
+Follow all conventions in CLAUDE.md: Tailwind only, cn() for conditional classes, dark-mode slate palette.
+```
+
+---
+
+### Phase 3 Prompt
+
+```
+Implement Phase 3 of the player identity claim feature for the BootRoom app.
+
+Spec: docs/superpowers/specs/2026-04-03-player-identity-claim-design.md (read this in full first). Phases 1 and 2 must already be merged.
+
+This phase adds admin claim review UI to the league settings page and the member list.
+
+Tasks:
+1. Create `components/PlayerClaimsTable.tsx` — renders pending player claims for admin review. Each row shows: member display name + email + claimed player name chip + Reject / Link to different player / Approve actions. "Link to different player" expands an inline picker (reuse PlayerClaimPicker from Phase 2). Calls the review and assign API routes from Phase 1.
+2. Update `components/AdminMemberTable.tsx` — add a green "Linked: [name]" badge to rows with an approved claim, and a dashed "+ Link player" button to rows without one. Clicking "+ Link player" opens PlayerClaimPicker inline and calls the assign endpoint.
+3. Update `app/[leagueId]/settings/page.tsx` — add a Player identity claims section in the Members tab, rendered below Pending requests and above the member list. Uses PlayerClaimsTable. Only shown when pending claims exist. Fetch pending claims server-side or on tab mount (follow the same pattern as pending join requests).
+
+IMPORTANT: Before writing any code, present UI mockups for the PlayerClaimsTable and the AdminMemberTable changes, and get approval before implementing.
+
+Follow all conventions in CLAUDE.md.
+```
+
+---
+
+### Phase 4 Prompt
+
+```
+Implement Phase 4 of the player identity claim feature for the BootRoom app.
+
+Spec: docs/superpowers/specs/2026-04-03-player-identity-claim-design.md (read this in full first). Phases 1, 2, and 3 must already be merged.
+
+This phase surfaces the claim entry point during the join flow and as a first-visit onboarding prompt.
+
+Tasks:
+1. Update `components/JoinRequestDialog.tsx` — add Yes/No cards below the note textarea as specified in the spec (copy, two-card layout B, inline PlayerClaimPicker expanding on Yes). Selecting a player name stores it in local state. On submit, pass the optional player_name to the API.
+2. Update `POST /api/league/[id]/join-requests/route.ts` — accept an optional `player_name` in the request body. If provided, after inserting the join request row, call `submit_player_claim` to create a pending claim atomically. If the claim fails (e.g. name already taken), still succeed the join request and return a warning in the response body.
+3. Update `components/PendingRequestsTable.tsx` — when a join request has an attached player claim (status pending), render the blue claim chip below the note with Reject claim / Link to different player / Approve claim actions, independent of the join approve/decline buttons. Wire up to the review endpoint.
+4. Update `app/[leagueId]/results/page.tsx` — add the onboarding banner for newly-approved members who have no claim for that league. Check claim status server-side. Dismiss stores a flag in localStorage keyed by `dismissed-claim-banner-[leagueId]`. Banner links to /settings.
+5. Update `components/LeaguePageHeader.tsx` — extend the pending requests notification badge to also count pending player claims. Fetch the combined count server-side.
+
+IMPORTANT: Before writing any code, present UI mockups for the join dialog claim step and the onboarding banner, and get approval before implementing.
+
+Follow all conventions in CLAUDE.md.
+```
 
 ---
 
@@ -224,24 +328,25 @@ export interface PlayerClaim {
 ## Files Affected
 
 ### Phase 1
-- `supabase/migrations/20260403000001_player_claims.sql` — table + RPCs
+- `supabase/migrations/20260403000001_player_claims.sql` — table + RPCs + RLS
 - `lib/types.ts` — PlayerClaim, PlayerClaimStatus
-- `app/settings/page.tsx` — League identity section
-- `components/PlayerClaimPicker.tsx` — new: reusable player name picker
-- `components/PlayerClaimsTable.tsx` — new: admin standalone claims review
-- `components/AdminMemberTable.tsx` — add linked badge + assign action
-- `app/[leagueId]/settings/page.tsx` — Player identity claims section
 - `app/api/league/[id]/player-claims/route.ts` — POST handler
 - `app/api/league/[id]/player-claims/[claimId]/route.ts` — DELETE handler
 - `app/api/league/[id]/player-claims/[claimId]/review/route.ts` — POST handler
 - `app/api/league/[id]/player-claims/assign/route.ts` — POST handler
 
 ### Phase 2
-- `components/JoinRequestDialog.tsx` — Yes/No cards + picker
-- `app/api/league/[id]/join-requests/route.ts` — extend to accept optional player_name
-- `components/PendingRequestsTable.tsx` — claim chip + review actions on request cards
-- `app/[leagueId]/results/page.tsx` — onboarding banner (checks claim status + localStorage)
+- `components/PlayerClaimPicker.tsx` — new: reusable player name picker
+- `app/settings/page.tsx` — League identity section
 
 ### Phase 3
+- `components/PlayerClaimsTable.tsx` — new: admin standalone claims review
+- `components/AdminMemberTable.tsx` — linked badge + assign action
+- `app/[leagueId]/settings/page.tsx` — Player identity claims section
+
+### Phase 4
+- `components/JoinRequestDialog.tsx` — Yes/No cards + inline picker
+- `app/api/league/[id]/join-requests/route.ts` — extend to accept optional player_name
+- `components/PendingRequestsTable.tsx` — claim chip + review actions on request cards
+- `app/[leagueId]/results/page.tsx` — onboarding banner
 - `components/LeaguePageHeader.tsx` — extend notification badge to include pending claims
-- `supabase/migrations/` — edge case hardening RLS + indexes
