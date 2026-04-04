@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import PlayerClaimPicker from '@/components/PlayerClaimPicker'
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+
+const JOIN_CLAIM_FOOTER =
+  "Can't find your name? You may have played before records began — mention it in your note above and the admin will sort it out."
 
 interface JoinRequestDialogProps {
   leagueId: string
@@ -33,6 +37,8 @@ export function JoinRequestDialog({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
+  const [claimChoice, setClaimChoice] = useState<'yes' | 'no' | null>(null)
+  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
 
   function handleOpenChange(nextOpen: boolean) {
     onOpenChange(nextOpen)
@@ -42,6 +48,8 @@ export function JoinRequestDialog({
       setLoading(false)
       setError(null)
       setSubmitted(false)
+      setClaimChoice(null)
+      setSelectedPlayer(null)
     }
   }
 
@@ -54,7 +62,10 @@ export function JoinRequestDialog({
       const res = await fetch(`/api/league/${leagueId}/join-requests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: message.trim() || null }),
+        body: JSON.stringify({
+          message: message.trim() || null,
+          player_name: selectedPlayer ?? undefined,
+        }),
       })
 
       if (res.status === 201) {
@@ -138,6 +149,90 @@ export function JoinRequestDialog({
                 <p className="mt-1 text-xs text-slate-500">
                   Visible to the admin when reviewing your request.
                 </p>
+              </div>
+
+              {/* Claim step */}
+              <div className="border-t border-slate-700 pt-4">
+                <p className="text-sm text-slate-300 font-medium mb-3">
+                  Have you played in this league before?
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setClaimChoice('yes')
+                      setSelectedPlayer(null)
+                    }}
+                    className={cn(
+                      'rounded-lg border px-3 py-2.5 text-left transition-colors',
+                      claimChoice === 'yes'
+                        ? 'border-sky-600 bg-sky-900/20'
+                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                    )}
+                  >
+                    <p className={cn(
+                      'text-sm font-medium',
+                      claimChoice === 'yes' ? 'text-sky-300' : 'text-slate-200'
+                    )}>
+                      Yes
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5">Link my player profile</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setClaimChoice('no')
+                      setSelectedPlayer(null)
+                    }}
+                    className={cn(
+                      'rounded-lg border px-3 py-2.5 text-left transition-colors',
+                      claimChoice === 'no'
+                        ? 'border-slate-500 bg-slate-700/50'
+                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                    )}
+                  >
+                    <p className={cn(
+                      'text-sm font-medium',
+                      claimChoice === 'no' ? 'text-slate-200' : 'text-slate-200'
+                    )}>
+                      No
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5">I&apos;m new to this league</p>
+                  </button>
+                </div>
+
+                {claimChoice === 'yes' && (
+                  <div className="mt-3">
+                    {selectedPlayer ? (
+                      <div className="flex items-center justify-between rounded-lg border border-sky-700 bg-sky-900/20 px-3 py-2">
+                        <span className="text-sm text-sky-300">{selectedPlayer}</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPlayer(null)}
+                          className="text-xs text-slate-400 hover:text-slate-200 transition-colors ml-2"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-xs text-slate-400 mb-2">
+                          Select your name to link your match history to your account.
+                        </p>
+                        <PlayerClaimPicker
+                          leagueId={leagueId}
+                          selectionOnly
+                          footerText={JOIN_CLAIM_FOOTER}
+                          onClaim={(name) => setSelectedPlayer(name)}
+                          onCancel={() => {
+                            setClaimChoice(null)
+                            setSelectedPlayer(null)
+                          }}
+                        />
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               {error && (

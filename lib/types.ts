@@ -160,3 +160,20 @@ export interface JoinRequest {
   created_at: string
   updated_at: string
 }
+
+export type PlayerClaimStatus = 'pending' | 'approved' | 'rejected'
+
+export interface PlayerClaim {
+  id: string
+  game_id: string
+  user_id: string
+  player_name: string
+  admin_override_name: string | null
+  status: PlayerClaimStatus
+  reviewed_by: string | null
+  created_at: string
+  updated_at: string
+  // Derived — populated in admin views
+  display_name?: string | null
+  email?: string
+}
