@@ -353,18 +353,25 @@ export default function LeagueSettingsPage() {
               <PendingRequestsTable
                 leagueId={leagueId}
                 initialRequests={pendingRequests}
+                pendingClaims={pendingClaims}
               />
             )
           )}
 
-          {/* Player identity claims */}
-          {pendingClaims.length > 0 && (
-            <PlayerClaimsTable
-              leagueId={leagueId}
-              initialClaims={pendingClaims}
-              onChanged={loadMembers}
-            />
-          )}
+          {/* Player identity claims — only those not attached to a pending join request */}
+          {(() => {
+            const pendingRequestUserIds = new Set(pendingRequests.map((r) => r.user_id))
+            const standaloneClaims = pendingClaims.filter(
+              (c) => !pendingRequestUserIds.has(c.user_id),
+            )
+            return standaloneClaims.length > 0 ? (
+              <PlayerClaimsTable
+                leagueId={leagueId}
+                initialClaims={standaloneClaims}
+                onChanged={loadMembers}
+              />
+            ) : null
+          })()}
 
           {/* Member list */}
           <div>

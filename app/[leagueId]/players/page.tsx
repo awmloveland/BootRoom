@@ -2,12 +2,13 @@ export const dynamic = 'force-dynamic'
 
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingJoinCount } from '@/lib/fetchers'
+import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimStatus } from '@/lib/fetchers'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { PublicPlayerList } from '@/components/PublicPlayerList'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import { MobileStatsFAB } from '@/components/MobileStatsFAB'
+import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
 import type { LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
 interface Props {
@@ -25,7 +26,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
-    getPendingJoinCount(leagueId),
+    getPendingBadgeCount(leagueId),  // returns 0 for non-admins
   ])
 
   // Resolve joinStatus for the Join/Share button
@@ -44,6 +45,13 @@ export default async function LeaguePlayersPage({ params }: Props) {
 
   if (!isAdmin && !isFeatureEnabled(features, 'player_stats', tier)) {
     return <LeaguePrivateState leagueName={game!.name} />
+  }
+
+  // Show onboarding banner for non-admin members with no claim.
+  let showClaimBanner = false
+  if (tier === 'member') {
+    const claimStatus = await getMyClaimStatus(leagueId)
+    showClaimBanner = claimStatus === 'none'
   }
 
   const playedWeeks = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled')
@@ -80,6 +88,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
             joinStatus={joinStatus}
             pendingRequestCount={pendingRequestCount}
           />
+          {showClaimBanner && <ClaimOnboardingBanner leagueId={leagueId} />}
           <PublicPlayerList
             players={players}
             visibleStats={visibleStats}

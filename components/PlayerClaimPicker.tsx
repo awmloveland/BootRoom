@@ -13,6 +13,12 @@ interface Props {
   /** Override the footer copy — defaults to the settings-page version. */
   footerText?: string
   submitting?: boolean
+  /**
+   * When true, clicking a name in the list calls onClaim immediately.
+   * The Submit button is hidden; Cancel is still shown.
+   * Used in the join dialog where submission happens via the parent form.
+   */
+  selectionOnly?: boolean
 }
 
 export default function PlayerClaimPicker({
@@ -21,6 +27,7 @@ export default function PlayerClaimPicker({
   onCancel,
   footerText = SETTINGS_FOOTER,
   submitting = false,
+  selectionOnly = false,
 }: Props) {
   const [players, setPlayers] = useState<string[]>([])
   const [loadError, setLoadError] = useState(false)
@@ -67,7 +74,7 @@ export default function PlayerClaimPicker({
             <button
               key={name}
               type="button"
-              onClick={() => setSelected(name)}
+              onClick={() => selectionOnly ? onClaim(name) : setSelected(name)}
               className={cn(
                 'w-full text-left px-3 py-2 text-sm border-b border-slate-800 last:border-0 transition-colors',
                 selected === name
@@ -82,14 +89,16 @@ export default function PlayerClaimPicker({
       )}
 
       <div className="flex items-center gap-2 mb-3">
-        <button
-          type="button"
-          disabled={!selected || submitting}
-          onClick={() => selected && onClaim(selected)}
-          className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {submitting ? 'Submitting…' : 'Submit claim'}
-        </button>
+        {!selectionOnly && (
+          <button
+            type="button"
+            disabled={!selected || submitting}
+            onClick={() => selected && onClaim(selected)}
+            className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {submitting ? 'Submitting…' : 'Submit claim'}
+          </button>
+        )}
         <button
           type="button"
           onClick={onCancel}

@@ -37,6 +37,10 @@ export async function POST(
 
   const body = await request.json().catch(() => ({}))
   const message = typeof body?.message === 'string' ? body.message : null
+  const playerName =
+    typeof body?.player_name === 'string' && body.player_name.trim()
+      ? body.player_name.trim()
+      : null
 
   const { error } = await supabase.rpc('submit_join_request', {
     p_game_id: id,
@@ -55,6 +59,22 @@ export async function POST(
     }
     console.error('[join-requests POST]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+
+  // If a player name was provided, create a pending claim atomically.
+  // A claim failure must not roll back the join request.
+  if (playerName) {
+    const { error: claimError } = await supabase.rpc('submit_player_claim', {
+      p_game_id: id,
+      p_player_name: playerName,
+    })
+    if (claimError) {
+      console.warn('[join-requests POST] claim creation failed:', claimError.message)
+      return NextResponse.json(
+        { ok: true, claimWarning: claimError.message },
+        { status: 201 }
+      )
+    }
   }
 
   return NextResponse.json({ ok: true }, { status: 201 })
