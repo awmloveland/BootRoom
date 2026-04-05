@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CompletedQuarter, HonoursYear } from '@/lib/sidebar-stats'
 
@@ -31,7 +31,7 @@ function QuarterCard({
             <span className="text-sm font-bold text-amber-300 uppercase flex-1 truncate">
               {quarter.champion}
             </span>
-            <span className="text-sm leading-none shrink-0">🏆</span>
+            <Trophy className="h-4 w-4 text-amber-400 shrink-0" />
             <ChevronDown
               className={cn(
                 'h-4 w-4 text-slate-500 shrink-0 transition-transform duration-200',
@@ -99,7 +99,7 @@ function QuarterCard({
                   </p>
                   <p className="text-[13px] font-bold text-yellow-200 uppercase">{quarter.champion}</p>
                 </div>
-                <span className="text-lg leading-none">🏆</span>
+                <Trophy className="h-5 w-5 text-amber-400" />
               </div>
             </div>
           </div>
@@ -126,11 +126,11 @@ export function HonoursSection({ data }: HonoursSectionProps) {
   }
 
   return (
-    <div className="flex flex-col gap-0">
+    <div className="flex flex-col">
       {data.map((yearGroup) => (
-        <div key={yearGroup.year}>
+        <div key={yearGroup.year} className="first:mt-0 mt-4">
           {/* Year divider — same style as MonthDivider */}
-          <div className="flex items-center gap-3 px-1 py-1 mt-4 mb-2 first:mt-0">
+          <div className="flex items-center gap-3 px-1 py-1 mb-2">
             <div className="h-px flex-1 bg-slate-800" />
             <span className="text-xs font-medium tracking-wider text-slate-600 uppercase">
               {yearGroup.year}
