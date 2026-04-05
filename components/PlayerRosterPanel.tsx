@@ -131,7 +131,7 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                 {player.linked_display_name ? (
                   <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs border bg-emerald-900/40 text-emerald-300 border-emerald-700/50">
                     <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" />
-                    Linked: {player.linked_display_name}
+                    {player.linked_display_name}
                   </span>
                 ) : (
                   <button
@@ -247,7 +247,7 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                   {player.linked_display_name ? (
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs border bg-emerald-900/40 text-emerald-300 border-emerald-700/50">
                       <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" />
-                      Linked: {player.linked_display_name}
+                      {player.linked_display_name}
                     </span>
                   ) : (
                     <button
