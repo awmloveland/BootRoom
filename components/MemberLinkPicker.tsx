@@ -23,9 +23,9 @@ export default function MemberLinkPicker({ leagueId, onLink, onCancel, submittin
         if (!r.ok) throw new Error('Failed to load')
         return r.json()
       })
-      .then((data: LeagueMember[]) => {
-        // Only show members not already linked to a player
-        setMembers(data.filter((m) => !m.linked_player_name))
+      .then((data) => {
+        const list: LeagueMember[] = Array.isArray(data) ? data : []
+        setMembers(list.filter((m) => !m.linked_player_name))
       })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
@@ -33,7 +33,7 @@ export default function MemberLinkPicker({ leagueId, onLink, onCancel, submittin
 
   const filtered = search
     ? members.filter((m) => {
-        const label = m.display_name || m.email
+        const label = (m.display_name || m.email) ?? ''
         return label.toLowerCase().includes(search.toLowerCase())
       })
     : members
@@ -54,7 +54,7 @@ export default function MemberLinkPicker({ leagueId, onLink, onCancel, submittin
         <p className="text-sm text-red-400 mb-3">Failed to load members.</p>
       ) : filtered.length === 0 ? (
         <p className="text-sm text-slate-500 mb-3">
-          {search ? 'No members match that search.' : 'No unlinked members found.'}
+          {search ? 'No members match that search.' : 'All members are already linked to a player.'}
         </p>
       ) : (
         <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-700 mb-3">
