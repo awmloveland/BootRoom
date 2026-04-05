@@ -57,7 +57,6 @@ export default function LeagueSettingsPage() {
 
   // Player claims state
   const [pendingClaims, setPendingClaims] = useState<PlayerClaim[]>([])
-  const [claimsMap, setClaimsMap] = useState<Record<string, string>>({})
 
   // Invite links state
   const [memberLink, setMemberLink] = useState<string | null>(null)
@@ -138,18 +137,10 @@ export default function LeagueSettingsPage() {
 
       const allClaims: PlayerClaim[] = Array.isArray(claimsData) ? claimsData : []
       setPendingClaims(allClaims.filter((c) => c.status === 'pending'))
-      const map: Record<string, string> = {}
-      for (const c of allClaims) {
-        if (c.status === 'approved') {
-          map[c.user_id] = c.admin_override_name ?? c.player_name
-        }
-      }
-      setClaimsMap(map)
     } catch {
       setMembers([])
       setPendingRequests([])
       setPendingClaims([])
-      setClaimsMap({})
     } finally {
       setMembersLoading(false)
       setPendingLoading(false)
@@ -382,7 +373,6 @@ export default function LeagueSettingsPage() {
               <AdminMemberTable
                 leagueId={leagueId}
                 members={members}
-                claimsMap={claimsMap}
                 onChanged={loadMembers}
               />
             )}

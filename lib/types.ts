@@ -98,6 +98,7 @@ export interface LeagueMember {
   display_name: string | null;
   role: GameRole;
   joined_at: string;
+  linked_player_name: string | null;
 }
 
 export interface ScheduledWeek {
