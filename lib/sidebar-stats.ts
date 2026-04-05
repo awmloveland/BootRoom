@@ -209,6 +209,7 @@ export function computeAllCompletedQuarters(weeks: Week[]): HonoursYear[] {
 
     // Full table — no cap. aggregateWeeks sorts points desc → wins desc → name asc.
     const entries = aggregateWeeks(playedWeeks)
+    if (entries.length === 0) continue
     const champion = entries[0].name
 
     completed.push({ quarterLabel, year, q, champion, entries })
