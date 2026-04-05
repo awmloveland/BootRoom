@@ -25,6 +25,8 @@ export interface PlayerAttribute {
   name: string;
   rating: number;   // 1–3
   mentality: Mentality;
+  linked_user_id?: string | null;
+  linked_display_name?: string | null;
 }
 
 export interface Player {
