@@ -86,14 +86,16 @@ export default async function HonoursPage({ params }: Props) {
             <HonoursSection data={computeAllCompletedQuarters(weeks)} />
           )}
         </div>
-        <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
-          <StatsSidebar
-            players={players}
-            weeks={playedWeeks}
-            features={features}
-            role={userRole}
-          />
-        </div>
+        {canSeeStatsSidebar && (
+          <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
+            <StatsSidebar
+              players={players}
+              weeks={playedWeeks}
+              features={features}
+              role={userRole}
+            />
+          </div>
+        )}
       </div>
       {canSeeStatsSidebar && (
         <MobileStatsFAB>
