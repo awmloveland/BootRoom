@@ -1,4 +1,4 @@
-import { computeInForm, computeQuarterlyTable, computeTeamAB } from '@/lib/sidebar-stats'
+import { computeInForm, computeQuarterlyTable, computeTeamAB, computeAllCompletedQuarters } from '@/lib/sidebar-stats'
 import type { Player, Week } from '@/lib/types'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -445,5 +445,105 @@ describe('computeTeamAB', () => {
     expect(r.total).toBe(0)
     expect(r.streakTeam).toBeNull()
     expect(r.streakLength).toBe(0)
+  })
+})
+
+// ─── computeAllCompletedQuarters ─────────────────────────────────────────────
+
+describe('computeAllCompletedQuarters', () => {
+  it('returns empty array when there are no weeks', () => {
+    expect(computeAllCompletedQuarters([])).toEqual([])
+  })
+
+  it('returns a completed quarter when all weeks are played or cancelled and at least one is played', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '06 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 2, date: '13 Jan 2025', status: 'cancelled', teamA: [], teamB: [], winner: null }),
+    ]
+    const result = computeAllCompletedQuarters(weeks)
+    expect(result).toHaveLength(1)
+    expect(result[0].year).toBe(2025)
+    expect(result[0].quarters).toHaveLength(1)
+    expect(result[0].quarters[0].quarterLabel).toBe('Q1 25')
+    expect(result[0].quarters[0].champion).toBe('Alice')
+  })
+
+  it('excludes a quarter that has an unrecorded week', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '06 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 2, date: '13 Jan 2025', status: 'unrecorded', teamA: [], teamB: [], winner: null }),
+    ]
+    expect(computeAllCompletedQuarters(weeks)).toEqual([])
+  })
+
+  it('excludes a quarter that has a scheduled week', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '06 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 2, date: '13 Jan 2025', status: 'scheduled', teamA: [], teamB: [], winner: null }),
+    ]
+    expect(computeAllCompletedQuarters(weeks)).toEqual([])
+  })
+
+  it('excludes a quarter where all weeks are cancelled (no played weeks)', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '06 Jan 2025', status: 'cancelled', teamA: [], teamB: [], winner: null }),
+    ]
+    expect(computeAllCompletedQuarters(weeks)).toEqual([])
+  })
+
+  it('returns the full player table, not capped at 5', () => {
+    const players = ['A','B','C','D','E','F','G']
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '06 Jan 2025', teamA: players.slice(0, 4), teamB: players.slice(4), winner: 'teamA' }),
+    ]
+    const result = computeAllCompletedQuarters(weeks)
+    expect(result[0].quarters[0].entries).toHaveLength(7)
+  })
+
+  it('champion is the highest-points player', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '06 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 2, date: '13 Jan 2025', teamA: ['Bob'], teamB: ['Alice'], winner: 'teamA' }),
+      makeWeek({ week: 3, date: '20 Jan 2025', teamA: ['Bob'], teamB: ['Alice'], winner: 'teamA' }),
+    ]
+    // Bob: 2 wins = 6 pts. Alice: 1 win = 3 pts.
+    const result = computeAllCompletedQuarters(weeks)
+    expect(result[0].quarters[0].champion).toBe('Bob')
+  })
+
+  it('groups quarters by year, newest year first', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '06 Jan 2024', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 2, date: '06 Jan 2025', teamA: ['Bob'], teamB: ['Alice'], winner: 'teamA' }),
+    ]
+    const result = computeAllCompletedQuarters(weeks)
+    expect(result[0].year).toBe(2025)
+    expect(result[1].year).toBe(2024)
+  })
+
+  it('sorts quarters within a year newest-first (Q4 before Q3)', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '06 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Q1
+      makeWeek({ week: 2, date: '06 Apr 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Q2
+      makeWeek({ week: 3, date: '06 Jul 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Q3
+      makeWeek({ week: 4, date: '06 Oct 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Q4
+    ]
+    const result = computeAllCompletedQuarters(weeks)
+    expect(result[0].year).toBe(2025)
+    const qs = result[0].quarters.map(q => q.q)
+    expect(qs).toEqual([4, 3, 2, 1])
+  })
+
+  it('handles multiple quarters across multiple years', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '06 Oct 2024', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Q4 2024
+      makeWeek({ week: 2, date: '06 Jan 2025', teamA: ['Bob'], teamB: ['Alice'], winner: 'teamA' }), // Q1 2025
+    ]
+    const result = computeAllCompletedQuarters(weeks)
+    expect(result).toHaveLength(2)
+    expect(result[0].year).toBe(2025)
+    expect(result[0].quarters[0].quarterLabel).toBe('Q1 25')
+    expect(result[1].year).toBe(2024)
+    expect(result[1].quarters[0].quarterLabel).toBe('Q4 24')
   })
 })
