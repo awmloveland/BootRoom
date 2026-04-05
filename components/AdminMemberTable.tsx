@@ -10,8 +10,6 @@ import type { LeagueMember, GameRole } from '@/lib/types'
 interface AdminMemberTableProps {
   leagueId: string
   members: LeagueMember[]
-  /** Maps user_id → effective linked player name for approved claims. */
-  claimsMap?: Record<string, string>
   onChanged: () => void
 }
 
@@ -27,7 +25,7 @@ const ROLE_LABEL: Record<GameRole, string> = {
   member:  'Member',
 }
 
-export function AdminMemberTable({ leagueId, members, claimsMap = {}, onChanged }: AdminMemberTableProps) {
+export function AdminMemberTable({ leagueId, members, onChanged }: AdminMemberTableProps) {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmRemove, setConfirmRemove] = useState<LeagueMember | null>(null)
@@ -108,7 +106,7 @@ export function AdminMemberTable({ leagueId, members, claimsMap = {}, onChanged 
         <div className="rounded-lg border border-slate-700 overflow-hidden">
           {members.map((member, i) => {
             const isLocked = member.role === 'creator'
-            const linkedName = claimsMap[member.user_id]
+            const linkedName = member.linked_player_name
             const isLinking = linkingUserId === member.user_id
             return (
               <div
