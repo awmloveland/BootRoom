@@ -10,6 +10,8 @@ interface HonoursSectionProps {
   data: HonoursYear[]
 }
 
+const PAGE_SIZE = 10
+
 function QuarterCard({
   quarter,
   isOpen,
@@ -19,6 +21,10 @@ function QuarterCard({
   isOpen: boolean
   onToggle: () => void
 }) {
+  const [showAll, setShowAll] = useState(false)
+  const visibleEntries = showAll ? quarter.entries : quarter.entries.slice(0, PAGE_SIZE)
+  const hiddenCount = quarter.entries.length - PAGE_SIZE
+
   return (
     <Collapsible.Root open={isOpen} onOpenChange={onToggle}>
       <div className={cn(
@@ -28,14 +34,11 @@ function QuarterCard({
         {/* Header — always visible */}
         <Collapsible.Trigger asChild>
           <button className="w-full flex items-center gap-3 px-4 py-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer">
-            <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 shrink-0">
-              {quarter.quarterLabel}
-            </span>
-            <span className="flex items-center gap-1.5 text-xs font-semibold rounded-full px-2.5 py-0.5 bg-amber-400/10 text-amber-300 border border-amber-400/20 shrink-0">
+            <p className="text-sm font-semibold text-slate-100 flex-1">{quarter.quarterLabel}</p>
+            <span className="flex items-center gap-1.5 text-xs font-semibold rounded px-2 py-0.5 bg-amber-400/10 text-amber-300 border border-amber-400/20 shrink-0">
               <Trophy className="h-3 w-3" />
               {quarter.champion}
             </span>
-            <span className="flex-1" />
             <ChevronDown
               className={cn(
                 'h-4 w-4 text-slate-400 shrink-0 transition-transform duration-200',
@@ -58,9 +61,9 @@ function QuarterCard({
               <span className="w-[28px] text-right text-[10px] font-semibold uppercase text-slate-500">Pts</span>
             </div>
 
-            {/* Full standings table */}
+            {/* Standings table */}
             <div className="flex flex-col gap-[2px]">
-              {quarter.entries.map((e, i) => (
+              {visibleEntries.map((e, i) => (
                 <div
                   key={e.name}
                   className={cn(
@@ -93,6 +96,16 @@ function QuarterCard({
                 </div>
               ))}
             </div>
+
+            {/* See more / See less */}
+            {hiddenCount > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowAll(v => !v) }}
+                className="mt-2 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                {showAll ? 'See less' : `See more (${hiddenCount} more)`}
+              </button>
+            )}
           </div>
         </Collapsible.Content>
       </div>
