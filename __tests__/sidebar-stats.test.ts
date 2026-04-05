@@ -497,6 +497,7 @@ describe('computeAllCompletedQuarters', () => {
       makeWeek({ week: 1, date: '06 Jan 2025', teamA: players.slice(0, 4), teamB: players.slice(4), winner: 'teamA' }),
     ]
     const result = computeAllCompletedQuarters(weeks)
+    expect(result).toHaveLength(1)
     expect(result[0].quarters[0].entries).toHaveLength(7)
   })
 
