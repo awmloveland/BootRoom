@@ -181,15 +181,15 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                 aria-expanded={isExpanded}
                 aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${player.name}`}
               >
-                <span className="text-[10px] font-semibold bg-blue-950 text-blue-300 border border-blue-800 rounded px-1.5 py-0.5">
-                  {MENTALITY_DISPLAY[player.mentality]}
-                </span>
                 {player.linked_display_name && (
                   <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border bg-emerald-900/40 text-emerald-300 border-emerald-700/50">
                     <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" />
                     {player.linked_display_name}
                   </span>
                 )}
+                <span className="text-[10px] font-semibold bg-blue-950 text-blue-300 border border-blue-800 rounded px-1.5 py-0.5">
+                  {MENTALITY_DISPLAY[player.mentality]}
+                </span>
                 <div className="flex gap-1">
                   {[1, 2, 3].map((dot) => (
                     <div
