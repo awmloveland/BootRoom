@@ -136,7 +136,10 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setLinkingPlayerName(linkingPlayerName === player.name ? null : player.name)}
+                    onClick={() => {
+                      setLinkingPlayerName(linkingPlayerName === player.name ? null : player.name)
+                      setLinkError(null)
+                    }}
                     className="text-xs text-slate-500 border border-dashed border-slate-600 px-2 py-0.5 rounded hover:border-slate-400 hover:text-slate-300 transition-colors"
                   >
                     + Link member
@@ -243,7 +246,10 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setLinkingPlayerName(linkingPlayerName === player.name ? null : player.name)}
+                      onClick={() => {
+                        setLinkingPlayerName(linkingPlayerName === player.name ? null : player.name)
+                        setLinkError(null)
+                      }}
                       className="text-xs text-slate-500 border border-dashed border-slate-600 px-2 py-0.5 rounded hover:border-slate-400 hover:text-slate-300 transition-colors"
                     >
                       + Link member
