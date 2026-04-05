@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Mentality, PlayerAttribute } from '@/lib/types'
+import MemberLinkPicker from '@/components/MemberLinkPicker'
 
 interface Props {
   leagueId: string
@@ -28,6 +29,9 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
   const [players, setPlayers] = useState<PlayerAttribute[]>(initialPlayers)
   const [expandedName, setExpandedName] = useState<string | null>(null)
   const [errorName, setErrorName] = useState<string | null>(null)
+  const [linkingPlayerName, setLinkingPlayerName] = useState<string | null>(null)
+  const [linkError, setLinkError] = useState<string | null>(null)
+  const [linkSubmitting, setLinkSubmitting] = useState(false)
 
   const patch = useCallback(
     async (name: string, update: Partial<Pick<PlayerAttribute, 'rating' | 'mentality'>>) => {
@@ -56,6 +60,33 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
     },
     [leagueId]
   )
+
+  async function assignMember(playerName: string, userId: string, displayName: string) {
+    setLinkSubmitting(true)
+    setLinkError(null)
+    try {
+      const res = await fetch(`/api/league/${leagueId}/player-claims/assign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ user_id: userId, player_name: playerName }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to link member')
+      setPlayers((prev) =>
+        prev.map((p) =>
+          p.name === playerName
+            ? { ...p, linked_user_id: userId, linked_display_name: displayName }
+            : p
+        )
+      )
+      setLinkingPlayerName(null)
+    } catch (err) {
+      setLinkError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setLinkSubmitting(false)
+    }
+  }
 
   function handleRatingClick(player: PlayerAttribute, dot: number) {
     // Clicking the active dot decrements by 1 (min 1)
@@ -96,6 +127,22 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
 
               {/* Desktop controls */}
               <div className="hidden sm:flex items-center gap-3">
+                {/* Linked member badge or link button */}
+                {player.linked_display_name ? (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs border bg-emerald-900/40 text-emerald-300 border-emerald-700/50">
+                    <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" />
+                    Linked: {player.linked_display_name}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setLinkingPlayerName(linkingPlayerName === player.name ? null : player.name)}
+                    className="text-xs text-slate-500 border border-dashed border-slate-600 px-2 py-0.5 rounded hover:border-slate-400 hover:text-slate-300 transition-colors"
+                  >
+                    + Link member
+                  </button>
+                )}
+
                 {/* Rating dots */}
                 <div className="flex items-center gap-1">
                   <span className="text-[10px] text-slate-500 mr-1">Eye Test</span>
@@ -185,7 +232,40 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                     fullWidth
                   />
                 </div>
+
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">Member Link</p>
+                  {player.linked_display_name ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs border bg-emerald-900/40 text-emerald-300 border-emerald-700/50">
+                      <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" />
+                      Linked: {player.linked_display_name}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setLinkingPlayerName(linkingPlayerName === player.name ? null : player.name)}
+                      className="text-xs text-slate-500 border border-dashed border-slate-600 px-2 py-0.5 rounded hover:border-slate-400 hover:text-slate-300 transition-colors"
+                    >
+                      + Link member
+                    </button>
+                  )}
+                </div>
               </div>
+            )}
+
+            {/* Inline member link picker */}
+            {linkingPlayerName === player.name && (
+              <>
+                <MemberLinkPicker
+                  leagueId={leagueId}
+                  submitting={linkSubmitting}
+                  onLink={(userId, displayName) => assignMember(player.name, userId, displayName)}
+                  onCancel={() => { setLinkingPlayerName(null); setLinkError(null) }}
+                />
+                {linkError && (
+                  <p className="px-3 pb-3 text-xs text-red-400">{linkError}</p>
+                )}
+              </>
             )}
 
             {/* Error state */}
