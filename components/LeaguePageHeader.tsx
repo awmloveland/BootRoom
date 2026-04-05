@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ClipboardList, Users, FlaskConical } from 'lucide-react'
+import { ClipboardList, Users, Trophy, FlaskConical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LeagueInfoBar } from '@/components/LeagueInfoBar'
 import { LeagueJoinArea } from '@/components/LeagueJoinArea'
@@ -11,7 +11,7 @@ interface LeaguePageHeaderProps {
   playedCount: number
   totalWeeks: number
   pct: number
-  currentTab: 'results' | 'players' | 'lineup-lab'
+  currentTab: 'results' | 'players' | 'honours' | 'lineup-lab'
   isAdmin: boolean
   details?: LeagueDetails | null
   joinStatus?: JoinRequestStatus | 'member' | 'not-member' | null
@@ -74,6 +74,18 @@ export function LeaguePageHeader({
         >
           <Users className="size-3.5" />
           Players
+        </Link>
+        <Link
+          href={`/${leagueId}/honours`}
+          className={cn(
+            '-mb-px flex items-center gap-2 border-b-2 pb-2 text-sm font-medium',
+            currentTab === 'honours'
+              ? 'border-slate-200 text-slate-200'
+              : 'border-transparent text-slate-400 hover:text-slate-300'
+          )}
+        >
+          <Trophy className="size-3.5" />
+          Honours
         </Link>
         <Link
           href={`/${leagueId}/lineup-lab`}
