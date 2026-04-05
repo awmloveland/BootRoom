@@ -21,20 +21,24 @@ function QuarterCard({
 }) {
   return (
     <Collapsible.Root open={isOpen} onOpenChange={onToggle}>
-      <div className="rounded-lg border border-slate-700 overflow-hidden">
+      <div className={cn(
+        'rounded-lg border bg-slate-800 transition-colors duration-150',
+        isOpen ? 'border-slate-600' : 'border-slate-700 hover:border-slate-500'
+      )}>
         {/* Header — always visible */}
         <Collapsible.Trigger asChild>
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-white/[0.02] transition-colors">
+          <button className="w-full flex items-center gap-3 px-4 py-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer">
             <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 shrink-0">
               {quarter.quarterLabel}
             </span>
-            <span className="text-sm font-bold text-amber-300 uppercase flex-1 truncate">
+            <span className="flex items-center gap-1.5 text-xs font-semibold rounded-full px-2.5 py-0.5 bg-amber-400/10 text-amber-300 border border-amber-400/20 shrink-0">
+              <Trophy className="h-3 w-3" />
               {quarter.champion}
             </span>
-            <Trophy className="h-4 w-4 text-amber-400 shrink-0" />
+            <span className="flex-1" />
             <ChevronDown
               className={cn(
-                'h-4 w-4 text-slate-500 shrink-0 transition-transform duration-200',
+                'h-4 w-4 text-slate-400 shrink-0 transition-transform duration-200',
                 isOpen && 'rotate-180'
               )}
             />
@@ -42,8 +46,8 @@ function QuarterCard({
         </Collapsible.Trigger>
 
         {/* Body — collapsible */}
-        <Collapsible.Content>
-          <div className="border-t border-slate-700/40 px-3 py-3">
+        <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+          <div className="border-t border-slate-700 px-4 py-3">
             {/* Column headers */}
             <div className="flex items-center gap-1 pb-2 mb-1 border-b border-slate-700/40">
               <span className="flex-1 text-[10px] font-semibold uppercase text-slate-500">Player</span>
@@ -61,7 +65,7 @@ function QuarterCard({
                   key={e.name}
                   className={cn(
                     'flex items-center gap-1 py-[3px]',
-                    i === 0 ? '-mx-3 px-3 bg-sky-400/[0.06]' : '-mx-1 px-1'
+                    i === 0 ? '-mx-4 px-4 bg-sky-400/[0.06]' : '-mx-1 px-1'
                   )}
                 >
                   <span className={cn(
@@ -88,19 +92,6 @@ function QuarterCard({
                   </span>
                 </div>
               ))}
-            </div>
-
-            {/* Champion banner */}
-            <div className="border-t border-slate-700/40 mt-3 pt-3">
-              <div className="flex items-center justify-between bg-amber-400/[0.07] border border-amber-400/[0.14] rounded-md px-[10px] py-[6px]">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-amber-600">
-                    {quarter.quarterLabel} Champion
-                  </p>
-                  <p className="text-[13px] font-bold text-yellow-200 uppercase">{quarter.champion}</p>
-                </div>
-                <Trophy className="h-5 w-5 text-amber-400" />
-              </div>
             </div>
           </div>
         </Collapsible.Content>
