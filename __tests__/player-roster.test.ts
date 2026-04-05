@@ -9,6 +9,36 @@ describe('PlayerAttribute type', () => {
     expect(p.rating).toBe(2)
     expect(p.mentality).toBe('balanced')
   })
+
+  it('accepts optional linked member fields', () => {
+    const linked: PlayerAttribute = {
+      name: 'Bob',
+      rating: 1,
+      mentality: 'defensive',
+      linked_user_id: 'uuid-123',
+      linked_display_name: 'Bob Smith',
+    }
+    expect(linked.linked_user_id).toBe('uuid-123')
+    expect(linked.linked_display_name).toBe('Bob Smith')
+  })
+
+  it('accepts null linked member fields', () => {
+    const unlinked: PlayerAttribute = {
+      name: 'Carol',
+      rating: 2,
+      mentality: 'balanced',
+      linked_user_id: null,
+      linked_display_name: null,
+    }
+    expect(unlinked.linked_user_id).toBeNull()
+    expect(unlinked.linked_display_name).toBeNull()
+  })
+
+  it('accepts missing linked member fields (undefined)', () => {
+    const p: PlayerAttribute = { name: 'Dave', rating: 3, mentality: 'attacking' }
+    expect(p.linked_user_id).toBeUndefined()
+    expect(p.linked_display_name).toBeUndefined()
+  })
 })
 
 // ── parsePlayerPatch ─────────────────────────────────────────
