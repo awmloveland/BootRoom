@@ -99,12 +99,14 @@ function QuarterCard({
 
             {/* See more / See less */}
             {hiddenCount > 0 && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowAll(v => !v) }}
-                className="mt-2 text-xs text-slate-500 hover:text-slate-300 transition-colors"
-              >
-                {showAll ? 'See less' : `See more (${hiddenCount} more)`}
-              </button>
+              <div className="mt-3 flex justify-center">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowAll(v => !v) }}
+                  className="text-xs font-medium text-slate-500 hover:text-slate-300 border border-slate-700 hover:border-slate-600 rounded px-3 py-1 transition-colors"
+                >
+                  {showAll ? 'See less' : `See more (${hiddenCount} more)`}
+                </button>
+              </div>
             )}
           </div>
         </Collapsible.Content>
