@@ -83,13 +83,13 @@ function QuarterCard({
                   )}>
                     {e.name}
                   </span>
-                  <span className="text-[11px] text-slate-600 w-[22px] text-center shrink-0">{e.played}</span>
-                  <span className="text-[11px] text-slate-600 w-[18px] text-center shrink-0">{e.won}</span>
-                  <span className="text-[11px] text-slate-600 w-[18px] text-center shrink-0">{e.drew}</span>
-                  <span className="text-[11px] text-slate-600 w-[18px] text-center shrink-0">{e.lost}</span>
+                  <span className="text-xs text-slate-400 w-[22px] text-center shrink-0">{e.played}</span>
+                  <span className="text-xs text-slate-400 w-[18px] text-center shrink-0">{e.won}</span>
+                  <span className="text-xs text-slate-400 w-[18px] text-center shrink-0">{e.drew}</span>
+                  <span className="text-xs text-slate-400 w-[18px] text-center shrink-0">{e.lost}</span>
                   <span className={cn(
-                    'text-[12px] font-bold w-[28px] text-right shrink-0',
-                    i === 0 ? 'text-sky-300' : 'text-slate-300'
+                    'text-sm font-bold w-[28px] text-right shrink-0',
+                    i === 0 ? 'text-sky-300' : 'text-slate-200'
                   )}>
                     {e.points}
                   </span>
@@ -104,7 +104,7 @@ function QuarterCard({
                   onClick={(e) => { e.stopPropagation(); setShowAll(v => !v) }}
                   className="text-xs font-medium text-slate-500 hover:text-slate-300 border border-slate-700 hover:border-slate-600 rounded px-3 py-1 transition-colors"
                 >
-                  {showAll ? 'See less' : `See more (${hiddenCount} more)`}
+                  {showAll ? 'See Less' : `See All (${quarter.entries.length})`}
                 </button>
               </div>
             )}
