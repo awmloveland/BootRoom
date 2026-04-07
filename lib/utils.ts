@@ -324,6 +324,10 @@ export function getMostRecentExpectedGameDate(
   return formatWeekDate(candidate)
 }
 
+/**
+ * Parses first and last name from Supabase Google OAuth user_metadata.
+ * Priority: given_name/family_name fields → split full_name → split name → empty strings.
+ */
 export function parseGoogleName(meta: Record<string, unknown>): { firstName: string; lastName: string } {
   const givenName = typeof meta.given_name === 'string' ? meta.given_name : null
   const familyName = typeof meta.family_name === 'string' ? meta.family_name : null

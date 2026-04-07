@@ -8,6 +8,13 @@ describe('parseGoogleName', () => {
     })
   })
 
+  it('uses given_name alone when family_name is absent', () => {
+    expect(parseGoogleName({ given_name: 'Lucia' })).toEqual({
+      firstName: 'Lucia',
+      lastName: '',
+    })
+  })
+
   it('falls back to splitting full_name when given_name/family_name absent', () => {
     expect(parseGoogleName({ full_name: 'Lucia Hormel' })).toEqual({
       firstName: 'Lucia',
