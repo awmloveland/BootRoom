@@ -33,7 +33,7 @@ function WelcomeForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!firstName.trim() && !lastName.trim()) {
+    if (!firstName.trim() || !lastName.trim()) {
       setError('Please enter your name.')
       return
     }
