@@ -83,7 +83,7 @@ export default async function HonoursPage({ params }: Props) {
           {tier === 'public' || !isAuthenticated ? (
             <HonoursLoginPrompt leagueId={leagueId} />
           ) : (
-            <HonoursSection data={computeAllCompletedQuarters(weeks)} />
+            <HonoursSection data={computeAllCompletedQuarters(weeks, new Date())} />
           )}
         </div>
         {canSeeStatsSidebar && (
