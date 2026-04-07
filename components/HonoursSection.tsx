@@ -4,7 +4,7 @@ import { useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown, Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { CompletedQuarter, HonoursYear, QuarterAward } from '@/lib/sidebar-stats'
+import type { CompletedQuarter, HonoursYear } from '@/lib/sidebar-stats'
 
 interface HonoursSectionProps {
   data: HonoursYear[]
