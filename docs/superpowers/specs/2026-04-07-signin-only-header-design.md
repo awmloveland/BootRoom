@@ -24,6 +24,7 @@ When `signinOnly={true}`:
 - `SignInForm` does not render the "Create account" button, the or-divider, or call `onSwitchMode`
 - The dialog is locked to sign-in mode — `SignUpForm` is unreachable
 - OTP sign-in, Google sign-in ("Continue with Google"), and the verify step are all unaffected
+- A small muted note is shown at the bottom of `SignInForm`: *"Don't have an account? Ask your admin for an invite or hit 'Join League' to request access."* (`text-xs text-slate-500`)
 
 When `signinOnly` is absent or `false` (default): behaviour is unchanged.
 
