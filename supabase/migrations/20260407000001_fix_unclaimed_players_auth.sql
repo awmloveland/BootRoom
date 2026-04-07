@@ -17,6 +17,7 @@ BEGIN
     RAISE EXCEPTION 'Not authenticated';
   END IF;
 
+  -- Player names are derived from match data already visible in public results.
   RETURN QUERY
   SELECT DISTINCT p.name
   FROM weeks w
@@ -36,3 +37,5 @@ BEGIN
   ORDER BY p.name;
 END;
 $$;
+
+GRANT EXECUTE ON FUNCTION public.get_unclaimed_players(uuid) TO authenticated;
