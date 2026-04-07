@@ -248,11 +248,11 @@ export default function LeagueSettingsPage() {
       </div>
 
       {/* Section tabs */}
-      <div className="flex gap-1 mb-6 overflow-x-auto border-b border-slate-700 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex gap-1 mb-6 overflow-x-auto border-b border-slate-700 -mx-4 px-4 sm:mx-0 sm:px-0 touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {NAV.map(({ id, label, Icon }) => (
           <button
             key={id}
-            onClick={() => setSection(id)}
+            onClick={(e) => { setSection(id); e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' }) }}
             className={cn(
               'flex shrink-0 items-center gap-1.5 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px',
               section === id
