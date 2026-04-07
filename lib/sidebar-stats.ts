@@ -251,7 +251,7 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gam
   const quarterLabel = `Q${displayQ} ${yy}`
 
   const displayWeeks = weeks.filter(w => weekInQuarter(w, displayQ, displayYear))
-  const entries = aggregateWeeks(displayWeeks).slice(0, 5)
+  const entries = aggregateWeeks(displayWeeks).slice(0, 10)
 
   // gamesLeft is 0 during holdover (the displayed quarter is complete)
   const resolvedGameDay = gameDay ?? inferGameDay(weeks)

@@ -190,7 +190,7 @@ describe('computeQuarterlyTable', () => {
       makeWeek({ week: 1, date: '05 Jan 2026', teamA: players.slice(0,3), teamB: players.slice(3), winner: 'teamA' }),
     ]
     const result = computeQuarterlyTable(weeks, new Date(2026, 0, 22))
-    expect(result.entries.length).toBeLessThanOrEqual(5)
+    expect(result.entries.length).toBeLessThanOrEqual(10)
     for (let i = 1; i < result.entries.length; i++) {
       expect(result.entries[i-1].points).toBeGreaterThanOrEqual(result.entries[i].points)
     }
