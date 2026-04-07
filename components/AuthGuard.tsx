@@ -13,7 +13,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter()
   const [status, setStatus] = useState<'loading' | 'allowed' | 'not-invited'>('loading')
 
-  const isPublicRoute = pathname === '/sign-in' || pathname === '/reset-password' || pathname?.startsWith('/auth') || pathname?.startsWith('/invite')
+  const isPublicRoute = pathname === '/sign-in' || pathname?.startsWith('/auth') || pathname?.startsWith('/invite')
 
   useEffect(() => {
     if (isPublicRoute) return

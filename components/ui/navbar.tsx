@@ -150,14 +150,14 @@ export function Navbar({
     }
   }, [])
 
-  const showNav = pathname !== '/sign-in' && pathname !== '/reset-password'
+  const showNav = pathname !== '/sign-in'
 
   useEffect(() => {
     setSheetOpen(false)
   }, [pathname])
 
   useEffect(() => {
-    if (pathname === '/sign-in' || pathname === '/reset-password') return
+    if (pathname === '/sign-in') return
     fetchUser()
   }, [pathname, fetchUser])
 
