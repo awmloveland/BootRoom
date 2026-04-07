@@ -4,7 +4,7 @@ import { useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown, Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { CompletedQuarter, HonoursYear } from '@/lib/sidebar-stats'
+import type { CompletedQuarter, HonoursYear, QuarterAward } from '@/lib/sidebar-stats'
 
 interface HonoursSectionProps {
   data: HonoursYear[]
@@ -50,6 +50,27 @@ function QuarterCard({
 
         {/* Body — collapsible */}
         <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+          {/* Awards row — shown above the table when the card is open */}
+          {quarter.awards.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto border-t border-slate-700 px-3 py-2.5 scrollbar-hide">
+              {quarter.awards.map(award => (
+                <div
+                  key={award.key}
+                  className="flex-shrink-0 flex flex-col gap-0.5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 min-w-[108px]"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs">{award.icon}</span>
+                    <span className="text-[10px] font-bold tracking-wide uppercase text-indigo-400">
+                      {award.nickname}
+                    </span>
+                  </div>
+                  <span className="text-xs font-semibold text-slate-100">{award.player}</span>
+                  <span className="text-[10px] text-slate-500">{award.stat}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="border-t border-slate-700 px-4 py-3">
             {/* Column headers */}
             <div className="flex items-center gap-1 pb-2 mb-1 border-b border-slate-700/40">
