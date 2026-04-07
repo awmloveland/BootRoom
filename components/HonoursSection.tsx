@@ -56,7 +56,7 @@ function QuarterCard({
               {quarter.awards.map(award => (
                 <div
                   key={award.key}
-                  className="flex-shrink-0 flex flex-col gap-0.5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 min-w-[108px]"
+                  className="flex-shrink-0 flex flex-col gap-0.5 bg-slate-700/50 border border-slate-600 rounded-lg px-2.5 py-2 min-w-[108px]"
                 >
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs">{award.icon}</span>
