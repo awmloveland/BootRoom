@@ -178,7 +178,7 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gam
 
 // ─── computeAllCompletedQuarters ─────────────────────────────────────────────
 
-export function computeAllCompletedQuarters(weeks: Week[]): HonoursYear[] {
+export function computeAllCompletedQuarters(weeks: Week[], now: Date = new Date()): HonoursYear[] {
   // Group all weeks by (year, q) bucket key
   const buckets = new Map<string, Week[]>()
   for (const w of weeks) {
@@ -192,6 +192,16 @@ export function computeAllCompletedQuarters(weeks: Week[]): HonoursYear[] {
   const completed: CompletedQuarter[] = []
 
   for (const [key, qWeeks] of buckets) {
+    const [yearStr, qStr] = key.split('-')
+    const year = Number(yearStr)
+    const q = Number(qStr)
+
+    // Skip quarters whose calendar end date hasn't passed yet.
+    // new Date(year, q * 3, 0) = last day of the last month of quarter q.
+    // Q1 → Mar 31, Q2 → Jun 30, Q3 → Sep 30, Q4 → Dec 31.
+    const quarterEnd = new Date(year, q * 3, 0)
+    if (now <= quarterEnd) continue
+
     // A quarter is complete only when every week is played or cancelled.
     // A single unrecorded or scheduled week keeps the quarter hidden.
     const hasIncomplete = qWeeks.some(w => w.status === 'unrecorded' || w.status === 'scheduled')
@@ -201,9 +211,6 @@ export function computeAllCompletedQuarters(weeks: Week[]): HonoursYear[] {
     const playedWeeks = qWeeks.filter(w => w.status === 'played')
     if (playedWeeks.length === 0) continue
 
-    const [yearStr, qStr] = key.split('-')
-    const year = Number(yearStr)
-    const q = Number(qStr)
     const yy = String(year).slice(-2)
     const quarterLabel = `Q${q} ${yy}`
 
