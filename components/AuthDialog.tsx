@@ -183,6 +183,7 @@ function SignInForm({
       setLoading(false)
       return
     }
+    setLoading(false)
     onSent(email.trim().toLowerCase())
   }
 
@@ -264,6 +265,7 @@ function SignUpForm({
       setLoading(false)
       return
     }
+    setLoading(false)
     onSent(email.trim().toLowerCase())
   }
 
