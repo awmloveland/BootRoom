@@ -200,7 +200,9 @@ function SignInForm({
     if (error) {
       setError(
         /user.not.found|no user|signups not allowed/i.test(error.message)
-          ? "No account found for this email. Use 'Create account' to get started."
+          ? signinOnly
+            ? "No account found for this email. Ask your admin for an invite."
+            : "No account found for this email. Use 'Create account' to get started."
           : error.message
       )
       setLoading(false)
