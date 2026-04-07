@@ -1,5 +1,4 @@
-// Type declaration for the global CSS side-effect import.
-// Required by TypeScript 6 (noUncheckedSideEffectImports is on by default).
-// Next.js handles the actual bundling; this file satisfies the type checker.
-declare const _css: never;
-export default _css;
+// Type declaration for the CSS side-effect import required by
+// TypeScript 6's noUncheckedSideEffectImports default.
+// Next.js handles bundling; this file satisfies the type checker.
+export {};
