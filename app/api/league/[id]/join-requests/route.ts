@@ -42,9 +42,12 @@ export async function POST(
       ? body.player_name.trim()
       : null
 
+  // player_name is passed into submit_join_request which creates the claim
+  // directly (SECURITY DEFINER bypasses the member check — user isn't a member yet).
   const { error } = await supabase.rpc('submit_join_request', {
     p_game_id: id,
     p_message: message,
+    p_player_name: playerName,
   })
 
   if (error) {
@@ -62,22 +65,6 @@ export async function POST(
     }
     console.error('[join-requests POST]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-
-  // If a player name was provided, create a pending claim atomically.
-  // A claim failure must not roll back the join request.
-  if (playerName) {
-    const { error: claimError } = await supabase.rpc('submit_player_claim', {
-      p_game_id: id,
-      p_player_name: playerName,
-    })
-    if (claimError) {
-      console.warn('[join-requests POST] claim creation failed:', claimError.message)
-      return NextResponse.json(
-        { ok: true, claimWarning: claimError.message },
-        { status: 201 }
-      )
-    }
   }
 
   return NextResponse.json({ ok: true }, { status: 201 })
