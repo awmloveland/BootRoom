@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { parseGoogleName } from '@/lib/utils'
 
 const inputClass =
   'w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent'
@@ -23,9 +24,9 @@ function WelcomeForm() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.replace('/sign-in'); return }
-      const meta = user.user_metadata ?? {}
-      setFirstName(meta.given_name ?? '')
-      setLastName(meta.family_name ?? '')
+      const { firstName, lastName } = parseGoogleName(user.user_metadata ?? {})
+      setFirstName(firstName)
+      setLastName(lastName)
       setLoading(false)
     }
     loadMeta()
