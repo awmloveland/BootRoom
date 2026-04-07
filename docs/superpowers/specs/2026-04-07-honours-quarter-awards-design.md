@@ -79,7 +79,7 @@ Add `awards: QuarterAward[]` to `CompletedQuarter` in `lib/types.ts`.
 Add a `buildQuarterAwards(entries, weekSlice)` helper called from within `computeAllCompletedQuarters` after entries are sorted.
 
 - `entries: QuarterlyEntry[]` — sorted standings for the quarter
-- `weekSlice: Week[]` — only the played weeks belonging to this quarter (needed for win streak)
+- `weekSlice: Week[]` — the `playedWeeks` array already computed in the `computeAllCompletedQuarters` loop (weeks with `status === 'played'` for this quarter; needed for win streak)
 
 Add a `longestWinStreak(weeks)` helper that iterates weeks in date order and tracks each player's consecutive win count, returning `{ player: string, count: number }`.
 
