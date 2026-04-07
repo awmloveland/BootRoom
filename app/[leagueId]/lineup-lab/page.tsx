@@ -9,6 +9,7 @@ import { LineupLabLoginPrompt } from '@/components/LineupLabLoginPrompt'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import { isFeatureEnabled } from '@/lib/features'
 import { MobileStatsFAB } from '@/components/MobileStatsFAB'
+import { SidebarSticky } from '@/components/SidebarSticky'
 import type { LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
 interface Props {
@@ -77,14 +78,14 @@ export default async function LineupLabPage({ params }: Props) {
             : <LineupLabLoginPrompt leagueId={leagueId} leagueName={game!.name} />
           }
         </div>
-        <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
+        <SidebarSticky>
           <StatsSidebar
             players={players}
             weeks={playedWeeks}
             features={features}
             role={userRole}
           />
-        </div>
+        </SidebarSticky>
       </div>
       {canSeeStatsSidebar && (
         <MobileStatsFAB>

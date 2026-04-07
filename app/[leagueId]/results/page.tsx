@@ -5,7 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
 import { sortWeeks, dayNameToIndex, isPastDeadline, getMostRecentExpectedGameDate, getNextWeekNumber, deriveSeason } from '@/lib/utils'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimStatus } from '@/lib/fetchers'
+import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
@@ -14,6 +14,7 @@ import { ResultsSection } from '@/components/ResultsSection'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import { MobileStatsFAB } from '@/components/MobileStatsFAB'
+import { SidebarSticky } from '@/components/SidebarSticky'
 import { BfcacheRefresh } from '@/components/BfcacheRefresh'
 import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
 import type { Week, ScheduledWeek, LeagueDetails, JoinRequestStatus } from '@/lib/types'
@@ -56,10 +57,12 @@ export default async function LeagueResultsPage({ params }: Props) {
   const isAdmin = tier === 'admin'
 
   // Show onboarding banner for non-admin members with no claim.
+  let linkedPlayerName: string | null = null
   let showClaimBanner = false
-  if (tier === 'member') {
-    const claimStatus = await getMyClaimStatus(leagueId)
-    showClaimBanner = claimStatus === 'none'
+  if (tier !== 'public') {
+    const { status, playerName } = await getMyClaimInfo(leagueId)
+    linkedPlayerName = playerName
+    if (tier === 'member') showClaimBanner = status === 'none'
   }
 
   const canSeeMatchHistory = isAdmin || isFeatureEnabled(features, 'match_history', tier)
@@ -185,15 +188,16 @@ export default async function LeagueResultsPage({ params }: Props) {
             )}
           </div>
           {canSeeStatsSidebar && (
-            <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
+            <SidebarSticky>
               <StatsSidebar
                 players={players}
                 weeks={weeks}
                 features={features}
                 role={userRole}
                 leagueDayIndex={leagueDayIndex}
+                linkedPlayerName={linkedPlayerName}
               />
-            </div>
+            </SidebarSticky>
           )}
         </div>
         {canSeeStatsSidebar && (
@@ -204,6 +208,7 @@ export default async function LeagueResultsPage({ params }: Props) {
               features={features}
               role={userRole}
               leagueDayIndex={leagueDayIndex}
+              linkedPlayerName={linkedPlayerName}
             />
           </MobileStatsFAB>
         )}
@@ -259,15 +264,16 @@ export default async function LeagueResultsPage({ params }: Props) {
             )}
           </div>
         </div>
-        <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
+        <SidebarSticky>
           <StatsSidebar
             players={players}
             weeks={weeks}
             features={features}
             role={userRole}
             leagueDayIndex={leagueDayIndex}
+            linkedPlayerName={linkedPlayerName}
           />
-        </div>
+        </SidebarSticky>
       </div>
       {canSeeStatsSidebar && (
         <MobileStatsFAB>
@@ -277,6 +283,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             features={features}
             role={userRole}
             leagueDayIndex={leagueDayIndex}
+            linkedPlayerName={linkedPlayerName}
           />
         </MobileStatsFAB>
       )}

@@ -11,6 +11,7 @@ interface StatsSidebarProps {
   features: LeagueFeature[]
   role: GameRole | null
   leagueDayIndex?: number
+  linkedPlayerName?: string | null
 }
 
 function WidgetShell({ title, children }: { title: string; children: React.ReactNode }) {
@@ -26,6 +27,55 @@ function WidgetShell({ title, children }: { title: string; children: React.React
 
 function EmptyState({ message }: { message: string }) {
   return <p className="text-sm text-slate-500 text-center py-4">{message}</p>
+}
+
+// ─── Widget 0: Your Stats ─────────────────────────────────────────────────────
+
+function YourStatsWidget({ players, linkedPlayerName }: { players: Player[]; linkedPlayerName?: string | null }) {
+  if (!linkedPlayerName) return null
+  const player = players.find(p => p.name === linkedPlayerName)
+  if (!player) return null
+
+  return (
+    <div className="rounded-lg border border-slate-700 bg-transparent overflow-hidden">
+      <div className="px-3 py-2 border-b border-slate-700/40 flex items-center justify-between">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Your Stats</span>
+        <span className="text-[8px] font-bold uppercase tracking-[0.08em] text-sky-400 bg-sky-400/[0.08] border border-sky-400/25 rounded px-[5px] py-px">
+          All Time
+        </span>
+      </div>
+      <div className="px-3 py-3">
+        {/* Hero: name + win rate */}
+        <div className="flex items-end justify-between mb-[10px]">
+          <div>
+            <p className="text-[15px] font-bold text-slate-100 uppercase tracking-wide leading-tight">
+              {player.name}
+            </p>
+            <p className="text-[11px] text-slate-600 font-medium mt-1">
+              {player.won}W &nbsp;·&nbsp; {player.drew}D &nbsp;·&nbsp; {player.lost}L
+            </p>
+          </div>
+          <div className="text-right ml-2">
+            <p className="text-[32px] font-black text-sky-300 leading-none">
+              {Math.round(player.winRate)}<span className="text-[14px] font-bold text-sky-400">%</span>
+            </p>
+            <p className="text-[8px] uppercase tracking-widest text-sky-400 mt-0.5">Win Rate</p>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-slate-700/40 my-[10px]" />
+
+        {/* Bottom: form + played */}
+        <div className="flex items-center justify-between">
+          <FormDots form={player.recentForm} />
+          <p className="text-[10px] text-slate-600">
+            <span className="text-slate-400 font-semibold">{player.played}</span> played
+          </p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ─── Widget 1: Most In Form ───────────────────────────────────────────────────
@@ -224,17 +274,16 @@ function TeamABWidget({ weeks }: { weeks: Week[] }) {
 
 // ─── StatsSidebar ─────────────────────────────────────────────────────────────
 
-export function StatsSidebar({ players, weeks, features, role, leagueDayIndex }: StatsSidebarProps) {
+export function StatsSidebar({ players, weeks, features, role, leagueDayIndex, linkedPlayerName }: StatsSidebarProps) {
   const tier = resolveVisibilityTier(role)
-
   const showStatsSidebar = isFeatureEnabled(features, 'stats_sidebar', tier)
-
   if (!showStatsSidebar) return null
 
   return (
     <div className="space-y-3">
-      <InFormWidget    players={players} weeks={weeks} />
+      <YourStatsWidget players={players} linkedPlayerName={linkedPlayerName} />
       <QuarterlyTableWidget weeks={weeks} leagueDayIndex={leagueDayIndex} />
+      <InFormWidget    players={players} weeks={weeks} />
       <TeamABWidget    weeks={weeks} />
     </div>
   )

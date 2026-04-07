@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { resolveVisibilityTier } from '@/lib/roles'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimStatus } from '@/lib/fetchers'
+import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { isFeatureEnabled } from '@/lib/features'
 import { computeAllCompletedQuarters } from '@/lib/sidebar-stats'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
@@ -11,6 +11,7 @@ import { HonoursLoginPrompt } from '@/components/HonoursLoginPrompt'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import { MobileStatsFAB } from '@/components/MobileStatsFAB'
 import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
+import { SidebarSticky } from '@/components/SidebarSticky'
 import type { LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
 interface Props {
@@ -44,10 +45,12 @@ export default async function HonoursPage({ params }: Props) {
   const canSeeStatsSidebar = isAdmin || isFeatureEnabled(features, 'stats_sidebar', tier)
 
   // Show onboarding banner for non-admin members with no claim.
+  let linkedPlayerName: string | null = null
   let showClaimBanner = false
-  if (tier === 'member') {
-    const claimStatus = await getMyClaimStatus(leagueId)
-    showClaimBanner = claimStatus === 'none'
+  if (tier !== 'public') {
+    const { status, playerName } = await getMyClaimInfo(leagueId)
+    linkedPlayerName = playerName
+    if (tier === 'member') showClaimBanner = status === 'none'
   }
 
   const playedWeeks = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled')
@@ -87,14 +90,15 @@ export default async function HonoursPage({ params }: Props) {
           )}
         </div>
         {canSeeStatsSidebar && (
-          <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
+          <SidebarSticky>
             <StatsSidebar
               players={players}
               weeks={playedWeeks}
               features={features}
               role={userRole}
+              linkedPlayerName={linkedPlayerName}
             />
-          </div>
+          </SidebarSticky>
         )}
       </div>
       {canSeeStatsSidebar && (
@@ -104,6 +108,7 @@ export default async function HonoursPage({ params }: Props) {
             weeks={playedWeeks}
             features={features}
             role={userRole}
+            linkedPlayerName={linkedPlayerName}
           />
         </MobileStatsFAB>
       )}
