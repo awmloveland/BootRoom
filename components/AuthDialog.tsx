@@ -33,6 +33,7 @@ interface AuthDialogProps {
   open?: boolean
   /** Controlled open change handler (optional) */
   onOpenChange?: (open: boolean) => void
+  signinOnly?: boolean
 }
 
 const inputClass =
@@ -176,10 +177,12 @@ function SignInForm({
   onSent,
   onSwitchMode,
   redirect,
+  signinOnly,
 }: {
   onSent: (email: string) => void
   onSwitchMode: () => void
   redirect: string
+  signinOnly?: boolean
 }) {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
@@ -240,18 +243,26 @@ function SignInForm({
         <GoogleIcon />
         Continue with Google
       </button>
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-slate-700" />
-        <span className="text-xs text-slate-500">or</span>
-        <div className="flex-1 h-px bg-slate-700" />
-      </div>
-      <button
-        type="button"
-        onClick={onSwitchMode}
-        className="w-full py-2 px-4 rounded-lg bg-slate-700 border border-slate-600 text-slate-200 font-medium hover:bg-slate-600 transition-colors"
-      >
-        Create account
-      </button>
+      {signinOnly ? (
+        <p className="text-xs text-slate-500 text-center">
+          Don&apos;t have an account? Ask your admin for an invite or hit &apos;Join League&apos; to request access.
+        </p>
+      ) : (
+        <>
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-slate-700" />
+            <span className="text-xs text-slate-500">or</span>
+            <div className="flex-1 h-px bg-slate-700" />
+          </div>
+          <button
+            type="button"
+            onClick={onSwitchMode}
+            className="w-full py-2 px-4 rounded-lg bg-slate-700 border border-slate-600 text-slate-200 font-medium hover:bg-slate-600 transition-colors"
+          >
+            Create account
+          </button>
+        </>
+      )}
     </form>
   )
 }
@@ -406,6 +417,7 @@ export function AuthDialog({
   onSignedUp,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
+  signinOnly,
 }: AuthDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [mode, setMode] = useState<AuthMode>(initialMode)
@@ -442,6 +454,7 @@ export function AuthDialog({
   }
 
   function handleSwitchMode() {
+    if (signinOnly) return
     setMode((m) => (m === 'signin' ? 'signup' : 'signin'))
     setStep('details')
     setEmail('')
@@ -481,7 +494,7 @@ export function AuthDialog({
               redirect={redirect}
             />
           ) : mode === 'signin' ? (
-            <SignInForm onSent={handleCodeSent} onSwitchMode={handleSwitchMode} redirect={redirect} />
+            <SignInForm onSent={handleCodeSent} onSwitchMode={handleSwitchMode} redirect={redirect} signinOnly={signinOnly} />
           ) : (
             <SignUpForm
               onSent={handleCodeSent}
