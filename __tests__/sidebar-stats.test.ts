@@ -547,4 +547,14 @@ describe('computeAllCompletedQuarters', () => {
     expect(result[1].year).toBe(2024)
     expect(result[1].quarters[0].quarterLabel).toBe('Q4 24')
   })
+
+  it('excludes a quarter whose calendar end date has not yet passed', () => {
+    // Q2 2026 ends June 30 2026. If now is April 7 2026, Q2 should be hidden
+    // even though its only week is resulted.
+    const now = new Date(2026, 3, 7) // April 7 2026
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '06 Apr 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    ]
+    expect(computeAllCompletedQuarters(weeks, now)).toEqual([])
+  })
 })
