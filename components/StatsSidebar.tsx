@@ -282,8 +282,8 @@ export function StatsSidebar({ players, weeks, features, role, leagueDayIndex, l
   return (
     <div className="space-y-3">
       <YourStatsWidget players={players} linkedPlayerName={linkedPlayerName} />
-      <InFormWidget    players={players} weeks={weeks} />
       <QuarterlyTableWidget weeks={weeks} leagueDayIndex={leagueDayIndex} />
+      <InFormWidget    players={players} weeks={weeks} />
       <TeamABWidget    weeks={weeks} />
     </div>
   )
