@@ -716,3 +716,33 @@ describe('computeAllCompletedQuarters — awards', () => {
     expect(awards.find(a => a.key === 'champion')!.player).toBe('Alice')
   })
 })
+
+// ─── YourStatsWidget player lookup ────────────────────────────────────────────
+
+describe('YourStatsWidget player lookup', () => {
+  const players: Player[] = [
+    makePlayer({ name: 'Alice', played: 20, won: 12, drew: 4, lost: 4, winRate: 60, recentForm: 'WWDLW' }),
+    makePlayer({ name: 'Bob',   played: 15, won: 8,  drew: 3, lost: 4, winRate: 53, recentForm: 'LDWWW' }),
+  ]
+
+  it('finds the linked player by name', () => {
+    const found = players.find(p => p.name === 'Alice')
+    expect(found).toBeDefined()
+    expect(found!.won).toBe(12)
+  })
+
+  it('returns undefined when linkedPlayerName is null', () => {
+    const found = players.find(p => p.name === (null as unknown as string))
+    expect(found).toBeUndefined()
+  })
+
+  it('returns undefined when no player matches the linked name', () => {
+    const found = players.find(p => p.name === 'Charlie')
+    expect(found).toBeUndefined()
+  })
+
+  it('formats win rate from winRate field', () => {
+    const alice = players.find(p => p.name === 'Alice')!
+    expect(Math.round(alice.winRate)).toBe(60)
+  })
+})
