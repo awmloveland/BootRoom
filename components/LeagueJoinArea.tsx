@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { SlidersHorizontal, Link as LinkIcon, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { JoinRequestDialog } from '@/components/JoinRequestDialog'
@@ -20,10 +21,41 @@ function isMemberStatus(s: JoinRequestStatus | 'member' | 'not-member' | null): 
   return s === 'member' || s === 'approved'
 }
 
+function SearchParamsReader({
+  joinStatus,
+  onAutoOpen,
+}: {
+  joinStatus: JoinRequestStatus | 'member' | 'not-member' | null
+  onAutoOpen: () => void
+}) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  useEffect(() => {
+    if (searchParams.get('open_join') !== '1') return
+    // Only auto-open if the user is not already a member or pending
+    const isJoinable =
+      joinStatus === null ||
+      joinStatus === 'none' ||
+      joinStatus === 'declined' ||
+      joinStatus === 'not-member'
+    if (isJoinable) {
+      onAutoOpen()
+    }
+    // Clean the URL regardless (remove the param)
+    router.replace(pathname)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return null
+}
+
 export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin, pendingRequestCount = 0 }: LeagueJoinAreaProps) {
   const [showToast, setShowToast] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     if (showToast) {
@@ -39,10 +71,8 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin, pend
 
   function handleJoinClick() {
     if (joinStatus === null) {
-      // Unauthenticated — open signup flow first
       setAuthDialogOpen(true)
     } else {
-      // Authenticated, not a member — open join request directly
       setDialogOpen(true)
     }
   }
@@ -50,6 +80,9 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin, pend
   const showJoin = joinStatus === null || joinStatus === 'not-member' || joinStatus === 'none' || joinStatus === 'declined'
   const showPending = joinStatus === 'pending'
   const showShare = isMemberStatus(joinStatus)
+
+  // Redirect destination after Google OAuth: return to this league page and auto-open join dialog
+  const joinRedirect = `${pathname}?open_join=1`
 
   return (
     <>
@@ -107,9 +140,18 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin, pend
         )}
       </div>
 
+      {/* Detect ?open_join=1 after Google OAuth signup and auto-open the join dialog */}
+      <Suspense fallback={null}>
+        <SearchParamsReader
+          joinStatus={joinStatus}
+          onAutoOpen={() => setDialogOpen(true)}
+        />
+      </Suspense>
+
       <AuthDialog
         open={authDialogOpen}
         onOpenChange={setAuthDialogOpen}
+        redirect={joinRedirect}
         initialMode="signup"
         leagueName={leagueName}
         onSignedUp={() => {
