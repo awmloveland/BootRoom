@@ -248,13 +248,13 @@ export default function LeagueSettingsPage() {
       </div>
 
       {/* Section tabs */}
-      <div className="flex gap-1 mb-6 border-b border-slate-700">
+      <div className="flex gap-1 mb-6 overflow-x-auto border-b border-slate-700 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {NAV.map(({ id, label, Icon }) => (
           <button
             key={id}
             onClick={() => setSection(id)}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
+              'flex shrink-0 items-center gap-1.5 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px',
               section === id
                 ? 'border-sky-500 text-sky-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
