@@ -1,7 +1,7 @@
 // components/MobileStatsFAB.tsx
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Activity, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -15,7 +15,7 @@ export function MobileStatsFAB({ children }: MobileStatsFABProps) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Mount immediately on open; unmount after the close animation finishes (300ms matches CSS duration)
-  const handleOpenChange = (next: boolean) => {
+  const handleOpenChange = useCallback((next: boolean) => {
     if (timerRef.current) {
       clearTimeout(timerRef.current)
       timerRef.current = null
@@ -27,7 +27,14 @@ export function MobileStatsFAB({ children }: MobileStatsFABProps) {
       setOpen(false)
       timerRef.current = setTimeout(() => setMounted(false), 300)
     }
-  }
+  }, []) // timerRef is a ref (stable), setMounted/setOpen are stable setters
+
+  // Clear any pending close timer on unmount to avoid state updates on unmounted component
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
 
   // iOS-safe scroll lock: position:fixed preserves visual viewport dimensions on iOS Safari
   useEffect(() => {
@@ -59,7 +66,7 @@ export function MobileStatsFAB({ children }: MobileStatsFABProps) {
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [open])
+  }, [open, handleOpenChange])
 
   return (
     <>

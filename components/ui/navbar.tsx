@@ -134,11 +134,10 @@ export function Navbar({
 
   const router = useRouter()
 
-  const fetchUser = useCallback(async () => {
+  const fetchUserData = useCallback(async () => {
     const res = await fetch('/api/auth/me', { credentials: 'include' })
     const data = await res.json().catch(() => ({}))
-    setUser(data?.user ?? null)
-    setDisplayName(data?.profile?.display_name ?? data?.user?.email ?? null)
+    let role: string | null = null
     if (data?.user?.id) {
       const supabase = createClient()
       const { data: profile } = await supabase
@@ -146,8 +145,15 @@ export function Navbar({
         .select('role')
         .eq('id', data.user.id)
         .maybeSingle()
-      setProfileRole(profile?.role ?? null)
+      role = profile?.role ?? null
     }
+    return { user: data?.user ?? null, displayName: data?.profile?.display_name ?? data?.user?.email ?? null, role }
+  }, [])
+
+  const applyUserData = useCallback((result: { user: { id?: string; email?: string } | null; displayName: string | null; role: string | null }) => {
+    setUser(result.user)
+    setDisplayName(result.displayName)
+    setProfileRole(result.role)
   }, [])
 
   const showNav = pathname !== '/sign-in'
@@ -162,31 +168,16 @@ export function Navbar({
   useEffect(() => {
     if (pathname === '/sign-in') return
     let cancelled = false
-    fetch('/api/auth/me', { credentials: 'include' })
-      .then((res) => res.json().catch(() => ({})))
-      .then(async (data) => {
-        if (cancelled) return
-        setUser(data?.user ?? null)
-        setDisplayName(data?.profile?.display_name ?? data?.user?.email ?? null)
-        if (data?.user?.id) {
-          const supabase = createClient()
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', data.user.id)
-            .maybeSingle()
-          if (!cancelled) setProfileRole(profile?.role ?? null)
-        }
-      })
+    fetchUserData().then((result) => { if (!cancelled) applyUserData(result) })
     return () => { cancelled = true }
-  }, [pathname])
+  }, [pathname, fetchUserData, applyUserData])
 
   useEffect(() => {
     const supabase = createClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'INITIAL_SESSION') return
       if (event === 'SIGNED_IN') {
-        fetchUser()
+        fetchUserData().then(applyUserData)
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
         setDisplayName(null)
@@ -194,7 +185,7 @@ export function Navbar({
       }
     })
     return () => subscription.unsubscribe()
-  }, [fetchUser])
+  }, [fetchUserData, applyUserData])
 
   useEffect(() => {
     if (!leagueId) return
