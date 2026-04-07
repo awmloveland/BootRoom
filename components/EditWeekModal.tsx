@@ -175,7 +175,7 @@ function LineupEditor({
           placeholder="Search players"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500 mb-2"
+          className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-300 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500 mb-2"
         />
         <div className="flex flex-wrap gap-1.5">
           {roster.map((name) => (
@@ -317,7 +317,7 @@ export function EditWeekModal({
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 placeholder="DD MMM YYYY"
-                className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
             </div>
             <div>
@@ -430,7 +430,7 @@ export function EditWeekModal({
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               placeholder="Optional notes"
-              className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500 resize-none"
+              className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500 resize-none"
             />
           </div>
 

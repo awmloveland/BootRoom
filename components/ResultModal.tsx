@@ -314,7 +314,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
                   placeholder="Optional notes (e.g. +3 goals, injuries…)"
-                  className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-slate-100 text-xs placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-500 resize-none"
+                  className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-slate-100 text-xs placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-500 resize-none"
                 />
                 {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
               </div>
@@ -438,7 +438,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                             onChange={(e) => updateGuestRosterName(i, e.target.value)}
                             placeholder="Enter their name…"
                             autoFocus
-                            className="w-full bg-slate-800 border border-blue-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-full bg-slate-800 border border-blue-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                           />
                           {g.nameError && <p className="text-xs text-red-400 mt-1">{g.nameError}</p>}
                         </div>
