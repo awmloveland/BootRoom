@@ -14,6 +14,7 @@ import { ResultsSection } from '@/components/ResultsSection'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import { MobileStatsFAB } from '@/components/MobileStatsFAB'
+import { SidebarSticky } from '@/components/SidebarSticky'
 import { BfcacheRefresh } from '@/components/BfcacheRefresh'
 import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
 import type { Week, ScheduledWeek, LeagueDetails, JoinRequestStatus } from '@/lib/types'
@@ -187,7 +188,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             )}
           </div>
           {canSeeStatsSidebar && (
-            <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
+            <SidebarSticky>
               <StatsSidebar
                 players={players}
                 weeks={weeks}
@@ -196,7 +197,7 @@ export default async function LeagueResultsPage({ params }: Props) {
                 leagueDayIndex={leagueDayIndex}
                 linkedPlayerName={linkedPlayerName}
               />
-            </div>
+            </SidebarSticky>
           )}
         </div>
         {canSeeStatsSidebar && (
@@ -263,7 +264,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             )}
           </div>
         </div>
-        <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
+        <SidebarSticky>
           <StatsSidebar
             players={players}
             weeks={weeks}
@@ -272,7 +273,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             leagueDayIndex={leagueDayIndex}
             linkedPlayerName={linkedPlayerName}
           />
-        </div>
+        </SidebarSticky>
       </div>
       {canSeeStatsSidebar && (
         <MobileStatsFAB>

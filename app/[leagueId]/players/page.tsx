@@ -9,6 +9,7 @@ import { PublicPlayerList } from '@/components/PublicPlayerList'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import { MobileStatsFAB } from '@/components/MobileStatsFAB'
 import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
+import { SidebarSticky } from '@/components/SidebarSticky'
 import type { LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
 interface Props {
@@ -97,7 +98,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
             showMentality={showMentality}
           />
         </div>
-        <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
+        <SidebarSticky>
           <StatsSidebar
             players={players}
             weeks={playedWeeks}
@@ -105,7 +106,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
             role={userRole}
             linkedPlayerName={linkedPlayerName}
           />
-        </div>
+        </SidebarSticky>
       </div>
       {canSeeStatsSidebar && (
         <MobileStatsFAB>
