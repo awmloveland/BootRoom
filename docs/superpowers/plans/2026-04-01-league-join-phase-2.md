@@ -20,7 +20,7 @@
 
 | Action | File |
 |---|---|
-| Create | `supabase/migrations/20260401000001_add_join_request_review_rpcs.sql` |
+| Create | `supabase/migrations/20260401000002_add_join_request_review_rpcs.sql` |
 | Create | `app/api/league/[id]/join-requests/[requestId]/review/route.ts` |
 | Modify | `lib/fetchers.ts` |
 | Modify | `lib/types.ts` |
@@ -34,7 +34,7 @@
 ## Task 1: Database Migration — Review RPCs
 
 **Files:**
-- Create: `supabase/migrations/20260401000001_add_join_request_review_rpcs.sql`
+- Create: `supabase/migrations/20260401000002_add_join_request_review_rpcs.sql`
 
 - [ ] **Step 1: Write the migration file**
 
@@ -148,7 +148,7 @@ Paste into the Supabase SQL Editor and execute. Verify both functions appear in 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add supabase/migrations/20260401000001_add_join_request_review_rpcs.sql
+git add supabase/migrations/20260401000002_add_join_request_review_rpcs.sql
 git commit -m "feat: add review_join_request and get_join_requests RPCs"
 ```
 
@@ -558,7 +558,19 @@ Find the settings icon block (currently `{isAdmin && (...)}`) and update it to w
 
 - [ ] **Step 3: Fetch pending count server-side in results/page.tsx**
 
-Open `app/[leagueId]/results/page.tsx`. Import `getPendingJoinCount`:
+Open `app/[leagueId]/results/page.tsx`. The existing `Promise.all` is:
+
+```ts
+const [{ user, userRole, isAuthenticated }, game, features, players, rawWeeks] = await Promise.all([
+  getAuthAndRole(leagueId),
+  getGame(leagueId),
+  getFeatures(leagueId),
+  getPlayerStats(leagueId),
+  getWeeks(leagueId),
+])
+```
+
+Add `getPendingJoinCount` to both the import and the `Promise.all`. The `joinStatus` resolution below it is conditional and must remain separate (it requires `user.id` which is only known after `getAuthAndRole` resolves). Expand the destructure to capture `pendingRequestCount`:
 
 ```ts
 import {
@@ -572,51 +584,18 @@ import {
 } from '@/lib/fetchers'
 ```
 
-Add it to the `Promise.all` block:
-
 ```ts
-const [
-  { userRole, isAuthenticated, user },
-  game,
-  features,
-  players,
-  rawWeeks,
-  joinStatus,
-  pendingRequestCount,
-] = await Promise.all([
+const [{ user, userRole, isAuthenticated }, game, features, players, rawWeeks, pendingRequestCount] = await Promise.all([
   getAuthAndRole(leagueId),
   getGame(leagueId),
   getFeatures(leagueId),
   getPlayerStats(leagueId),
   getWeeks(leagueId),
-  getJoinRequestStatus(leagueId),
-  isAdmin ? getPendingJoinCount(leagueId) : Promise.resolve(0),
-])
-```
-
-Note: `isAdmin` is derived from `userRole` — but `userRole` comes from the first element of the `Promise.all`. Since the promises run in parallel, `isAdmin` isn't known when the array is defined. Resolve this by keeping all fetches parallel and letting `getPendingJoinCount` return 0 for non-admins (it calls `get_join_requests` which will throw "Access denied" for non-admins — the fetcher already handles this by returning `[]`).
-
-Simplest approach — always fetch and let the RPC guard access:
-
-```ts
-const [
-  { userRole, isAuthenticated, user },
-  game,
-  features,
-  players,
-  rawWeeks,
-  joinStatus,
-  pendingRequestCount,
-] = await Promise.all([
-  getAuthAndRole(leagueId),
-  getGame(leagueId),
-  getFeatures(leagueId),
-  getPlayerStats(leagueId),
-  getWeeks(leagueId),
-  getJoinRequestStatus(leagueId),
   getPendingJoinCount(leagueId),   // returns 0 for non-admins (RPC denies access, fetcher returns [])
 ])
 ```
+
+The `joinStatus` block that follows (which calls `getJoinRequestStatus(leagueId, user!.id)`) stays exactly as-is.
 
 - [ ] **Step 4: Pass pendingRequestCount to LeaguePageHeader**
 

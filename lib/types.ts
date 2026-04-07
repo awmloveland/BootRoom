@@ -25,6 +25,8 @@ export interface PlayerAttribute {
   name: string;
   rating: number;   // 1–3
   mentality: Mentality;
+  linked_user_id?: string | null;
+  linked_display_name?: string | null;
 }
 
 export interface Player {
@@ -98,6 +100,7 @@ export interface LeagueMember {
   display_name: string | null;
   role: GameRole;
   joined_at: string;
+  linked_player_name: string | null;
 }
 
 export interface ScheduledWeek {
@@ -138,6 +141,16 @@ export type SortKey = 'name' | 'played' | 'won' | 'winRate' | 'recentForm'
 
 export type JoinRequestStatus = 'none' | 'pending' | 'approved' | 'declined'
 
+export interface PendingJoinRequest {
+  id: string
+  user_id: string
+  email: string
+  display_name: string
+  message: string | null
+  status: JoinRequestStatus
+  created_at: string
+}
+
 export interface JoinRequest {
   id: string
   game_id: string
@@ -149,4 +162,21 @@ export interface JoinRequest {
   reviewed_by: string | null
   created_at: string
   updated_at: string
+}
+
+export type PlayerClaimStatus = 'pending' | 'approved' | 'rejected'
+
+export interface PlayerClaim {
+  id: string
+  game_id: string
+  user_id: string
+  player_name: string
+  admin_override_name: string | null
+  status: PlayerClaimStatus
+  reviewed_by: string | null
+  created_at: string
+  updated_at: string
+  // Derived — populated in admin views
+  display_name?: string | null
+  email?: string
 }

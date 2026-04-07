@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Settings, Share2 } from 'lucide-react'
+import { SlidersHorizontal, Link as LinkIcon, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { JoinRequestDialog } from '@/components/JoinRequestDialog'
 import { AuthDialog } from '@/components/AuthDialog'
@@ -13,13 +13,14 @@ interface LeagueJoinAreaProps {
   leagueName: string
   joinStatus: JoinRequestStatus | 'member' | 'not-member' | null
   isAdmin: boolean
+  pendingRequestCount?: number
 }
 
 function isMemberStatus(s: JoinRequestStatus | 'member' | 'not-member' | null): boolean {
   return s === 'member' || s === 'approved'
 }
 
-export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin }: LeagueJoinAreaProps) {
+export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin, pendingRequestCount = 0 }: LeagueJoinAreaProps) {
   const [showToast, setShowToast] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
@@ -59,7 +60,8 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin }: Le
             className="h-7 bg-sky-600 text-white hover:bg-sky-500"
             onClick={handleJoinClick}
           >
-            Join
+            <UserPlus className="mr-1.5 size-3.5" />
+            Join League
           </Button>
         )}
         {showPending && (
@@ -79,20 +81,29 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin }: Le
             className="h-7 border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-300"
             onClick={handleShareClick}
           >
-            <Share2 className="mr-1.5 size-3.5" />
+            <LinkIcon className="mr-1.5 size-3.5" />
             Share
           </Button>
         )}
         {isAdmin && (
-          <Button
-            asChild
-            variant="ghost"
-            className="h-7 w-7 border border-slate-700 text-slate-500 hover:bg-slate-800 hover:text-slate-400"
-          >
-            <Link href={`/${leagueId}/settings`} aria-label="League settings">
-              <Settings className="size-4" />
-            </Link>
-          </Button>
+          <div className="relative">
+            <Button
+              asChild
+              size="xs"
+              variant="ghost"
+              className="w-7 p-0 border border-slate-700 text-slate-500 hover:bg-slate-800 hover:text-slate-400"
+            >
+              <Link href={`/${leagueId}/settings`} aria-label="League settings">
+                <SlidersHorizontal className="size-4" />
+              </Link>
+            </Button>
+            {pendingRequestCount > 0 && (
+              <span
+                aria-label={`${pendingRequestCount} pending request${pendingRequestCount === 1 ? '' : 's'}`}
+                className="pointer-events-none absolute right-0.5 top-0.5 size-2 rounded-full bg-red-500 ring-1 ring-slate-900"
+              />
+            )}
+          </div>
         )}
       </div>
 

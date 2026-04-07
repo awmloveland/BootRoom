@@ -1,11 +1,13 @@
+// app/[leagueId]/honours/page.tsx
 export const dynamic = 'force-dynamic'
 
 import { resolveVisibilityTier } from '@/lib/roles'
-import { isFeatureEnabled } from '@/lib/features'
 import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimStatus } from '@/lib/fetchers'
-import { LeaguePrivateState } from '@/components/LeaguePrivateState'
+import { isFeatureEnabled } from '@/lib/features'
+import { computeAllCompletedQuarters } from '@/lib/sidebar-stats'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
-import { PublicPlayerList } from '@/components/PublicPlayerList'
+import { HonoursSection } from '@/components/HonoursSection'
+import { HonoursLoginPrompt } from '@/components/HonoursLoginPrompt'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import { MobileStatsFAB } from '@/components/MobileStatsFAB'
 import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
@@ -15,18 +17,16 @@ interface Props {
   params: Promise<{ leagueId: string }>
 }
 
-export default async function LeaguePlayersPage({ params }: Props) {
+export default async function HonoursPage({ params }: Props) {
   const { leagueId } = await params
 
-  // getGame, getAuthAndRole, getFeatures are cache hits from the layout.
-  // getPlayerStats and getWeeks run fresh — both start in parallel.
   const [{ user, userRole, isAuthenticated }, game, features, players, weeks, pendingRequestCount] = await Promise.all([
     getAuthAndRole(leagueId),
     getGame(leagueId),
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
-    getPendingBadgeCount(leagueId),  // returns 0 for non-admins
+    getPendingBadgeCount(leagueId),
   ])
 
   // Resolve joinStatus for the Join/Share button
@@ -42,10 +42,6 @@ export default async function LeaguePlayersPage({ params }: Props) {
   const tier = resolveVisibilityTier(userRole)
   const isAdmin = tier === 'admin'
   const canSeeStatsSidebar = isAdmin || isFeatureEnabled(features, 'stats_sidebar', tier)
-
-  if (!isAdmin && !isFeatureEnabled(features, 'player_stats', tier)) {
-    return <LeaguePrivateState leagueName={game!.name} />
-  }
 
   // Show onboarding banner for non-admin members with no claim.
   let showClaimBanner = false
@@ -67,11 +63,6 @@ export default async function LeaguePlayersPage({ params }: Props) {
     player_count: players.length,
   }
 
-  const statsFeat = features.find((f) => f.feature === 'player_stats')
-  const config = tier === 'public' ? (statsFeat?.public_config ?? null) : (statsFeat?.config ?? null)
-  const visibleStats = config?.visible_stats ?? undefined
-  const showMentality = config?.show_mentality ?? true
-
   return (
     <main className="px-4 sm:px-6 pt-4 pb-8">
       <div className="flex justify-center gap-6 items-start">
@@ -82,27 +73,29 @@ export default async function LeaguePlayersPage({ params }: Props) {
             playedCount={playedCount}
             totalWeeks={totalWeeks}
             pct={pct}
-            currentTab="players"
+            currentTab="honours"
             isAdmin={isAdmin}
             details={details}
             joinStatus={joinStatus}
             pendingRequestCount={pendingRequestCount}
           />
           {showClaimBanner && <ClaimOnboardingBanner leagueId={leagueId} />}
-          <PublicPlayerList
-            players={players}
-            visibleStats={visibleStats}
-            showMentality={showMentality}
-          />
+          {tier === 'public' || !isAuthenticated ? (
+            <HonoursLoginPrompt leagueId={leagueId} />
+          ) : (
+            <HonoursSection data={computeAllCompletedQuarters(weeks)} />
+          )}
         </div>
-        <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
-          <StatsSidebar
-            players={players}
-            weeks={playedWeeks}
-            features={features}
-            role={userRole}
-          />
-        </div>
+        {canSeeStatsSidebar && (
+          <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
+            <StatsSidebar
+              players={players}
+              weeks={playedWeeks}
+              features={features}
+              role={userRole}
+            />
+          </div>
+        )}
       </div>
       {canSeeStatsSidebar && (
         <MobileStatsFAB>

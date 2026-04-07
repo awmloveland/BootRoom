@@ -5,7 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
 import { sortWeeks, dayNameToIndex, isPastDeadline, getMostRecentExpectedGameDate, getNextWeekNumber, deriveSeason } from '@/lib/utils'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus } from '@/lib/fetchers'
+import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimStatus } from '@/lib/fetchers'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
@@ -15,6 +15,7 @@ import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import { MobileStatsFAB } from '@/components/MobileStatsFAB'
 import { BfcacheRefresh } from '@/components/BfcacheRefresh'
+import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
 import type { Week, ScheduledWeek, LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
 interface Props {
@@ -26,12 +27,13 @@ export default async function LeagueResultsPage({ params }: Props) {
 
   // getGame, getAuthAndRole, getFeatures are cache hits from the layout.
   // getPlayerStats and getWeeks run fresh — both start in parallel.
-  const [{ user, userRole, isAuthenticated }, game, features, players, rawWeeks] = await Promise.all([
+  const [{ user, userRole, isAuthenticated }, game, features, players, rawWeeks, pendingRequestCount] = await Promise.all([
     getAuthAndRole(leagueId),
     getGame(leagueId),
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
+    getPendingBadgeCount(leagueId),  // returns 0 for non-admins (RPC denies access)
   ])
 
   // Resolve joinStatus for the Join/Share button
@@ -52,6 +54,13 @@ export default async function LeagueResultsPage({ params }: Props) {
   // game is guaranteed non-null — the layout already called notFound() if missing.
   const tier = resolveVisibilityTier(userRole)
   const isAdmin = tier === 'admin'
+
+  // Show onboarding banner for non-admin members with no claim.
+  let showClaimBanner = false
+  if (tier === 'member') {
+    const claimStatus = await getMyClaimStatus(leagueId)
+    showClaimBanner = claimStatus === 'none'
+  }
 
   const canSeeMatchHistory = isAdmin || isFeatureEnabled(features, 'match_history', tier)
   const canSeeMatchEntry = isAdmin || isFeatureEnabled(features, 'match_entry', tier)
@@ -155,6 +164,7 @@ export default async function LeagueResultsPage({ params }: Props) {
               isAdmin={isAdmin}
               details={details}
               joinStatus={joinStatus}
+              pendingRequestCount={pendingRequestCount}
             />
             {canSeeMatchEntry && (
               <PublicMatchEntrySection
@@ -217,7 +227,9 @@ export default async function LeagueResultsPage({ params }: Props) {
             isAdmin={isAdmin}
             details={details}
             joinStatus={joinStatus}
+            pendingRequestCount={pendingRequestCount}
           />
+          {showClaimBanner && <ClaimOnboardingBanner leagueId={leagueId} />}
           <div className="flex flex-col gap-3">
             {canSeeMatchEntry ? (
               <ResultsSection

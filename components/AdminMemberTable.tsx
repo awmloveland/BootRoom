@@ -4,6 +4,7 @@ import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import PlayerClaimPicker from '@/components/PlayerClaimPicker'
 import type { LeagueMember, GameRole } from '@/lib/types'
 
 interface AdminMemberTableProps {
@@ -28,6 +29,9 @@ export function AdminMemberTable({ leagueId, members, onChanged }: AdminMemberTa
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmRemove, setConfirmRemove] = useState<LeagueMember | null>(null)
+  const [linkingUserId, setLinkingUserId] = useState<string | null>(null)
+  const [assignSubmitting, setAssignSubmitting] = useState(false)
+  const [assignError, setAssignError] = useState<string | null>(null)
 
   async function setRole(userId: string, role: 'admin' | 'member') {
     setBusy(`role-${userId}`)
@@ -72,6 +76,27 @@ export function AdminMemberTable({ leagueId, members, onChanged }: AdminMemberTa
     }
   }
 
+  async function assignPlayer(userId: string, playerName: string) {
+    setAssignSubmitting(true)
+    setAssignError(null)
+    try {
+      const res = await fetch(`/api/league/${leagueId}/player-claims/assign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, player_name: playerName }),
+        credentials: 'include',
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to assign player')
+      setLinkingUserId(null)
+      onChanged()
+    } catch (err) {
+      setAssignError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setAssignSubmitting(false)
+    }
+  }
+
   const confirmName = confirmRemove?.display_name || confirmRemove?.email || 'this member'
 
   return (
@@ -81,61 +106,94 @@ export function AdminMemberTable({ leagueId, members, onChanged }: AdminMemberTa
         <div className="rounded-lg border border-slate-700 overflow-hidden">
           {members.map((member, i) => {
             const isLocked = member.role === 'creator'
+            const linkedName = member.linked_player_name
+            const isLinking = linkingUserId === member.user_id
             return (
               <div
                 key={member.user_id}
-                className={cn(
-                  'flex items-center justify-between px-4 py-3 gap-3',
-                  i > 0 && 'border-t border-slate-700/60'
-                )}
+                className={cn(i > 0 && 'border-t border-slate-700/60')}
               >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-200 truncate">
-                    {member.display_name || member.email}
-                  </p>
-                  {member.display_name && (
-                    <p className="text-xs text-slate-500 truncate">{member.email}</p>
-                  )}
+                <div className="flex items-center justify-between px-4 py-3 gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-200 truncate">
+                      {member.display_name || member.email}
+                    </p>
+                    {member.display_name && (
+                      <p className="text-xs text-slate-500 truncate">{member.email}</p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* Player identity badge / link button */}
+                    {linkedName ? (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs border bg-emerald-900/40 text-emerald-300 border-emerald-700/50">
+                        <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" />
+                        Linked: {linkedName}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setLinkingUserId(isLinking ? null : member.user_id)}
+                        className="text-xs text-slate-500 border border-dashed border-slate-600 px-2 py-0.5 rounded hover:border-slate-400 hover:text-slate-300 transition-colors"
+                      >
+                        + Link player
+                      </button>
+                    )}
+
+                    {isLocked && (
+                      <span className={cn(
+                        'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border',
+                        ROLE_BADGE[member.role]
+                      )}>
+                        {ROLE_LABEL[member.role]}
+                      </span>
+                    )}
+                    {!isLocked && (
+                      <>
+                        <div className="flex rounded-md border border-slate-600 overflow-hidden text-xs">
+                          {(['member', 'admin'] as const).map((r) => (
+                            <button
+                              key={r}
+                              onClick={() => member.role !== r && setRole(member.user_id, r)}
+                              disabled={!!busy || member.role === r}
+                              className={cn(
+                                'px-2.5 py-1 font-medium transition-colors capitalize',
+                                member.role === r
+                                  ? 'bg-sky-600 text-white cursor-default'
+                                  : 'bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                              )}
+                            >
+                              {busy === `role-${member.user_id}` && member.role !== r ? '…' : r.charAt(0).toUpperCase() + r.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => setConfirmRemove(member)}
+                          disabled={!!busy}
+                          className="ml-2 text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  {isLocked && (
-                    <span className={cn(
-                      'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border',
-                      ROLE_BADGE[member.role]
-                    )}>
-                      {ROLE_LABEL[member.role]}
-                    </span>
-                  )}
-                  {!isLocked && (
-                    <>
-                      <div className="flex rounded-md border border-slate-600 overflow-hidden text-xs">
-                        {(['member', 'admin'] as const).map((r) => (
-                          <button
-                            key={r}
-                            onClick={() => member.role !== r && setRole(member.user_id, r)}
-                            disabled={!!busy || member.role === r}
-                            className={cn(
-                              'px-2.5 py-1 font-medium transition-colors capitalize',
-                              member.role === r
-                                ? 'bg-sky-600 text-white cursor-default'
-                                : 'bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-                            )}
-                          >
-                            {busy === `role-${member.user_id}` && member.role !== r ? '…' : r.charAt(0).toUpperCase() + r.slice(1)}
-                          </button>
-                        ))}
-                      </div>
-                      <button
-                        onClick={() => setConfirmRemove(member)}
-                        disabled={!!busy}
-                        className="ml-2 text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </>
-                  )}
-                </div>
+                {/* Inline player link picker */}
+                {isLinking && (
+                  <>
+                    <PlayerClaimPicker
+                      leagueId={leagueId}
+                      submitting={assignSubmitting}
+                      footerText="Select the player name to link to this member's account."
+                      onClaim={(playerName) => assignPlayer(member.user_id, playerName)}
+                      onCancel={() => { setLinkingUserId(null); setAssignError(null) }}
+                    />
+                    {assignError && (
+                      <p className="px-4 pb-3 text-xs text-red-400">{assignError}</p>
+                    )}
+                  </>
+                )}
               </div>
             )
           })}

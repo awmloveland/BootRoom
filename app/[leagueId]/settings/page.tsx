@@ -8,8 +8,10 @@ import { AdminMemberTable } from '@/components/AdminMemberTable'
 import { FeaturePanel } from '@/components/FeaturePanel'
 import { LeagueDetailsForm } from '@/components/LeagueDetailsForm'
 import { PlayerRosterPanel } from '@/components/PlayerRosterPanel'
+import { PlayerClaimsTable } from '@/components/PlayerClaimsTable'
 import { cn } from '@/lib/utils'
-import type { LeagueMember, LeagueFeature, LeagueDetails, PlayerAttribute } from '@/lib/types'
+import type { LeagueMember, LeagueFeature, LeagueDetails, PlayerAttribute, PendingJoinRequest, PlayerClaim } from '@/lib/types'
+import { PendingRequestsTable } from '@/components/PendingRequestsTable'
 
 type Section = 'details' | 'members' | 'features' | 'players'
 
@@ -48,6 +50,13 @@ export default function LeagueSettingsPage() {
   // Members state
   const [members, setMembers] = useState<LeagueMember[]>([])
   const [membersLoading, setMembersLoading] = useState(false)
+
+  // Pending join requests state
+  const [pendingRequests, setPendingRequests] = useState<PendingJoinRequest[]>([])
+  const [pendingLoading, setPendingLoading] = useState(false)
+
+  // Player claims state
+  const [pendingClaims, setPendingClaims] = useState<PlayerClaim[]>([])
 
   // Invite links state
   const [memberLink, setMemberLink] = useState<string | null>(null)
@@ -111,14 +120,30 @@ export default function LeagueSettingsPage() {
 
   const loadMembers = useCallback(async () => {
     setMembersLoading(true)
+    setPendingLoading(true)
     try {
-      const res = await fetch(`/api/league/${leagueId}/members`, { credentials: 'include' })
-      const data = await res.json()
-      setMembers(Array.isArray(data) ? data : [])
+      const [membersRes, pendingRes, claimsRes] = await Promise.all([
+        fetch(`/api/league/${leagueId}/members`, { credentials: 'include' }),
+        fetch(`/api/league/${leagueId}/join-requests`, { credentials: 'include' }),
+        fetch(`/api/league/${leagueId}/player-claims/all`, { credentials: 'include' }),
+      ])
+      const [membersData, pendingData, claimsData] = await Promise.all([
+        membersRes.json(),
+        pendingRes.ok ? pendingRes.json() : Promise.resolve([]),
+        claimsRes.ok ? claimsRes.json() : Promise.resolve([]),
+      ])
+      setMembers(Array.isArray(membersData) ? membersData : [])
+      setPendingRequests(Array.isArray(pendingData) ? pendingData : [])
+
+      const allClaims: PlayerClaim[] = Array.isArray(claimsData) ? claimsData : []
+      setPendingClaims(allClaims.filter((c) => c.status === 'pending'))
     } catch {
       setMembers([])
+      setPendingRequests([])
+      setPendingClaims([])
     } finally {
       setMembersLoading(false)
+      setPendingLoading(false)
     }
   }, [leagueId])
 
@@ -310,6 +335,34 @@ export default function LeagueSettingsPage() {
               ))}
             </div>
           </div>
+
+          {/* Pending join requests */}
+          {pendingLoading ? (
+            <p className="text-slate-400 text-sm">Loading requests…</p>
+          ) : pendingRequests.length > 0 ? (
+            <PendingRequestsTable
+              leagueId={leagueId}
+              initialRequests={pendingRequests}
+              pendingClaims={pendingClaims}
+            />
+          ) : (
+            <p className="text-sm text-slate-500">No pending requests.</p>
+          )}
+
+          {/* Player identity claims — only those not attached to a pending join request */}
+          {(() => {
+            const pendingRequestUserIds = new Set(pendingRequests.map((r) => r.user_id))
+            const standaloneClaims = pendingClaims.filter(
+              (c) => !pendingRequestUserIds.has(c.user_id),
+            )
+            return standaloneClaims.length > 0 ? (
+              <PlayerClaimsTable
+                leagueId={leagueId}
+                initialClaims={standaloneClaims}
+                onChanged={loadMembers}
+              />
+            ) : null
+          })()}
 
           {/* Member list */}
           <div>

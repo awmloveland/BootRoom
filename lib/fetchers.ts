@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sortWeeks } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
-import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality, JoinRequestStatus } from '@/lib/types'
+import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality, JoinRequestStatus, PendingJoinRequest, PlayerClaimStatus } from '@/lib/types'
 
 // ── Game ─────────────────────────────────────────────────────────────────────
 
@@ -161,6 +161,75 @@ export async function getJoinRequestStatus(
   if (!data) return 'none'
   return data.status as JoinRequestStatus
 }
+
+// ── Pending join requests ─────────────────────────────────────────────────────
+
+// Fetches all pending join requests for a league. Returns [] if the caller
+// is not an admin (the RPC raises 'Access denied' which the catch swallows).
+export const getPendingJoinRequests = cache(async (leagueId: string): Promise<PendingJoinRequest[]> => {
+  try {
+    const authSupabase = await createClient()
+    const { data: { user } } = await authSupabase.auth.getUser()
+    if (!user) return []
+
+    const { data, error } = await authSupabase.rpc('get_join_requests', {
+      p_game_id: leagueId,
+    })
+
+    if (error) return []
+    return (data ?? []) as PendingJoinRequest[]
+  } catch {
+    return []
+  }
+})
+
+export const getPendingJoinCount = cache(async (leagueId: string): Promise<number> => {
+  const requests = await getPendingJoinRequests(leagueId)
+  return requests.length
+})
+
+// Returns count of pending player claims. Returns 0 for non-admins (RPC denies access).
+export const getPendingClaimCount = cache(async (leagueId: string): Promise<number> => {
+  try {
+    const authSupabase = await createClient()
+    const { data: { user } } = await authSupabase.auth.getUser()
+    if (!user) return 0
+    const { data, error } = await authSupabase.rpc('get_player_claims', { p_game_id: leagueId })
+    if (error) return 0
+    const claims = (data ?? []) as { status: string }[]
+    return claims.filter((c) => c.status === 'pending').length
+  } catch {
+    return 0
+  }
+})
+
+// Combined badge count for the admin settings gear: pending join requests + pending claims.
+export const getPendingBadgeCount = cache(async (leagueId: string): Promise<number> => {
+  const [joinCount, claimCount] = await Promise.all([
+    getPendingJoinCount(leagueId),
+    getPendingClaimCount(leagueId),
+  ])
+  return joinCount + claimCount
+})
+
+// Returns the current user's claim status for a league ('none' if no claim exists).
+// Uses the auth client — members can only read their own rows via RLS.
+export const getMyClaimStatus = cache(async (leagueId: string): Promise<PlayerClaimStatus | 'none'> => {
+  try {
+    const authSupabase = await createClient()
+    const { data: { user } } = await authSupabase.auth.getUser()
+    if (!user) return 'none'
+    const { data } = await authSupabase
+      .from('player_claims')
+      .select('status')
+      .eq('game_id', leagueId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    return (data?.status ?? 'none') as PlayerClaimStatus | 'none'
+  } catch {
+    return 'none'
+  }
+})
 
 // ── Weeks ─────────────────────────────────────────────────────────────────────
 
