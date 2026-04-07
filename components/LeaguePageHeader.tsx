@@ -50,11 +50,11 @@ export function LeaguePageHeader({
       <div className="mt-3">
         <LeagueInfoBar details={details} leagueId={leagueId} isAdmin={isAdmin} />
       </div>
-      <nav className="flex gap-6 border-b border-slate-700 pt-5">
+      <nav className="flex gap-6 overflow-x-auto border-b border-slate-700 pt-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Link
           href={`/${leagueId}/results`}
           className={cn(
-            '-mb-px flex items-center gap-2 border-b-2 pb-2 text-sm font-medium',
+            '-mb-px flex shrink-0 items-center gap-2 border-b-2 pb-2 text-sm font-medium whitespace-nowrap',
             currentTab === 'results'
               ? 'border-slate-200 text-slate-200'
               : 'border-transparent text-slate-400 hover:text-slate-300'
@@ -66,7 +66,7 @@ export function LeaguePageHeader({
         <Link
           href={`/${leagueId}/players`}
           className={cn(
-            '-mb-px flex items-center gap-2 border-b-2 pb-2 text-sm font-medium',
+            '-mb-px flex shrink-0 items-center gap-2 border-b-2 pb-2 text-sm font-medium whitespace-nowrap',
             currentTab === 'players'
               ? 'border-slate-200 text-slate-200'
               : 'border-transparent text-slate-400 hover:text-slate-300'
@@ -78,7 +78,7 @@ export function LeaguePageHeader({
         <Link
           href={`/${leagueId}/honours`}
           className={cn(
-            '-mb-px flex items-center gap-2 border-b-2 pb-2 text-sm font-medium',
+            '-mb-px flex shrink-0 items-center gap-2 border-b-2 pb-2 text-sm font-medium whitespace-nowrap',
             currentTab === 'honours'
               ? 'border-slate-200 text-slate-200'
               : 'border-transparent text-slate-400 hover:text-slate-300'
@@ -90,7 +90,7 @@ export function LeaguePageHeader({
         <Link
           href={`/${leagueId}/lineup-lab`}
           className={cn(
-            '-mb-px flex items-center gap-2 border-b-2 pb-2 text-sm font-medium',
+            '-mb-px flex shrink-0 items-center gap-2 border-b-2 pb-2 text-sm font-medium whitespace-nowrap',
             currentTab === 'lineup-lab'
               ? 'border-slate-200 text-slate-200'
               : 'border-transparent text-slate-400 hover:text-slate-300'
