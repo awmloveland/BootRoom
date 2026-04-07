@@ -57,6 +57,9 @@ export async function POST(
         { status: 409 }
       )
     }
+    if (error.message?.includes('profile_not_found')) {
+      return NextResponse.json({ error: 'profile_not_found' }, { status: 422 })
+    }
     console.error('[join-requests POST]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
