@@ -89,6 +89,14 @@ export interface QuarterlyEntry {
   points: number
 }
 
+export interface QuarterAward {
+  key: 'champion' | 'iron_man' | 'win_machine' | 'sharp_shooter' | 'clutch' | 'untouchable' | 'on_fire'
+  nickname: string
+  icon: string
+  player: string
+  stat: string  // pre-formatted, e.g. "2.3 PPG", "5-game streak"
+}
+
 export interface QuarterlyTableResult {
   quarterLabel: string
   entries: QuarterlyEntry[]
@@ -105,6 +113,7 @@ export interface CompletedQuarter {
   q: number
   champion: string          // top-ranked player name
   entries: QuarterlyEntry[] // full table, all players, sorted points desc → wins desc → name asc
+  awards: QuarterAward[]    // ordered: champion first, rest conditional
 }
 
 export interface HonoursYear {
@@ -219,7 +228,7 @@ export function computeAllCompletedQuarters(weeks: Week[], now: Date = new Date(
     if (entries.length === 0) continue
     const champion = entries[0].name
 
-    completed.push({ quarterLabel, year, q, champion, entries })
+    completed.push({ quarterLabel, year, q, champion, entries, awards: [] })
   }
 
   // Sort newest first overall, then group by year
