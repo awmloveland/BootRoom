@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { resolveVisibilityTier } from '@/lib/roles'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingJoinCount } from '@/lib/fetchers'
+import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount } from '@/lib/fetchers'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { LineupLab } from '@/components/LineupLab'
 import { LineupLabLoginPrompt } from '@/components/LineupLabLoginPrompt'
@@ -26,7 +26,7 @@ export default async function LineupLabPage({ params }: Props) {
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
-    getPendingJoinCount(leagueId),
+    getPendingBadgeCount(leagueId),
   ])
 
   // Resolve joinStatus for the Join/Share button

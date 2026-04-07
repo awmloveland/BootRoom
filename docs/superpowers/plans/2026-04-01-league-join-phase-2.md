@@ -34,7 +34,7 @@
 ## Task 1: Database Migration — Review RPCs
 
 **Files:**
-- Create: `supabase/migrations/20260401000001_add_join_request_review_rpcs.sql`
+- Create: `supabase/migrations/20260401000002_add_join_request_review_rpcs.sql`
 
 - [ ] **Step 1: Write the migration file**
 
