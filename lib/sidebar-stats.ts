@@ -131,6 +131,39 @@ function weekInQuarter(week: Week, q: number, year: number): boolean {
   return wq.q === q && wq.year === year
 }
 
+function maxBy<T>(arr: T[], fn: (item: T) => number): T | undefined {
+  if (arr.length === 0) return undefined
+  return arr.reduce((best, item) => fn(item) > fn(best) ? item : best)
+}
+
+function longestWinStreak(weeks: Week[]): { player: string; count: number } {
+  const sorted = [...weeks].sort(
+    (a, b) => parseWeekDate(a.date).getTime() - parseWeekDate(b.date).getTime()
+  )
+  const current = new Map<string, number>()
+  const best = new Map<string, number>()
+
+  for (const w of sorted) {
+    const allPlayers = [...w.teamA, ...w.teamB]
+    for (const name of allPlayers) {
+      const onTeamA = w.teamA.includes(name)
+      const won =
+        (w.winner === 'teamA' && onTeamA) ||
+        (w.winner === 'teamB' && !onTeamA)
+      const streak = won ? (current.get(name) ?? 0) + 1 : 0
+      current.set(name, streak)
+      if (streak > (best.get(name) ?? 0)) best.set(name, streak)
+    }
+  }
+
+  let topPlayer = ''
+  let topCount = 0
+  for (const [name, count] of best) {
+    if (count > topCount) { topPlayer = name; topCount = count }
+  }
+  return { player: topPlayer, count: topCount }
+}
+
 function aggregateWeeks(weeks: Week[]): QuarterlyEntry[] {
   const map = new Map<string, QuarterlyEntry>()
   for (const w of weeks) {
