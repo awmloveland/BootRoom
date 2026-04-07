@@ -337,16 +337,16 @@ export default function LeagueSettingsPage() {
           </div>
 
           {/* Pending join requests */}
-          {(pendingLoading || pendingRequests.length > 0) && (
-            pendingLoading ? (
-              <p className="text-slate-400 text-sm">Loading requests…</p>
-            ) : (
-              <PendingRequestsTable
-                leagueId={leagueId}
-                initialRequests={pendingRequests}
-                pendingClaims={pendingClaims}
-              />
-            )
+          {pendingLoading ? (
+            <p className="text-slate-400 text-sm">Loading requests…</p>
+          ) : pendingRequests.length > 0 ? (
+            <PendingRequestsTable
+              leagueId={leagueId}
+              initialRequests={pendingRequests}
+              pendingClaims={pendingClaims}
+            />
+          ) : (
+            <p className="text-sm text-slate-500">No pending requests.</p>
           )}
 
           {/* Player identity claims — only those not attached to a pending join request */}
