@@ -5,7 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
 import { sortWeeks, dayNameToIndex, isPastDeadline, getMostRecentExpectedGameDate, getNextWeekNumber, deriveSeason } from '@/lib/utils'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimStatus } from '@/lib/fetchers'
+import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
@@ -56,10 +56,12 @@ export default async function LeagueResultsPage({ params }: Props) {
   const isAdmin = tier === 'admin'
 
   // Show onboarding banner for non-admin members with no claim.
+  let linkedPlayerName: string | null = null
   let showClaimBanner = false
-  if (tier === 'member') {
-    const claimStatus = await getMyClaimStatus(leagueId)
-    showClaimBanner = claimStatus === 'none'
+  if (tier !== 'public') {
+    const { status, playerName } = await getMyClaimInfo(leagueId)
+    linkedPlayerName = playerName
+    if (tier === 'member') showClaimBanner = status === 'none'
   }
 
   const canSeeMatchHistory = isAdmin || isFeatureEnabled(features, 'match_history', tier)
@@ -192,6 +194,7 @@ export default async function LeagueResultsPage({ params }: Props) {
                 features={features}
                 role={userRole}
                 leagueDayIndex={leagueDayIndex}
+                linkedPlayerName={linkedPlayerName}
               />
             </div>
           )}
@@ -204,6 +207,7 @@ export default async function LeagueResultsPage({ params }: Props) {
               features={features}
               role={userRole}
               leagueDayIndex={leagueDayIndex}
+              linkedPlayerName={linkedPlayerName}
             />
           </MobileStatsFAB>
         )}
@@ -266,6 +270,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             features={features}
             role={userRole}
             leagueDayIndex={leagueDayIndex}
+            linkedPlayerName={linkedPlayerName}
           />
         </div>
       </div>
@@ -277,6 +282,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             features={features}
             role={userRole}
             leagueDayIndex={leagueDayIndex}
+            linkedPlayerName={linkedPlayerName}
           />
         </MobileStatsFAB>
       )}
