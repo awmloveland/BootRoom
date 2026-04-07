@@ -1,0 +1,96 @@
+
+> craft-football@0.3.0 build
+> next build
+
+   ▲ Next.js 15.5.14
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 1813ms
+   Linting and checking validity of types ...
+
+./components/PublicHeader.tsx
+31:9  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/WebsiteHeader.tsx
+10:9  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/ui/navbar.tsx
+216:11  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+287:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/20) ...
+   Generating static pages (5/20) 
+   Generating static pages (10/20) 
+   Generating static pages (15/20) 
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /design-preview. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /welcome. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /settings. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /experiments. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /_not-found. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ✓ Generating static pages (20/20)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                               Size  First Load JS
+┌ ƒ /                                                    819 B         106 kB
+├ ○ /_not-found                                          215 B         102 kB
+├ ƒ /[leagueId]                                          215 B         102 kB
+├ ƒ /[leagueId]/honours                                 2.8 kB         202 kB
+├ ƒ /[leagueId]/lineup-lab                             5.28 kB         202 kB
+├ ƒ /[leagueId]/players                                3.15 kB         203 kB
+├ ƒ /[leagueId]/results                                15.9 kB         215 kB
+├ ƒ /[leagueId]/settings                               14.6 kB         200 kB
+├ ƒ /api/auth/me                                         215 B         102 kB
+├ ƒ /api/auth/profile                                    215 B         102 kB
+├ ƒ /api/auth/session                                    215 B         102 kB
+├ ƒ /api/auth/sign-out                                   215 B         102 kB
+├ ƒ /api/experiments                                     215 B         102 kB
+├ ƒ /api/games                                           215 B         102 kB
+├ ƒ /api/health                                          215 B         102 kB
+├ ƒ /api/import-game                                     215 B         102 kB
+├ ƒ /api/invites                                         215 B         102 kB
+├ ƒ /api/league/[id]/details                             215 B         102 kB
+├ ƒ /api/league/[id]/features                            215 B         102 kB
+├ ƒ /api/league/[id]/join-requests                       215 B         102 kB
+├ ƒ /api/league/[id]/join-requests/[requestId]/review    215 B         102 kB
+├ ƒ /api/league/[id]/members                             215 B         102 kB
+├ ƒ /api/league/[id]/player-claims                       215 B         102 kB
+├ ƒ /api/league/[id]/player-claims/[claimId]             215 B         102 kB
+├ ƒ /api/league/[id]/player-claims/[claimId]/review      215 B         102 kB
+├ ƒ /api/league/[id]/player-claims/all                   215 B         102 kB
+├ ƒ /api/league/[id]/player-claims/assign                215 B         102 kB
+├ ƒ /api/league/[id]/players                             215 B         102 kB
+├ ƒ /api/league/[id]/players/[name]                      215 B         102 kB
+├ ƒ /api/league/[id]/weeks/[weekId]                      215 B         102 kB
+├ ƒ /api/league/[id]/weeks/[weekId]/edit                 215 B         102 kB
+├ ƒ /api/league/[id]/weeks/scheduled                     215 B         102 kB
+├ ƒ /api/players                                         215 B         102 kB
+├ ƒ /api/public/league/[id]/cancel                       215 B         102 kB
+├ ƒ /api/public/league/[id]/lineup                       215 B         102 kB
+├ ƒ /api/public/league/[id]/result                       215 B         102 kB
+├ ƒ /api/verify-access                                   215 B         102 kB
+├ ƒ /api/weeks                                           215 B         102 kB
+├ ƒ /auth/callback                                       215 B         102 kB
+├ ○ /design-preview                                    4.53 kB         113 kB
+├ ○ /experiments                                       2.75 kB         112 kB
+├ ○ /settings                                          4.88 kB         175 kB
+└ ○ /welcome                                           3.39 kB         174 kB
++ First Load JS shared by all                           102 kB
+  ├ chunks/1255-aadf393aa3a56bfa.js                      46 kB
+  ├ chunks/4bd1b696-f785427dddbba9fb.js                54.2 kB
+  └ other shared chunks (total)                        1.93 kB
+
+
+ƒ Middleware                                           87.7 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

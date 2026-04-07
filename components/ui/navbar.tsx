@@ -134,11 +134,10 @@ export function Navbar({
 
   const router = useRouter()
 
-  const fetchUser = useCallback(async () => {
+  const fetchUserData = useCallback(async () => {
     const res = await fetch('/api/auth/me', { credentials: 'include' })
     const data = await res.json().catch(() => ({}))
-    setUser(data?.user ?? null)
-    setDisplayName(data?.profile?.display_name ?? data?.user?.email ?? null)
+    let role: string | null = null
     if (data?.user?.id) {
       const supabase = createClient()
       const { data: profile } = await supabase
@@ -146,27 +145,39 @@ export function Navbar({
         .select('role')
         .eq('id', data.user.id)
         .maybeSingle()
-      setProfileRole(profile?.role ?? null)
+      role = profile?.role ?? null
     }
+    return { user: data?.user ?? null, displayName: data?.profile?.display_name ?? data?.user?.email ?? null, role }
+  }, [])
+
+  const applyUserData = useCallback((result: { user: { id?: string; email?: string } | null; displayName: string | null; role: string | null }) => {
+    setUser(result.user)
+    setDisplayName(result.displayName)
+    setProfileRole(result.role)
   }, [])
 
   const showNav = pathname !== '/sign-in'
 
-  useEffect(() => {
-    setSheetOpen(false)
-  }, [pathname])
+  // Reset sheet open state when pathname changes (React key-based reset pattern)
+  const [sheetPathname, setSheetPathname] = useState(pathname)
+  if (sheetPathname !== pathname) {
+    setSheetPathname(pathname)
+    if (sheetOpen) setSheetOpen(false)
+  }
 
   useEffect(() => {
     if (pathname === '/sign-in') return
-    fetchUser()
-  }, [pathname, fetchUser])
+    let cancelled = false
+    fetchUserData().then((result) => { if (!cancelled) applyUserData(result) })
+    return () => { cancelled = true }
+  }, [pathname, fetchUserData, applyUserData])
 
   useEffect(() => {
     const supabase = createClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'INITIAL_SESSION') return
       if (event === 'SIGNED_IN') {
-        fetchUser()
+        fetchUserData().then(applyUserData)
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
         setDisplayName(null)
@@ -174,21 +185,28 @@ export function Navbar({
       }
     })
     return () => subscription.unsubscribe()
-  }, [fetchUser])
+  }, [fetchUserData, applyUserData])
 
   useEffect(() => {
-    if (!leagueId) {
-      setIsLeagueAdmin(false)
-      return
-    }
+    if (!leagueId) return
+    let cancelled = false
     fetch('/api/games', { credentials: 'include' })
       .then((res) => res.json().catch(() => []))
       .then((data: { id: string; name: string; role: string }[]) => {
+        if (cancelled) return
         const game = (data ?? []).find((g) => g.id === leagueId)
         setIsLeagueAdmin(game?.role === 'creator' || game?.role === 'admin')
       })
-      .catch(() => { setIsLeagueAdmin(false) })
+      .catch(() => { if (!cancelled) setIsLeagueAdmin(false) })
+    return () => { cancelled = true }
   }, [leagueId])
+
+  // Reset league admin when leaving a league context (state-comparison during render)
+  const [prevLeagueId, setPrevLeagueId] = useState(leagueId)
+  if (prevLeagueId !== leagueId) {
+    setPrevLeagueId(leagueId)
+    if (!leagueId) setIsLeagueAdmin(false)
+  }
 
   async function handleSignOut() {
     await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' })

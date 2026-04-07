@@ -1,7 +1,7 @@
 // components/MobileStatsFAB.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Activity, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -12,16 +12,29 @@ interface MobileStatsFABProps {
 export function MobileStatsFAB({ children }: MobileStatsFABProps) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Mount immediately on open; unmount after the close animation finishes (300ms matches CSS duration)
-  useEffect(() => {
-    if (open) {
-      setMounted(true)
-      return
+  const handleOpenChange = useCallback((next: boolean) => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
     }
-    const timer = setTimeout(() => setMounted(false), 300)
-    return () => clearTimeout(timer)
-  }, [open])
+    if (next) {
+      setMounted(true)
+      setOpen(true)
+    } else {
+      setOpen(false)
+      timerRef.current = setTimeout(() => setMounted(false), 300)
+    }
+  }, []) // timerRef is a ref (stable), setMounted/setOpen are stable setters
+
+  // Clear any pending close timer on unmount to avoid state updates on unmounted component
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
 
   // iOS-safe scroll lock: position:fixed preserves visual viewport dimensions on iOS Safari
   useEffect(() => {
@@ -46,21 +59,21 @@ export function MobileStatsFAB({ children }: MobileStatsFABProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && open) {
-        setOpen(false)
+        handleOpenChange(false)
       }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [open])
+  }, [open, handleOpenChange])
 
   return (
     <>
       {/* Pill FAB */}
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => handleOpenChange(!open)}
         className="fixed bottom-6 right-4 lg:hidden z-30 flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-white rounded-full px-4 py-2.5 shadow-lg shadow-sky-500/30 text-sm font-semibold"
         aria-label="View live stats"
       >
@@ -76,7 +89,7 @@ export function MobileStatsFAB({ children }: MobileStatsFABProps) {
           {/* z-[60] intentionally higher than FAB z-30 and navbar z-50 — backdrop covers everything while sheet is open */}
           {/* Backdrop */}
           <div
-            onClick={() => setOpen(false)}
+            onClick={() => handleOpenChange(false)}
             className={cn(
               'fixed inset-0 bg-slate-900/80 z-[60] lg:hidden transition-opacity duration-300',
               open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -99,7 +112,7 @@ export function MobileStatsFAB({ children }: MobileStatsFABProps) {
               <span className="text-lg font-bold text-slate-100 tracking-tight">League Stats</span>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={() => handleOpenChange(false)}
                 className="text-slate-400 hover:text-slate-200 bg-slate-700/50 hover:bg-slate-700 rounded-lg p-1.5"
                 aria-label="Close stats"
               >

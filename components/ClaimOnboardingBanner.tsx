@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { X } from 'lucide-react'
 
@@ -10,17 +10,21 @@ interface ClaimOnboardingBannerProps {
 
 export function ClaimOnboardingBanner({ leagueId }: ClaimOnboardingBannerProps) {
   const storageKey = `dismissed-claim-banner-${leagueId}`
-  const [visible, setVisible] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
 
-  useEffect(() => {
-    if (!localStorage.getItem(storageKey)) {
-      setVisible(true)
-    }
-  }, [storageKey])
+  const subscribe = useCallback(() => {
+    // localStorage doesn't fire events within the same tab, so no-op
+    return () => {}
+  }, [])
+  const getSnapshot = useCallback(() => localStorage.getItem(storageKey), [storageKey])
+  const getServerSnapshot = useCallback(() => '1', [])
+
+  const stored = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  const visible = stored === null && !dismissed
 
   function dismiss() {
     localStorage.setItem(storageKey, '1')
-    setVisible(false)
+    setDismissed(true)
   }
 
   if (!visible) return null

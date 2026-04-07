@@ -221,7 +221,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
                     value={newName}
                     onChange={(e) => { setNewName(e.target.value); setNameError(null) }}
                     placeholder="Full name"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     autoFocus
                   />
                   {nameError && <p className="text-xs text-red-400 mt-1">{nameError}</p>}
