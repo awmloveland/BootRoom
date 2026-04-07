@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimStatus } from '@/lib/fetchers'
+import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { PublicPlayerList } from '@/components/PublicPlayerList'
@@ -48,10 +48,12 @@ export default async function LeaguePlayersPage({ params }: Props) {
   }
 
   // Show onboarding banner for non-admin members with no claim.
+  let linkedPlayerName: string | null = null
   let showClaimBanner = false
-  if (tier === 'member') {
-    const claimStatus = await getMyClaimStatus(leagueId)
-    showClaimBanner = claimStatus === 'none'
+  if (tier !== 'public') {
+    const { status, playerName } = await getMyClaimInfo(leagueId)
+    linkedPlayerName = playerName
+    if (tier === 'member') showClaimBanner = status === 'none'
   }
 
   const playedWeeks = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled')
@@ -101,6 +103,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
             weeks={playedWeeks}
             features={features}
             role={userRole}
+            linkedPlayerName={linkedPlayerName}
           />
         </div>
       </div>
@@ -111,6 +114,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
             weeks={playedWeeks}
             features={features}
             role={userRole}
+            linkedPlayerName={linkedPlayerName}
           />
         </MobileStatsFAB>
       )}
