@@ -78,6 +78,11 @@ export function JoinRequestDialog({
         return
       }
 
+      if (res.status === 422) {
+        setError("Your profile isn't set up yet — try signing out and back in.")
+        return
+      }
+
       setError('Something went wrong. Please try again.')
     } catch {
       setError('Something went wrong. Please try again.')
