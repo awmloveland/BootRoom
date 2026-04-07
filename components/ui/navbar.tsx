@@ -150,14 +150,14 @@ export function Navbar({
     }
   }, [])
 
-  const showNav = pathname !== '/sign-in' && pathname !== '/reset-password'
+  const showNav = pathname !== '/sign-in'
 
   useEffect(() => {
     setSheetOpen(false)
   }, [pathname])
 
   useEffect(() => {
-    if (pathname === '/sign-in' || pathname === '/reset-password') return
+    if (pathname === '/sign-in') return
     fetchUser()
   }, [pathname, fetchUser])
 
@@ -235,7 +235,7 @@ export function Navbar({
         {/* Right: auth / user controls */}
         <div className="flex items-center justify-end">
           {showNav && !user && (
-            <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} size="xs" />
+            <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} size="xs" signinOnly />
           )}
           {showNav && user && (
             <div className="flex items-center gap-0.5">
@@ -287,7 +287,7 @@ export function Navbar({
             <img src="/logo.png" alt="Crafted Football" className="h-10 w-10" />
           </Link>
           {showNav && !user && (
-            <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} size="xs" />
+            <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} size="xs" signinOnly />
           )}
           {showNav && user && (
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>

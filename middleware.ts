@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 const SIGN_IN_PATH = '/sign-in'
 
 // Routes that require a valid Supabase session
-const AUTH_REQUIRED = ['/settings']
+const AUTH_REQUIRED = ['/settings', '/welcome']
 
 // Routes that require profiles.role = 'developer'
 const DEVELOPER_REQUIRED = ['/experiments']
@@ -67,8 +67,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check profile exists (required for all auth-gated routes)
-  // Skip for /sign-in, /reset-password, /profile-required, /invite which handle this themselves
-  const skipProfileCheck = ['/sign-in', '/reset-password', '/profile-required', '/invite'].some(
+  // Skip for /sign-in, /profile-required, /invite which handle this themselves
+  const skipProfileCheck = ['/sign-in', '/profile-required', '/invite'].some(
     (p) => pathname === p || pathname.startsWith(p + '/')
   )
   if (!skipProfileCheck) {

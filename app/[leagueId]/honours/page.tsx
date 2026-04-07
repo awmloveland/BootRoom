@@ -81,7 +81,7 @@ export default async function HonoursPage({ params }: Props) {
           />
           {showClaimBanner && <ClaimOnboardingBanner leagueId={leagueId} />}
           {tier === 'public' || !isAuthenticated ? (
-            <HonoursLoginPrompt leagueId={leagueId} />
+            <HonoursLoginPrompt leagueId={leagueId} leagueName={game!.name} />
           ) : (
             <HonoursSection data={computeAllCompletedQuarters(weeks, new Date())} />
           )}

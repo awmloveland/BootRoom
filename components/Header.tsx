@@ -26,7 +26,7 @@ export function Header() {
   const navLinks = isLeagueDetail ? LEAGUE_NAV : HOME_NAV
 
   useEffect(() => {
-    if (pathname === '/sign-in' || pathname === '/reset-password') return
+    if (pathname === '/sign-in') return
     fetch('/api/auth/me', { credentials: 'include' })
       .then((res) => res.json().catch(() => ({})))
       .then((data) => setUser(data?.user ?? null))
