@@ -3,6 +3,7 @@ import { ClipboardList, Users, Trophy, FlaskConical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LeagueInfoBar } from '@/components/LeagueInfoBar'
 import { LeagueJoinArea } from '@/components/LeagueJoinArea'
+import { ScrollTabIntoView } from '@/components/ScrollTabIntoView'
 import type { LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
 interface LeaguePageHeaderProps {
@@ -50,7 +51,7 @@ export function LeaguePageHeader({
       <div className="mt-3">
         <LeagueInfoBar details={details} leagueId={leagueId} isAdmin={isAdmin} />
       </div>
-      <nav className="flex gap-6 overflow-x-auto border-b border-slate-700 pt-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <nav className="flex gap-6 overflow-x-auto border-b border-slate-700 pt-5 -mx-4 px-4 sm:mx-0 sm:px-0 touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Link
           href={`/${leagueId}/results`}
           className={cn(
@@ -60,6 +61,7 @@ export function LeaguePageHeader({
               : 'border-transparent text-slate-400 hover:text-slate-300'
           )}
         >
+          <ScrollTabIntoView active={currentTab === 'results'} />
           <ClipboardList className="size-3.5" />
           Results
         </Link>
@@ -72,6 +74,7 @@ export function LeaguePageHeader({
               : 'border-transparent text-slate-400 hover:text-slate-300'
           )}
         >
+          <ScrollTabIntoView active={currentTab === 'players'} />
           <Users className="size-3.5" />
           Players
         </Link>
@@ -84,6 +87,7 @@ export function LeaguePageHeader({
               : 'border-transparent text-slate-400 hover:text-slate-300'
           )}
         >
+          <ScrollTabIntoView active={currentTab === 'honours'} />
           <Trophy className="size-3.5" />
           Honours
         </Link>
@@ -96,6 +100,7 @@ export function LeaguePageHeader({
               : 'border-transparent text-slate-400 hover:text-slate-300'
           )}
         >
+          <ScrollTabIntoView active={currentTab === 'lineup-lab'} />
           <FlaskConical className="size-3.5" />
           Lineup Lab
         </Link>
