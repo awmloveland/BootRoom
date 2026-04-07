@@ -67,8 +67,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check profile exists (required for all auth-gated routes)
-  // Skip for /sign-in, /reset-password, /profile-required, /invite which handle this themselves
-  const skipProfileCheck = ['/sign-in', '/reset-password', '/profile-required', '/invite'].some(
+  // Skip for /sign-in, /profile-required, /invite which handle this themselves
+  const skipProfileCheck = ['/sign-in', '/profile-required', '/invite'].some(
     (p) => pathname === p || pathname.startsWith(p + '/')
   )
   if (!skipProfileCheck) {
