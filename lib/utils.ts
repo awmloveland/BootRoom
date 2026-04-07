@@ -323,3 +323,24 @@ export function getMostRecentExpectedGameDate(
   candidate.setDate(today.getDate() - daysBack)
   return formatWeekDate(candidate)
 }
+
+export function parseGoogleName(meta: Record<string, unknown>): { firstName: string; lastName: string } {
+  const givenName = typeof meta.given_name === 'string' ? meta.given_name : null
+  const familyName = typeof meta.family_name === 'string' ? meta.family_name : null
+
+  if (givenName !== null || familyName !== null) {
+    return { firstName: givenName ?? '', lastName: familyName ?? '' }
+  }
+
+  const fullStr = typeof meta.full_name === 'string'
+    ? meta.full_name
+    : typeof meta.name === 'string'
+      ? meta.name
+      : ''
+
+  const parts = fullStr.trim().split(/\s+/).filter(Boolean)
+  return {
+    firstName: parts[0] ?? '',
+    lastName: parts.slice(1).join(' '),
+  }
+}
