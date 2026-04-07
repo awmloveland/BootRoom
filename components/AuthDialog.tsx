@@ -50,11 +50,12 @@ function GoogleIcon() {
   )
 }
 
-async function handleGoogleSignIn(mode: AuthMode, redirect: string) {
+async function handleGoogleSignIn(mode: AuthMode, redirect: string): Promise<string | null> {
   const supabase = createClient()
   const base = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirect)}`
   const redirectTo = mode === 'signup' ? `${base}&mode=signup` : base
-  await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })
+  const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })
+  return error ? error.message : null
 }
 
 function VerifyStep({
@@ -237,13 +238,21 @@ function SignInForm({
       >
         {loading ? 'Sending…' : 'Send code'}
       </button>
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-slate-700" />
+        <span className="text-xs text-slate-500">or</span>
+        <div className="flex-1 h-px bg-slate-700" />
+      </div>
       <button
         type="button"
-        onClick={() => handleGoogleSignIn('signin', redirect)}
+        onClick={async () => {
+          const err = await handleGoogleSignIn('signin', redirect)
+          if (err) setError(err)
+        }}
         className="w-full py-2 px-4 rounded-lg bg-slate-700 border border-slate-600 text-slate-100 font-medium hover:bg-slate-600 transition-colors flex items-center justify-center gap-2"
       >
         <GoogleIcon />
-        Continue with Google
+        Sign in with Google
       </button>
       {signinOnly ? (
         <p className="text-xs text-slate-500 text-center">
@@ -285,6 +294,7 @@ function SignUpForm({
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [googleError, setGoogleError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -372,26 +382,30 @@ function SignUpForm({
       >
         {loading ? 'Sending…' : 'Send code'}
       </button>
-      <button
-        type="button"
-        onClick={() => handleGoogleSignIn('signup', redirect)}
-        className="w-full py-2 px-4 rounded-lg bg-slate-700 border border-slate-600 text-slate-100 font-medium hover:bg-slate-600 transition-colors flex items-center justify-center gap-2"
-      >
-        <GoogleIcon />
-        Continue with Google
-      </button>
       <div className="flex items-center gap-3">
         <div className="flex-1 h-px bg-slate-700" />
         <span className="text-xs text-slate-500">or</span>
         <div className="flex-1 h-px bg-slate-700" />
       </div>
+      {googleError && <p className="text-sm text-red-400">{googleError}</p>}
       <button
         type="button"
-        onClick={onSwitchMode}
-        className="w-full py-2 px-4 rounded-lg bg-slate-700 border border-slate-600 text-slate-200 font-medium hover:bg-slate-600 transition-colors"
+        onClick={async () => {
+          setGoogleError(null)
+          const err = await handleGoogleSignIn('signup', redirect)
+          if (err) setGoogleError(err)
+        }}
+        className="w-full py-2 px-4 rounded-lg bg-slate-700 border border-slate-600 text-slate-100 font-medium hover:bg-slate-600 transition-colors flex items-center justify-center gap-2"
       >
-        Sign in instead
+        <GoogleIcon />
+        Sign up with Google
       </button>
+      <p className="text-xs text-slate-500 text-center pt-1">
+        Already have an account?{' '}
+        <button type="button" onClick={onSwitchMode} className="text-slate-400 hover:text-slate-200 underline">
+          Sign in
+        </button>
+      </p>
     </form>
   )
 }
