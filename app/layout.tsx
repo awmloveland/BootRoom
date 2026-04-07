@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { Navbar } from '@/components/ui/navbar'
 import './globals.css'
@@ -15,6 +15,9 @@ export const metadata: Metadata = {
     url: 'https://craft-football.com',
     siteName: 'Crafted Football',
   },
+}
+
+export const viewport: Viewport = {
   themeColor: '#0f172a',
 }
 

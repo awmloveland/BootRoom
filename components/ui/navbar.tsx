@@ -152,14 +152,34 @@ export function Navbar({
 
   const showNav = pathname !== '/sign-in'
 
-  useEffect(() => {
-    setSheetOpen(false)
-  }, [pathname])
+  // Reset sheet open state when pathname changes (React key-based reset pattern)
+  const [sheetPathname, setSheetPathname] = useState(pathname)
+  if (sheetPathname !== pathname) {
+    setSheetPathname(pathname)
+    if (sheetOpen) setSheetOpen(false)
+  }
 
   useEffect(() => {
     if (pathname === '/sign-in') return
-    fetchUser()
-  }, [pathname, fetchUser])
+    let cancelled = false
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then((res) => res.json().catch(() => ({})))
+      .then(async (data) => {
+        if (cancelled) return
+        setUser(data?.user ?? null)
+        setDisplayName(data?.profile?.display_name ?? data?.user?.email ?? null)
+        if (data?.user?.id) {
+          const supabase = createClient()
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .maybeSingle()
+          if (!cancelled) setProfileRole(profile?.role ?? null)
+        }
+      })
+    return () => { cancelled = true }
+  }, [pathname])
 
   useEffect(() => {
     const supabase = createClient()
@@ -177,18 +197,25 @@ export function Navbar({
   }, [fetchUser])
 
   useEffect(() => {
-    if (!leagueId) {
-      setIsLeagueAdmin(false)
-      return
-    }
+    if (!leagueId) return
+    let cancelled = false
     fetch('/api/games', { credentials: 'include' })
       .then((res) => res.json().catch(() => []))
       .then((data: { id: string; name: string; role: string }[]) => {
+        if (cancelled) return
         const game = (data ?? []).find((g) => g.id === leagueId)
         setIsLeagueAdmin(game?.role === 'creator' || game?.role === 'admin')
       })
-      .catch(() => { setIsLeagueAdmin(false) })
+      .catch(() => { if (!cancelled) setIsLeagueAdmin(false) })
+    return () => { cancelled = true }
   }, [leagueId])
+
+  // Reset league admin when leaving a league context (state-comparison during render)
+  const [prevLeagueId, setPrevLeagueId] = useState(leagueId)
+  if (prevLeagueId !== leagueId) {
+    setPrevLeagueId(leagueId)
+    if (!leagueId) setIsLeagueAdmin(false)
+  }
 
   async function handleSignOut() {
     await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' })
