@@ -227,7 +227,6 @@ function SignInForm({
           required
           className={inputClass}
           placeholder="you@example.com"
-          autoFocus
         />
       </div>
       {error && <p className="text-sm text-red-400">{error}</p>}
@@ -337,7 +336,6 @@ function SignUpForm({
             required
             className={inputClass}
             placeholder="Alex"
-            autoFocus
           />
         </div>
         <div>
