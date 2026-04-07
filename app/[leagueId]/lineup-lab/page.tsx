@@ -74,7 +74,7 @@ export default async function LineupLabPage({ params }: Props) {
           />
           {isAuthenticated
             ? <LineupLab allPlayers={players} />
-            : <LineupLabLoginPrompt leagueId={leagueId} />
+            : <LineupLabLoginPrompt leagueId={leagueId} leagueName={game!.name} />
           }
         </div>
         <div className="hidden lg:block w-72 shrink-0 sticky top-[72px]">
