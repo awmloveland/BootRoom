@@ -212,22 +212,28 @@ export const getPendingBadgeCount = cache(async (leagueId: string): Promise<numb
   return joinCount + claimCount
 })
 
-// Returns the current user's claim status for a league ('none' if no claim exists).
+// Returns the current user's claim info for a league (status + linked player name).
 // Uses the auth client — members can only read their own rows via RLS.
-export const getMyClaimStatus = cache(async (leagueId: string): Promise<PlayerClaimStatus | 'none'> => {
+export const getMyClaimInfo = cache(async (leagueId: string): Promise<{
+  status: PlayerClaimStatus | 'none'
+  playerName: string | null
+}> => {
   try {
     const authSupabase = await createClient()
     const { data: { user } } = await authSupabase.auth.getUser()
-    if (!user) return 'none'
+    if (!user) return { status: 'none', playerName: null }
     const { data } = await authSupabase
       .from('player_claims')
-      .select('status')
+      .select('status, admin_override_name, player_name')
       .eq('game_id', leagueId)
       .eq('user_id', user.id)
       .maybeSingle()
-    return (data?.status ?? 'none') as PlayerClaimStatus | 'none'
+    if (!data) return { status: 'none', playerName: null }
+    const resolvedName = data.admin_override_name ?? data.player_name ?? null
+    const playerName = data.status === 'approved' ? resolvedName : null
+    return { status: (data.status ?? 'none') as PlayerClaimStatus | 'none', playerName }
   } catch {
-    return 'none'
+    return { status: 'none', playerName: null }
   }
 })
 
