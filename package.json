@@ -34,12 +34,13 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.0.1",
-    "eslint": "^8",
+    "eslint": "^9.39.4",
     "eslint-config-next": "^15.5.14",
     "jest": "^30.3.0",
     "postcss": "^8",
