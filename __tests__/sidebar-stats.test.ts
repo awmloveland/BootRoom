@@ -558,3 +558,161 @@ describe('computeAllCompletedQuarters', () => {
     expect(computeAllCompletedQuarters(weeks, now)).toEqual([])
   })
 })
+
+// ─── computeAllCompletedQuarters — awards ─────────────────────────────────────
+
+describe('computeAllCompletedQuarters — awards', () => {
+  // All test weeks are in Q1 2025 (end date = 31 Mar 2025, so now must be > that)
+  const NOW = new Date(2025, 3, 1) // 1 Apr 2025
+
+  function makeQ1Week(overrides: Partial<Week> & { week: number }): Week {
+    return {
+      date: '06 Jan 2025',
+      status: 'played',
+      teamA: ['Alice'],
+      teamB: ['Bob'],
+      winner: 'teamA',
+      ...overrides,
+    }
+  }
+
+  function getQ1Awards(weeks: Week[]) {
+    const result = computeAllCompletedQuarters(weeks, NOW)
+    return result[0]?.quarters[0]?.awards ?? []
+  }
+
+  it('champion chip is always first and uses top-of-standings player', () => {
+    const weeks = [
+      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    ]
+    // Alice: 2 wins = 6 pts. Bob: 0 pts.
+    const awards = getQ1Awards(weeks)
+    expect(awards[0].key).toBe('champion')
+    expect(awards[0].player).toBe('Alice')
+    expect(awards[0].stat).toBe('6 pts')
+  })
+
+  it('iron_man is the player with most games played', () => {
+    const weeks = [
+      makeQ1Week({ week: 1, teamA: ['Alice', 'Bob'], teamB: ['Charlie'], winner: 'teamA' }),
+      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Alice', 'Bob'], teamB: ['Charlie'], winner: 'teamA' }),
+      makeQ1Week({ week: 3, date: '20 Jan 2025', teamA: ['Alice'], teamB: ['Charlie'], winner: 'teamA' }),
+    ]
+    // Alice: 3 games. Bob: 2. Charlie: 3.
+    const awards = getQ1Awards(weeks)
+    const ironMan = awards.find(a => a.key === 'iron_man')
+    expect(ironMan).toBeDefined()
+    // Alice and Charlie both played 3 — tie goes to earlier standings rank (Alice leads on pts)
+    expect(ironMan!.player).toBe('Alice')
+    expect(ironMan!.stat).toBe('3 games')
+  })
+
+  it('win_machine is the player with most wins', () => {
+    const weeks = [
+      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    ]
+    const awards = getQ1Awards(weeks)
+    const winMachine = awards.find(a => a.key === 'win_machine')
+    expect(winMachine!.player).toBe('Alice')
+    expect(winMachine!.stat).toBe('2 wins')
+  })
+
+  it('win_machine is absent when nobody has any wins', () => {
+    const weeks = [
+      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
+    ]
+    const awards = getQ1Awards(weeks)
+    expect(awards.find(a => a.key === 'win_machine')).toBeUndefined()
+  })
+
+  it('sharp_shooter uses points/played and requires min 3 games', () => {
+    const weeks = [
+      // Alice: 3 wins in 3 games → 9 pts, PPG 3.0
+      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeQ1Week({ week: 3, date: '20 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    ]
+    const awards = getQ1Awards(weeks)
+    const ss = awards.find(a => a.key === 'sharp_shooter')
+    expect(ss).toBeDefined()
+    expect(ss!.player).toBe('Alice')
+    expect(ss!.stat).toBe('3.0 PPG')
+  })
+
+  it('sharp_shooter is absent when no player has 3+ games', () => {
+    const weeks = [
+      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    ]
+    const awards = getQ1Awards(weeks)
+    expect(awards.find(a => a.key === 'sharp_shooter')).toBeUndefined()
+  })
+
+  it('clutch is absent when best win-rate player has 0 wins', () => {
+    const weeks = [
+      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
+      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
+      makeQ1Week({ week: 3, date: '20 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
+    ]
+    const awards = getQ1Awards(weeks)
+    expect(awards.find(a => a.key === 'clutch')).toBeUndefined()
+  })
+
+  it('untouchable requires 0 losses and min 3 games', () => {
+    const weeks = [
+      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
+      makeQ1Week({ week: 3, date: '20 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    ]
+    const awards = getQ1Awards(weeks)
+    const ut = awards.find(a => a.key === 'untouchable')
+    expect(ut).toBeDefined()
+    expect(ut!.player).toBe('Alice')
+    expect(ut!.stat).toBe('3 games, 0 losses')
+  })
+
+  it('untouchable is absent when all qualified players have at least one loss', () => {
+    const weeks = [
+      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Bob'], teamB: ['Alice'], winner: 'teamA' }),
+      makeQ1Week({ week: 3, date: '20 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    ]
+    // Alice: 2W 1L. Bob: 1W 2L. Both have losses.
+    const awards = getQ1Awards(weeks)
+    expect(awards.find(a => a.key === 'untouchable')).toBeUndefined()
+  })
+
+  it('on_fire requires a streak of at least 2 consecutive wins', () => {
+    const weeks = [
+      makeQ1Week({ week: 1, date: '06 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeQ1Week({ week: 3, date: '20 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    ]
+    const awards = getQ1Awards(weeks)
+    const onFire = awards.find(a => a.key === 'on_fire')
+    expect(onFire).toBeDefined()
+    expect(onFire!.player).toBe('Alice')
+    expect(onFire!.stat).toBe('3-game streak')
+  })
+
+  it('on_fire is absent when no player has 2+ consecutive wins', () => {
+    const weeks = [
+      makeQ1Week({ week: 1, date: '06 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Bob'], teamB: ['Alice'], winner: 'teamA' }), // Bob wins
+    ]
+    // Alice: W then L. Bob: L then W. No streak ≥ 2.
+    const awards = getQ1Awards(weeks)
+    expect(awards.find(a => a.key === 'on_fire')).toBeUndefined()
+  })
+
+  it('returns champion award for a quarter with a single player', () => {
+    const weeks = [
+      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: [], winner: 'teamA' }),
+      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Alice'], teamB: [], winner: 'teamA' }),
+      makeQ1Week({ week: 3, date: '20 Jan 2025', teamA: ['Alice'], teamB: [], winner: 'teamA' }),
+    ]
+    const awards = getQ1Awards(weeks)
+    expect(awards.find(a => a.key === 'champion')!.player).toBe('Alice')
+  })
+})

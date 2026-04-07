@@ -89,6 +89,14 @@ export interface QuarterlyEntry {
   points: number
 }
 
+export interface QuarterAward {
+  key: 'champion' | 'iron_man' | 'win_machine' | 'sharp_shooter' | 'clutch' | 'untouchable' | 'on_fire'
+  nickname: string
+  icon: string
+  player: string
+  stat: string  // pre-formatted, e.g. "2.3 PPG", "5-game streak"
+}
+
 export interface QuarterlyTableResult {
   quarterLabel: string
   entries: QuarterlyEntry[]
@@ -105,6 +113,7 @@ export interface CompletedQuarter {
   q: number
   champion: string          // top-ranked player name
   entries: QuarterlyEntry[] // full table, all players, sorted points desc → wins desc → name asc
+  awards: QuarterAward[]    // ordered: champion first, rest conditional
 }
 
 export interface HonoursYear {
@@ -120,6 +129,95 @@ function weekInQuarter(week: Week, q: number, year: number): boolean {
   const d = parseWeekDate(week.date)
   const wq = quarterOf(d)
   return wq.q === q && wq.year === year
+}
+
+function maxBy<T>(arr: T[], fn: (item: T) => number): T | undefined {
+  if (arr.length === 0) return undefined
+  return arr.reduce((best, item) => fn(item) > fn(best) ? item : best)
+}
+
+function longestWinStreak(weeks: Week[]): { player: string; count: number } {
+  const sorted = [...weeks].sort(
+    (a, b) => parseWeekDate(a.date).getTime() - parseWeekDate(b.date).getTime()
+  )
+  const current = new Map<string, number>()
+  const best = new Map<string, number>()
+
+  for (const w of sorted) {
+    const allPlayers = [...w.teamA, ...w.teamB]
+    for (const name of allPlayers) {
+      const onTeamA = w.teamA.includes(name)
+      const won =
+        (w.winner === 'teamA' && onTeamA) ||
+        (w.winner === 'teamB' && !onTeamA)
+      const streak = won ? (current.get(name) ?? 0) + 1 : 0
+      current.set(name, streak)
+      if (streak > (best.get(name) ?? 0)) best.set(name, streak)
+    }
+  }
+
+  let topPlayer = ''
+  let topCount = 0
+  for (const [name, count] of best) {
+    if (count > topCount) { topPlayer = name; topCount = count }
+  }
+  return { player: topPlayer, count: topCount }
+}
+
+function buildQuarterAwards(entries: QuarterlyEntry[], weekSlice: Week[]): QuarterAward[] {
+  const awards: QuarterAward[] = []
+  const qualified = entries.filter(e => e.played >= 3)
+
+  // Champion — always first
+  if (entries.length > 0) {
+    const top = entries[0]
+    awards.push({ key: 'champion', nickname: 'Champion', icon: '🏅',
+      player: top.name, stat: `${top.points} pts` })
+  }
+
+  // Iron Man — most games played (no minimum)
+  const ironMan = maxBy(entries, e => e.played)
+  if (ironMan) {
+    awards.push({ key: 'iron_man', nickname: 'Iron Man', icon: '⚽',
+      player: ironMan.name, stat: `${ironMan.played} games` })
+  }
+
+  // Win Machine — most wins (must have ≥1 win)
+  const winMachine = maxBy(entries, e => e.won)
+  if (winMachine && winMachine.won > 0) {
+    awards.push({ key: 'win_machine', nickname: 'Win Machine', icon: '🏆',
+      player: winMachine.name, stat: `${winMachine.won} wins` })
+  }
+
+  // Sharp Shooter — best PPG, min 3 games
+  const sharpShooter = maxBy(qualified, e => e.points / e.played)
+  if (sharpShooter) {
+    awards.push({ key: 'sharp_shooter', nickname: 'Sharp Shooter', icon: '⚡',
+      player: sharpShooter.name, stat: `${(sharpShooter.points / sharpShooter.played).toFixed(1)} PPG` })
+  }
+
+  // Clutch — best win rate, min 3 games and ≥1 win
+  const clutch = maxBy(qualified, e => e.won / e.played)
+  if (clutch && clutch.won > 0) {
+    awards.push({ key: 'clutch', nickname: 'Clutch', icon: '🎯',
+      player: clutch.name, stat: `${Math.round((clutch.won / clutch.played) * 100)}% win rate` })
+  }
+
+  // Untouchable — zero losses, min 3 games
+  const untouchable = qualified.find(e => e.lost === 0)
+  if (untouchable) {
+    awards.push({ key: 'untouchable', nickname: 'Untouchable', icon: '🛡️',
+      player: untouchable.name, stat: `${untouchable.played} games, 0 losses` })
+  }
+
+  // On Fire — longest win streak, min 2 consecutive wins
+  const streak = longestWinStreak(weekSlice)
+  if (streak.count >= 2) {
+    awards.push({ key: 'on_fire', nickname: 'On Fire', icon: '🔥',
+      player: streak.player, stat: `${streak.count}-game streak` })
+  }
+
+  return awards
 }
 
 function aggregateWeeks(weeks: Week[]): QuarterlyEntry[] {
@@ -218,8 +316,9 @@ export function computeAllCompletedQuarters(weeks: Week[], now: Date = new Date(
     const entries = aggregateWeeks(playedWeeks)
     if (entries.length === 0) continue
     const champion = entries[0].name
+    const awards = buildQuarterAwards(entries, playedWeeks)
 
-    completed.push({ quarterLabel, year, q, champion, entries })
+    completed.push({ quarterLabel, year, q, champion, entries, awards })
   }
 
   // Sort newest first overall, then group by year
