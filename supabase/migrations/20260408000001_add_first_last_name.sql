@@ -15,3 +15,7 @@ SET
     ELSE NULL
   END
 WHERE display_name IS NOT NULL AND display_name != '';
+
+-- RLS: allow users to update their own profile row
+CREATE POLICY "Users update own profile" ON profiles
+  FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
