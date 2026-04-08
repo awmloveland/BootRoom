@@ -43,11 +43,11 @@ const HEADER_METRIC: Record<SortKey, (p: Player) => React.ReactNode> = {
     p.recentForm ? <FormDots form={p.recentForm} /> : `${p.played} games`,
 }
 
-const FORM_CIRCLE: Record<string, { bg: string; text: string; underline: string }> = {
-  W:   { bg: 'bg-sky-500',   text: 'text-slate-900', underline: 'bg-sky-400'   },
-  D:   { bg: 'bg-slate-700', text: 'text-slate-400', underline: 'bg-slate-400' },
-  L:   { bg: 'bg-red-950',   text: 'text-red-300',   underline: 'bg-red-400'   },
-  '-': { bg: 'bg-transparent border border-dashed border-slate-600', text: 'text-slate-600', underline: 'bg-slate-600' },
+const FORM_CIRCLE: Record<string, { bg: string; text: string; underline: string; extra?: string }> = {
+  W:   { bg: 'bg-sky-500',     text: 'text-slate-900', underline: 'bg-sky-400'   },
+  D:   { bg: 'bg-slate-700',   text: 'text-slate-400', underline: 'bg-slate-400' },
+  L:   { bg: 'bg-red-950',     text: 'text-red-300',   underline: 'bg-red-400'   },
+  '-': { bg: 'bg-transparent', text: 'text-slate-600', underline: 'bg-slate-600', extra: 'border border-dashed border-slate-600' },
 }
 
 export function PlayerCard({
@@ -64,7 +64,7 @@ export function PlayerCard({
     : 'border-slate-700 hover:border-slate-500'
 
   // recentForm is stored newest-first; reverse so oldest is leftmost, newest is rightmost
-  const formChars = [...player.recentForm].reverse()
+  const formChars = player.recentForm ? [...player.recentForm].reverse() : []
   const lastIndex = formChars.length - 1
 
   // Define bar segments; filter out zeros to avoid gap-px artefacts
@@ -150,6 +150,7 @@ export function PlayerCard({
                               'text-[9px] font-bold font-mono',
                               style.bg,
                               style.text,
+                              style.extra,
                             )}
                           >
                             {char === '-' ? '' : char}
