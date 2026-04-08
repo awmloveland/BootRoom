@@ -197,24 +197,24 @@ export function PlayerCard({
             {/* ── Section 3: Team Split bar ── */}
             <div className="border-t border-slate-700 pt-4">
               <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-2">Team Split</p>
-              {/* Numbers above bar */}
-              <div className="flex mb-1 gap-px">
+              {/* Numbers above bar — always 50/50 so zero-count side doesn't collapse */}
+              <div className="flex mb-1">
                 {splitSegments.map(s => (
-                  <div key={s.label} className={cn(s.align, 'text-[11px] font-bold', s.numClass)} style={{ flex: s.count }}>
+                  <div key={s.label} className={cn(s.align, 'text-[11px] font-bold flex-1', s.numClass)}>
                     {s.count}
                   </div>
                 ))}
               </div>
-              {/* Bar */}
+              {/* Bar — proportional to actual counts */}
               <div className="flex h-2 rounded overflow-hidden gap-px">
                 {splitSegments.map(s => (
-                  <div key={s.label} className={s.barClass} style={{ flex: s.count }} />
+                  <div key={s.label} className={s.barClass} style={{ flex: s.count || 1 }} />
                 ))}
               </div>
-              {/* Labels below bar */}
-              <div className="flex mt-1 gap-px">
+              {/* Labels below bar — always 50/50 to match numbers row */}
+              <div className="flex mt-1">
                 {splitSegments.map(s => (
-                  <div key={s.label} className={cn(s.align, 'text-[9px] text-slate-500 uppercase tracking-wide')} style={{ flex: s.count }}>
+                  <div key={s.label} className={cn(s.align, 'text-[9px] text-slate-500 uppercase tracking-wide flex-1')}>
                     {s.label}
                   </div>
                 ))}
