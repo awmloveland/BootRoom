@@ -161,7 +161,7 @@ export function PlayerCard({
             <div className="border-t border-slate-700 pt-4">
               <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-2">Results</p>
               {/* Numbers above bar */}
-              <div className="flex mb-1" style={{ gap: '1px' }}>
+              <div className="flex mb-1 gap-px">
                 <div className="text-left text-[11px] font-bold text-sky-400"
                      style={{ flex: player.won }}>
                   {player.won}
@@ -176,13 +176,13 @@ export function PlayerCard({
                 </div>
               </div>
               {/* Bar */}
-              <div className="flex h-2 rounded overflow-hidden" style={{ gap: '1px' }}>
+              <div className="flex h-2 rounded overflow-hidden gap-px">
                 <div className="bg-sky-500 rounded-l" style={{ flex: player.won / total }} />
                 <div className="bg-slate-600"          style={{ flex: player.drew / total }} />
                 <div className="bg-red-500 rounded-r"  style={{ flex: player.lost / total }} />
               </div>
               {/* Labels below bar */}
-              <div className="flex mt-1" style={{ gap: '1px' }}>
+              <div className="flex mt-1 gap-px">
                 <div className="text-left text-[9px] text-slate-500 uppercase tracking-wide"
                      style={{ flex: player.won }}>
                   Won
@@ -202,7 +202,7 @@ export function PlayerCard({
             <div className="border-t border-slate-700 pt-4">
               <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-2">Team Split</p>
               {/* Numbers above bar */}
-              <div className="flex mb-1" style={{ gap: '1px' }}>
+              <div className="flex mb-1 gap-px">
                 <div className="text-left text-[11px] font-bold text-blue-300"
                      style={{ flex: player.timesTeamA }}>
                   {player.timesTeamA}
@@ -213,12 +213,12 @@ export function PlayerCard({
                 </div>
               </div>
               {/* Bar */}
-              <div className="flex h-2 rounded overflow-hidden" style={{ gap: '1px' }}>
+              <div className="flex h-2 rounded overflow-hidden gap-px">
                 <div className="bg-blue-700 rounded-l"   style={{ flex: player.timesTeamA / splitTotal }} />
                 <div className="bg-violet-700 rounded-r" style={{ flex: player.timesTeamB / splitTotal }} />
               </div>
               {/* Labels below bar */}
-              <div className="flex mt-1" style={{ gap: '1px' }}>
+              <div className="flex mt-1 gap-px">
                 <div className="text-left text-[9px] text-slate-500 uppercase tracking-wide"
                      style={{ flex: player.timesTeamA }}>
                   Team A
