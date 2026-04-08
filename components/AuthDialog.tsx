@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -71,7 +70,6 @@ function VerifyStep({
   onSignedUp?: () => void
   redirect: string
 }) {
-  const router = useRouter()
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState(false)
@@ -100,8 +98,7 @@ function VerifyStep({
     }
     onSignedUp?.()
     onSuccess()
-    router.push(redirect)
-    router.refresh()
+    window.location.href = redirect
   }
 
   async function handleResend() {
