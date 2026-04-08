@@ -63,9 +63,10 @@ export function PlayerCard({
     ? 'border-slate-600'
     : 'border-slate-700 hover:border-slate-500'
 
-  // recentForm is stored newest-first; reverse so oldest is leftmost, newest is rightmost
-  const formChars = player.recentForm ? [...player.recentForm].reverse() : []
-  const lastIndex = formChars.length - 1  // -1 when empty — map iterates zero times so underline never renders
+  // recentForm is stored newest-first; pad to 5 chars, then reverse so oldest is leftmost, newest is rightmost
+  const raw = player.recentForm ?? ''
+  const formChars = [...raw.padEnd(5, '-')].reverse()
+  const lastIndex = formChars.length - 1  // always 4 when padded; underline on rightmost circle
 
   // Define bar segments; filter out zeros to avoid gap-px artefacts
   const resultSegments = [
@@ -77,7 +78,7 @@ export function PlayerCard({
   const splitSegments = [
     { count: player.timesTeamA, barClass: 'bg-blue-700',   numClass: 'text-blue-300',   label: 'Team A', align: 'text-left'  },
     { count: player.timesTeamB, barClass: 'bg-violet-700', numClass: 'text-violet-300', label: 'Team B', align: 'text-right' },
-  ].filter(s => s.count > 0)
+  ]
 
   return (
     <Collapsible.Root open={isOpen} onOpenChange={onToggle}>
