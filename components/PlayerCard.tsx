@@ -43,11 +43,11 @@ const HEADER_METRIC: Record<SortKey, (p: Player) => React.ReactNode> = {
     p.recentForm ? <FormDots form={p.recentForm} /> : `${p.played} games`,
 }
 
-const FORM_CIRCLE: Record<string, { bg: string; text: string }> = {
-  W: { bg: 'bg-sky-500',   text: 'text-slate-900' },
-  D: { bg: 'bg-slate-700', text: 'text-slate-400' },
-  L: { bg: 'bg-red-950',   text: 'text-red-300'   },
-  '-': { bg: 'bg-slate-800', text: 'text-slate-600' },
+const FORM_CIRCLE: Record<string, { bg: string; text: string; underline: string }> = {
+  W:   { bg: 'bg-sky-500',   text: 'text-slate-900', underline: 'bg-sky-400'   },
+  D:   { bg: 'bg-slate-700', text: 'text-slate-400', underline: 'bg-slate-400' },
+  L:   { bg: 'bg-red-950',   text: 'text-red-300',   underline: 'bg-red-400'   },
+  '-': { bg: 'bg-transparent border border-dashed border-slate-600', text: 'text-slate-600', underline: 'bg-slate-600' },
 }
 
 export function PlayerCard({
@@ -67,9 +67,17 @@ export function PlayerCard({
   const formChars = [...player.recentForm].reverse()
   const lastIndex = formChars.length - 1
 
-  // flex proportions for bars — guard against all-zero to avoid invisible bars
-  const total    = player.won + player.drew + player.lost || 1
-  const splitTotal = player.timesTeamA + player.timesTeamB || 1
+  // Define bar segments; filter out zeros to avoid gap-px artefacts
+  const resultSegments = [
+    { count: player.won,  barClass: 'bg-sky-500',   numClass: 'text-sky-400',   label: 'Won'   },
+    { count: player.drew, barClass: 'bg-slate-600', numClass: 'text-slate-500', label: 'Drawn' },
+    { count: player.lost, barClass: 'bg-red-500',   numClass: 'text-red-400',   label: 'Lost'  },
+  ].filter(s => s.count > 0)
+
+  const splitSegments = [
+    { count: player.timesTeamA, barClass: 'bg-blue-700',   numClass: 'text-blue-300',   label: 'Team A', align: 'text-left'  },
+    { count: player.timesTeamB, barClass: 'bg-violet-700', numClass: 'text-violet-300', label: 'Team B', align: 'text-right' },
+  ].filter(s => s.count > 0)
 
   return (
     <Collapsible.Root open={isOpen} onOpenChange={onToggle}>
@@ -147,7 +155,7 @@ export function PlayerCard({
                             {char === '-' ? '' : char}
                           </span>
                           {isMostRecent && (
-                            <span className="w-3 h-0.5 rounded-full bg-sky-400" />
+                            <span className={cn('w-3 h-0.5 rounded-full', style.underline)} />
                           )}
                         </div>
                       )
@@ -162,39 +170,25 @@ export function PlayerCard({
               <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-2">Results</p>
               {/* Numbers above bar */}
               <div className="flex mb-1 gap-px">
-                <div className="text-left text-[11px] font-bold text-sky-400"
-                     style={{ flex: player.won }}>
-                  {player.won}
-                </div>
-                <div className="text-left text-[11px] font-bold text-slate-500"
-                     style={{ flex: player.drew }}>
-                  {player.drew}
-                </div>
-                <div className="text-left text-[11px] font-bold text-red-400"
-                     style={{ flex: player.lost }}>
-                  {player.lost}
-                </div>
+                {resultSegments.map(s => (
+                  <div key={s.label} className={cn('text-left text-[11px] font-bold', s.numClass)} style={{ flex: s.count }}>
+                    {s.count}
+                  </div>
+                ))}
               </div>
               {/* Bar */}
               <div className="flex h-2 rounded overflow-hidden gap-px">
-                <div className="bg-sky-500 rounded-l" style={{ flex: player.won / total }} />
-                <div className="bg-slate-600"          style={{ flex: player.drew / total }} />
-                <div className="bg-red-500 rounded-r"  style={{ flex: player.lost / total }} />
+                {resultSegments.map(s => (
+                  <div key={s.label} className={s.barClass} style={{ flex: s.count }} />
+                ))}
               </div>
               {/* Labels below bar */}
               <div className="flex mt-1 gap-px">
-                <div className="text-left text-[9px] text-slate-500 uppercase tracking-wide"
-                     style={{ flex: player.won }}>
-                  Won
-                </div>
-                <div className="text-left text-[9px] text-slate-500 uppercase tracking-wide"
-                     style={{ flex: player.drew }}>
-                  Drawn
-                </div>
-                <div className="text-left text-[9px] text-slate-500 uppercase tracking-wide"
-                     style={{ flex: player.lost }}>
-                  Lost
-                </div>
+                {resultSegments.map(s => (
+                  <div key={s.label} className="text-left text-[9px] text-slate-500 uppercase tracking-wide" style={{ flex: s.count }}>
+                    {s.label}
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -203,30 +197,25 @@ export function PlayerCard({
               <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-2">Team Split</p>
               {/* Numbers above bar */}
               <div className="flex mb-1 gap-px">
-                <div className="text-left text-[11px] font-bold text-blue-300"
-                     style={{ flex: player.timesTeamA }}>
-                  {player.timesTeamA}
-                </div>
-                <div className="text-right text-[11px] font-bold text-violet-300"
-                     style={{ flex: player.timesTeamB }}>
-                  {player.timesTeamB}
-                </div>
+                {splitSegments.map(s => (
+                  <div key={s.label} className={cn(s.align, 'text-[11px] font-bold', s.numClass)} style={{ flex: s.count }}>
+                    {s.count}
+                  </div>
+                ))}
               </div>
               {/* Bar */}
               <div className="flex h-2 rounded overflow-hidden gap-px">
-                <div className="bg-blue-700 rounded-l"   style={{ flex: player.timesTeamA / splitTotal }} />
-                <div className="bg-violet-700 rounded-r" style={{ flex: player.timesTeamB / splitTotal }} />
+                {splitSegments.map(s => (
+                  <div key={s.label} className={s.barClass} style={{ flex: s.count }} />
+                ))}
               </div>
               {/* Labels below bar */}
               <div className="flex mt-1 gap-px">
-                <div className="text-left text-[9px] text-slate-500 uppercase tracking-wide"
-                     style={{ flex: player.timesTeamA }}>
-                  Team A
-                </div>
-                <div className="text-right text-[9px] text-slate-500 uppercase tracking-wide"
-                     style={{ flex: player.timesTeamB }}>
-                  Team B
-                </div>
+                {splitSegments.map(s => (
+                  <div key={s.label} className={cn(s.align, 'text-[9px] text-slate-500 uppercase tracking-wide')} style={{ flex: s.count }}>
+                    {s.label}
+                  </div>
+                ))}
               </div>
             </div>
 
