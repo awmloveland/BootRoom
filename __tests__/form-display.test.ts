@@ -31,7 +31,7 @@ describe('most recent circle position', () => {
   it('after reversal the last element is the most recent result', () => {
     // recentForm is stored newest-first: index 0 = most recent
     // after reversal: index 0 = oldest, last index = most recent
-    const form = 'WDLWW' // index 0 (W) = most recent
+    const form = 'WLLLL' // index 0 (W) = most recent; rest are L so assertion is non-trivial
     const reversed = [...form].reverse()
     expect(reversed[reversed.length - 1]).toBe('W') // most recent is rightmost
   })
