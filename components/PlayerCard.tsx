@@ -3,7 +3,6 @@
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown } from 'lucide-react'
 import type { Player, SortKey } from '@/lib/types'
-import { RecentForm } from './RecentForm'
 import { FormDots } from '@/components/FormDots'
 import { cn } from '@/lib/utils'
 
@@ -12,31 +11,17 @@ interface PlayerCardProps {
   isOpen: boolean
   onToggle: () => void
   sortBy: SortKey
-  /** Stat keys to show in the expanded body — undefined means show all */
+  /** Kept for API compatibility — no longer used internally */
   visibleStats?: string[]
   /** Whether to show the ATT/BAL/DEF/GK mentality badge — defaults to true */
   showMentality?: boolean
 }
 
-interface StatRowProps {
-  label: string
-  value: React.ReactNode
-}
-
-function StatRow({ label, value }: StatRowProps) {
-  return (
-    <div>
-      <p className="text-xs text-slate-400 uppercase tracking-wide">{label}</p>
-      <div className="text-sm font-medium text-slate-100 mt-0.5">{value}</div>
-    </div>
-  )
-}
-
 const MENTALITY_LABEL: Record<string, string> = {
   goalkeeper: 'GK',
-  defensive: 'DEF',
-  balanced: 'BAL',
-  attacking: 'ATT',
+  defensive:  'DEF',
+  balanced:   'BAL',
+  attacking:  'ATT',
 }
 
 const HEADER_METRIC: Record<SortKey, (p: Player) => React.ReactNode> = {
@@ -58,23 +43,18 @@ const HEADER_METRIC: Record<SortKey, (p: Player) => React.ReactNode> = {
     p.recentForm ? <FormDots form={p.recentForm} /> : `${p.played} games`,
 }
 
-const STAT_ROWS: { key: string; label: string; render: (p: Player) => React.ReactNode }[] = [
-  { key: 'played',     label: 'Games Played',        render: (p) => p.played },
-  { key: 'won',        label: 'Won',                 render: (p) => p.won },
-  { key: 'drew',       label: 'Drawn',               render: (p) => p.drew },
-  { key: 'lost',       label: 'Lost',                render: (p) => p.lost },
-  { key: 'winRate',    label: 'Win Rate',            render: (p) => `${p.winRate.toFixed(1)}%` },
-  { key: 'timesTeamA', label: 'Team A Appearances',  render: (p) => p.timesTeamA },
-  { key: 'timesTeamB', label: 'Team B Appearances',  render: (p) => p.timesTeamB },
-  { key: 'recentForm', label: 'Recent Form',         render: (p) => <RecentForm form={p.recentForm} /> },
-]
+const FORM_CIRCLE: Record<string, { bg: string; text: string; underline: string; extra?: string }> = {
+  W:   { bg: 'bg-sky-500',     text: 'text-slate-900', underline: 'bg-sky-400'   },
+  D:   { bg: 'bg-slate-700',   text: 'text-slate-400', underline: 'bg-slate-400' },
+  L:   { bg: 'bg-red-950',     text: 'text-red-300',   underline: 'bg-red-400'   },
+  '-': { bg: 'bg-transparent', text: 'text-slate-600', underline: 'bg-slate-600', extra: 'border border-dashed border-slate-600' },
+}
 
 export function PlayerCard({
   player,
   isOpen,
   onToggle,
   sortBy,
-  visibleStats,
   showMentality = true,
 }: PlayerCardProps) {
   const contentId = `player-${player.name.replace(/\s+/g, '-').toLowerCase()}-content`
@@ -83,11 +63,26 @@ export function PlayerCard({
     ? 'border-slate-600'
     : 'border-slate-700 hover:border-slate-500'
 
+  // recentForm is stored newest-first; pad to 5 chars, then reverse so oldest is leftmost, newest is rightmost
+  const raw = player.recentForm ?? ''
+  const formChars = [...raw.padEnd(5, '-')].reverse()
+  const lastIndex = formChars.length - 1  // always 4 when padded; underline on rightmost circle
+
+  // Define bar segments; filter out zeros to avoid gap-px artefacts
+  const resultSegments = [
+    { count: player.won,  barClass: 'bg-sky-500',   numClass: 'text-sky-400',   label: 'Won'   },
+    { count: player.drew, barClass: 'bg-slate-600', numClass: 'text-slate-500', label: 'Drawn' },
+    { count: player.lost, barClass: 'bg-red-500',   numClass: 'text-red-400',   label: 'Lost'  },
+  ].filter(s => s.count > 0)
+
+  const splitSegments = [
+    { count: player.timesTeamA, barClass: 'bg-blue-700',   numClass: 'text-blue-300',   label: 'Team A', align: 'text-left'  },
+    { count: player.timesTeamB, barClass: 'bg-violet-700', numClass: 'text-violet-300', label: 'Team B', align: 'text-right' },
+  ]
+
   return (
     <Collapsible.Root open={isOpen} onOpenChange={onToggle}>
-      <div
-        className={cn('rounded-lg border bg-slate-800 transition-colors duration-150', borderClass)}
-      >
+      <div className={cn('rounded-lg border bg-slate-800 transition-colors duration-150', borderClass)}>
         <Collapsible.Trigger asChild>
           <button
             className="w-full flex items-center justify-between px-4 py-3 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer"
@@ -96,7 +91,6 @@ export function PlayerCard({
           >
             <div className="flex items-center gap-2.5">
               <span className="text-sm font-semibold text-slate-100">{player.name}</span>
-              {/* Mentality pill */}
               {showMentality && (
                 <span className="text-[10px] font-medium text-slate-500 bg-slate-700/60 px-1.5 py-0.5 rounded">
                   {MENTALITY_LABEL[player.mentality] ?? player.mentality}
@@ -118,20 +112,115 @@ export function PlayerCard({
           </button>
         </Collapsible.Trigger>
 
-        {/* Expanded body — only in normal mode */}
         <Collapsible.Content
           id={contentId}
           className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up"
         >
-          <div className="border-t border-slate-700 p-4">
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-              {STAT_ROWS
-                .filter((row) => !visibleStats || visibleStats.includes(row.key))
-                .map((row) => (
-                  <StatRow key={row.key} label={row.label} value={row.render(player)} />
-                ))
-              }
+          <div className="border-t border-slate-700 p-4 flex flex-col gap-4">
+
+            {/* ── Section 1: Win Rate · Played · Last 5 ── */}
+            <div className="flex justify-between items-start">
+              {/* Win Rate */}
+              <div>
+                <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-0.5">Win Rate</p>
+                <p className="text-2xl font-extrabold text-sky-400 leading-none">
+                  {player.winRate.toFixed(1)}%
+                </p>
+              </div>
+
+              {/* Played + Last 5 */}
+              <div className="flex items-start gap-5">
+                {/* Played */}
+                <div className="text-right">
+                  <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-0.5">Played</p>
+                  <p className="text-2xl font-extrabold text-slate-100 leading-none">{player.played}</p>
+                </div>
+
+                {/* Last 5 form circles */}
+                <div>
+                  <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-1.5">Last 5</p>
+                  <div className="flex gap-1">
+                    {formChars.map((char, i) => {
+                      const style = FORM_CIRCLE[char] ?? FORM_CIRCLE['-']
+                      const isMostRecent = i === lastIndex
+                      return (
+                        <div key={i} className="flex flex-col items-center gap-0.5">
+                          <span
+                            className={cn(
+                              'w-[22px] h-[22px] rounded-full flex items-center justify-center',
+                              'text-[9px] font-bold font-mono',
+                              style.bg,
+                              style.text,
+                              style.extra,
+                            )}
+                          >
+                            {char === '-' ? '' : char}
+                          </span>
+                          {isMostRecent && (
+                            <span className={cn('w-3 h-0.5 rounded-full', style.underline)} />
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
+
+            {/* ── Section 2: Results bar ── */}
+            <div className="border-t border-slate-700 pt-4">
+              <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-2">Results</p>
+              {/* Numbers above bar */}
+              <div className="flex mb-1 gap-px">
+                {resultSegments.map(s => (
+                  <div key={s.label} className={cn('text-left text-[11px] font-bold', s.numClass)} style={{ flex: s.count }}>
+                    {s.count}
+                  </div>
+                ))}
+              </div>
+              {/* Bar */}
+              <div className="flex h-2 rounded overflow-hidden gap-px">
+                {resultSegments.map(s => (
+                  <div key={s.label} className={s.barClass} style={{ flex: s.count }} />
+                ))}
+              </div>
+              {/* Labels below bar */}
+              <div className="flex mt-1 gap-px">
+                {resultSegments.map(s => (
+                  <div key={s.label} className="text-left text-[9px] text-slate-500 uppercase tracking-wide" style={{ flex: s.count }}>
+                    {s.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Section 3: Team Split bar ── */}
+            <div className="border-t border-slate-700 pt-4">
+              <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-2">Team Split</p>
+              {/* Numbers above bar — always 50/50 so zero-count side doesn't collapse */}
+              <div className="flex mb-1">
+                {splitSegments.map(s => (
+                  <div key={s.label} className={cn(s.align, 'text-[11px] font-bold flex-1', s.numClass)}>
+                    {s.count}
+                  </div>
+                ))}
+              </div>
+              {/* Bar — proportional to actual counts */}
+              <div className="flex h-2 rounded overflow-hidden gap-px">
+                {splitSegments.map(s => (
+                  <div key={s.label} className={s.barClass} style={{ flex: s.count || 1 }} />
+                ))}
+              </div>
+              {/* Labels below bar — always 50/50 to match numbers row */}
+              <div className="flex mt-1">
+                {splitSegments.map(s => (
+                  <div key={s.label} className={cn(s.align, 'text-[9px] text-slate-500 uppercase tracking-wide flex-1')}>
+                    {s.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         </Collapsible.Content>
       </div>

@@ -1,0 +1,379 @@
+# Player Card Redesign Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Replace the plain label/value grid in the expanded `PlayerCard` body with a visually engaging layout — a key stats row (win rate, played, last 5 form), a proportional W/D/L results bar, and a proportional Team A/B split bar.
+
+**Architecture:** All changes are contained to `components/PlayerCard.tsx`. The `StatRow` component and `STAT_ROWS` array are removed and replaced with three inline layout sections. Form circles are rendered by reversing the `recentForm` string (newest-first data → oldest-left display), matching the existing convention in `RecentForm` and `FormDots`.
+
+**Tech Stack:** React, TypeScript, Tailwind CSS v3, `@radix-ui/react-collapsible`, `clsx`/`tailwind-merge` via `cn()`
+
+---
+
+## File Map
+
+| File | Change |
+|---|---|
+| `components/PlayerCard.tsx` | Remove `StatRow`, `STAT_ROWS`, and grid. Add three-section expanded body. |
+| `__tests__/form-display.test.ts` | Add test confirming most-recent circle renders rightmost (no new file needed — extend existing). |
+
+---
+
+### Task 1: Extend the form-display test to cover the new rendering direction
+
+The existing test in `__tests__/form-display.test.ts` documents the reversal convention. Add a test that pins down which index is the "most recent" after reversal — this is the index that gets the underline indicator.
+
+**Files:**
+- Modify: `__tests__/form-display.test.ts`
+
+- [ ] **Step 1: Add the test**
+
+Open `__tests__/form-display.test.ts` and append this describe block:
+
+```ts
+describe('most recent circle position', () => {
+  it('after reversal the last element is the most recent result', () => {
+    // recentForm is stored newest-first: index 0 = most recent
+    // after reversal: index 0 = oldest, last index = most recent
+    const form = 'WDLWW' // index 0 (W) = most recent
+    const reversed = [...form].reverse()
+    expect(reversed[reversed.length - 1]).toBe('W') // most recent is rightmost
+  })
+})
+```
+
+- [ ] **Step 2: Run the test to confirm it passes**
+
+```bash
+npm test -- --testPathPattern="form-display" --no-coverage
+```
+
+Expected output:
+```
+PASS __tests__/form-display.test.ts
+  form display order
+    ✓ reverses a full 5-char form string so newest is last
+    ✓ handles a form string with placeholder dashes
+    ✓ handles a single-char form string
+    ✓ handles an empty form string
+  most recent circle position
+    ✓ after reversal the last element is the most recent result
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add __tests__/form-display.test.ts
+git commit -m "test: pin most-recent circle position for player card redesign"
+```
+
+---
+
+### Task 2: Replace the expanded body in PlayerCard
+
+Remove `StatRow`, `STAT_ROWS`, and the 2-column grid. Replace with the three-section layout.
+
+**Files:**
+- Modify: `components/PlayerCard.tsx`
+
+- [ ] **Step 1: Read the current file**
+
+Read `components/PlayerCard.tsx` in full so you have the complete current content before editing.
+
+- [ ] **Step 2: Replace the file content**
+
+Write the new `components/PlayerCard.tsx`:
+
+```tsx
+'use client'
+
+import * as Collapsible from '@radix-ui/react-collapsible'
+import { ChevronDown } from 'lucide-react'
+import type { Player, SortKey } from '@/lib/types'
+import { FormDots } from '@/components/FormDots'
+import { cn } from '@/lib/utils'
+
+interface PlayerCardProps {
+  player: Player
+  isOpen: boolean
+  onToggle: () => void
+  sortBy: SortKey
+  /** Kept for API compatibility — no longer used internally */
+  visibleStats?: string[]
+  /** Whether to show the ATT/BAL/DEF/GK mentality badge — defaults to true */
+  showMentality?: boolean
+}
+
+const MENTALITY_LABEL: Record<string, string> = {
+  goalkeeper: 'GK',
+  defensive:  'DEF',
+  balanced:   'BAL',
+  attacking:  'ATT',
+}
+
+const HEADER_METRIC: Record<SortKey, (p: Player) => React.ReactNode> = {
+  name:       (p) => `${p.played} games`,
+  played:     (p) => `${p.played} games`,
+  won:        (p) => (
+    <>
+      <span className="font-semibold text-slate-100">{p.won}</span>
+      <span className="text-xs text-slate-400"> wins</span>
+    </>
+  ),
+  winRate:    (p) => (
+    <>
+      <span className="font-semibold text-slate-100">{p.winRate.toFixed(1)}%</span>
+      <span className="text-xs text-slate-400"> win rate</span>
+    </>
+  ),
+  recentForm: (p) =>
+    p.recentForm ? <FormDots form={p.recentForm} /> : `${p.played} games`,
+}
+
+const FORM_CIRCLE: Record<string, { bg: string; text: string }> = {
+  W: { bg: 'bg-sky-500',   text: 'text-slate-900' },
+  D: { bg: 'bg-slate-700', text: 'text-slate-400' },
+  L: { bg: 'bg-red-950',   text: 'text-red-300'   },
+  '-': { bg: 'bg-slate-800', text: 'text-slate-600' },
+}
+
+export function PlayerCard({
+  player,
+  isOpen,
+  onToggle,
+  sortBy,
+  showMentality = true,
+}: PlayerCardProps) {
+  const contentId = `player-${player.name.replace(/\s+/g, '-').toLowerCase()}-content`
+
+  const borderClass = isOpen
+    ? 'border-slate-600'
+    : 'border-slate-700 hover:border-slate-500'
+
+  // recentForm is stored newest-first; reverse so oldest is leftmost, newest is rightmost
+  const formChars = [...player.recentForm].reverse()
+  const lastIndex = formChars.length - 1
+
+  // flex proportions for bars — guard against all-zero to avoid invisible bars
+  const total    = player.won + player.drew + player.lost || 1
+  const splitTotal = player.timesTeamA + player.timesTeamB || 1
+
+  return (
+    <Collapsible.Root open={isOpen} onOpenChange={onToggle}>
+      <div className={cn('rounded-lg border bg-slate-800 transition-colors duration-150', borderClass)}>
+        <Collapsible.Trigger asChild>
+          <button
+            className="w-full flex items-center justify-between px-4 py-3 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer"
+            aria-expanded={isOpen}
+            aria-controls={contentId}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="text-sm font-semibold text-slate-100">{player.name}</span>
+              {showMentality && (
+                <span className="text-[10px] font-medium text-slate-500 bg-slate-700/60 px-1.5 py-0.5 rounded">
+                  {MENTALITY_LABEL[player.mentality] ?? player.mentality}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400 flex items-center gap-1">
+                {HEADER_METRIC[sortBy](player)}
+              </span>
+              <ChevronDown
+                className={cn(
+                  'h-4 w-4 text-slate-400 transition-transform duration-200 flex-shrink-0',
+                  isOpen && 'rotate-180',
+                )}
+                aria-hidden="true"
+              />
+            </div>
+          </button>
+        </Collapsible.Trigger>
+
+        <Collapsible.Content
+          id={contentId}
+          className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up"
+        >
+          <div className="border-t border-slate-700 p-4 flex flex-col gap-4">
+
+            {/* ── Section 1: Win Rate · Played · Last 5 ── */}
+            <div className="flex justify-between items-start">
+              {/* Win Rate */}
+              <div>
+                <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-0.5">Win Rate</p>
+                <p className="text-2xl font-extrabold text-sky-400 leading-none">
+                  {player.winRate.toFixed(1)}%
+                </p>
+              </div>
+
+              {/* Played + Last 5 */}
+              <div className="flex items-start gap-5">
+                {/* Played */}
+                <div className="text-right">
+                  <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-0.5">Played</p>
+                  <p className="text-2xl font-extrabold text-slate-100 leading-none">{player.played}</p>
+                </div>
+
+                {/* Last 5 form circles */}
+                <div>
+                  <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-1.5">Last 5</p>
+                  <div className="flex gap-1">
+                    {formChars.map((char, i) => {
+                      const style = FORM_CIRCLE[char] ?? FORM_CIRCLE['-']
+                      const isMostRecent = i === lastIndex
+                      return (
+                        <div key={i} className="flex flex-col items-center gap-0.5">
+                          <span
+                            className={cn(
+                              'w-[22px] h-[22px] rounded-full flex items-center justify-center',
+                              'text-[9px] font-bold font-mono',
+                              style.bg,
+                              style.text,
+                            )}
+                          >
+                            {char === '-' ? '' : char}
+                          </span>
+                          {isMostRecent && (
+                            <span className="w-3 h-0.5 rounded-full bg-sky-400" />
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Section 2: Results bar ── */}
+            <div className="border-t border-slate-700 pt-4">
+              <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-2">Results</p>
+              {/* Numbers above bar */}
+              <div className="flex mb-1" style={{ gap: '1px' }}>
+                <div className="text-left text-[11px] font-bold text-sky-400"
+                     style={{ flex: player.won }}>
+                  {player.won}
+                </div>
+                <div className="text-left text-[11px] font-bold text-slate-500"
+                     style={{ flex: player.drew }}>
+                  {player.drew}
+                </div>
+                <div className="text-left text-[11px] font-bold text-red-400"
+                     style={{ flex: player.lost }}>
+                  {player.lost}
+                </div>
+              </div>
+              {/* Bar */}
+              <div className="flex h-2 rounded overflow-hidden" style={{ gap: '1px' }}>
+                <div className="bg-sky-500 rounded-l" style={{ flex: player.won / total }} />
+                <div className="bg-slate-600"          style={{ flex: player.drew / total }} />
+                <div className="bg-red-500 rounded-r"  style={{ flex: player.lost / total }} />
+              </div>
+              {/* Labels below bar */}
+              <div className="flex mt-1" style={{ gap: '1px' }}>
+                <div className="text-left text-[9px] text-slate-500 uppercase tracking-wide"
+                     style={{ flex: player.won }}>
+                  Won
+                </div>
+                <div className="text-left text-[9px] text-slate-500 uppercase tracking-wide"
+                     style={{ flex: player.drew }}>
+                  Drawn
+                </div>
+                <div className="text-left text-[9px] text-slate-500 uppercase tracking-wide"
+                     style={{ flex: player.lost }}>
+                  Lost
+                </div>
+              </div>
+            </div>
+
+            {/* ── Section 3: Team Split bar ── */}
+            <div className="border-t border-slate-700 pt-4">
+              <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-2">Team Split</p>
+              {/* Numbers above bar */}
+              <div className="flex mb-1" style={{ gap: '1px' }}>
+                <div className="text-left text-[11px] font-bold text-blue-300"
+                     style={{ flex: player.timesTeamA }}>
+                  {player.timesTeamA}
+                </div>
+                <div className="text-right text-[11px] font-bold text-violet-300"
+                     style={{ flex: player.timesTeamB }}>
+                  {player.timesTeamB}
+                </div>
+              </div>
+              {/* Bar */}
+              <div className="flex h-2 rounded overflow-hidden" style={{ gap: '1px' }}>
+                <div className="bg-blue-700 rounded-l"   style={{ flex: player.timesTeamA / splitTotal }} />
+                <div className="bg-violet-700 rounded-r" style={{ flex: player.timesTeamB / splitTotal }} />
+              </div>
+              {/* Labels below bar */}
+              <div className="flex mt-1" style={{ gap: '1px' }}>
+                <div className="text-left text-[9px] text-slate-500 uppercase tracking-wide"
+                     style={{ flex: player.timesTeamA }}>
+                  Team A
+                </div>
+                <div className="text-right text-[9px] text-slate-500 uppercase tracking-wide"
+                     style={{ flex: player.timesTeamB }}>
+                  Team B
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </Collapsible.Content>
+      </div>
+    </Collapsible.Root>
+  )
+}
+```
+
+- [ ] **Step 3: Run the full test suite to confirm nothing is broken**
+
+```bash
+npm test -- --no-coverage
+```
+
+Expected: all tests pass. The `form-display` test should still pass since we're using the same `[...form].reverse()` convention.
+
+- [ ] **Step 4: Run the TypeScript compiler to check for type errors**
+
+```bash
+npx tsc --noEmit
+```
+
+Expected: no errors.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add components/PlayerCard.tsx
+git commit -m "feat: redesign player card expanded body with visual stat bars"
+```
+
+---
+
+### Task 3: Smoke-test in the browser
+
+- [ ] **Step 1: Start the dev server**
+
+```bash
+npm run dev
+```
+
+- [ ] **Step 2: Open the players tab**
+
+Navigate to a league's players tab (e.g. `http://localhost:3000/<leagueId>/players`) and open a player card.
+
+Verify:
+- Expanded body shows three sections (key stats, Results bar, Team Split bar)
+- Win rate is large and blue
+- Played is large and white, right-aligned, with its own label
+- Last 5 circles appear oldest-left → newest-right, rightmost has a short sky-blue underline
+- Results bar segments are proportional to W/D/L counts, with numbers above and Won/Drawn/Lost labels below
+- Team Split bar is proportional, Team B label is right-aligned
+- Collapsed header (name, mentality pill, sort metric, chevron) is unchanged
+- Collapsible open/close animation still works
+
+- [ ] **Step 3: Check a player with very few games (edge case)**
+
+Find a player with 1–3 games played. Verify the bars still render without zero-width segments causing visual glitches (the `|| 1` guard in `total` and `splitTotal` handles this).
+
+- [ ] **Step 4: Commit if any cosmetic tweaks were needed, otherwise skip**
