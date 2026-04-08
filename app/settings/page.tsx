@@ -20,6 +20,11 @@ export default function AccountSettingsPage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [createdAt, setCreatedAt] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // ── League identity section ────────────────────────────────────────────────
   const [leagues, setLeagues] = useState<League[]>([])
@@ -32,6 +37,11 @@ export default function AccountSettingsPage() {
   const [claimErrors, setClaimErrors] = useState<Record<string, string>>({})
   const [cancellingLeague, setCancellingLeague] = useState<string | null>(null)
 
+  function formatDate(iso: string): string {
+    const d = new Date(iso)
+    return `${d.getDate()} ${d.toLocaleString('en-GB', { month: 'short' })} ${d.getFullYear()}`
+  }
+
   useEffect(() => {
     async function load() {
       const supabase = createClient()
@@ -41,12 +51,15 @@ export default function AccountSettingsPage() {
       setEmail(user.email ?? '')
 
       const [profileRes, membershipsRes, claimsRes] = await Promise.all([
-        supabase.from('profiles').select('display_name').eq('id', user.id).maybeSingle(),
+        supabase.from('profiles').select('display_name, first_name, last_name, created_at').eq('id', user.id).maybeSingle(),
         supabase.from('game_members').select('game_id, games(id, name)').eq('user_id', user.id),
         supabase.from('player_claims').select('*').eq('user_id', user.id),
       ])
 
       setDisplayName(profileRes.data?.display_name ?? '')
+      setFirstName(profileRes.data?.first_name ?? '')
+      setLastName(profileRes.data?.last_name ?? '')
+      setCreatedAt(profileRes.data?.created_at ?? null)
 
       const leagueList = (membershipsRes.data ?? [])
         .map((m) => {
@@ -69,25 +82,46 @@ export default function AccountSettingsPage() {
     load()
   }, [])
 
-  async function saveDisplayName(e: React.FormEvent) {
+  async function saveProfile(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
     setError(null)
     try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not signed in')
-      const { error: err } = await supabase
-        .from('profiles')
-        .update({ display_name: displayName.trim() })
-        .eq('id', user.id)
-      if (err) throw err
+      const res = await fetch('/api/auth/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          display_name: displayName.trim(),
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Failed to save')
+      }
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true)
+    try {
+      const res = await fetch('/api/auth/account', { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Failed to delete account')
+      }
+      window.location.href = '/sign-in'
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete account')
+      setDeleting(false)
+      setConfirmDelete(false)
     }
   }
 
@@ -157,49 +191,100 @@ export default function AccountSettingsPage() {
   )
 
   return (
-    <main className="max-w-md mx-auto px-4 sm:px-6 py-8">
-
-      {/* ── Account section ─────────────────────────────────────────────────── */}
+    <main className="max-w-xl mx-auto px-4 sm:px-6 py-8">
       <h1 className="text-xl font-semibold text-slate-100 mb-6">Account</h1>
 
-      <div className="p-4 rounded-lg bg-slate-800 border border-slate-700 mb-4">
-        <p className="text-xs text-slate-500 mb-1">Email</p>
-        <p className="text-sm text-slate-300">{email}</p>
+      {/* ── Account info card (read-only) ──────────────────────────────── */}
+      <div className="rounded-lg bg-slate-800 border border-slate-700 overflow-hidden mb-4">
+        <div className="px-4 py-3 border-b border-slate-700/60">
+          <p className="text-sm font-medium text-slate-200">Account info</p>
+        </div>
+        <div className="divide-y divide-slate-700/40">
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-slate-500">Email</p>
+              <p className="text-sm text-slate-300">{email}</p>
+            </div>
+            <p className="text-xs text-slate-600">To change your email, contact your league admin.</p>
+          </div>
+          {createdAt && (
+            <div className="px-4 py-3 flex items-center justify-between">
+              <p className="text-xs text-slate-500">Member since</p>
+              <p className="text-sm text-slate-300">{formatDate(createdAt)}</p>
+            </div>
+          )}
+        </div>
       </div>
 
-      <form onSubmit={saveDisplayName} className="space-y-4 mb-12">
-        <div>
-          <label htmlFor="displayName" className="block text-sm text-slate-400 mb-1">
-            Display name
-          </label>
-          <input
-            id="displayName"
-            name="displayName"
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Your name"
-            className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100"
-          />
+      {/* ── Profile card (editable) ─────────────────────────────────────── */}
+      <div className="rounded-lg bg-slate-800 border border-slate-700 overflow-hidden mb-6">
+        <div className="px-4 py-3 border-b border-slate-700/60">
+          <p className="text-sm font-medium text-slate-200">Profile</p>
         </div>
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        <button
-          type="submit"
-          disabled={saving}
-          className={cn(
-            'px-4 py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-50',
-            saved ? 'bg-slate-700 text-sky-300' : 'bg-sky-600 hover:bg-sky-500 text-white'
-          )}
-        >
-          {saving ? 'Saving…' : saved ? 'Saved' : 'Save changes'}
-        </button>
-      </form>
+        <form onSubmit={saveProfile} className="p-4 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="firstName" className="block text-xs text-slate-400 mb-1.5">
+                First name
+              </label>
+              <input
+                id="firstName"
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Alex"
+                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label htmlFor="lastName" className="block text-xs text-slate-400 mb-1.5">
+                Last name
+              </label>
+              <input
+                id="lastName"
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Smith"
+                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="displayName" className="block text-xs text-slate-400 mb-1.5">
+              Display name
+            </label>
+            <input
+              id="displayName"
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Your name"
+              className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+            />
+            <p className="text-xs text-slate-500 mt-1.5">How you appear in lineups and player lists</p>
+          </div>
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          <div className="flex justify-end pt-1">
+            <button
+              type="submit"
+              disabled={saving}
+              className={cn(
+                'px-4 py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-50',
+                saved ? 'bg-slate-700 text-sky-300' : 'bg-sky-600 hover:bg-sky-500 text-white'
+              )}
+            >
+              {saving ? 'Saving…' : saved ? 'Saved' : 'Save changes'}
+            </button>
+          </div>
+        </form>
+      </div>
 
-      {/* ── League identity section ──────────────────────────────────────────── */}
+      {/* ── League identity section ──────────────────────────────────────── */}
       {leagues.length > 0 && (
         <>
-          <h2 className="text-xl font-semibold text-slate-100 mb-6">League identity</h2>
-          <div className="space-y-3">
+          <h2 className="text-xl font-semibold text-slate-100 mb-4">League identity</h2>
+          <div className="space-y-3 mb-12">
             {leagues.map((league) => {
               const claim = claims[league.id]
               const status = claim?.status ?? null
@@ -213,12 +298,9 @@ export default function AccountSettingsPage() {
                   key={league.id}
                   className="rounded-lg bg-slate-800 border border-slate-700 overflow-hidden"
                 >
-                  {/* Row header */}
                   <div className="flex items-center justify-between gap-3 px-4 py-3">
                     <div>
                       <p className="text-sm font-medium text-slate-100 mb-1">{league.name}</p>
-
-                      {/* Status indicator */}
                       {status === null && (
                         <div className="flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0" />
@@ -250,8 +332,6 @@ export default function AccountSettingsPage() {
                         </div>
                       )}
                     </div>
-
-                    {/* Action button */}
                     {status === null && !isExpanded && (
                       <button
                         type="button"
@@ -280,11 +360,7 @@ export default function AccountSettingsPage() {
                         {isCancelling ? 'Cancelling…' : 'Cancel claim'}
                       </button>
                     )}
-                    {/* approved: no action */}
-                    {/* rejected: no button — picker handles it */}
                   </div>
-
-                  {/* Inline picker — shown when explicitly expanded (no-claim) or auto-shown for rejected */}
                   {(isExpanded || (status === 'rejected' && !dismissedRejected.has(league.id))) && (
                     <>
                       {claimErrors[league.id] && (
@@ -310,6 +386,49 @@ export default function AccountSettingsPage() {
           </div>
         </>
       )}
+
+      {/* ── Danger zone ──────────────────────────────────────────────────── */}
+      <div className="rounded-lg border border-red-900/40 overflow-hidden mb-8">
+        <div className="px-4 py-3 border-b border-red-900/30">
+          <p className="text-sm font-medium text-red-400">Danger zone</p>
+        </div>
+        <div className="px-4 py-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm text-slate-300">Delete account</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Permanently removes your account and all associated data. This cannot be undone.
+            </p>
+          </div>
+          {!confirmDelete ? (
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="px-3 py-1.5 rounded-lg border border-red-900/60 text-red-400 text-xs font-medium hover:bg-red-950/40 transition-colors shrink-0"
+            >
+              Delete account
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                className="px-3 py-1.5 rounded-lg border border-slate-600 text-slate-400 text-xs hover:border-slate-500 disabled:opacity-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="px-3 py-1.5 rounded-lg bg-red-900/60 hover:bg-red-900/80 text-red-300 text-xs font-medium disabled:opacity-50 transition-colors"
+              >
+                {deleting ? 'Deleting…' : 'Yes, delete'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </main>
   )
 }
