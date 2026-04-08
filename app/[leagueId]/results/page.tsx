@@ -255,7 +255,6 @@ export default async function LeagueResultsPage({ params }: Props) {
                 isAdmin={isAdmin}
                 gameId={leagueId}
                 allPlayers={players}
-                onResultSaved={() => {}}
               />
             ) : (
               <div className="py-16 text-center">
