@@ -4,7 +4,7 @@ import type { ReactElement } from 'react'
 import Link from 'next/link'
 import { usePathname, useParams, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
-import { Settings, User, LogOut, FlaskConical } from 'lucide-react'
+import { Settings, LogOut, FlaskConical } from 'lucide-react'
 
 import {
   Accordion,
@@ -28,6 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { AvatarButton } from '@/components/ui/AvatarButton'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 
@@ -266,9 +267,7 @@ export function Navbar({
               )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <User className="size-4" />
-                  </Button>
+                  <AvatarButton name={displayName ?? ''} />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <div className="px-2 py-1.5">
@@ -310,9 +309,7 @@ export function Navbar({
           {showNav && user && (
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="shrink-0">
-                  <User className="size-4" />
-                </Button>
+                <AvatarButton name={displayName ?? ''} />
               </SheetTrigger>
               <SheetContent className="overflow-y-auto bg-slate-900 border-slate-700">
                 <SheetHeader>
