@@ -65,7 +65,7 @@ export function PlayerCard({
 
   // recentForm is stored newest-first; reverse so oldest is leftmost, newest is rightmost
   const formChars = player.recentForm ? [...player.recentForm].reverse() : []
-  const lastIndex = formChars.length - 1
+  const lastIndex = formChars.length - 1  // -1 when empty — map iterates zero times so underline never renders
 
   // Define bar segments; filter out zeros to avoid gap-px artefacts
   const resultSegments = [
