@@ -75,7 +75,9 @@ The `STAT_ROWS` config array and `StatRow` component can be deleted from `Player
 
 ## Form display direction change
 
-The existing `RecentForm` and `FormDots` components display most-recent on the **left** (they reverse the form string). The new design displays oldest → newest left to right, with the rightmost being most recent. The new form circles in `PlayerCard` must **not** reverse the string — iterate the form string in its natural order (index 0 = oldest, last index = most recent).
+The `recentForm` string is stored **newest-first** (index 0 = most recent). Display components reverse it to render oldest → newest left to right, so the rightmost circle = most recent. The new form circles must do the same reversal: `[...player.recentForm].reverse()`.
+
+The underline indicator goes on the **last element** of the reversed array (index 4, rightmost circle).
 
 `RecentForm` and `FormDots` are used elsewhere (e.g. `StatsSidebar`) and must **not** be changed.
 
