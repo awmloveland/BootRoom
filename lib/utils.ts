@@ -375,5 +375,5 @@ export function getInitials(name: string): string {
  */
 export function getAvatarColor(name: string): { bg: string; border: string; text: string } {
   const index = name.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % AVATAR_PALETTE.length
-  return AVATAR_PALETTE[index]
+  return { ...AVATAR_PALETTE[index] }
 }
