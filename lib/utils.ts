@@ -348,3 +348,32 @@ export function parseGoogleName(meta: Record<string, unknown>): { firstName: str
     lastName: parts.slice(1).join(' '),
   }
 }
+
+const AVATAR_PALETTE: { bg: string; border: string; text: string }[] = [
+  { bg: '#1e1b4b', border: '#4f46e5', text: '#a5b4fc' }, // indigo
+  { bg: '#1e3a5f', border: '#2563eb', text: '#93c5fd' }, // blue
+  { bg: '#2e1065', border: '#7c3aed', text: '#c4b5fd' }, // violet
+  { bg: '#0d2b2b', border: '#0d9488', text: '#5eead4' }, // teal
+  { bg: '#2d0a16', border: '#e11d48', text: '#fda4af' }, // rose
+  { bg: '#0c2233', border: '#0284c7', text: '#7dd3fc' }, // sky
+]
+
+/**
+ * Returns up to two uppercase initials from a display name.
+ * "Will Loveland" → "WL", "Madonna" → "M", "" → ""
+ */
+export function getInitials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return ''
+  if (words.length === 1) return words[0][0].toUpperCase()
+  return words[0][0].toUpperCase() + words[1][0].toUpperCase()
+}
+
+/**
+ * Deterministically maps a display name to one of six dark-theme colour sets.
+ * Same name always returns the same colour.
+ */
+export function getAvatarColor(name: string): { bg: string; border: string; text: string } {
+  const index = name.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % AVATAR_PALETTE.length
+  return { ...AVATAR_PALETTE[index] }
+}
