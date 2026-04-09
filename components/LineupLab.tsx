@@ -107,7 +107,7 @@ export function LineupLab({ allPlayers }: Props) {
             disabled={totalSelected < 2}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-sm text-slate-300 hover:border-slate-600 hover:text-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            ⚖️ Auto-Balance Teams
+            Auto-Balance Teams
           </button>
           <button
             type="button"
@@ -115,7 +115,7 @@ export function LineupLab({ allPlayers }: Props) {
             disabled={totalSelected === 0}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-950 border border-red-900 text-sm text-red-400 hover:border-red-700 hover:text-red-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            ↺ Clear all
+            Clear all
           </button>
         </div>
       </div>
