@@ -10,26 +10,18 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}))
-  const { first_name, last_name, display_name } = body
+  const { first_name, last_name } = body
 
-  // At least one field must be present
-  if (first_name === undefined && last_name === undefined && display_name === undefined) {
+  if (first_name === undefined && last_name === undefined) {
     return NextResponse.json({ error: 'No fields provided' }, { status: 400 })
   }
 
-  // Validate: if a field is present, it must not be empty after trimming
   const trimmed: Record<string, string> = {}
-  for (const [key, val] of Object.entries({ first_name, last_name, display_name })) {
+  for (const [key, val] of Object.entries({ first_name, last_name })) {
     if (val === undefined) continue
     const t = String(val).trim()
     if (!t) return NextResponse.json({ error: `${key} cannot be empty` }, { status: 400 })
     trimmed[key] = t
-  }
-
-  // When welcome flow sends first_name + last_name without display_name,
-  // derive display_name so it is also populated
-  if (trimmed.first_name !== undefined && trimmed.last_name !== undefined && trimmed.display_name === undefined) {
-    trimmed.display_name = `${trimmed.first_name} ${trimmed.last_name}`.trim()
   }
 
   const { error } = await supabase
