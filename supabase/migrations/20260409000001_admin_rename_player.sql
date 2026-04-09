@@ -2,7 +2,8 @@
 --
 -- admin_rename_player: atomically renames a player across all league data.
 -- Updates player_attributes, player_claims, and weeks.team_a / team_b.
--- Raises 'name_already_exists' if p_new_name is already taken in the league.
+-- Raises 'name_already_exists' if p_new_name already exists in player_attributes
+-- or in pending/approved player_claims for the league.
 --
 
 CREATE OR REPLACE FUNCTION public.admin_rename_player(
@@ -26,10 +27,15 @@ BEGIN
     RETURN;
   END IF;
 
-  -- Conflict check: new name must not already exist in player_attributes
+  -- Conflict check: new name must not already exist in player_attributes or active claims
   IF EXISTS (
     SELECT 1 FROM player_attributes
     WHERE game_id = p_game_id AND name = p_new_name
+  ) OR EXISTS (
+    SELECT 1 FROM player_claims
+    WHERE game_id = p_game_id
+      AND (player_name = p_new_name OR admin_override_name = p_new_name)
+      AND status IN ('pending', 'approved')
   ) THEN
     RAISE EXCEPTION 'name_already_exists';
   END IF;
