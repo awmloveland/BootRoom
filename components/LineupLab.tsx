@@ -181,7 +181,7 @@ export function LineupLab({ allPlayers }: Props) {
           </div>
 
           {/* Balance bar — only when both teams have at least 1 player */}
-          {teamA.length > 0 && teamB.length > 0 && (() => {
+          {teamA.length >= MIN_PLAYERS && teamB.length >= MIN_PLAYERS && (() => {
             const scoreA = ewptScore(teamA)
             const scoreB = ewptScore(teamB)
             const winProbA = winProbability(scoreA, scoreB)
