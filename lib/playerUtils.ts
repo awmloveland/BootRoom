@@ -29,3 +29,13 @@ export function parsePlayerPatch(body: unknown): PlayerPatch | null {
   if (Object.keys(patch).length === 0) return null
   return patch
 }
+
+/**
+ * Validates and trims a player rename input.
+ * Returns the trimmed name, or null if the value is not a non-empty string.
+ */
+export function parseRenameName(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}

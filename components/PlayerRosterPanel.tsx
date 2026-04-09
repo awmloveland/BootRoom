@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Mentality, PlayerAttribute } from '@/lib/types'
 import MemberLinkPicker from '@/components/MemberLinkPicker'
@@ -32,6 +32,10 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
   const [linkingPlayerName, setLinkingPlayerName] = useState<string | null>(null)
   const [linkError, setLinkError] = useState<string | null>(null)
   const [linkSubmitting, setLinkSubmitting] = useState(false)
+  const [renamingPlayer, setRenamingPlayer] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [renameError, setRenameError] = useState<string | null>(null)
+  const [renameSubmitting, setRenameSubmitting] = useState(false)
 
   const patch = useCallback(
     async (name: string, update: Partial<Pick<PlayerAttribute, 'rating' | 'mentality'>>) => {
@@ -88,6 +92,35 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
     }
   }
 
+  async function renamePlayer(oldName: string) {
+    const trimmed = renameValue.trim()
+    if (!trimmed) return
+    setRenameSubmitting(true)
+    setRenameError(null)
+    try {
+      const res = await fetch(
+        `/api/league/${leagueId}/players/${encodeURIComponent(oldName)}/rename`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ new_name: trimmed }),
+        }
+      )
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to rename')
+      setPlayers((prev) =>
+        prev.map((p) => (p.name === oldName ? { ...p, name: trimmed } : p))
+      )
+      setRenamingPlayer(null)
+      setRenameValue('')
+    } catch (err) {
+      setRenameError(err instanceof Error ? err.message : 'Failed to rename')
+    } finally {
+      setRenameSubmitting(false)
+    }
+  }
+
   function handleRatingClick(player: PlayerAttribute, dot: number) {
     // Clicking the active dot decrements by 1 (min 1)
     const next = player.rating === dot ? Math.max(1, dot - 1) : dot
@@ -116,13 +149,27 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
             key={player.name}
             className={cn(
               'rounded-lg bg-slate-800 border overflow-hidden',
-              hasError ? 'border-red-800' : isExpanded ? 'border-slate-600' : 'border-slate-700'
+              hasError ? 'border-red-800' : isExpanded || renamingPlayer === player.name ? 'border-slate-600' : 'border-slate-700'
             )}
           >
             {/* ── Row ── */}
-            <div className="flex items-center gap-3 px-3 py-2.5">
-              <span className="flex-1 min-w-0 text-sm font-semibold text-slate-100 truncate">
-                {player.name}
+            <div className={cn('flex items-center gap-3 px-3 py-2.5', renamingPlayer === player.name && 'opacity-60')}>
+              <span className="flex items-center gap-1.5 flex-1 min-w-0">
+                <span className="text-sm font-semibold text-slate-100 truncate">{player.name}</span>
+                {renamingPlayer !== player.name && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRenamingPlayer(player.name)
+                      setRenameValue(player.name)
+                      setRenameError(null)
+                    }}
+                    className="text-slate-600 hover:text-slate-400 transition-colors shrink-0"
+                    aria-label={`Rename ${player.name}`}
+                  >
+                    <Pencil className="size-3" />
+                  </button>
+                )}
               </span>
 
               {/* Desktop controls */}
@@ -262,6 +309,44 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                     </button>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* ── Rename panel ── */}
+            {renamingPlayer === player.name && (
+              <div className="border-t border-sky-900/30 bg-sky-950/10 px-3 py-3">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-2">Rename player</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') renamePlayer(player.name)
+                      if (e.key === 'Escape') { setRenamingPlayer(null); setRenameValue('') }
+                    }}
+                    autoFocus
+                    className="w-36 px-2.5 py-1.5 rounded-md bg-slate-900 border border-sky-700 text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => renamePlayer(player.name)}
+                    disabled={renameSubmitting || !renameValue.trim()}
+                    className="px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium disabled:opacity-50 transition-colors"
+                  >
+                    {renameSubmitting ? '…' : 'Save'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setRenamingPlayer(null); setRenameValue(''); setRenameError(null) }}
+                    className="px-3 py-1.5 rounded-md border border-slate-600 text-slate-400 text-xs hover:border-slate-500 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {renameError && (
+                  <p className="mt-2 text-xs text-red-400">{renameError}</p>
+                )}
               </div>
             )}
 

@@ -14,7 +14,6 @@ interface League {
 
 export default function AccountSettingsPage() {
   // ── Account section ────────────────────────────────────────────────────────
-  const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -51,12 +50,11 @@ export default function AccountSettingsPage() {
       setEmail(user.email ?? '')
 
       const [profileRes, membershipsRes, claimsRes] = await Promise.all([
-        supabase.from('profiles').select('display_name, first_name, last_name, created_at').eq('id', user.id).maybeSingle(),
+        supabase.from('profiles').select('first_name, last_name, created_at').eq('id', user.id).maybeSingle(),
         supabase.from('game_members').select('game_id, games(id, name)').eq('user_id', user.id),
         supabase.from('player_claims').select('*').eq('user_id', user.id),
       ])
 
-      setDisplayName(profileRes.data?.display_name ?? '')
       setFirstName(profileRes.data?.first_name ?? '')
       setLastName(profileRes.data?.last_name ?? '')
       setCreatedAt(profileRes.data?.created_at ?? null)
@@ -93,7 +91,6 @@ export default function AccountSettingsPage() {
         body: JSON.stringify({
           first_name: firstName.trim(),
           last_name: lastName.trim(),
-          display_name: displayName.trim(),
         }),
       })
       if (!res.ok) {
@@ -249,20 +246,6 @@ export default function AccountSettingsPage() {
                 className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
               />
             </div>
-          </div>
-          <div>
-            <label htmlFor="displayName" className="block text-xs text-slate-400 mb-1.5">
-              Display name
-            </label>
-            <input
-              id="displayName"
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Your name"
-              className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-            />
-            <p className="text-xs text-slate-500 mt-1.5">How you appear in lineups and player lists</p>
           </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex justify-end pt-1">

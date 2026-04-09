@@ -5,6 +5,7 @@ node_modules/
 .next/
 out/
 build_output.txt
+test_output.log
 
 # Test coverage
 coverage/

@@ -148,7 +148,10 @@ export function Navbar({
         .maybeSingle()
       role = profile?.role ?? null
     }
-    return { user: data?.user ?? null, displayName: data?.profile?.display_name ?? data?.user?.email ?? null, role }
+    const first = data?.profile?.first_name ?? ''
+    const last = data?.profile?.last_name ?? ''
+    const derivedName = `${first} ${last}`.trim() || data?.user?.email || null
+    return { user: data?.user ?? null, displayName: derivedName, role }
   }, [])
 
   const applyUserData = useCallback((result: { user: { id?: string; email?: string } | null; displayName: string | null; role: string | null }) => {
