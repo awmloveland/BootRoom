@@ -1,10 +1,13 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import { cn, ewptScore, winProbability, winCopy } from '@/lib/utils'
 import { autoPick } from '@/lib/autoPick'
 import { FormDots } from '@/components/FormDots'
 import type { Player } from '@/lib/types'
+
+const MIN_PLAYERS = 4
 
 interface Props {
   allPlayers: Player[]
@@ -103,17 +106,19 @@ export function LineupLab({ allPlayers }: Props) {
             type="button"
             onClick={handleAutoBalance}
             disabled={totalSelected < 2}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-sm text-slate-300 hover:border-slate-600 hover:text-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center justify-center h-8 px-3 rounded-md bg-slate-800 border border-slate-700 text-sm text-slate-300 hover:border-slate-600 hover:text-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            ⚖️ Auto-Balance Teams
+            <span className="sm:hidden">Auto-balance</span>
+            <span className="hidden sm:inline">Auto-Balance Teams</span>
           </button>
           <button
             type="button"
             onClick={handleClearAll}
             disabled={totalSelected === 0}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-950 border border-red-900 text-sm text-red-400 hover:border-red-700 hover:text-red-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center justify-center h-8 px-3 rounded-md bg-red-950 border border-red-900 text-sm text-red-400 hover:border-red-700 hover:text-red-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            ↺ Clear all
+            <Trash2 size={15} className="sm:hidden" />
+            <span className="hidden sm:inline">Clear all</span>
           </button>
         </div>
       </div>
@@ -134,7 +139,7 @@ export function LineupLab({ allPlayers }: Props) {
                         ? 'bg-sky-900/60 border border-sky-700 text-sky-300'
                         : 'bg-violet-900/60 border border-violet-700 text-violet-300'
                     )}>
-                      {score.toFixed(3)}
+                      {players.length >= MIN_PLAYERS ? score.toFixed(3) : '—'}
                     </span>
                   </div>
                   <div className="space-y-1 min-h-[32px]">
@@ -178,8 +183,8 @@ export function LineupLab({ allPlayers }: Props) {
             })}
           </div>
 
-          {/* Balance bar — only when both teams have at least 1 player */}
-          {teamA.length > 0 && teamB.length > 0 && (() => {
+          {/* Balance bar — only when both teams have at least MIN_PLAYERS players */}
+          {teamA.length >= MIN_PLAYERS && teamB.length >= MIN_PLAYERS && (() => {
             const scoreA = ewptScore(teamA)
             const scoreB = ewptScore(teamB)
             const winProbA = winProbability(scoreA, scoreB)
