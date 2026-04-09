@@ -1,6 +1,6 @@
 # Lineup Lab — Minimum Players Before Score Reveal
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Hide team scores and the balance bar in Lineup Lab until each team has at least 4 players, preventing individual-player rating comparisons.
 
@@ -23,7 +23,7 @@
 **Files:**
 - Modify: `components/LineupLab.tsx`
 
-- [ ] **Step 1: Add `MIN_PLAYERS` constant**
+- [x] **Step 1: Add `MIN_PLAYERS` constant**
 
 At the top of `LineupLab.tsx`, after the imports, add:
 
@@ -31,7 +31,7 @@ At the top of `LineupLab.tsx`, after the imports, add:
 const MIN_PLAYERS = 4
 ```
 
-- [ ] **Step 2: Update each team's score badge**
+- [x] **Step 2: Update each team's score badge**
 
 Find the score badge inside the `(['A', 'B'] as const).map(...)` block (around line 131). Replace:
 
@@ -59,11 +59,11 @@ With:
 </span>
 ```
 
-- [ ] **Step 3: Verify the score variable is still computed the same way**
+- [x] **Step 3: Verify the score variable is still computed the same way**
 
 Confirm `const score = ewptScore(players)` is still present immediately before the `return` in the map — the score is computed regardless, only the display changes. No change needed here, just verify.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add components/LineupLab.tsx
@@ -77,7 +77,7 @@ git commit -m "feat: hide team score badge until 4 players per team"
 **Files:**
 - Modify: `components/LineupLab.tsx`
 
-- [ ] **Step 1: Tighten the balance bar render condition**
+- [x] **Step 1: Tighten the balance bar render condition**
 
 Find the balance bar section (around line 182). Replace:
 
@@ -91,7 +91,7 @@ With:
 {teamA.length >= MIN_PLAYERS && teamB.length >= MIN_PLAYERS && (() => {
 ```
 
-- [ ] **Step 2: Verify the dev server renders correctly**
+- [x] **Step 2: Verify the dev server renders correctly**
 
 Run the dev server and manually test three states:
 
@@ -105,7 +105,7 @@ npm run dev
 
 Navigate to a league's Lineup Lab page and add players through each state above.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add components/LineupLab.tsx
