@@ -117,7 +117,8 @@ export function LineupLab({ allPlayers }: Props) {
             disabled={totalSelected === 0}
             className="inline-flex items-center justify-center h-8 px-3 rounded-md bg-red-950 border border-red-900 text-sm text-red-400 hover:border-red-700 hover:text-red-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            <Trash2 size={15} />
+            <Trash2 size={15} className="sm:hidden" />
+            <span className="hidden sm:inline">Clear all</span>
           </button>
         </div>
       </div>
