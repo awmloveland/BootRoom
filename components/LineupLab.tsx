@@ -106,7 +106,7 @@ export function LineupLab({ allPlayers }: Props) {
             type="button"
             onClick={handleAutoBalance}
             disabled={totalSelected < 2}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-sm text-slate-300 hover:border-slate-600 hover:text-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-slate-800 border border-slate-700 text-sm text-slate-300 hover:border-slate-600 hover:text-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <span className="sm:hidden">Auto-balance</span>
             <span className="hidden sm:inline">Auto-Balance Teams</span>
@@ -115,7 +115,7 @@ export function LineupLab({ allPlayers }: Props) {
             type="button"
             onClick={handleClearAll}
             disabled={totalSelected === 0}
-            className="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-red-950 border border-red-900 text-sm text-red-400 hover:border-red-700 hover:text-red-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center justify-center h-8 px-3 rounded-md bg-red-950 border border-red-900 text-sm text-red-400 hover:border-red-700 hover:text-red-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <Trash2 size={15} />
           </button>
