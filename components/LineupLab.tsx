@@ -115,7 +115,7 @@ export function LineupLab({ allPlayers }: Props) {
             type="button"
             onClick={handleClearAll}
             disabled={totalSelected === 0}
-            className="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-red-950 border border-red-900 text-red-400 hover:border-red-700 hover:text-red-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-red-950 border border-red-900 text-sm text-red-400 hover:border-red-700 hover:text-red-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <Trash2 size={15} />
           </button>
