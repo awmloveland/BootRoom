@@ -134,7 +134,6 @@ function VerifyStep({
           required
           className={cn(inputClass, 'tracking-[0.5em] text-center text-lg font-mono')}
           placeholder="------"
-          autoFocus
         />
       </div>
       {message && (
