@@ -156,7 +156,6 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin, pend
         leagueName={leagueName}
         onSignedUp={() => {
           setAuthDialogOpen(false)
-          setDialogOpen(true)
         }}
       />
 
