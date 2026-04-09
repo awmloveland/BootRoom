@@ -6,6 +6,8 @@ import { autoPick } from '@/lib/autoPick'
 import { FormDots } from '@/components/FormDots'
 import type { Player } from '@/lib/types'
 
+const MIN_PLAYERS = 4
+
 interface Props {
   allPlayers: Player[]
 }
@@ -134,7 +136,7 @@ export function LineupLab({ allPlayers }: Props) {
                         ? 'bg-sky-900/60 border border-sky-700 text-sky-300'
                         : 'bg-violet-900/60 border border-violet-700 text-violet-300'
                     )}>
-                      {score.toFixed(3)}
+                      {players.length >= MIN_PLAYERS ? score.toFixed(3) : '—'}
                     </span>
                   </div>
                   <div className="space-y-1 min-h-[32px]">
