@@ -98,7 +98,7 @@ export function LineupLab({ allPlayers }: Props) {
       </div>
 
       {/* Lineups header + actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <p className="text-base font-semibold text-slate-100">Lineups</p>
         <div className="flex items-center gap-2">
           <button
