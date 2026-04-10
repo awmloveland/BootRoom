@@ -1040,8 +1040,7 @@ export function NextMatchCard({
             setShowResultModal(false)
             setGuestEntries([])
             setNewPlayerEntries([])
-            setCardState('idle')
-            setSavedResult(result as { winner: NonNullable<Winner>; goalDifference: number; shareText: string; highlightsText: string })
+            setSavedResult(result)
           }}
           onClose={() => setShowResultModal(false)}
         />
@@ -1060,6 +1059,7 @@ export function NextMatchCard({
           onDismiss={() => {
             setSavedResult(null)
             setScheduledWeek(null)
+            setCardState('idle')
             onResultSaved()
           }}
         />

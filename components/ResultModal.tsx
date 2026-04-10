@@ -17,7 +17,7 @@ interface Props {
   leagueName: string
   weeks: Week[]
   publicMode: boolean
-  onSaved: (result: { winner: Winner; goalDifference: number; shareText: string; highlightsText: string }) => void
+  onSaved: (result: { winner: NonNullable<Winner>; goalDifference: number; shareText: string; highlightsText: string }) => void
   onClose: () => void
 }
 
@@ -187,42 +187,42 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
     const teamAScore = parseFloat(ewptScore(resolveTeam(scheduledWeek.teamA)).toFixed(3))
     const teamBScore = parseFloat(ewptScore(resolveTeam(scheduledWeek.teamB)).toFixed(3))
 
-    // Construct synthetic week so highlights reflect tonight's result
-    const syntheticWeek: Week = {
-      week: scheduledWeek.week,
-      date: scheduledWeek.date,
-      status: 'played',
-      format: scheduledWeek.format ?? undefined,
-      teamA: scheduledWeek.teamA,
-      teamB: scheduledWeek.teamB,
-      winner,
-      goal_difference: winner === 'draw' ? 0 : goalDifference,
-      team_a_rating: teamAScore,
-      team_b_rating: teamBScore,
-    }
-    const weeksWithResult = [...weeks, syntheticWeek]
-
-    const { shareText, highlightsText } = buildResultShareText({
-      leagueName,
-      leagueId: gameId,
-      week: scheduledWeek.week,
-      date: scheduledWeek.date,
-      format: scheduledWeek.format ?? '',
-      teamA: scheduledWeek.teamA,
-      teamB: scheduledWeek.teamB,
-      winner,
-      goalDifference: winner === 'draw' ? 0 : goalDifference,
-      teamARating: teamAScore,
-      teamBRating: teamBScore,
-      players: allPlayers,
-      weeks: weeksWithResult,
-    })
-
-    const combinedNotes = notes.trim()
-      ? notes.trim() + '\n\n' + highlightsText
-      : highlightsText
-
     try {
+      // Construct synthetic week so highlights reflect tonight's result
+      const syntheticWeek: Week = {
+        week: scheduledWeek.week,
+        date: scheduledWeek.date,
+        status: 'played',
+        format: scheduledWeek.format ?? undefined,
+        teamA: scheduledWeek.teamA,
+        teamB: scheduledWeek.teamB,
+        winner,
+        goal_difference: winner === 'draw' ? 0 : goalDifference,
+        team_a_rating: teamAScore,
+        team_b_rating: teamBScore,
+      }
+      const weeksWithResult = [...weeks, syntheticWeek]
+
+      const { shareText, highlightsText } = buildResultShareText({
+        leagueName,
+        leagueId: gameId,
+        week: scheduledWeek.week,
+        date: scheduledWeek.date,
+        format: scheduledWeek.format ?? '',
+        teamA: scheduledWeek.teamA,
+        teamB: scheduledWeek.teamB,
+        winner,
+        goalDifference: winner === 'draw' ? 0 : goalDifference,
+        teamARating: teamAScore,
+        teamBRating: teamBScore,
+        players: allPlayers,
+        weeks: weeksWithResult,
+      })
+
+      const combinedNotes = notes.trim()
+        ? notes.trim() + '\n\n' + highlightsText
+        : highlightsText
+
       if (publicMode) {
         const res = await fetch(`/api/public/league/${gameId}/result`, {
           method: 'POST',
