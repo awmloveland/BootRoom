@@ -68,6 +68,7 @@ export function ResultsSection({
           gameId={gameId}
           allPlayers={allPlayers}
           onResultSaved={() => router.refresh()}
+          leagueName={leagueName}
         />
       )}
     </div>
