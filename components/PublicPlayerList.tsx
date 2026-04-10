@@ -90,35 +90,39 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true }
         <div className="border-t border-slate-700 -mx-3 my-3" />
 
         {/* Sort */}
-        <div role="group" aria-label="Sort by" className="flex items-center gap-2 flex-wrap">
-          <span aria-hidden="true" className="text-[10px] text-slate-500 uppercase tracking-widest shrink-0">
-            Sort
-          </span>
-          {SORT_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              aria-pressed={sortBy === opt.value}
-              onClick={() => {
-                if (sortBy === opt.value) return
-                setSortBy(opt.value)
-                setSortAsc(DEFAULT_ASC[opt.value])
-              }}
-              className={cn(
-                'rounded-full text-xs px-2.5 py-1 transition-colors',
-                sortBy === opt.value
-                  ? 'bg-sky-500 border border-sky-500 text-white hover:bg-sky-400'
-                  : 'border border-slate-700 text-slate-400 hover:border-slate-500',
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div role="group" aria-label="Sort by" className="flex items-center gap-0.5">
+          <div className="relative flex-1 overflow-hidden min-w-0 after:absolute after:right-0 after:top-0 after:bottom-0 after:w-4 after:bg-gradient-to-r after:from-transparent after:to-slate-800 after:pointer-events-none">
+            <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <span aria-hidden="true" className="text-[10px] text-slate-500 uppercase tracking-widest shrink-0">
+                Sort
+              </span>
+              {SORT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  aria-pressed={sortBy === opt.value}
+                  onClick={() => {
+                    if (sortBy === opt.value) return
+                    setSortBy(opt.value)
+                    setSortAsc(DEFAULT_ASC[opt.value])
+                  }}
+                  className={cn(
+                    'rounded-full text-xs px-2.5 py-1 transition-colors shrink-0',
+                    sortBy === opt.value
+                      ? 'bg-sky-500 border border-sky-500 text-white hover:bg-sky-400'
+                      : 'border border-slate-700 text-slate-400 hover:border-slate-500',
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <button
             type="button"
             aria-label="Toggle sort direction"
             onClick={() => setSortAsc((a) => !a)}
-            className="ml-auto shrink-0 text-xs text-slate-400 bg-slate-900 border border-slate-700 rounded-md px-2 py-1 flex items-center gap-1 hover:border-slate-500 transition-colors"
+            className="shrink-0 text-xs text-slate-400 bg-slate-900 border border-slate-700 rounded-md px-2 py-1 flex items-center gap-1 hover:border-slate-500 transition-colors"
           >
             {sortAsc
               ? <ArrowUp className="h-3.5 w-3.5" />
