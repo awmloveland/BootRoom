@@ -9,7 +9,7 @@ import type { Winner } from '@/lib/types'
 interface Props {
   week: number
   date: string
-  winner: Winner
+  winner: NonNullable<Winner>
   goalDifference: number
   teamA: string[]
   teamB: string[]
@@ -130,8 +130,8 @@ export function ResultSuccessPanel({
               <div className="bg-slate-900 border border-slate-700 rounded-lg p-3">
                 <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Highlights</p>
                 <div className="flex flex-col gap-1.5">
-                  {highlightLines.map((line, i) => (
-                    <p key={i} className="text-xs text-slate-300">{line}</p>
+                  {highlightLines.map((line) => (
+                    <p key={line} className="text-xs text-slate-300">{line}</p>
                   ))}
                 </div>
               </div>
