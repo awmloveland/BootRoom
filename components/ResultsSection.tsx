@@ -17,6 +17,7 @@ interface Props {
   showMatchHistory: boolean
   leagueDayIndex?: number
   isAdmin?: boolean
+  leagueName?: string
 }
 
 export function ResultsSection({
@@ -29,6 +30,7 @@ export function ResultsSection({
   showMatchHistory,
   leagueDayIndex,
   isAdmin = false,
+  leagueName,
 }: Props) {
   const router = useRouter()
 
@@ -54,6 +56,7 @@ export function ResultsSection({
         allPlayers={allPlayers}
         onBuildStart={handleBuildStart}
         leagueDayIndex={leagueDayIndex}
+        leagueName={leagueName}
       />
       {showMatchHistory && weeks.length > 0 && (
         <WeekList

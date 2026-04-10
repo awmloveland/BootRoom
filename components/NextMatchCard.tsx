@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
-import { X } from 'lucide-react'
+import { X, Share2 } from 'lucide-react'
 import { WinnerBadge } from '@/components/WinnerBadge'
 import { TeamList } from '@/components/TeamList'
 import { AddPlayerModal } from '@/components/AddPlayerModal'
@@ -31,6 +31,8 @@ interface Props {
   onBuildStart?: () => void
   /** Day-of-week index (0=Sun…6=Sat) from league config — used to compute next match date. */
   leagueDayIndex?: number
+  /** Display name of the league — used to build the share text. */
+  leagueName?: string
 }
 
 type CardState = 'loading' | 'idle' | 'building' | 'lineup' | 'cancelled'
@@ -114,6 +116,7 @@ export function NextMatchCard({
   allPlayers = [],
   onBuildStart,
   leagueDayIndex,
+  leagueName = '',
 }: Props) {
   const [cardState, setCardState] = useState<CardState>('loading')
   const [scheduledWeek, setScheduledWeek] = useState<ScheduledWeek | null>(null)
@@ -144,6 +147,7 @@ export function NextMatchCard({
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   // Players sorted A–Z for selection list
   const sortedPlayers = useMemo(
@@ -390,6 +394,46 @@ export function NextMatchCard({
     setNewPlayerEntries([])
     clearSplit()
     setCardState('idle')
+  }
+
+  async function handleShare() {
+    if (!scheduledWeek || !leagueName) return
+    const text = buildShareText({
+      leagueName,
+      leagueId: gameId,
+      week: scheduledWeek.week,
+      date: scheduledWeek.date,
+      format: scheduledWeek.format ?? '',
+      teamA: scheduledWeek.teamA,
+      teamB: scheduledWeek.teamB,
+      teamARating: scheduledWeek.team_a_rating ?? 0,
+      teamBRating: scheduledWeek.team_b_rating ?? 0,
+    })
+    if (navigator.share) {
+      try {
+        await navigator.share({ text })
+      } catch (err) {
+        if (err instanceof DOMException && err.name !== 'AbortError') {
+          // Share API failed — fall back to clipboard
+          try {
+            await navigator.clipboard.writeText(text)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+          } catch {
+            // clipboard unavailable — nothing to do
+          }
+        }
+        // AbortError = user cancelled — do nothing
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(text)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch {
+        // clipboard unavailable — nothing to do
+      }
+    }
   }
 
   function handleEditLineup() {
@@ -876,29 +920,45 @@ export function NextMatchCard({
         )}
 
         {/* ── LINEUP footer ── */}
-        {cardState === 'lineup' && scheduledWeek && canEdit && (
+        {cardState === 'lineup' && scheduledWeek && scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-slate-700">
-            <button
-              type="button"
-              onClick={handleCancelScheduled}
-              className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
-            >
-              Reset
-            </button>
-            <div className="flex items-center gap-2">
+            {canEdit ? (
               <button
                 type="button"
-                onClick={handleEditLineup}
+                onClick={handleCancelScheduled}
                 className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
               >
-                Edit Lineups
+                Reset
               </button>
+            ) : (
+              <div />
+            )}
+            <div className="flex items-center gap-2">
+              {canEdit && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleEditLineup}
+                    className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
+                  >
+                    Edit Lineups
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setError(null); setShowResultModal(true) }}
+                    className="px-3 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold"
+                  >
+                    Result Game
+                  </button>
+                </>
+              )}
               <button
                 type="button"
-                onClick={() => { setError(null); setShowResultModal(true) }}
-                className="px-3 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold"
+                onClick={handleShare}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
               >
-                Result Game
+                <Share2 className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>{copied ? 'Copied!' : 'Share'}</span>
               </button>
             </div>
           </div>
