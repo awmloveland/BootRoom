@@ -7,6 +7,7 @@ interface Props {
   gameId: string
   weeks: Week[]
   initialScheduledWeek: ScheduledWeek | null
+  leagueName?: string
 }
 
 /**
@@ -14,7 +15,7 @@ interface Props {
  * Accepts serializable props from the server page component and
  * wires onResultSaved to a full page reload (re-fetches server data).
  */
-export function PublicMatchEntrySection({ gameId, weeks, initialScheduledWeek }: Props) {
+export function PublicMatchEntrySection({ gameId, weeks, initialScheduledWeek, leagueName }: Props) {
   return (
     <NextMatchCard
       gameId={gameId}
@@ -23,6 +24,7 @@ export function PublicMatchEntrySection({ gameId, weeks, initialScheduledWeek }:
       initialScheduledWeek={initialScheduledWeek}
       canEdit={true}
       onResultSaved={() => window.location.reload()}
+      leagueName={leagueName}
     />
   )
 }

@@ -31,6 +31,8 @@ interface Props {
   onBuildStart?: () => void
   /** Day-of-week index (0=Sun…6=Sat) from league config — used to compute next match date. */
   leagueDayIndex?: number
+  /** Display name of the league — used to build the share text. */
+  leagueName?: string
 }
 
 type CardState = 'loading' | 'idle' | 'building' | 'lineup' | 'cancelled'
@@ -114,6 +116,7 @@ export function NextMatchCard({
   allPlayers = [],
   onBuildStart,
   leagueDayIndex,
+  leagueName = '',
 }: Props) {
   const [cardState, setCardState] = useState<CardState>('loading')
   const [scheduledWeek, setScheduledWeek] = useState<ScheduledWeek | null>(null)

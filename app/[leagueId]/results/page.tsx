@@ -174,6 +174,7 @@ export default async function LeagueResultsPage({ params }: Props) {
                 gameId={leagueId}
                 weeks={weeks}
                 initialScheduledWeek={nextWeek}
+                leagueName={game!.name}
               />
             )}
             {canSeeMatchHistory && (
@@ -247,6 +248,7 @@ export default async function LeagueResultsPage({ params }: Props) {
                 showMatchHistory={canSeeMatchHistory}
                 leagueDayIndex={leagueDayIndex}
                 isAdmin={isAdmin}
+                leagueName={game!.name}
               />
             ) : canSeeMatchHistory ? (
               <WeekList

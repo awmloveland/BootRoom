@@ -11,9 +11,10 @@ interface Props {
   canEdit: boolean
   canAutoPick: boolean
   allPlayers: Player[]
+  leagueName?: string
 }
 
-export function ResultsRefresher({ gameId, weeks, initialScheduledWeek, canEdit, canAutoPick, allPlayers }: Props) {
+export function ResultsRefresher({ gameId, weeks, initialScheduledWeek, canEdit, canAutoPick, allPlayers, leagueName }: Props) {
   const router = useRouter()
   return (
     <NextMatchCard
@@ -25,6 +26,7 @@ export function ResultsRefresher({ gameId, weeks, initialScheduledWeek, canEdit,
       canAutoPick={canAutoPick}
       allPlayers={allPlayers}
       onBuildStart={() => {}}
+      leagueName={leagueName}
     />
   )
 }
