@@ -312,7 +312,7 @@ function PlayedCard({
   const [copied, setCopied] = useState(false)
 
   function buildRetroShareText(): string {
-    if (!leagueName || !shareGameId) return ''
+    if (!leagueName || !shareGameId || !week.winner) return ''
     const parsed = parseWeekDate(week.date)
     const [dd, mmm] = week.date.split(' ')
     const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
