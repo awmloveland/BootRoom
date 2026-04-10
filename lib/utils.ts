@@ -395,15 +395,24 @@ function isMilestone(n: number): boolean {
 }
 
 function ordinal(n: number): string {
-  const s = ['th','st','nd','rd']
   const v = n % 100
-  return n + (s[(v-20)%10] ?? s[v] ?? s[0])
+  if (v >= 11 && v <= 13) return `${n}th`
+  switch (n % 10) {
+    case 1: return `${n}st`
+    case 2: return `${n}nd`
+    case 3: return `${n}rd`
+    default: return `${n}th`
+  }
+}
+
+function playerWeeksDesc(playerName: string, weeks: Week[]): Week[] {
+  return weeks
+    .filter(w => w.status === 'played' && (w.teamA.includes(playerName) || w.teamB.includes(playerName)))
+    .sort((a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime())
 }
 
 function currentWinStreak(playerName: string, weeks: Week[]): number {
-  const played = weeks
-    .filter(w => w.status === 'played' && (w.teamA.includes(playerName) || w.teamB.includes(playerName)))
-    .sort((a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime())
+  const played = playerWeeksDesc(playerName, weeks)
   let count = 0
   for (const w of played) {
     const onTeamA = w.teamA.includes(playerName)
@@ -415,9 +424,7 @@ function currentWinStreak(playerName: string, weeks: Week[]): number {
 }
 
 function currentUnbeatenStreak(playerName: string, weeks: Week[]): number {
-  const played = weeks
-    .filter(w => w.status === 'played' && (w.teamA.includes(playerName) || w.teamB.includes(playerName)))
-    .sort((a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime())
+  const played = playerWeeksDesc(playerName, weeks)
   let count = 0
   for (const w of played) {
     const onTeamA = w.teamA.includes(playerName)
