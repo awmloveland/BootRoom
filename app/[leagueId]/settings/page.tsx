@@ -252,7 +252,11 @@ export default function LeagueSettingsPage() {
         {NAV.map(({ id, label, Icon }) => (
           <button
             key={id}
-            onClick={(e) => { setSection(id); e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' }) }}
+            onClick={(e) => {
+              setSection(id)
+              router.replace(`?tab=${id}`)
+              e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+            }}
             className={cn(
               'flex shrink-0 items-center gap-1.5 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px',
               section === id
