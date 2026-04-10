@@ -102,9 +102,8 @@ describe('buildShareText', () => {
 
   it('includes a win prediction line', () => {
     const text = buildShareText(base)
-    // 72.4 vs 68.9 — Team A should be favoured
-    expect(text).toContain('📊')
-    expect(text).toMatch(/Team A/)
+    // 72.4 vs 68.9 — Team A should be favoured; the prediction must be on the 📊 line
+    expect(text).toContain('📊 Team A')
   })
 
   it('includes the public league URL', () => {
