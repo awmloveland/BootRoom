@@ -162,6 +162,45 @@ export function winCopy(probA: number): { text: string; team: 'A' | 'B' | 'even'
   return { text: `The odds heavily favour ${name} tonight`, team: leading }
 }
 
+const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+/**
+ * Builds a formatted plain-text share message for a saved lineup.
+ * Suitable for pasting into WhatsApp, iMessage, or any messaging app.
+ */
+export function buildShareText(params: {
+  leagueName: string
+  leagueId: string
+  week: number
+  date: string        // 'DD MMM YYYY' — the canonical app date format
+  format: string
+  teamA: string[]
+  teamB: string[]
+  teamARating: number
+  teamBRating: number
+}): string {
+  const { leagueName, leagueId, week, date, format, teamA, teamB, teamARating, teamBRating } = params
+  const parsed = parseWeekDate(date)
+  const [dd, mmm] = date.split(' ')
+  const shortDate = `${DAY_SHORT[parsed.getDay()]} ${dd} ${mmm}`
+  const prob = winProbability(teamARating, teamBRating)
+  const { text: prediction } = winCopy(prob)
+  return [
+    `⚽ ${leagueName} — Week ${week}`,
+    `📅 ${shortDate} · ${format}`,
+    '',
+    `🔵 Team A (${teamARating.toFixed(1)})`,
+    teamA.join(', '),
+    '',
+    `🟣 Team B (${teamBRating.toFixed(1)})`,
+    teamB.join(', '),
+    '',
+    `📊 ${prediction}`,
+    '',
+    `🔗 https://craft-football.com/${leagueId}`,
+  ].join('\n')
+}
+
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const MONTH_IDX: Record<string, number> = Object.fromEntries(MONTH_SHORT.map((m, i) => [m, i]))
 
