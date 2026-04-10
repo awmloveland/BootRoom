@@ -2,6 +2,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import PlayerClaimPicker from '@/components/PlayerClaimPicker'
@@ -13,6 +15,8 @@ interface League {
 }
 
 export default function AccountSettingsPage() {
+  const router = useRouter()
+
   // ── Account section ────────────────────────────────────────────────────────
   const [email, setEmail] = useState('')
   const [saving, setSaving] = useState(false)
@@ -189,7 +193,16 @@ export default function AccountSettingsPage() {
 
   return (
     <main className="max-w-xl mx-auto px-4 sm:px-6 py-8">
-      <h1 className="text-xl font-semibold text-slate-100 mb-6">Account</h1>
+      <div className="mb-6">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors mb-3"
+        >
+          <ArrowLeft className="size-4" />
+          Back
+        </button>
+        <h1 className="text-xl font-semibold text-slate-100">Account</h1>
+      </div>
 
       {/* ── Account info card (read-only) ──────────────────────────────── */}
       <div className="rounded-lg bg-slate-800 border border-slate-700 overflow-hidden mb-4">
@@ -266,7 +279,7 @@ export default function AccountSettingsPage() {
       {/* ── League identity section ──────────────────────────────────────── */}
       {leagues.length > 0 && (
         <>
-          <h2 className="text-xl font-semibold text-slate-100 mb-4">League identity</h2>
+          <h2 className="text-xl font-semibold text-slate-100 mb-4">Linked Leagues</h2>
           <div className="space-y-3 mb-12">
             {leagues.map((league) => {
               const claim = claims[league.id]
@@ -371,10 +384,8 @@ export default function AccountSettingsPage() {
       )}
 
       {/* ── Danger zone ──────────────────────────────────────────────────── */}
-      <div className="rounded-lg border border-red-900/40 overflow-hidden mb-8">
-        <div className="px-4 py-3 border-b border-red-900/30">
-          <p className="text-sm font-medium text-red-400">Danger zone</p>
-        </div>
+      <h2 className="text-xl font-semibold text-slate-100 mb-4">Danger zone</h2>
+      <div className="rounded-lg bg-slate-800 border border-slate-700 overflow-hidden mb-8">
         <div className="px-4 py-4 flex items-center justify-between gap-4">
           <div>
             <p className="text-sm text-slate-300">Delete account</p>
