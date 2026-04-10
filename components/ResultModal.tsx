@@ -3,9 +3,9 @@
 
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { cn, ewptScore } from '@/lib/utils'
+import { cn, ewptScore, buildResultShareText } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality } from '@/lib/types'
+import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality, Week } from '@/lib/types'
 import { EyeTestSlider } from '@/components/EyeTestSlider'
 import { Toggle } from '@/components/ui/toggle'
 
@@ -14,8 +14,10 @@ interface Props {
   lineupMetadata: LineupMetadata | null
   allPlayers: Player[]
   gameId: string
+  leagueName: string
+  weeks: Week[]
   publicMode: boolean
-  onSaved: () => void
+  onSaved: (result: { winner: Winner; goalDifference: number; shareText: string; highlightsText: string }) => void
   onClose: () => void
 }
 
@@ -85,7 +87,7 @@ function Stepper({ value, onChange }: { value: number; onChange: (v: number) => 
   )
 }
 
-export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId, publicMode, onSaved, onClose }: Props) {
+export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId, leagueName, weeks, publicMode, onSaved, onClose }: Props) {
   const guests = lineupMetadata?.guests ?? []
   const newPlayers = lineupMetadata?.new_players ?? []
   const hasReviewStep = guests.length > 0 || newPlayers.length > 0
@@ -185,6 +187,41 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
     const teamAScore = parseFloat(ewptScore(resolveTeam(scheduledWeek.teamA)).toFixed(3))
     const teamBScore = parseFloat(ewptScore(resolveTeam(scheduledWeek.teamB)).toFixed(3))
 
+    // Construct synthetic week so highlights reflect tonight's result
+    const syntheticWeek: Week = {
+      week: scheduledWeek.week,
+      date: scheduledWeek.date,
+      status: 'played',
+      format: scheduledWeek.format ?? undefined,
+      teamA: scheduledWeek.teamA,
+      teamB: scheduledWeek.teamB,
+      winner,
+      goal_difference: winner === 'draw' ? 0 : goalDifference,
+      team_a_rating: teamAScore,
+      team_b_rating: teamBScore,
+    }
+    const weeksWithResult = [...weeks, syntheticWeek]
+
+    const { shareText, highlightsText } = buildResultShareText({
+      leagueName,
+      leagueId: gameId,
+      week: scheduledWeek.week,
+      date: scheduledWeek.date,
+      format: scheduledWeek.format ?? '',
+      teamA: scheduledWeek.teamA,
+      teamB: scheduledWeek.teamB,
+      winner,
+      goalDifference: winner === 'draw' ? 0 : goalDifference,
+      teamARating: teamAScore,
+      teamBRating: teamBScore,
+      players: allPlayers,
+      weeks: weeksWithResult,
+    })
+
+    const combinedNotes = notes.trim()
+      ? notes.trim() + '\n\n' + highlightsText
+      : highlightsText
+
     try {
       if (publicMode) {
         const res = await fetch(`/api/public/league/${gameId}/result`, {
@@ -193,7 +230,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           body: JSON.stringify({
             weekId: scheduledWeek.id,
             winner,
-            notes: notes.trim() || null,
+            notes: combinedNotes || null,
             goalDifference: winner === 'draw' ? 0 : goalDifference,
             teamARating: teamAScore,
             teamBRating: teamBScore,
@@ -209,7 +246,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         const { error: resultErr } = await supabase.rpc('record_result', {
           p_week_id: scheduledWeek.id,
           p_winner: winner,
-          p_notes: notes.trim() || null,
+          p_notes: combinedNotes || null,
           p_goal_difference: winner === 'draw' ? 0 : goalDifference,
           p_team_a_rating: teamAScore,
           p_team_b_rating: teamBScore,
@@ -236,7 +273,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         }
       }
 
-      onSaved()
+      onSaved({ winner, goalDifference, shareText, highlightsText })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save result')
     } finally {
