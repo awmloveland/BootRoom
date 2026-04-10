@@ -409,12 +409,30 @@ export function NextMatchCard({
       teamARating: scheduledWeek.team_a_rating ?? 0,
       teamBRating: scheduledWeek.team_b_rating ?? 0,
     })
-    if (navigator.share && window.innerWidth < 768) {
-      await navigator.share({ text })
+    if (navigator.share) {
+      try {
+        await navigator.share({ text })
+      } catch (err) {
+        if (err instanceof DOMException && err.name !== 'AbortError') {
+          // Share API failed — fall back to clipboard
+          try {
+            await navigator.clipboard.writeText(text)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+          } catch {
+            // clipboard unavailable — nothing to do
+          }
+        }
+        // AbortError = user cancelled — do nothing
+      }
     } else {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      try {
+        await navigator.clipboard.writeText(text)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch {
+        // clipboard unavailable — nothing to do
+      }
     }
   }
 
@@ -939,7 +957,7 @@ export function NextMatchCard({
                 onClick={handleShare}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
               >
-                <Share2 className="w-3.5 h-3.5" />
+                <Share2 className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>{copied ? 'Copied!' : 'Share'}</span>
               </button>
             </div>
