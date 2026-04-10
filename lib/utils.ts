@@ -388,6 +388,221 @@ export function parseGoogleName(meta: Record<string, unknown>): { firstName: str
   }
 }
 
+const MILESTONE_SET = new Set([10, 25])
+function isMilestone(n: number): boolean {
+  if (MILESTONE_SET.has(n)) return true
+  return n >= 50 && n % 50 === 0
+}
+
+function ordinal(n: number): string {
+  const s = ['th','st','nd','rd']
+  const v = n % 100
+  return n + (s[(v-20)%10] ?? s[v] ?? s[0])
+}
+
+function currentWinStreak(playerName: string, weeks: Week[]): number {
+  const played = weeks
+    .filter(w => w.status === 'played' && (w.teamA.includes(playerName) || w.teamB.includes(playerName)))
+    .sort((a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime())
+  let count = 0
+  for (const w of played) {
+    const onTeamA = w.teamA.includes(playerName)
+    const won = (w.winner === 'teamA' && onTeamA) || (w.winner === 'teamB' && !onTeamA)
+    if (won) count++
+    else break
+  }
+  return count
+}
+
+function currentUnbeatenStreak(playerName: string, weeks: Week[]): number {
+  const played = weeks
+    .filter(w => w.status === 'played' && (w.teamA.includes(playerName) || w.teamB.includes(playerName)))
+    .sort((a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime())
+  let count = 0
+  for (const w of played) {
+    const onTeamA = w.teamA.includes(playerName)
+    const lost = (w.winner === 'teamA' && !onTeamA) || (w.winner === 'teamB' && onTeamA)
+    if (!lost) count++
+    else break
+  }
+  return count
+}
+
+/**
+ * Builds a formatted plain-text share message for a saved result.
+ * Returns { shareText, highlightsText } — shareText is the full message;
+ * highlightsText is just the highlights block for appending to notes.
+ */
+export function buildResultShareText(params: {
+  leagueName: string
+  leagueId: string
+  week: number
+  date: string           // 'DD MMM YYYY'
+  format: string
+  teamA: string[]
+  teamB: string[]
+  winner: Winner
+  goalDifference: number
+  teamARating: number
+  teamBRating: number
+  players: Player[]
+  weeks: Week[]          // includes the synthetic week for tonight
+}): { shareText: string; highlightsText: string } {
+  const {
+    leagueName, leagueId, week, date, format,
+    teamA, teamB, winner, goalDifference,
+    teamARating, teamBRating, players, weeks,
+  } = params
+
+  const parsed = parseWeekDate(date)
+  const [dd, mmm] = date.split(' ')
+  const shortDate = `${DAY_SHORT[parsed.getDay()]} ${dd} ${mmm}`
+
+  // ── Result headline ──────────────────────────────────────────────────────
+  const resultLine =
+    winner === 'draw'
+      ? '🤝 Draw!'
+      : winner === 'teamA'
+        ? `🏆 Team A win! (+${goalDifference} goals)`
+        : `🏆 Team B win! (+${goalDifference} goals)`
+
+  // ── Highlights ───────────────────────────────────────────────────────────
+  const highlights: string[] = []
+
+  // Win streaks (winning team only)
+  if (winner !== 'draw') {
+    const winners = winner === 'teamA' ? teamA : teamB
+    for (const name of winners) {
+      const streak = currentWinStreak(name, weeks)
+      if (streak >= 3) {
+        highlights.push(`🔥 ${name} on a ${streak}-game winning streak`)
+      }
+    }
+  }
+
+  // Unbeaten streaks broken (losing team only, non-draw)
+  if (winner !== 'draw') {
+    const losers = winner === 'teamA' ? teamB : teamA
+    // Compute streak from weeks BEFORE tonight (exclude last entry which is tonight)
+    const priorWeeks = weeks.slice(0, -1)
+    for (const name of losers) {
+      const streak = currentUnbeatenStreak(name, priorWeeks)
+      if (streak >= 5) {
+        highlights.push(`💔 ${name}'s ${streak}-game unbeaten run is over`)
+      }
+    }
+  }
+
+  // Upset flag
+  if (winner !== 'draw') {
+    const upset =
+      (winner === 'teamA' && teamBRating > teamARating) ||
+      (winner === 'teamB' && teamARating > teamBRating)
+    if (upset) {
+      const [strongRating, weakRating] =
+        winner === 'teamA'
+          ? [teamBRating.toFixed(1), teamARating.toFixed(1)]
+          : [teamARating.toFixed(1), teamBRating.toFixed(1)]
+      const strongTeam = winner === 'teamA' ? 'Team B' : 'Team A'
+      highlights.push(`😱 Upset! ${strongTeam} were stronger on paper (${strongRating} vs ${weakRating})`)
+    }
+  }
+
+  // Milestones
+  const allPlayers = [...teamA, ...teamB]
+  for (const name of allPlayers) {
+    const player = players.find(p => p.name === name)
+    if (!player) continue
+    const newPlayed = player.played + 1
+    if (isMilestone(newPlayed)) {
+      highlights.push(`🎖️ ${name} played their ${ordinal(newPlayed)} game tonight`)
+    }
+  }
+
+  // ── Quarter table top 5 ──────────────────────────────────────────────────
+  const tableLines: string[] = []
+  // Inline quarterly table
+  const now = new Date()
+  const q = Math.floor(now.getMonth() / 3) + 1
+  const year = now.getFullYear()
+  const qWeeks = weeks.filter(w => {
+    if (w.status !== 'played') return false
+    const d = parseWeekDate(w.date)
+    const wq = Math.floor(d.getMonth() / 3) + 1
+    return wq === q && d.getFullYear() === year
+  })
+  const tableMap = new Map<string, number>()
+  for (const w of qWeeks) {
+    for (const name of [...w.teamA, ...w.teamB]) {
+      const prev = tableMap.get(name) ?? 0
+      const onTeamA = w.teamA.includes(name)
+      const pts = w.winner === 'draw' ? 1
+        : (w.winner === 'teamA' && onTeamA) || (w.winner === 'teamB' && !onTeamA) ? 3 : 0
+      tableMap.set(name, prev + pts)
+    }
+  }
+  const tableEntries = Array.from(tableMap.entries())
+    .sort(([,a],[,b]) => b - a)
+    .slice(0, 5)
+  if (tableEntries.length > 0) {
+    const qLabel = `Q${q} ${year}`
+    tableLines.push(`📊 ${qLabel} standings`)
+    tableEntries.forEach(([name, pts], i) => {
+      tableLines.push(`${i + 1}. ${name} — ${pts}pts`)
+    })
+  }
+
+  // ── In-form ──────────────────────────────────────────────────────────────
+  const inFormLines: string[] = []
+  // Inline in-form: PPG from recentForm for players who played tonight
+  const tonight = new Set([...teamA, ...teamB])
+  const inFormEntries = players
+    .filter(p => tonight.has(p.name) && p.played >= 5)
+    .map(p => {
+      const chars = p.recentForm.split('').filter(c => c !== '-')
+      if (chars.length === 0) return { name: p.name, ppg: 0 }
+      const pts = chars.reduce((acc, c) => acc + (c === 'W' ? 3 : c === 'D' ? 1 : 0), 0)
+      return { name: p.name, ppg: pts / chars.length }
+    })
+    .filter(e => e.ppg >= 1.5)
+    .sort((a, b) => b.ppg - a.ppg)
+  if (inFormEntries.length > 0) {
+    const top = inFormEntries[0]
+    inFormLines.push(`⚡ In form: ${top.name} (${top.ppg.toFixed(1)} PPG)`)
+  }
+
+  // ── Assemble highlightsText (no header, no teams, no URL) ────────────────
+  const highlightParts: string[] = []
+  if (highlights.length > 0) highlightParts.push(highlights.join('\n'))
+  if (tableLines.length > 0) highlightParts.push(tableLines.join('\n'))
+  if (inFormLines.length > 0) highlightParts.push(inFormLines.join('\n'))
+  const highlightsText = highlightParts.join('\n\n')
+
+  // ── Assemble full shareText ──────────────────────────────────────────────
+  const parts: string[] = [
+    `⚽ ${leagueName} — Week ${week}`,
+    `📅 ${shortDate} · ${format}`,
+    '',
+    resultLine,
+    '',
+    '🔵 Team A',
+    teamA.join(', '),
+    '',
+    '🟣 Team B',
+    teamB.join(', '),
+  ]
+
+  if (highlightsText.length > 0) {
+    parts.push('')
+    parts.push(highlightsText)
+  }
+
+  parts.push('')
+  parts.push(`🔗 https://craft-football.com/${leagueId}`)
+
+  return { shareText: parts.join('\n'), highlightsText }
+}
+
 const AVATAR_PALETTE: { bg: string; border: string; text: string }[] = [
   { bg: '#1e1b4b', border: '#4f46e5', text: '#a5b4fc' }, // indigo
   { bg: '#1e3a5f', border: '#2563eb', text: '#93c5fd' }, // blue
