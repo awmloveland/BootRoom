@@ -925,10 +925,10 @@ export function NextMatchCard({
             {canEdit ? (
               <button
                 type="button"
-                onClick={handleCancelScheduled}
-                className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
+                onClick={() => setShowCancelModal(true)}
+                className="px-3 py-1.5 rounded bg-red-900 hover:bg-red-800 text-red-200 text-sm font-medium"
               >
-                Reset
+                Cancel Game
               </button>
             ) : (
               <div />
@@ -941,24 +941,26 @@ export function NextMatchCard({
                     onClick={handleEditLineup}
                     className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
                   >
-                    Edit Lineups
+                    <span className="sm:hidden">Edit</span>
+                    <span className="hidden sm:inline">Edit Lineups</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => { setError(null); setShowResultModal(true) }}
                     className="px-3 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold"
                   >
-                    Result Game
+                    <span className="sm:hidden">Result</span>
+                    <span className="hidden sm:inline">Result Game</span>
                   </button>
                 </>
               )}
               <button
                 type="button"
                 onClick={handleShare}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
+                className="px-3 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium"
               >
-                <Share2 className="w-3.5 h-3.5" aria-hidden="true" />
-                <span>{copied ? 'Copied!' : 'Share'}</span>
+                <Share2 className="w-5 h-5 sm:hidden" aria-hidden="true" />
+                <span className="hidden sm:inline">{copied ? 'Copied!' : 'Share'}</span>
               </button>
             </div>
           </div>
