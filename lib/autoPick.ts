@@ -23,8 +23,15 @@ export interface AutoPickResult {
  *
  * @param pairs - Optional array of [guestName, associatedPlayerName] pairs.
  *   Each guest will be pinned to the same team as their associated player.
+ * @param newPlayerPinsA - Optional array of player names to pin to Team A.
+ * @param newPlayerPinsB - Optional array of player names to pin to Team B.
  */
-export function autoPick(players: Player[], pairs?: Array<[string, string]>): AutoPickResult {
+export function autoPick(
+  players: Player[],
+  pairs?: Array<[string, string]>,
+  newPlayerPinsA?: string[],
+  newPlayerPinsB?: string[],
+): AutoPickResult {
   const n = players.length
   if (n < 2) return { suggestions: [], bestDiff: 0, poolSize: 0 }
 
@@ -53,6 +60,21 @@ export function autoPick(players: Player[], pairs?: Array<[string, string]>): Au
   const pinnedTeamA: Player[] = []
   const pinnedTeamB: Player[] = []
   let pairTeamToggle = true
+
+  // New player pinning: pin named new players to their designated team.
+  // These are resolved before pair pinning so guest pair logic can observe them.
+  for (const name of (newPlayerPinsA ?? [])) {
+    const player = searchPool.find((p) => p.name === name)
+    if (!player) continue
+    searchPool = searchPool.filter((p) => p !== player)
+    pinnedTeamA.push(player)
+  }
+  for (const name of (newPlayerPinsB ?? [])) {
+    const player = searchPool.find((p) => p.name === name)
+    if (!player) continue
+    searchPool = searchPool.filter((p) => p !== player)
+    pinnedTeamB.push(player)
+  }
 
   for (const [guestName, associatedName] of (pairs ?? [])) {
     const guest = searchPool.find((p) => p.name === guestName)

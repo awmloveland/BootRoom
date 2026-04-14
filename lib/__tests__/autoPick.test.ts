@@ -184,3 +184,78 @@ describe('autoPick — guest has goalkeeper: true', () => {
     }
   })
 })
+
+// ─── New player alternating distribution ──────────────────────────────────────
+
+describe('autoPick — newPlayerPinsA / newPlayerPinsB', () => {
+  it('places a new player pinned to A on Team A in all suggestions', () => {
+    const players = [
+      makePlayer('Alice'),
+      makePlayer('Bob'),
+      makePlayer('Carol'),
+      makePlayer('Dave'),
+      makePlayer('Eve'),
+      makePlayer('Frank'),
+      makePlayer('Grace'),
+      makePlayer('Hank'),
+      makePlayer('NewKid'),
+      makePlayer('Ivy'),
+    ]
+    const result = autoPick(players, undefined, ['NewKid'], [])
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) {
+      expect(s.teamA.some((p) => p.name === 'NewKid')).toBe(true)
+    }
+  })
+
+  it('places a new player pinned to B on Team B in all suggestions', () => {
+    const players = [
+      makePlayer('Alice'),
+      makePlayer('Bob'),
+      makePlayer('Carol'),
+      makePlayer('Dave'),
+      makePlayer('Eve'),
+      makePlayer('Frank'),
+      makePlayer('Grace'),
+      makePlayer('Hank'),
+      makePlayer('NewKid'),
+      makePlayer('Ivy'),
+    ]
+    const result = autoPick(players, undefined, [], ['NewKid'])
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) {
+      expect(s.teamB.some((p) => p.name === 'NewKid')).toBe(true)
+    }
+  })
+
+  it('places two new players on opposite teams in all suggestions', () => {
+    const players = [
+      makePlayer('Alice'),
+      makePlayer('Bob'),
+      makePlayer('Carol'),
+      makePlayer('Dave'),
+      makePlayer('Eve'),
+      makePlayer('Frank'),
+      makePlayer('Grace'),
+      makePlayer('Hank'),
+      makePlayer('NewKid1'),
+      makePlayer('NewKid2'),
+    ]
+    const result = autoPick(players, undefined, ['NewKid1'], ['NewKid2'])
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) {
+      expect(s.teamA.some((p) => p.name === 'NewKid1')).toBe(true)
+      expect(s.teamB.some((p) => p.name === 'NewKid2')).toBe(true)
+    }
+  })
+
+  it('ignores pins for names not in the player pool (graceful degradation)', () => {
+    const players = Array.from({ length: 10 }, (_, i) => makePlayer(`Player ${i + 1}`))
+    const result = autoPick(players, undefined, ['Ghost'], [])
+    // Should still produce valid suggestions with all 10 players
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) {
+      expect(s.teamA.length + s.teamB.length).toBe(10)
+    }
+  })
+})
