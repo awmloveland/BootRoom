@@ -44,6 +44,7 @@ export interface Player {
   mentality: Mentality;
   rating: number;
   recentForm: string; // e.g. 'WWDLW' or '--WLW'
+  wprOverride?: number; // if set, wprScore returns this directly — used for guests/new players
 }
 
 export interface BootRoomData {
@@ -116,20 +117,24 @@ export interface ScheduledWeek {
   team_b_rating?: number | null;
 }
 
+export type StrengthHint = 'below' | 'average' | 'above'
+
 export interface GuestEntry {
   type: 'guest'            // runtime discriminant — not persisted to DB
   name: string             // e.g. "Alice +1"
   associatedPlayer: string // e.g. "Alice"
-  rating: number           // 1–3
+  rating: number           // 1–3, kept for DB backwards compat — no longer drives scoring
   goalkeeper?: boolean     // whether this guest is playing as goalkeeper
+  strengthHint: StrengthHint // drives wprOverride at resolution time
 }
 
 export interface NewPlayerEntry {
   type: 'new_player'       // runtime discriminant — not persisted to DB
   name: string
-  rating: number           // 1–3
+  rating: number           // 1–3, kept for DB backwards compat — no longer drives scoring
   mentality: Mentality     // balanced | attacking | defensive | goalkeeper
   goalkeeper?: boolean     // derived: mentality === 'goalkeeper'. Keep for DB backwards compat.
+  strengthHint: StrengthHint // drives wprOverride at resolution time
 }
 
 export interface LineupMetadata {

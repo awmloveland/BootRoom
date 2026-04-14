@@ -52,6 +52,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
       associatedPlayer,
       rating: guestRating,
       goalkeeper: guestIsGoalkeeper,
+      strengthHint: 'average',
     })
     onClose()
   }
@@ -72,6 +73,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
       rating: newRating,
       mentality: newMentality,
       goalkeeper: newMentality === 'goalkeeper',
+      strengthHint: 'average',
     })
     onClose()
   }
