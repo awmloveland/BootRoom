@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, wprScore } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality, StrengthHint } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
@@ -38,6 +38,21 @@ interface Props {
 type CardState = 'loading' | 'idle' | 'building' | 'lineup' | 'cancelled'
 
 
+/**
+ * Computes the median WPR score of all players with 5 or more games played.
+ * Used as the default strength for new players and guests when auto-picking.
+ * Falls back to 50 if fewer than 3 qualified players exist (very new league).
+ */
+function leagueMedianWpr(players: Player[]): number {
+  const qualified = players.filter((p) => p.played >= 5)
+  if (qualified.length < 3) return 50
+  const scores = qualified.map((p) => wprScore(p)).sort((a, b) => a - b)
+  const mid = Math.floor(scores.length / 2)
+  return scores.length % 2 === 0
+    ? (scores[mid - 1] + scores[mid]) / 2
+    : scores[mid]
+}
+
 function medianRating(players: Player[]): number {
   if (players.length === 0) return 2
   const sorted = [...players].map((p) => p.rating).sort((a, b) => a - b)
@@ -51,6 +66,8 @@ function avgRating(players: Player[]): number {
   return Math.round(sum / players.length)
 }
 
+const STRENGTH_OFFSET = 15
+
 function resolvePlayersForAutoPick(
   names: string[],
   allPlayers: Player[],
@@ -61,6 +78,12 @@ function resolvePlayersForAutoPick(
   const guestLookup = new Map(guests.map((g) => [g.name.toLowerCase(), g]))
   const newPlayerLookup = new Map(newPlayers.map((p) => [p.name.toLowerCase(), p]))
   const fallbackRating = medianRating(allPlayers)
+  const medianWpr = leagueMedianWpr(allPlayers)
+
+  function hintToWpr(hint: StrengthHint | undefined): number {
+    const offset = hint === 'above' ? STRENGTH_OFFSET : hint === 'below' ? -STRENGTH_OFFSET : 0
+    return Math.min(100, Math.max(0, medianWpr + offset))
+  }
 
   return names.map((name) => {
     const known = lookup.get(name.toLowerCase())
@@ -74,8 +97,9 @@ function resolvePlayersForAutoPick(
         timesTeamA: 0, timesTeamB: 0,
         winRate: 0, qualified: false, points: 0,
         goalkeeper: guest.goalkeeper ?? false, mentality: 'balanced' as const,
-        rating: guest.rating,
+        rating: 2,
         recentForm: '',
+        wprOverride: hintToWpr(guest.strengthHint),
       }
     }
 
@@ -86,9 +110,10 @@ function resolvePlayersForAutoPick(
         played: 0, won: 0, drew: 0, lost: 0,
         timesTeamA: 0, timesTeamB: 0,
         winRate: 0, qualified: false, points: 0,
-        goalkeeper: newPlayer.goalkeeper ?? false, mentality: 'balanced' as const,
-        rating: newPlayer.rating,
+        goalkeeper: newPlayer.goalkeeper ?? false, mentality: newPlayer.mentality,
+        rating: 2,
         recentForm: '',
+        wprOverride: hintToWpr(newPlayer.strengthHint),
       }
     }
 
@@ -198,9 +223,18 @@ export function NextMatchCard({
   function handleAutoPick() {
     const resolved = resolvePlayersForAutoPick(squadNames, allPlayers, guestEntries, newPlayerEntries)
     const pairs = guestEntries
-      .filter((g) => g.associatedPlayer) // guards against empty-string from pre-submit modal state
+      .filter((g) => g.associatedPlayer)
       .map((g) => [g.name, g.associatedPlayer] as [string, string])
-    const result = autoPick(resolved, pairs)
+
+    const newPlayerNames = newPlayerEntries.map((p) => p.name)
+    const pinsA = newPlayerNames.length >= 2
+      ? newPlayerNames.filter((_, i) => i % 2 === 0)
+      : undefined
+    const pinsB = newPlayerNames.length >= 2
+      ? newPlayerNames.filter((_, i) => i % 2 === 1)
+      : undefined
+
+    const result = autoPick(resolved, pairs, pinsA, pinsB)
     setAutoPickResult(result)
     setSuggestionIndex(0)
     setIsManuallyEdited(false)
@@ -449,8 +483,14 @@ export function NextMatchCard({
 
     const metadata = scheduledWeek.lineupMetadata
     if (metadata) {
-      setGuestEntries(metadata.guests)
-      setNewPlayerEntries(metadata.new_players)
+      setGuestEntries(metadata.guests.map((g) => ({
+        ...g,
+        strengthHint: g.strengthHint ?? 'average',
+      })))
+      setNewPlayerEntries(metadata.new_players.map((p) => ({
+        ...p,
+        strengthHint: p.strengthHint ?? 'average',
+      })))
     } else {
       setGuestEntries([])
       setNewPlayerEntries([])
