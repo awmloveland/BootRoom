@@ -138,6 +138,21 @@ export function ewptScore(players: Player[]): number {
 }
 
 /**
+ * Computes the median WPR score of all players with 5 or more games played.
+ * Used as the default strength for new players and guests when auto-picking.
+ * Falls back to 50 if fewer than 3 qualified players exist (very new league).
+ */
+export function leagueMedianWpr(players: Player[]): number {
+  const qualified = players.filter((p) => p.played >= 5)
+  if (qualified.length < 3) return 50
+  const scores = qualified.map((p) => wprScore(p)).sort((a, b) => a - b)
+  const mid = Math.floor(scores.length / 2)
+  return scores.length % 2 === 0
+    ? (scores[mid - 1] + scores[mid]) / 2
+    : scores[mid]
+}
+
+/**
  * Given EWTPI scores for two teams, returns the probability (0–1) that team A wins.
  * Uses a logistic function so a 10-point gap ≈ 73% likelihood.
  */

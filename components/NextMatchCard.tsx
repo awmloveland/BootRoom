@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, wprScore } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, wprScore, leagueMedianWpr } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality, StrengthHint } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
@@ -36,22 +36,6 @@ interface Props {
 }
 
 type CardState = 'loading' | 'idle' | 'building' | 'lineup' | 'cancelled'
-
-
-/**
- * Computes the median WPR score of all players with 5 or more games played.
- * Used as the default strength for new players and guests when auto-picking.
- * Falls back to 50 if fewer than 3 qualified players exist (very new league).
- */
-function leagueMedianWpr(players: Player[]): number {
-  const qualified = players.filter((p) => p.played >= 5)
-  if (qualified.length < 3) return 50
-  const scores = qualified.map((p) => wprScore(p)).sort((a, b) => a - b)
-  const mid = Math.floor(scores.length / 2)
-  return scores.length % 2 === 0
-    ? (scores[mid - 1] + scores[mid]) / 2
-    : scores[mid]
-}
 
 function medianRating(players: Player[]): number {
   if (players.length === 0) return 2
@@ -360,12 +344,15 @@ export function NextMatchCard({
         name: g.name,
         associated_player: g.associatedPlayer,
         rating: g.rating,
+        goalkeeper: g.goalkeeper ?? false,
+        strength_hint: g.strengthHint,
       })),
       new_players: newPlayerEntries.map((p) => ({
         name: p.name,
         rating: p.rating,
         mentality: p.mentality,
         goalkeeper: p.goalkeeper ?? false,
+        strength_hint: p.strengthHint,
       })),
     }
     setSaving(true)
