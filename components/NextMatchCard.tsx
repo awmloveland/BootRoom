@@ -60,11 +60,6 @@ function medianRating(players: Player[]): number {
   return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
 }
 
-function avgRating(players: Player[]): number {
-  if (players.length === 0) return 2
-  const sum = players.reduce((acc, p) => acc + p.rating, 0)
-  return Math.round(sum / players.length)
-}
 
 const STRENGTH_OFFSET = 15
 
@@ -1051,7 +1046,6 @@ export function NextMatchCard({
         <AddPlayerModal
           players={sortedPlayers.filter((p) => selectedNames.includes(p.name))}
           allLeaguePlayers={allPlayers}
-          avgRating={avgRating(allPlayers)}
           existingGuests={guestEntries}
           onAdd={(entry) => {
             if (entry.type === 'guest') {
