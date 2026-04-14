@@ -214,7 +214,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
               <div className="flex gap-2 justify-end px-5 pb-4">
                 <button
                   type="button"
-                  onClick={() => { setStep('choose'); setGuestIsGoalkeeper(false) }}
+                  onClick={() => { setStep('choose'); setGuestStrength('average'); setGuestIsGoalkeeper(false) }}
                   className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500"
                 >
                   Back
@@ -319,7 +319,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
               <div className="flex gap-2 justify-end px-5 pb-4">
                 <button
                   type="button"
-                  onClick={() => { setStep('choose'); setNewMentality('balanced') }}
+                  onClick={() => { setStep('choose'); setNewStrength('average'); setNewMentality('balanced') }}
                   className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500"
                 >
                   Back

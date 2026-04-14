@@ -60,7 +60,6 @@ function medianRating(players: Player[]): number {
   return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
 }
 
-
 const STRENGTH_OFFSET = 15
 
 function resolvePlayersForAutoPick(
