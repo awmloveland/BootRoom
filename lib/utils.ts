@@ -63,6 +63,8 @@ export function formatMonthYear(date: string): string {
  * last regardless of score.
  */
 export function wprScore(player: Player): number {
+  if (player.wprOverride !== undefined) return player.wprOverride
+
   const PRIOR_GAMES = 5         // shrinkage strength
   const PRIOR_AVG_PPG = 1.5    // 50% win rate equivalent
 
