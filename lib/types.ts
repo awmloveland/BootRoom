@@ -117,7 +117,7 @@ export interface ScheduledWeek {
   team_b_rating?: number | null;
 }
 
-export type StrengthHint = 'below' | 'average' | 'above'
+export type StrengthHint = 'below' | 'average' | 'above';
 
 export interface GuestEntry {
   type: 'guest'            // runtime discriminant — not persisted to DB
