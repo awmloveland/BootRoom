@@ -51,7 +51,7 @@ export function formatMonthYear(date: string): string {
 /**
  * Weighted Performance Rating (WPR) score for a player.
  *
- * Three components:
+ * Three base components:
  *  - 60%: Points per game (W=3, D=1, L=0) with Bayesian shrinkage toward
  *          average (1.5 PPG) so small samples don't inflate the score.
  *  - 25%: Recent form (last 5 games) with recency weighting — more recent
@@ -59,10 +59,23 @@ export function formatMonthYear(date: string): string {
  *  - 15%: Quality rating prior (1–3 scale), which fades to zero by ~10 games
  *          so it only influences players with very few results.
  *
+ * Two penalties are applied after the base score:
+ *  - Experience penalty (×0.85–0.94): players with 1–4 games played are still
+ *    learning the league. Multiplier ramps from 0.85 at 1 game to 0.94 at 4 games.
+ *  - Rustiness penalty (×0.88): applied if either (a) the player has not played
+ *    in more than 28 calendar days (requires `lastPlayedWeekDate` to be set), or
+ *    (b) fewer than 2 of the last 5 `recentForm` slots are real games.
+ *    Both conditions trigger the same penalty; they can stack with the experience penalty.
+ *
  * Players below the minimum games threshold (qualified === false) are ranked
  * last regardless of score.
+ *
+ * @param referenceDate - The date to compare against for the calendar rustiness check.
+ *   Defaults to today. Pass a fixed date in tests for deterministic results.
  */
-export function wprScore(player: Player): number {
+export function wprScore(player: Player, referenceDate?: Date): number {
+  if (player.wprOverride !== undefined) return player.wprOverride
+
   const PRIOR_GAMES = 5         // shrinkage strength
   const PRIOR_AVG_PPG = 1.5    // 50% win rate equivalent
 
@@ -85,7 +98,31 @@ export function wprScore(player: Player): number {
   const ratingWeight = Math.max(0, 1 - player.played / 10)
   const ratingScore = normRating * ratingWeight
 
-  return ppgScore * 0.60 + formScore * 0.25 + ratingScore * 0.15
+  let score = ppgScore * 0.60 + formScore * 0.25 + ratingScore * 0.15
+
+  // Experience penalty: players with 1–4 games are still learning the league.
+  // Multiplier ramps from 0.85 (1 game) to 0.94 (4 games), then full weight at 5+.
+  if (player.played >= 1 && player.played < 5) {
+    score *= 0.85 + 0.03 * (player.played - 1)
+  }
+
+  // Rustiness penalty: not recently active (calendar absence or intermittent attendance).
+  const recentGameCount = player.recentForm.split('').filter((c) => c !== '-').length
+  const isIntermittent = recentGameCount < 2
+
+  let isCalendarRusty = false
+  if (player.lastPlayedWeekDate) {
+    const lastPlayed = new Date(player.lastPlayedWeekDate)
+    const ref = referenceDate ?? new Date()
+    const diffDays = (ref.getTime() - lastPlayed.getTime()) / (1000 * 60 * 60 * 24)
+    isCalendarRusty = diffDays > 28
+  }
+
+  if (isIntermittent || isCalendarRusty) {
+    score *= 0.88
+  }
+
+  return score
 }
 
 /** Raw form score for a player (used internally by ewptScore). */
@@ -107,7 +144,8 @@ function playerFormScore(player: Player): number {
  *  - 55%: Average WPR — overall team quality floor
  *  - 20%: Max WPR — star player has outsized impact in 5-a-side
  *  - 25%: Average normalised recent form
- *  - GK modifier: +3 for exactly one GK, -3 for none, -2 for two (wasted slot)
+ *  - GK modifier: scaled by GK WPR — 1 + (wprScore(gk)/100)*4, range [+1,+5];
+ *                 -3 for no GK, -2 for two (wasted slot)
  *  - Variety bonus: +2 if team covers 3+ different mentalities
  *  - Depth modifier: small bonus/penalty relative to a 5-player baseline
  */
@@ -121,8 +159,17 @@ export function ewptScore(players: Player[]): number {
     ? (wprScores[0] + wprScores[1]) / 2
     : wprScores[0]
   const avgForm = players.reduce((sum, p) => sum + playerFormScore(p), 0) / players.length
-  const gkCount = players.filter((p) => p.mentality === 'goalkeeper' || p.goalkeeper).length
-  const gkModifier = gkCount === 1 ? 3 : gkCount === 0 ? -3 : -2
+  const gks = players.filter((p) => p.mentality === 'goalkeeper' || p.goalkeeper)
+  const gkCount = gks.length
+  let gkModifier: number
+  if (gkCount === 0) {
+    gkModifier = -3
+  } else if (gkCount === 1) {
+    const gkWpr = wprScore(gks[0])
+    gkModifier = 1 + (gkWpr / 100) * 4
+  } else {
+    gkModifier = -2
+  }
   const mentalities = new Set(players.map((p) => p.mentality))
   const varietyBonus = mentalities.size >= 3 ? 2 : 0
   const depthBonus = Math.min((players.length - 5) * 0.5, 3)
@@ -133,6 +180,45 @@ export function ewptScore(players: Player[]): number {
       avgWpr * 0.50 + top2Avg * 0.25 + avgForm * 0.25 + gkModifier + varietyBonus + depthBonus,
     ),
   )
+}
+
+/**
+ * Computes the median WPR score of all players with 5 or more games played.
+ * Used as the default strength for new players and guests when auto-picking.
+ * Falls back to 50 if fewer than 3 qualified players exist (very new league).
+ */
+export function leagueMedianWpr(players: Player[]): number {
+  const qualified = players.filter((p) => p.played >= 5)
+  if (qualified.length < 3) return 50
+  const scores = qualified.map((p) => wprScore(p)).sort((a, b) => a - b)
+  const mid = Math.floor(scores.length / 2)
+  return scores.length % 2 === 0
+    ? (scores[mid - 1] + scores[mid]) / 2
+    : scores[mid]
+}
+
+export interface WprPercentiles {
+  p25: number
+  p50: number
+  p75: number
+}
+
+/**
+ * Computes WPR percentiles (p25 / p50 / p75) for all players with 5+ games played.
+ * Used to calibrate strength hint offsets dynamically rather than using a fixed ±15.
+ * Falls back to { p25: 40, p50: 50, p75: 60 } when fewer than 3 qualified players exist.
+ */
+export function leagueWprPercentiles(players: Player[]): WprPercentiles {
+  const qualified = players.filter((p) => p.played >= 5)
+  if (qualified.length < 3) return { p25: 40, p50: 50, p75: 60 }
+  const scores = qualified.map((p) => wprScore(p)).sort((a, b) => a - b)
+  const n = scores.length
+  const p25 = scores[Math.ceil(n * 0.25) - 1]
+  const p50 = n % 2 === 0
+    ? (scores[n / 2 - 1] + scores[n / 2]) / 2
+    : scores[Math.floor(n / 2)]
+  const p75 = scores[Math.ceil(n * 0.75) - 1]
+  return { p25, p50, p75 }
 }
 
 /**

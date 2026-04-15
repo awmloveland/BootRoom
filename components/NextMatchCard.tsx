@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, wprScore, leagueWprPercentiles } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality } from '@/lib/types'
+import type { Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality, StrengthHint } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
 import { X, Share2 } from 'lucide-react'
 import { WinnerBadge } from '@/components/WinnerBadge'
@@ -37,7 +37,6 @@ interface Props {
 
 type CardState = 'loading' | 'idle' | 'building' | 'lineup' | 'cancelled'
 
-
 function medianRating(players: Player[]): number {
   if (players.length === 0) return 2
   const sorted = [...players].map((p) => p.rating).sort((a, b) => a - b)
@@ -45,10 +44,22 @@ function medianRating(players: Player[]): number {
   return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
 }
 
-function avgRating(players: Player[]): number {
-  if (players.length === 0) return 2
-  const sum = players.reduce((acc, p) => acc + p.rating, 0)
-  return Math.round(sum / players.length)
+/**
+ * Scans played weeks to find the most recent week date each player appeared in.
+ * Returns a map of player name → date string ('DD MMM YYYY'), or undefined if never played.
+ */
+function deriveLastPlayedDates(players: Player[], weeks: Week[]): Map<string, string | undefined> {
+  const playedWeeks = weeks
+    .filter((w) => w.status === 'played')
+    .sort((a, b) => b.week - a.week) // most recent first
+  const result = new Map<string, string | undefined>()
+  for (const player of players) {
+    const lastWeek = playedWeeks.find(
+      (w) => w.teamA.includes(player.name) || w.teamB.includes(player.name)
+    )
+    result.set(player.name, lastWeek?.date)
+  }
+  return result
 }
 
 function resolvePlayersForAutoPick(
@@ -61,6 +72,13 @@ function resolvePlayersForAutoPick(
   const guestLookup = new Map(guests.map((g) => [g.name.toLowerCase(), g]))
   const newPlayerLookup = new Map(newPlayers.map((p) => [p.name.toLowerCase(), p]))
   const fallbackRating = medianRating(allPlayers)
+  const percentiles = leagueWprPercentiles(allPlayers)
+
+  function hintToWpr(hint: StrengthHint | undefined): number {
+    if (hint === 'above') return Math.min(100, percentiles.p75)
+    if (hint === 'below') return Math.max(0, percentiles.p25)
+    return percentiles.p50
+  }
 
   return names.map((name) => {
     const known = lookup.get(name.toLowerCase())
@@ -74,8 +92,9 @@ function resolvePlayersForAutoPick(
         timesTeamA: 0, timesTeamB: 0,
         winRate: 0, qualified: false, points: 0,
         goalkeeper: guest.goalkeeper ?? false, mentality: 'balanced' as const,
-        rating: guest.rating,
+        rating: 2,
         recentForm: '',
+        wprOverride: hintToWpr(guest.strengthHint),
       }
     }
 
@@ -86,9 +105,10 @@ function resolvePlayersForAutoPick(
         played: 0, won: 0, drew: 0, lost: 0,
         timesTeamA: 0, timesTeamB: 0,
         winRate: 0, qualified: false, points: 0,
-        goalkeeper: newPlayer.goalkeeper ?? false, mentality: 'balanced' as const,
-        rating: newPlayer.rating,
+        goalkeeper: newPlayer.goalkeeper ?? false, mentality: newPlayer.mentality,
+        rating: 2,
         recentForm: '',
+        wprOverride: hintToWpr(newPlayer.strengthHint),
       }
     }
 
@@ -196,11 +216,25 @@ export function NextMatchCard({
   }
 
   function handleAutoPick() {
-    const resolved = resolvePlayersForAutoPick(squadNames, allPlayers, guestEntries, newPlayerEntries)
+    const lastPlayedDates = deriveLastPlayedDates(allPlayers, weeks)
+    const enrichedPlayers = allPlayers.map((p) => ({
+      ...p,
+      lastPlayedWeekDate: lastPlayedDates.get(p.name),
+    }))
+    const resolved = resolvePlayersForAutoPick(squadNames, enrichedPlayers, guestEntries, newPlayerEntries)
     const pairs = guestEntries
-      .filter((g) => g.associatedPlayer) // guards against empty-string from pre-submit modal state
+      .filter((g) => g.associatedPlayer)
       .map((g) => [g.name, g.associatedPlayer] as [string, string])
-    const result = autoPick(resolved, pairs)
+
+    const newPlayerNames = newPlayerEntries.map((p) => p.name)
+    const pinsA = newPlayerNames.length >= 2
+      ? newPlayerNames.filter((_, i) => i % 2 === 0)
+      : undefined
+    const pinsB = newPlayerNames.length >= 2
+      ? newPlayerNames.filter((_, i) => i % 2 === 1)
+      : undefined
+
+    const result = autoPick(resolved, pairs, pinsA, pinsB)
     setAutoPickResult(result)
     setSuggestionIndex(0)
     setIsManuallyEdited(false)
@@ -273,6 +307,8 @@ export function NextMatchCard({
                   name: g.name,
                   associatedPlayer: g.associated_player,
                   rating: g.rating,
+                  goalkeeper: g.goalkeeper ?? false,
+                  strengthHint: (g.strength_hint ?? 'average') as StrengthHint,
                 })),
                 new_players: ((data.lineup_metadata as any).new_players ?? []).map((p: any) => ({
                   type: 'new_player' as const,
@@ -280,6 +316,7 @@ export function NextMatchCard({
                   rating: p.rating,
                   mentality: (p.mentality as Mentality) ?? (p.goalkeeper ? 'goalkeeper' : 'balanced'),
                   goalkeeper: p.goalkeeper ?? false,
+                  strengthHint: (p.strength_hint ?? 'average') as StrengthHint,
                 })),
               }
             : null,
@@ -329,12 +366,15 @@ export function NextMatchCard({
         name: g.name,
         associated_player: g.associatedPlayer,
         rating: g.rating,
+        goalkeeper: g.goalkeeper ?? false,
+        strength_hint: g.strengthHint,
       })),
       new_players: newPlayerEntries.map((p) => ({
         name: p.name,
         rating: p.rating,
         mentality: p.mentality,
         goalkeeper: p.goalkeeper ?? false,
+        strength_hint: p.strengthHint,
       })),
     }
     setSaving(true)
@@ -446,8 +486,14 @@ export function NextMatchCard({
 
     const metadata = scheduledWeek.lineupMetadata
     if (metadata) {
-      setGuestEntries(metadata.guests)
-      setNewPlayerEntries(metadata.new_players)
+      setGuestEntries(metadata.guests.map((g) => ({
+        ...g,
+        strengthHint: g.strengthHint ?? 'average',
+      })))
+      setNewPlayerEntries(metadata.new_players.map((p) => ({
+        ...p,
+        strengthHint: p.strengthHint ?? 'average',
+      })))
     } else {
       setGuestEntries([])
       setNewPlayerEntries([])
@@ -1008,7 +1054,6 @@ export function NextMatchCard({
         <AddPlayerModal
           players={sortedPlayers.filter((p) => selectedNames.includes(p.name))}
           allLeaguePlayers={allPlayers}
-          avgRating={avgRating(allPlayers)}
           existingGuests={guestEntries}
           onAdd={(entry) => {
             if (entry.type === 'guest') {

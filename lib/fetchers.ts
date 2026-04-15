@@ -130,6 +130,7 @@ function mapWeekRow(row: WeekRow): Week {
             associatedPlayer: g.associated_player,
             rating: g.rating,
             goalkeeper: g.goalkeeper ?? false,
+            strengthHint: g.strength_hint ?? 'average',
           })),
           new_players: ((row.lineup_metadata.new_players as any[]) ?? []).map((p: any) => ({
             type: 'new_player' as const,
@@ -137,6 +138,7 @@ function mapWeekRow(row: WeekRow): Week {
             rating: p.rating,
             mentality: (p.mentality as Mentality) ?? (p.goalkeeper ? 'goalkeeper' : 'balanced'),
             goalkeeper: p.goalkeeper ?? false,
+            strengthHint: p.strength_hint ?? 'average',
           })),
         }
       : null,

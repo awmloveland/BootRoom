@@ -3,15 +3,13 @@
 
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import type { Player, GuestEntry, NewPlayerEntry, Mentality } from '@/lib/types'
-import { EyeTestSlider } from '@/components/EyeTestSlider'
+import type { Player, GuestEntry, NewPlayerEntry, Mentality, StrengthHint } from '@/lib/types'
 import { Toggle } from '@/components/ui/toggle'
 import { cn } from '@/lib/utils'
 
 interface Props {
   players: Player[]           // attending players (used for lineup-membership warning check)
   allLeaguePlayers: Player[]  // full league roster (for collision check)
-  avgRating: number           // pre-computed average rating to default slider to
   existingGuests: GuestEntry[] // used to compute +1, +2 suffixes
   onAdd: (entry: GuestEntry | NewPlayerEntry) => void
   onClose: () => void
@@ -19,19 +17,24 @@ interface Props {
 
 type Step = 'choose' | 'guest' | 'new_player'
 
-export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingGuests, onAdd, onClose }: Props) {
+const STRENGTH_OPTIONS: { value: StrengthHint; label: string }[] = [
+  { value: 'below', label: 'Below average' },
+  { value: 'average', label: 'Average' },
+  { value: 'above', label: 'Above average' },
+]
+
+export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAdd, onClose }: Props) {
   const [step, setStep] = useState<Step>('choose')
 
   // Guest sub-flow state
   const [associatedPlayer, setAssociatedPlayer] = useState('')
-  const [guestRating, setGuestRating] = useState(avgRating)
+  const [guestStrength, setGuestStrength] = useState<StrengthHint>('average')
+  const [guestIsGoalkeeper, setGuestIsGoalkeeper] = useState(false)
 
   // New player sub-flow state
   const [newName, setNewName] = useState('')
-  const [newRating, setNewRating] = useState(avgRating)
+  const [newStrength, setNewStrength] = useState<StrengthHint>('average')
   const [nameError, setNameError] = useState<string | null>(null)
-
-  const [guestIsGoalkeeper, setGuestIsGoalkeeper] = useState(false)
   const [newMentality, setNewMentality] = useState<Mentality>('balanced')
 
   const selectedPlayerInLineup = players.some((p) => p.name === associatedPlayer)
@@ -50,8 +53,9 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
       type: 'guest',
       name,
       associatedPlayer,
-      rating: guestRating,
+      rating: 2,
       goalkeeper: guestIsGoalkeeper,
+      strengthHint: guestStrength,
     })
     onClose()
   }
@@ -69,9 +73,10 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
     onAdd({
       type: 'new_player',
       name: trimmed,
-      rating: newRating,
+      rating: 2,
       mentality: newMentality,
       goalkeeper: newMentality === 'goalkeeper',
+      strengthHint: newStrength,
     })
     onClose()
   }
@@ -167,11 +172,30 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-                    The Eye Test
-                    <span className="ml-2 normal-case text-blue-400 bg-blue-950 border border-blue-800 rounded px-1.5 py-0.5 font-medium">avg: {avgRating}</span>
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                    Strength
                   </label>
-                  <EyeTestSlider value={guestRating} onChange={setGuestRating} showNote />
+                  <div className="flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden text-[11px] font-semibold">
+                    {STRENGTH_OPTIONS.map(({ value, label }, i) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setGuestStrength(value)}
+                        className={cn(
+                          'flex-1 py-2 transition-colors',
+                          i < STRENGTH_OPTIONS.length - 1 && 'border-r',
+                          value === guestStrength
+                            ? 'bg-blue-950 text-blue-300 border-blue-800'
+                            : 'text-slate-500 border-slate-700 hover:text-slate-300'
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Defaults to Average — change only if you know this player.
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-between gap-3">
@@ -190,7 +214,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
               <div className="flex gap-2 justify-end px-5 pb-4">
                 <button
                   type="button"
-                  onClick={() => { setStep('choose'); setGuestIsGoalkeeper(false) }}
+                  onClick={() => { setStep('choose'); setGuestStrength('average'); setGuestIsGoalkeeper(false) }}
                   className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500"
                 >
                   Back
@@ -231,11 +255,30 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-                    The Eye Test
-                    <span className="ml-2 normal-case text-blue-400 bg-blue-950 border border-blue-800 rounded px-1.5 py-0.5 font-medium">avg: {avgRating}</span>
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                    Strength
                   </label>
-                  <EyeTestSlider value={newRating} onChange={setNewRating} showNote />
+                  <div className="flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden text-[11px] font-semibold">
+                    {STRENGTH_OPTIONS.map(({ value, label }, i) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setNewStrength(value)}
+                        className={cn(
+                          'flex-1 py-2 transition-colors',
+                          i < STRENGTH_OPTIONS.length - 1 && 'border-r',
+                          value === newStrength
+                            ? 'bg-blue-950 text-blue-300 border-blue-800'
+                            : 'text-slate-500 border-slate-700 hover:text-slate-300'
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Defaults to Average — change only if you know this player.
+                  </p>
                 </div>
 
                 <div>
@@ -276,7 +319,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, avgRating, existingG
               <div className="flex gap-2 justify-end px-5 pb-4">
                 <button
                   type="button"
-                  onClick={() => { setStep('choose'); setNewMentality('balanced') }}
+                  onClick={() => { setStep('choose'); setNewStrength('average'); setNewMentality('balanced') }}
                   className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500"
                 >
                   Back
