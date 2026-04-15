@@ -152,6 +152,30 @@ export function leagueMedianWpr(players: Player[]): number {
     : scores[mid]
 }
 
+export interface WprPercentiles {
+  p25: number
+  p50: number
+  p75: number
+}
+
+/**
+ * Computes WPR percentiles (p25 / p50 / p75) for all players with 5+ games played.
+ * Used to calibrate strength hint offsets dynamically rather than using a fixed ±15.
+ * Falls back to { p25: 40, p50: 50, p75: 60 } when fewer than 3 qualified players exist.
+ */
+export function leagueWprPercentiles(players: Player[]): WprPercentiles {
+  const qualified = players.filter((p) => p.played >= 5)
+  if (qualified.length < 3) return { p25: 40, p50: 50, p75: 60 }
+  const scores = qualified.map((p) => wprScore(p)).sort((a, b) => a - b)
+  const n = scores.length
+  const p25 = scores[Math.ceil(n * 0.25) - 1]
+  const p50 = n % 2 === 0
+    ? (scores[n / 2 - 1] + scores[n / 2]) / 2
+    : scores[Math.floor(n / 2)]
+  const p75 = scores[Math.ceil(n * 0.75) - 1]
+  return { p25, p50, p75 }
+}
+
 /**
  * Given EWTPI scores for two teams, returns the probability (0–1) that team A wins.
  * Uses a logistic function so a 10-point gap ≈ 73% likelihood.

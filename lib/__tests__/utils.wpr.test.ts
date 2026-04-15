@@ -1,4 +1,4 @@
-import { wprScore, leagueMedianWpr } from '@/lib/utils'
+import { wprScore, leagueMedianWpr, leagueWprPercentiles } from '@/lib/utils'
 import type { Player } from '@/lib/types'
 
 function makePlayer(overrides?: Partial<Player>): Player {
@@ -102,5 +102,67 @@ describe('leagueMedianWpr', () => {
 
   it('returns 50 when the player list is empty', () => {
     expect(leagueMedianWpr([])).toBe(50)
+  })
+})
+
+describe('leagueWprPercentiles', () => {
+  function makeQualifiedPlayer(wprTarget: number): Player {
+    return {
+      name: `Player${wprTarget}`,
+      played: 10, won: 5, drew: 2, lost: 3,
+      timesTeamA: 0, timesTeamB: 0,
+      winRate: 0.5, qualified: true, points: 17,
+      goalkeeper: false, mentality: 'balanced', rating: 2,
+      recentForm: 'WWDLL',
+      wprOverride: wprTarget,
+    }
+  }
+
+  function makeUnqualifiedPlayer(): Player {
+    return {
+      name: 'Newbie',
+      played: 2, won: 1, drew: 0, lost: 1,
+      timesTeamA: 0, timesTeamB: 0,
+      winRate: 0.5, qualified: false, points: 3,
+      goalkeeper: false, mentality: 'balanced', rating: 2,
+      recentForm: 'WL',
+    }
+  }
+
+  it('returns fallback when fewer than 3 qualified players exist', () => {
+    expect(leagueWprPercentiles([])).toEqual({ p25: 40, p50: 50, p75: 60 })
+    expect(leagueWprPercentiles([makeQualifiedPlayer(60), makeQualifiedPlayer(70)])).toEqual({ p25: 40, p50: 50, p75: 60 })
+  })
+
+  it('excludes players with fewer than 5 games played', () => {
+    const players = [
+      makeQualifiedPlayer(40),
+      makeQualifiedPlayer(60),
+      makeQualifiedPlayer(80),
+      makeUnqualifiedPlayer(),
+    ]
+    // Only 3 qualified: [40, 60, 80]
+    const result = leagueWprPercentiles(players)
+    expect(result.p25).toBe(40)
+    expect(result.p50).toBe(60)
+    expect(result.p75).toBe(80)
+  })
+
+  it('returns correct p25/p50/p75 for 4 qualified players', () => {
+    const players = [40, 60, 70, 80].map(makeQualifiedPlayer)
+    // sorted: [40, 60, 70, 80], n=4
+    // p25: scores[floor(3*0.25)] = scores[0] = 40
+    // p50: (scores[1]+scores[2])/2 = (60+70)/2 = 65
+    // p75: scores[floor(3*0.75)] = scores[2] = 70
+    const result = leagueWprPercentiles(players)
+    expect(result.p25).toBe(40)
+    expect(result.p50).toBe(65)
+    expect(result.p75).toBe(70)
+  })
+
+  it('p50 matches leagueMedianWpr for the same input', () => {
+    const players = [30, 50, 60, 70, 90].map(makeQualifiedPlayer)
+    const { p50 } = leagueWprPercentiles(players)
+    expect(p50).toBe(leagueMedianWpr(players))
   })
 })
