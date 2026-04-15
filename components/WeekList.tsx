@@ -70,8 +70,9 @@ export function WeekList({
               gameId={gameId}
               allPlayers={allPlayers}
               onResultSaved={onResultSaved}
-              leagueName={leagueName}
-              shareGameId={gameId}
+              leagueName={week.week === mostRecent?.week ? leagueName : undefined}
+              shareGameId={week.week === mostRecent?.week ? gameId : undefined}
+              weeks={week.week === mostRecent?.week ? weeks : undefined}
             />
           </Fragment>
         )
