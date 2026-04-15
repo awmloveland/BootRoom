@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
-import { ChevronDown, Pencil, Share2 } from 'lucide-react'
+import { ChevronDown, Pencil } from 'lucide-react'
 import { Week } from '@/lib/types'
 import type { Player, ScheduledWeek } from '@/lib/types'
 import { WinnerBadge } from './WinnerBadge'
@@ -431,9 +431,8 @@ function PlayedCard({
                           <button
                             type="button"
                             onClick={handleShare}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold transition-colors"
+                            className="px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold transition-colors"
                           >
-                            <Share2 className="h-3 w-3" />
                             {copied ? 'Copied!' : 'Share'}
                           </button>
                         )}
