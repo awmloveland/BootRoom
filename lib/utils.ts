@@ -158,8 +158,17 @@ export function ewptScore(players: Player[]): number {
     ? (wprScores[0] + wprScores[1]) / 2
     : wprScores[0]
   const avgForm = players.reduce((sum, p) => sum + playerFormScore(p), 0) / players.length
-  const gkCount = players.filter((p) => p.mentality === 'goalkeeper' || p.goalkeeper).length
-  const gkModifier = gkCount === 1 ? 3 : gkCount === 0 ? -3 : -2
+  const gks = players.filter((p) => p.mentality === 'goalkeeper' || p.goalkeeper)
+  const gkCount = gks.length
+  let gkModifier: number
+  if (gkCount === 0) {
+    gkModifier = -3
+  } else if (gkCount === 1) {
+    const gkWpr = wprScore(gks[0])
+    gkModifier = 1 + (gkWpr / 100) * 4
+  } else {
+    gkModifier = -2
+  }
   const mentalities = new Set(players.map((p) => p.mentality))
   const varietyBonus = mentalities.size >= 3 ? 2 : 0
   const depthBonus = Math.min((players.length - 5) * 0.5, 3)
