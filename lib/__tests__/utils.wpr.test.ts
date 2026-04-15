@@ -213,8 +213,17 @@ describe('wprScore — experience penalty (played 1–4)', () => {
     const fiveGames = makePlayer({ played: 5, won: 2, drew: 1, lost: 2, points: 7, recentForm: 'WWDLL' })
     // Both should score in a similar range (no multiplier applied)
     // The veteran scores higher only due to more data / better Bayesian estimate
-    expect(wprScore(fiveGames)).toBeGreaterThan(wprScore(fiveGames) * 0.98) // no 0.94 haircut
-    // Specifically: fiveGames without multiplier ≈ same as with — verify score is not suspiciously low
+    // Score at played=5 should be in a healthy range (no penalty applied)
+    // A player with 2W 1D 2L record should score between 40 and 80
     expect(wprScore(fiveGames)).toBeGreaterThan(40)
+    expect(wprScore(fiveGames)).toBeLessThan(80)
+  })
+
+  it('penalty at played=2 is greater than at played=4 (monotonically decreasing)', () => {
+    // played=2: recentForm='WL' (2 real games — avoids rustiness), multiplier=0.88
+    // played=4: recentForm='WWLL' (4 real games — avoids rustiness), multiplier=0.94
+    const p2 = makePlayer({ played: 2, won: 1, drew: 0, lost: 1, points: 3, recentForm: 'WL' })
+    const p4 = makePlayer({ played: 4, won: 2, drew: 0, lost: 2, points: 6, recentForm: 'WWLL' })
+    expect(wprScore(p2)).toBeLessThan(wprScore(p4))
   })
 })
