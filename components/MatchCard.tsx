@@ -7,7 +7,7 @@ import { Week } from '@/lib/types'
 import type { Player, ScheduledWeek } from '@/lib/types'
 import { WinnerBadge } from './WinnerBadge'
 import { TeamList } from './TeamList'
-import { cn, shouldShowMeta, isPastDeadline } from '@/lib/utils'
+import { cn, shouldShowMeta, isPastDeadline, buildResultShareText } from '@/lib/utils'
 import { ResultModal } from '@/components/ResultModal'
 import { EditWeekModal } from '@/components/EditWeekModal'
 
@@ -20,6 +20,9 @@ interface MatchCardProps {
   gameId?: string
   allPlayers?: Player[]
   onResultSaved?: () => void
+  leagueName?: string
+  shareGameId?: string
+  weeks?: Week[]
 }
 
 // ── Edit button helpers ───────────────────────────────────────────────────────
@@ -162,6 +165,9 @@ interface PlayedCardProps {
   gameId: string
   allPlayers: Player[]
   onResultSaved: () => void
+  leagueName?: string
+  shareGameId?: string
+  weeks?: Week[]
 }
 
 function AwaitingResultCard({
@@ -267,6 +273,8 @@ function AwaitingResultCard({
           lineupMetadata={week.lineupMetadata ?? null}
           allPlayers={allPlayers}
           gameId={gameId}
+          leagueName=""
+          weeks={[]}
           publicMode={false}
           onSaved={() => {
             setShowResultModal(false)
@@ -299,8 +307,44 @@ function PlayedCard({
   gameId,
   allPlayers,
   onResultSaved,
+  leagueName,
+  shareGameId,
+  weeks,
 }: PlayedCardProps) {
   const [showEditModal, setShowEditModal] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  async function handleShare() {
+    if (!leagueName || !shareGameId || !weeks || !week.winner) return
+    try {
+      const { shareText } = buildResultShareText({
+        leagueName,
+        leagueId: shareGameId,
+        week: week.week,
+        date: week.date,
+        format: week.format ?? '',
+        teamA: week.teamA ?? [],
+        teamB: week.teamB ?? [],
+        winner: week.winner,
+        goalDifference: week.goal_difference ?? 0,
+        teamARating: week.team_a_rating ?? 0,
+        teamBRating: week.team_b_rating ?? 0,
+        players: allPlayers,
+        weeks,
+      })
+      if (navigator.share && window.innerWidth < 768) {
+        try {
+          await navigator.share({ text: shareText })
+        } catch (err) {
+          if (err instanceof DOMException && err.name !== 'AbortError') {
+            try { await navigator.clipboard.writeText(shareText); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch { /* ignore */ }
+          }
+        }
+      } else {
+        try { await navigator.clipboard.writeText(shareText); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch { /* ignore */ }
+      }
+    } catch { /* ignore share errors */ }
+  }
 
   return (
     <>
@@ -362,7 +406,7 @@ function PlayedCard({
                   />
                 </div>
 
-                {(shouldShowMeta(week.goal_difference, week.notes) || isAdmin) && (
+                {(shouldShowMeta(week.goal_difference, week.notes) || isAdmin || (leagueName && shareGameId && !!weeks)) && (
                   <>
                     <div className="border-t border-slate-700 mt-3" />
                     <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -374,19 +418,25 @@ function PlayedCard({
                           +{week.goal_difference} goals
                         </div>
                       )}
-                      {week.notes && week.notes.trim() !== '' && (
-                        <div className="bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-400 italic">
-                          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide not-italic mr-1">
-                            Notes
-                          </span>
-                          {week.notes}
+                      {week.notes?.trim() && (
+                        <div className="bg-slate-900 border border-slate-800 rounded px-2.5 py-2 text-xs text-slate-400 italic w-full">
+                          {week.notes.trim()}
                         </div>
                       )}
-                      {isAdmin && (
-                        <div className="ml-auto">
+                      <div className="ml-auto flex items-center gap-2">
+                        {isAdmin && (
                           <EditResultButton onClick={() => setShowEditModal(true)} />
-                        </div>
-                      )}
+                        )}
+                        {leagueName && shareGameId && weeks && (
+                          <button
+                            type="button"
+                            onClick={handleShare}
+                            className="px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold transition-colors"
+                          >
+                            {copied ? 'Copied!' : 'Share'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </>
                 )}
@@ -420,6 +470,9 @@ export function MatchCard({
   gameId = '',
   allPlayers = [],
   onResultSaved = () => {},
+  leagueName,
+  shareGameId,
+  weeks,
 }: MatchCardProps) {
   if (week.status === 'cancelled') {
     return (
@@ -467,6 +520,9 @@ export function MatchCard({
       gameId={gameId}
       allPlayers={allPlayers}
       onResultSaved={onResultSaved}
+      leagueName={leagueName}
+      shareGameId={shareGameId}
+      weeks={weeks}
     />
   )
 }

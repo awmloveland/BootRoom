@@ -5,13 +5,14 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
 import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, wprScore, leagueWprPercentiles } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality, StrengthHint } from '@/lib/types'
+import type { Winner, Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality, StrengthHint } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
 import { X, Share2 } from 'lucide-react'
 import { WinnerBadge } from '@/components/WinnerBadge'
 import { TeamList } from '@/components/TeamList'
 import { AddPlayerModal } from '@/components/AddPlayerModal'
 import { ResultModal } from '@/components/ResultModal'
+import { ResultSuccessPanel } from '@/components/ResultSuccessPanel'
 import { FormDots } from '@/components/FormDots'
 
 interface Props {
@@ -164,6 +165,12 @@ export function NextMatchCard({
 
   // Result modal
   const [showResultModal, setShowResultModal] = useState(false)
+  const [savedResult, setSavedResult] = useState<{
+    winner: NonNullable<Winner>
+    goalDifference: number
+    shareText: string
+    highlightsText: string
+  } | null>(null)
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -1073,16 +1080,35 @@ export function NextMatchCard({
           lineupMetadata={scheduledWeek.lineupMetadata ?? null}
           allPlayers={allPlayers}
           gameId={gameId}
+          leagueName={leagueName ?? ''}
+          weeks={weeks}
           publicMode={publicMode}
-          onSaved={() => {
-            setScheduledWeek(null)
+          onSaved={(result) => {
+            setShowResultModal(false)
             setGuestEntries([])
             setNewPlayerEntries([])
-            setCardState('idle')
-            setShowResultModal(false)
-            onResultSaved()
+            setSavedResult(result)
           }}
           onClose={() => setShowResultModal(false)}
+        />
+      )}
+
+      {savedResult && scheduledWeek && (
+        <ResultSuccessPanel
+          week={scheduledWeek.week}
+          date={scheduledWeek.date}
+          winner={savedResult.winner}
+          goalDifference={savedResult.goalDifference}
+          teamA={scheduledWeek.teamA}
+          teamB={scheduledWeek.teamB}
+          highlightsText={savedResult.highlightsText}
+          shareText={savedResult.shareText}
+          onDismiss={() => {
+            setSavedResult(null)
+            setScheduledWeek(null)
+            setCardState('idle')
+            onResultSaved()
+          }}
         />
       )}
     </>

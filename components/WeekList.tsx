@@ -16,6 +16,7 @@ interface Props {
   gameId?: string
   allPlayers?: Player[]
   onResultSaved?: () => void
+  leagueName?: string
 }
 
 export function WeekList({
@@ -27,6 +28,7 @@ export function WeekList({
   gameId = '',
   allPlayers = [],
   onResultSaved = () => {},
+  leagueName,
 }: Props) {
   const playedWeeks = getPlayedWeeks(weeks)
   const mostRecent = playedWeeks.length > 0
@@ -68,6 +70,9 @@ export function WeekList({
               gameId={gameId}
               allPlayers={allPlayers}
               onResultSaved={onResultSaved}
+              leagueName={week.week === mostRecent?.week ? leagueName : undefined}
+              shareGameId={week.week === mostRecent?.week ? gameId : undefined}
+              weeks={week.week === mostRecent?.week ? weeks : undefined}
             />
           </Fragment>
         )
