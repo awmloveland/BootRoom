@@ -151,9 +151,9 @@ describe('leagueWprPercentiles', () => {
   it('returns correct p25/p50/p75 for 4 qualified players', () => {
     const players = [40, 60, 70, 80].map(makeQualifiedPlayer)
     // sorted: [40, 60, 70, 80], n=4
-    // p25: scores[floor(3*0.25)] = scores[0] = 40
-    // p50: (scores[1]+scores[2])/2 = (60+70)/2 = 65
-    // p75: scores[floor(3*0.75)] = scores[2] = 70
+    // p25: scores[ceil(4*0.25)-1] = scores[1-1] = scores[0] = 40
+    // p50: (scores[1]+scores[2])/2 = (60+70)/2 = 65  (even-n median)
+    // p75: scores[ceil(4*0.75)-1] = scores[3-1] = scores[2] = 70
     const result = leagueWprPercentiles(players)
     expect(result.p25).toBe(40)
     expect(result.p50).toBe(65)
