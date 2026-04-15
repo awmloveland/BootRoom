@@ -579,16 +579,19 @@ export function buildResultShareText(params: {
   }
 
   // ── Assemble highlightsText (no header, no teams, no URL) ────────────────
-  const highlightParts: string[] = []
-  if (highlights.length > 0) highlightParts.push(highlights.join('\n'))
-  if (tableLines.length > 0) highlightParts.push(tableLines.join('\n'))
-  if (inFormLines.length > 0) highlightParts.push(inFormLines.join('\n'))
+  // Each individual highlight and each block gets its own \n\n-separated entry
+  // so every content block in the final share text is clearly separated.
+  const highlightParts: string[] = [
+    ...highlights,
+    ...(tableLines.length > 0 ? [tableLines.join('\n')] : []),
+    ...(inFormLines.length > 0 ? [inFormLines.join('\n')] : []),
+  ]
   const highlightsText = highlightParts.join('\n\n')
 
   // ── Assemble full shareText ──────────────────────────────────────────────
   const parts: string[] = [
     `⚽ ${leagueName} — Week ${week}`,
-    `📅 ${shortDate} · ${format}`,
+    `📅 ${shortDate}${format ? ` · ${format}` : ''}`,
     '',
     resultLine,
     '',

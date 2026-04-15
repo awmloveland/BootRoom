@@ -428,7 +428,7 @@ function PlayedCard({
                           <button
                             type="button"
                             onClick={handleShare}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-700 text-slate-400 text-xs hover:border-slate-500 hover:text-slate-300 transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold transition-colors"
                           >
                             <Share2 className="h-3 w-3" />
                             {copied ? 'Copied!' : 'Share'}
