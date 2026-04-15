@@ -51,7 +51,7 @@ export function formatMonthYear(date: string): string {
 /**
  * Weighted Performance Rating (WPR) score for a player.
  *
- * Three components:
+ * Three base components:
  *  - 60%: Points per game (W=3, D=1, L=0) with Bayesian shrinkage toward
  *          average (1.5 PPG) so small samples don't inflate the score.
  *  - 25%: Recent form (last 5 games) with recency weighting — more recent
@@ -59,22 +59,31 @@ export function formatMonthYear(date: string): string {
  *  - 15%: Quality rating prior (1–3 scale), which fades to zero by ~10 games
  *          so it only influences players with very few results.
  *
- * Experience penalty: players with 1–4 games played get a graduated reduction
- * (multiplier = 0.85 + 0.03 * (played - 1)) to account for league learning curve.
- * Players with played=0 use wprOverride instead. Players with played >= 5 are unaffected.
+ * Two penalties are applied after the base score:
+ *  - Experience penalty (×0.85–0.94): players with 1–4 games played are still
+ *    learning the league. Multiplier ramps from 0.85 at 1 game to 0.94 at 4 games.
+ *  - Rustiness penalty (×0.88): applied if either (a) the player has not played
+ *    in more than 28 calendar days (requires `lastPlayedWeekDate` to be set), or
+ *    (b) fewer than 2 of the last 5 `recentForm` slots are real games.
+ *    Both conditions trigger the same penalty; they can stack with the experience penalty.
  *
  * Players below the minimum games threshold (qualified === false) are ranked
  * last regardless of score.
+ *
+ * @param referenceDate - The date to compare against for the calendar rustiness check.
+ *   Defaults to today. Pass a fixed date in tests for deterministic results.
  */
 export function wprScore(player: Player, referenceDate?: Date): number {
   if (player.wprOverride !== undefined) return player.wprOverride
 
-  const PRIOR_GAMES = 5
-  const PRIOR_AVG_PPG = 1.5
+  const PRIOR_GAMES = 5         // shrinkage strength
+  const PRIOR_AVG_PPG = 1.5    // 50% win rate equivalent
 
+  // Component 1: shrunk points per game (0–3 scale → normalised 0–100)
   const shrunkPpg = (player.points + PRIOR_GAMES * PRIOR_AVG_PPG) / (player.played + PRIOR_GAMES)
   const ppgScore = (shrunkPpg / 3) * 100
 
+  // Component 2: recency-weighted form (most recent game has full weight)
   const formChars = player.recentForm.split('')
   const rawFormScore = formChars.reduce((acc, c, i) => {
     const pts = c === 'W' ? 3 : c === 'D' ? 1 : 0
@@ -84,6 +93,7 @@ export function wprScore(player: Player, referenceDate?: Date): number {
   const maxFormScore = formChars.reduce((acc, _, i) => acc + 3 * (1 - i * 0.15), 0)
   const formScore = maxFormScore > 0 ? (rawFormScore / maxFormScore) * 100 : 0
 
+  // Component 3: rating prior (1–3 → 0–100), fades as played increases
   const normRating = player.rating > 0 ? ((player.rating - 1) / 2) * 100 : 50
   const ratingWeight = Math.max(0, 1 - player.played / 10)
   const ratingScore = normRating * ratingWeight
