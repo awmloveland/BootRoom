@@ -66,17 +66,15 @@ export function formatMonthYear(date: string): string {
  * Players below the minimum games threshold (qualified === false) are ranked
  * last regardless of score.
  */
-export function wprScore(player: Player): number {
+export function wprScore(player: Player, referenceDate?: Date): number {
   if (player.wprOverride !== undefined) return player.wprOverride
 
-  const PRIOR_GAMES = 5         // shrinkage strength
-  const PRIOR_AVG_PPG = 1.5    // 50% win rate equivalent
+  const PRIOR_GAMES = 5
+  const PRIOR_AVG_PPG = 1.5
 
-  // Component 1: shrunk points per game (0–3 scale → normalised 0–100)
   const shrunkPpg = (player.points + PRIOR_GAMES * PRIOR_AVG_PPG) / (player.played + PRIOR_GAMES)
   const ppgScore = (shrunkPpg / 3) * 100
 
-  // Component 2: recency-weighted form (most recent game has full weight)
   const formChars = player.recentForm.split('')
   const rawFormScore = formChars.reduce((acc, c, i) => {
     const pts = c === 'W' ? 3 : c === 'D' ? 1 : 0
@@ -86,7 +84,6 @@ export function wprScore(player: Player): number {
   const maxFormScore = formChars.reduce((acc, _, i) => acc + 3 * (1 - i * 0.15), 0)
   const formScore = maxFormScore > 0 ? (rawFormScore / maxFormScore) * 100 : 0
 
-  // Component 3: rating prior (1–3 → 0–100), fades as played increases
   const normRating = player.rating > 0 ? ((player.rating - 1) / 2) * 100 : 50
   const ratingWeight = Math.max(0, 1 - player.played / 10)
   const ratingScore = normRating * ratingWeight
@@ -97,6 +94,22 @@ export function wprScore(player: Player): number {
   // Multiplier ramps from 0.85 (1 game) to 0.94 (4 games), then full weight at 5+.
   if (player.played >= 1 && player.played < 5) {
     score *= 0.85 + 0.03 * (player.played - 1)
+  }
+
+  // Rustiness penalty: not recently active (calendar absence or intermittent attendance).
+  const recentGameCount = player.recentForm.split('').filter((c) => c !== '-').length
+  const isIntermittent = recentGameCount < 2
+
+  let isCalendarRusty = false
+  if (player.lastPlayedWeekDate) {
+    const lastPlayed = new Date(player.lastPlayedWeekDate)
+    const ref = referenceDate ?? new Date()
+    const diffDays = (ref.getTime() - lastPlayed.getTime()) / (1000 * 60 * 60 * 24)
+    isCalendarRusty = diffDays > 28
+  }
+
+  if (isIntermittent || isCalendarRusty) {
+    score *= 0.88
   }
 
   return score

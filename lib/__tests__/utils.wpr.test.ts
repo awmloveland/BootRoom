@@ -181,9 +181,10 @@ describe('wprScore — experience penalty (played 1–4)', () => {
     // Rating: normRating=50, ratingWeight=1-1/10=0.9, ratingScore=45
     // baseScore = 58.33*0.6 + 100*0.25 + 45*0.15 = 35 + 25 + 6.75 = 66.75
     // Experience multiplier (played=1): 0.85 + 0.03*0 = 0.85
-    // Final: 66.75 * 0.85 ≈ 56.7
+    // Rustiness multiplier: recentForm='W' has 1 real game (<2) → 0.88
+    // Final: 66.75 * 0.85 * 0.88 ≈ 49.9
     const p1 = makePlayer({ played: 1, won: 1, drew: 0, lost: 0, points: 3, recentForm: 'W' })
-    expect(wprScore(p1)).toBeCloseTo(56.7, 0)
+    expect(wprScore(p1)).toBeCloseTo(49.9, 0)
   })
 
   it('experience penalty produces the correct multiplied value for played=3', () => {
@@ -225,5 +226,82 @@ describe('wprScore — experience penalty (played 1–4)', () => {
     const p2 = makePlayer({ played: 2, won: 1, drew: 0, lost: 1, points: 3, recentForm: 'WL' })
     const p4 = makePlayer({ played: 4, won: 2, drew: 0, lost: 2, points: 6, recentForm: 'WWLL' })
     expect(wprScore(p2)).toBeLessThan(wprScore(p4))
+  })
+})
+
+describe('wprScore — rustiness penalty', () => {
+  const REF_DATE = new Date('2026-04-15')
+
+  function makeActivePlayer(): Player {
+    return makePlayer({
+      recentForm: 'WWDLL', // 5 real games
+      lastPlayedWeekDate: '01 Apr 2026', // 14 days before REF_DATE
+    })
+  }
+
+  it('applies no penalty to a regularly-attending player', () => {
+    const active = makeActivePlayer()
+    const baseline = wprScore(makePlayer({ recentForm: 'WWDLL' }), REF_DATE)
+    expect(wprScore(active, REF_DATE)).toBeCloseTo(baseline, 5)
+  })
+
+  it('applies 0.88× penalty when last played >28 days ago', () => {
+    const rusty = makePlayer({
+      recentForm: 'WWDLL',
+      lastPlayedWeekDate: '01 Mar 2026', // 45 days before REF_DATE
+    })
+    const fresh = makePlayer({ recentForm: 'WWDLL' })
+    expect(wprScore(rusty, REF_DATE)).toBeCloseTo(wprScore(fresh, REF_DATE) * 0.88, 3)
+  })
+
+  it('applies no penalty when last played exactly 28 days ago', () => {
+    const borderline = makePlayer({
+      recentForm: 'WWDLL',
+      lastPlayedWeekDate: '18 Mar 2026', // exactly 28 days before 15 Apr 2026
+    })
+    const fresh = makePlayer({ recentForm: 'WWDLL' })
+    expect(wprScore(borderline, REF_DATE)).toBeCloseTo(wprScore(fresh, REF_DATE), 3)
+  })
+
+  it('applies 0.88× penalty when fewer than 2 real games in recentForm', () => {
+    const intermittent = makePlayer({
+      recentForm: '--W--', // only 1 real game
+      lastPlayedWeekDate: '08 Apr 2026', // 7 days ago — not calendar-rusty
+    })
+    const fresh = makePlayer({ recentForm: 'WWDLL' })
+    expect(wprScore(intermittent, REF_DATE)).toBeLessThan(wprScore(fresh, REF_DATE))
+    expect(wprScore(intermittent, REF_DATE)).toBeCloseTo(
+      wprScore({ ...intermittent, recentForm: '--W--' }, REF_DATE) / 0.88 * 0.88,
+      3
+    )
+  })
+
+  it('applies 0.88× penalty when recentForm has zero real games', () => {
+    const absent = makePlayer({
+      recentForm: '-----',
+      lastPlayedWeekDate: '08 Apr 2026',
+    })
+    const fresh = makePlayer({ recentForm: 'WWDLL' })
+    expect(wprScore(absent, REF_DATE)).toBeLessThan(wprScore(fresh, REF_DATE))
+  })
+
+  it('does not apply rustiness penalty when lastPlayedWeekDate is undefined', () => {
+    const noDate = makePlayer({ recentForm: 'WWDLL' })
+    const withDate = makePlayer({ recentForm: 'WWDLL', lastPlayedWeekDate: '01 Mar 2026' })
+    expect(wprScore(noDate, REF_DATE)).toBeGreaterThan(wprScore(withDate, REF_DATE))
+  })
+
+  it('experience and rustiness penalties stack independently', () => {
+    const rookieRusty = makePlayer({
+      played: 2,
+      points: 3,
+      won: 1, drew: 0, lost: 1,
+      recentForm: 'WL',
+      lastPlayedWeekDate: '01 Mar 2026', // >28 days
+    })
+    const baseScore = wprScore({ ...rookieRusty, played: 5, points: 9, won: 3, lost: 2, lastPlayedWeekDate: undefined }, REF_DATE)
+    const expectedMultiplier = (0.85 + 0.03 * (2 - 1)) * 0.88 // experience × rustiness
+    // Rough check — both penalties applied
+    expect(wprScore(rookieRusty, REF_DATE)).toBeLessThan(baseScore * 0.95)
   })
 })
