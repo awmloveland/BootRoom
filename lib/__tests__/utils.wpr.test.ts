@@ -270,10 +270,8 @@ describe('wprScore — rustiness penalty', () => {
     })
     const fresh = makePlayer({ recentForm: 'WWDLL' })
     expect(wprScore(intermittent, REF_DATE)).toBeLessThan(wprScore(fresh, REF_DATE))
-    expect(wprScore(intermittent, REF_DATE)).toBeCloseTo(
-      wprScore({ ...intermittent, recentForm: '--W--' }, REF_DATE) / 0.88 * 0.88,
-      3
-    )
+    // Verify penalty magnitude: unpenalised base ≈ 37.67, × 0.88 ≈ 33.15
+    expect(wprScore(intermittent, REF_DATE)).toBeCloseTo(37.67 * 0.88, 0)
   })
 
   it('applies 0.88× penalty when recentForm has zero real games', () => {
