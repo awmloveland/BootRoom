@@ -59,6 +59,10 @@ export function formatMonthYear(date: string): string {
  *  - 15%: Quality rating prior (1–3 scale), which fades to zero by ~10 games
  *          so it only influences players with very few results.
  *
+ * Experience penalty: players with 1–4 games played get a graduated reduction
+ * (multiplier = 0.85 + 0.03 * (played - 1)) to account for league learning curve.
+ * Players with played=0 use wprOverride instead. Players with played >= 5 are unaffected.
+ *
  * Players below the minimum games threshold (qualified === false) are ranked
  * last regardless of score.
  */
@@ -87,7 +91,15 @@ export function wprScore(player: Player): number {
   const ratingWeight = Math.max(0, 1 - player.played / 10)
   const ratingScore = normRating * ratingWeight
 
-  return ppgScore * 0.60 + formScore * 0.25 + ratingScore * 0.15
+  let score = ppgScore * 0.60 + formScore * 0.25 + ratingScore * 0.15
+
+  // Experience penalty: players with 1–4 games are still learning the league.
+  // Multiplier ramps from 0.85 (1 game) to 0.94 (4 games), then full weight at 5+.
+  if (player.played >= 1 && player.played < 5) {
+    score *= 0.85 + 0.03 * (player.played - 1)
+  }
+
+  return score
 }
 
 /** Raw form score for a player (used internally by ewptScore). */
