@@ -424,6 +424,9 @@ function PlayedCard({
                         </div>
                       )}
                       <div className="ml-auto flex items-center gap-2">
+                        {isAdmin && (
+                          <EditResultButton onClick={() => setShowEditModal(true)} />
+                        )}
                         {leagueName && shareGameId && weeks && (
                           <button
                             type="button"
@@ -433,9 +436,6 @@ function PlayedCard({
                             <Share2 className="h-3 w-3" />
                             {copied ? 'Copied!' : 'Share'}
                           </button>
-                        )}
-                        {isAdmin && (
-                          <EditResultButton onClick={() => setShowEditModal(true)} />
                         )}
                       </div>
                     </div>
