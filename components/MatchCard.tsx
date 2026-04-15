@@ -7,7 +7,7 @@ import { Week } from '@/lib/types'
 import type { Player, ScheduledWeek } from '@/lib/types'
 import { WinnerBadge } from './WinnerBadge'
 import { TeamList } from './TeamList'
-import { cn, shouldShowMeta, isPastDeadline, parseWeekDate } from '@/lib/utils'
+import { cn, shouldShowMeta, isPastDeadline, buildResultShareText } from '@/lib/utils'
 import { ResultModal } from '@/components/ResultModal'
 import { EditWeekModal } from '@/components/EditWeekModal'
 
@@ -22,6 +22,7 @@ interface MatchCardProps {
   onResultSaved?: () => void
   leagueName?: string
   shareGameId?: string
+  weeks?: Week[]
 }
 
 // ── Edit button helpers ───────────────────────────────────────────────────────
@@ -166,6 +167,7 @@ interface PlayedCardProps {
   onResultSaved: () => void
   leagueName?: string
   shareGameId?: string
+  weeks?: Week[]
 }
 
 function AwaitingResultCard({
@@ -307,75 +309,41 @@ function PlayedCard({
   onResultSaved,
   leagueName,
   shareGameId,
+  weeks,
 }: PlayedCardProps) {
   const [showEditModal, setShowEditModal] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  function buildRetroShareText(): string {
-    if (!leagueName || !shareGameId || !week.winner) return ''
-    const parsed = parseWeekDate(week.date)
-    const [dd, mmm] = week.date.split(' ')
-    const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-    const shortDate = `${DAY_SHORT[parsed.getDay()]} ${dd} ${mmm}`
-    const resultLine =
-      week.winner === 'draw'
-        ? '🤝 Draw!'
-        : week.winner === 'teamA'
-          ? `🏆 Team A win!${week.goal_difference ? ` (+${week.goal_difference} goals)` : ''}`
-          : `🏆 Team B win!${week.goal_difference ? ` (+${week.goal_difference} goals)` : ''}`
-
-    const upset =
-      week.winner !== 'draw' &&
-      week.team_a_rating != null && week.team_b_rating != null &&
-      ((week.winner === 'teamA' && week.team_b_rating > week.team_a_rating) ||
-       (week.winner === 'teamB' && week.team_a_rating > week.team_b_rating))
-
-    const upsetLine = upset
-      ? `😱 Upset! ${week.winner === 'teamA' ? 'Team B' : 'Team A'} were stronger on paper (${
-          week.winner === 'teamA'
-            ? `${week.team_b_rating!.toFixed(1)} vs ${week.team_a_rating!.toFixed(1)}`
-            : `${week.team_a_rating!.toFixed(1)} vs ${week.team_b_rating!.toFixed(1)}`
-        })`
-      : null
-
-    const parts: string[] = [
-      `⚽ ${leagueName} — Week ${week.week}`,
-      `📅 ${shortDate}${week.format ? ` · ${week.format}` : ''}`,
-      '',
-      resultLine,
-      '',
-      '🔵 Team A',
-      (week.teamA ?? []).join(', '),
-      '',
-      '🟣 Team B',
-      (week.teamB ?? []).join(', '),
-    ]
-
-    if (upsetLine) { parts.push(''); parts.push(upsetLine) }
-    if (week.notes?.trim()) {
-      const separator = '\n\n'
-      const idx = week.notes.indexOf(separator)
-      const userNotes = idx > -1 ? week.notes.slice(0, idx).trim() : week.notes.trim()
-      if (userNotes) { parts.push(''); parts.push(userNotes) }
-    }
-    parts.push(''); parts.push(`🔗 https://craft-football.com/${shareGameId}`)
-    return parts.join('\n')
-  }
-
   async function handleShare() {
-    const text = buildRetroShareText()
-    if (!text) return
-    if (navigator.share && window.innerWidth < 768) {
-      try {
-        await navigator.share({ text })
-      } catch (err) {
-        if (err instanceof DOMException && err.name !== 'AbortError') {
-          try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch { /* ignore */ }
+    if (!leagueName || !shareGameId || !weeks || !week.winner) return
+    try {
+      const { shareText } = buildResultShareText({
+        leagueName,
+        leagueId: shareGameId,
+        week: week.week,
+        date: week.date,
+        format: week.format ?? '',
+        teamA: week.teamA ?? [],
+        teamB: week.teamB ?? [],
+        winner: week.winner,
+        goalDifference: week.goal_difference ?? 0,
+        teamARating: week.team_a_rating ?? 0,
+        teamBRating: week.team_b_rating ?? 0,
+        players: allPlayers,
+        weeks,
+      })
+      if (navigator.share && window.innerWidth < 768) {
+        try {
+          await navigator.share({ text: shareText })
+        } catch (err) {
+          if (err instanceof DOMException && err.name !== 'AbortError') {
+            try { await navigator.clipboard.writeText(shareText); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch { /* ignore */ }
+          }
         }
+      } else {
+        try { await navigator.clipboard.writeText(shareText); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch { /* ignore */ }
       }
-    } else {
-      try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch { /* ignore */ }
-    }
+    } catch { /* ignore share errors */ }
   }
 
   return (
@@ -438,7 +406,7 @@ function PlayedCard({
                   />
                 </div>
 
-                {(shouldShowMeta(week.goal_difference, week.notes) || isAdmin || (leagueName && shareGameId)) && (
+                {(shouldShowMeta(week.goal_difference, week.notes) || isAdmin || (leagueName && shareGameId && !!weeks)) && (
                   <>
                     <div className="border-t border-slate-700 mt-3" />
                     <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -450,31 +418,13 @@ function PlayedCard({
                           +{week.goal_difference} goals
                         </div>
                       )}
-                      {week.notes && week.notes.trim() !== '' && (() => {
-                        const separator = '\n\n'
-                        const idx = week.notes!.indexOf(separator)
-                        const userNotes = idx > -1 ? week.notes!.slice(0, idx).trim() : week.notes!.trim()
-                        const autoHighlights = idx > -1 ? week.notes!.slice(idx + separator.length).trim() : null
-                        return (
-                          <div className="bg-slate-900 border border-slate-800 rounded px-2.5 py-2 text-xs text-slate-400 w-full">
-                            {userNotes && (
-                              <p className="italic mb-1">{userNotes}</p>
-                            )}
-                            {userNotes && autoHighlights && (
-                              <div className="border-t border-slate-800 my-1.5" />
-                            )}
-                            {autoHighlights && (
-                              <div className="flex flex-col gap-0.5 not-italic">
-                                {autoHighlights.split('\n').filter(Boolean).map((line) => (
-                                  <p key={line} className="text-slate-400">{line}</p>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })()}
+                      {week.notes?.trim() && (
+                        <div className="bg-slate-900 border border-slate-800 rounded px-2.5 py-2 text-xs text-slate-400 italic w-full">
+                          {week.notes.trim()}
+                        </div>
+                      )}
                       <div className="ml-auto flex items-center gap-2">
-                        {leagueName && shareGameId && (
+                        {leagueName && shareGameId && weeks && (
                           <button
                             type="button"
                             onClick={handleShare}
@@ -523,6 +473,7 @@ export function MatchCard({
   onResultSaved = () => {},
   leagueName,
   shareGameId,
+  weeks,
 }: MatchCardProps) {
   if (week.status === 'cancelled') {
     return (
@@ -572,6 +523,7 @@ export function MatchCard({
       onResultSaved={onResultSaved}
       leagueName={leagueName}
       shareGameId={shareGameId}
+      weeks={weeks}
     />
   )
 }
