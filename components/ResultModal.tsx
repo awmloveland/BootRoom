@@ -219,10 +219,6 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         weeks: weeksWithResult,
       })
 
-      const combinedNotes = notes.trim()
-        ? notes.trim() + '\n\n' + highlightsText
-        : highlightsText
-
       if (publicMode) {
         const res = await fetch(`/api/public/league/${gameId}/result`, {
           method: 'POST',
@@ -230,7 +226,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           body: JSON.stringify({
             weekId: scheduledWeek.id,
             winner,
-            notes: combinedNotes || null,
+            notes: notes.trim() || null,
             goalDifference: winner === 'draw' ? 0 : goalDifference,
             teamARating: teamAScore,
             teamBRating: teamBScore,
@@ -246,7 +242,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         const { error: resultErr } = await supabase.rpc('record_result', {
           p_week_id: scheduledWeek.id,
           p_winner: winner,
-          p_notes: combinedNotes || null,
+          p_notes: notes.trim() || null,
           p_goal_difference: winner === 'draw' ? 0 : goalDifference,
           p_team_a_rating: teamAScore,
           p_team_b_rating: teamBScore,
