@@ -45,6 +45,7 @@ export interface Player {
   rating: number;
   recentForm: string; // e.g. 'WWDLW' or '--WLW'
   wprOverride?: number; // if set, wprScore returns this directly — used for guests/new players
+  lastPlayedWeekDate?: string; // 'DD MMM YYYY' — derived at runtime before auto-pick; not persisted
 }
 
 export interface BootRoomData {
