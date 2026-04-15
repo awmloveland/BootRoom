@@ -144,7 +144,8 @@ function playerFormScore(player: Player): number {
  *  - 55%: Average WPR — overall team quality floor
  *  - 20%: Max WPR — star player has outsized impact in 5-a-side
  *  - 25%: Average normalised recent form
- *  - GK modifier: +3 for exactly one GK, -3 for none, -2 for two (wasted slot)
+ *  - GK modifier: scaled by GK WPR — 1 + (wprScore(gk)/100)*4, range [+1,+5];
+ *                 -3 for no GK, -2 for two (wasted slot)
  *  - Variety bonus: +2 if team covers 3+ different mentalities
  *  - Depth modifier: small bonus/penalty relative to a 5-player baseline
  */
