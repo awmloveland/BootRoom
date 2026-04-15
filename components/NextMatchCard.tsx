@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, wprScore, leagueMedianWpr } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, wprScore, leagueWprPercentiles } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality, StrengthHint } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
@@ -44,7 +44,23 @@ function medianRating(players: Player[]): number {
   return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
 }
 
-const STRENGTH_OFFSET = 15
+/**
+ * Scans played weeks to find the most recent week date each player appeared in.
+ * Returns a map of player name → date string ('DD MMM YYYY'), or undefined if never played.
+ */
+function deriveLastPlayedDates(players: Player[], weeks: Week[]): Map<string, string | undefined> {
+  const playedWeeks = weeks
+    .filter((w) => w.status === 'played')
+    .sort((a, b) => b.week - a.week) // most recent first
+  const result = new Map<string, string | undefined>()
+  for (const player of players) {
+    const lastWeek = playedWeeks.find(
+      (w) => w.teamA.includes(player.name) || w.teamB.includes(player.name)
+    )
+    result.set(player.name, lastWeek?.date)
+  }
+  return result
+}
 
 function resolvePlayersForAutoPick(
   names: string[],
@@ -56,11 +72,12 @@ function resolvePlayersForAutoPick(
   const guestLookup = new Map(guests.map((g) => [g.name.toLowerCase(), g]))
   const newPlayerLookup = new Map(newPlayers.map((p) => [p.name.toLowerCase(), p]))
   const fallbackRating = medianRating(allPlayers)
-  const medianWpr = leagueMedianWpr(allPlayers)
+  const percentiles = leagueWprPercentiles(allPlayers)
 
   function hintToWpr(hint: StrengthHint | undefined): number {
-    const offset = hint === 'above' ? STRENGTH_OFFSET : hint === 'below' ? -STRENGTH_OFFSET : 0
-    return Math.min(100, Math.max(0, medianWpr + offset))
+    if (hint === 'above') return Math.min(100, percentiles.p75)
+    if (hint === 'below') return Math.max(0, percentiles.p25)
+    return percentiles.p50
   }
 
   return names.map((name) => {
@@ -199,7 +216,12 @@ export function NextMatchCard({
   }
 
   function handleAutoPick() {
-    const resolved = resolvePlayersForAutoPick(squadNames, allPlayers, guestEntries, newPlayerEntries)
+    const lastPlayedDates = deriveLastPlayedDates(allPlayers, weeks)
+    const enrichedPlayers = allPlayers.map((p) => ({
+      ...p,
+      lastPlayedWeekDate: lastPlayedDates.get(p.name),
+    }))
+    const resolved = resolvePlayersForAutoPick(squadNames, enrichedPlayers, guestEntries, newPlayerEntries)
     const pairs = guestEntries
       .filter((g) => g.associatedPlayer)
       .map((g) => [g.name, g.associatedPlayer] as [string, string])
