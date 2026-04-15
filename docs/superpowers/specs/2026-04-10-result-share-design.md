@@ -85,7 +85,7 @@ Pre-existing weeks with no highlights are unaffected.
 
 ⚡ In form: {player} ({ppg} PPG)
 
-🔗 craft-football.com/{leagueId}
+🔗 https://craft-football.com/{leagueId}
 ```
 
 Highlight lines are omitted entirely when their condition isn't met. Sections with no content (e.g. no streaks, no milestones) are skipped — no empty headers.
@@ -110,7 +110,7 @@ Draw result: `🤝 Draw!` with no goal margin line.
 
 {week.notes}    ← contains user notes + baked-in highlights from save time
 
-🔗 craft-football.com/{leagueId}
+🔗 https://craft-football.com/{leagueId}
 ```
 
 Upset flag is recomputed live from `week.team_a_rating` and `week.team_b_rating`. Notes block is omitted if `week.notes` is null or empty.
@@ -148,17 +148,15 @@ export function buildResultShareText(params: {
 
 ### Win streak (≥3 games)
 
-For each player on the winning team, count consecutive wins from the tail of `recentForm` (right = most recent), then add 1 for this result. If total ≥ 3, emit the line.
+For each player on the winning team, walk the `weeks` array (sorted most-recent first) counting consecutive games that player won. If total ≥ 3, emit the line. Using the full `weeks` array (rather than the 5-character `recentForm` string) allows accurate detection of streaks longer than 5 games.
 
-`recentForm` characters: `W` = win, `D` = draw, `L` = loss, `-` = not played (skip). Read right-to-left until a non-W is found (rightmost character = most recent game — verify direction from DB query during implementation).
-
-Example: `recentForm = '--WWW'`, player won tonight → streak = 4. Emit.
+Example: player on winning team, last 3 weeks all wins (including tonight) → streak = 3. Emit.
 
 ### Unbeaten streak broken (≥5 games)
 
-For each player on the losing team (non-draw), count consecutive non-loss characters from the tail of `recentForm`. If that count ≥ 5, the run has just ended. Emit.
+For each player on the losing team (non-draw), walk the `weeks` array **excluding tonight's game** (i.e. `weeks.slice(0, -1)`, since the synthetic week for tonight is always appended last by the caller). Count consecutive games that player did not lose. If that count ≥ 5, the run has just ended. Emit.
 
-Example: `recentForm = 'WWDWD'`, player lost tonight → unbeaten run of 5 broken. Emit.
+Example: player on losing team, last 5 prior weeks all non-losses → unbeaten run of 5 broken. Emit.
 
 ### Upset
 
@@ -229,7 +227,7 @@ interface Props {
   goalDifference: number
   teamA: string[]
   teamB: string[]
-  highlights: string        // pre-formatted highlights block
+  highlightsText: string    // pre-formatted highlights block
   shareText: string
   onDismiss: () => void
 }
