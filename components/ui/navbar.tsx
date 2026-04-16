@@ -124,7 +124,7 @@ export function Navbar({
 }: NavbarProps) {
   const pathname = usePathname()
   const params = useParams()
-  const leagueId = (params as { leagueId?: string })?.leagueId
+  const slug = (params as { slug?: string })?.slug
   const isPlayersPage = !!pathname?.match(/^\/[^/]+\/players$/)
 
   const [user, setUser] = useState<{ id?: string; email?: string } | null>(null)
@@ -192,24 +192,24 @@ export function Navbar({
   }, [fetchUserData, applyUserData])
 
   useEffect(() => {
-    if (!leagueId) return
+    if (!slug) return
     let cancelled = false
     fetch('/api/games', { credentials: 'include' })
       .then((res) => res.json().catch(() => []))
-      .then((data: { id: string; name: string; role: string }[]) => {
+      .then((data: { id: string; slug: string; name: string; role: string }[]) => {
         if (cancelled) return
-        const game = (data ?? []).find((g) => g.id === leagueId)
+        const game = (data ?? []).find((g) => g.slug === slug)
         setIsLeagueAdmin(game?.role === 'creator' || game?.role === 'admin')
       })
       .catch(() => { if (!cancelled) setIsLeagueAdmin(false) })
     return () => { cancelled = true }
-  }, [leagueId])
+  }, [slug])
 
   // Reset league admin when leaving a league context (state-comparison during render)
-  const [prevLeagueId, setPrevLeagueId] = useState(leagueId)
-  if (prevLeagueId !== leagueId) {
-    setPrevLeagueId(leagueId)
-    if (!leagueId) setIsLeagueAdmin(false)
+  const [prevSlug, setPrevSlug] = useState(slug)
+  if (prevSlug !== slug) {
+    setPrevSlug(slug)
+    if (!slug) setIsLeagueAdmin(false)
   }
 
   async function handleSignOut() {
@@ -223,7 +223,7 @@ export function Navbar({
 
   const isSettingsPage = pathname === '/settings' || !!pathname?.match(/^\/[^/]+\/settings$/)
   const isActive = (item: MenuItem) => {
-    if (item.title === 'Results') return !!leagueId && !isPlayersPage && !isSettingsPage
+    if (item.title === 'Results') return !!slug && !isPlayersPage && !isSettingsPage
     if (item.title === 'Players') return isPlayersPage
     if (item.title === 'Settings') return isSettingsPage
     return false
@@ -257,7 +257,7 @@ export function Navbar({
         {/* Right: auth / user controls */}
         <div className="flex items-center justify-end">
           {showNav && !user && (
-            <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} size="xs" signinOnly />
+            <AuthDialog redirect={slug ? `/${slug}/results` : '/'} size="xs" signinOnly />
           )}
           {showNav && user && (
             <div className="flex items-center gap-0.5">
@@ -277,7 +277,7 @@ export function Navbar({
                     {displayName && (
                       <p className="text-sm font-medium text-slate-100">{displayName}</p>
                     )}
-                    {leagueId && (
+                    {slug && (
                       <p className="text-xs text-slate-400 mt-0.5">
                         {isLeagueAdmin ? 'Admin' : 'Member'}
                       </p>
@@ -307,7 +307,7 @@ export function Navbar({
             <img src="/logo.png" alt="Crafted Football" className="h-10 w-10" />
           </Link>
           {showNav && !user && (
-            <AuthDialog redirect={leagueId ? `/${leagueId}/results` : '/'} size="xs" signinOnly />
+            <AuthDialog redirect={slug ? `/${slug}/results` : '/'} size="xs" signinOnly />
           )}
           {showNav && user && (
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -346,7 +346,7 @@ export function Navbar({
                       {displayName && (
                         <p className="text-sm font-medium text-slate-100">{displayName}</p>
                       )}
-                      {leagueId && (
+                      {slug && (
                         <p className="text-xs text-slate-400 mt-0.5">
                           {isLeagueAdmin ? 'Admin' : 'Member'}
                         </p>
