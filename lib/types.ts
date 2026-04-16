@@ -62,6 +62,7 @@ export type ProfileRole = 'user' | 'developer';
 export interface Game {
   id: string;
   name: string;
+  slug: string;
   created_at: string;
   role: GameRole;
 }

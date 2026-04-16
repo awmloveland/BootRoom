@@ -71,13 +71,14 @@ export default async function HomePage() {
   if (user) {
     const { data: memberships } = await supabase
       .from('game_members')
-      .select('game_id, role, games(id, name)')
+      .select('game_id, role, games(id, name, slug)')
       .eq('user_id', user.id)
 
     const leagues = (memberships ?? []).map((m) => {
-      const game = (m.games as unknown as { id: string; name: string } | null)
+      const game = (m.games as unknown as { id: string; name: string; slug: string } | null)
       return {
         id: game?.id ?? '',
+        slug: game?.slug ?? '',
         name: game?.name ?? '',
         role: m.role,
       }
@@ -85,7 +86,7 @@ export default async function HomePage() {
 
     const validLeagues = leagues.filter((l) => l.id)
     if (validLeagues.length === 1) {
-      redirect(`/${validLeagues[0].id}/results`)
+      redirect(`/${validLeagues[0].slug}/results`)
     }
 
     const service = createServiceClient()
@@ -147,7 +148,7 @@ export default async function HomePage() {
               return (
                 <Link
                   key={league.id}
-                  href={`/${league.id}/results`}
+                  href={`/${league.slug}/results`}
                   className="flex items-center justify-between p-4 rounded-lg bg-slate-800 border border-slate-700 hover:border-slate-600 transition-colors"
                 >
                   <div>
@@ -173,7 +174,7 @@ export default async function HomePage() {
 
   const [experimentsRes, publicLeaguesRes] = await Promise.all([
     service.from('feature_experiments').select('feature').eq('available', true),
-    service.from('league_features').select('game_id, feature, games(id, name)').eq('public_enabled', true),
+    service.from('league_features').select('game_id, feature, games(id, name, slug)').eq('public_enabled', true),
   ])
 
   const globallyAvailable = experimentsRes.error
@@ -193,9 +194,10 @@ export default async function HomePage() {
       return true
     })
     .map((row) => {
-      const game = (row.games as unknown as { id: string; name: string } | null)
+      const game = (row.games as unknown as { id: string; name: string; slug: string } | null)
       return {
         id: game?.id ?? '',
+        slug: game?.slug ?? '',
         name: game?.name ?? '',
       }
     })
@@ -210,7 +212,7 @@ export default async function HomePage() {
           {directory.map((league) => (
             <Link
               key={league.id}
-              href={`/${league.id}/results`}
+              href={`/${league.slug}/results`}
               className="flex items-center justify-between p-4 rounded-lg bg-slate-800 border border-slate-700 hover:border-slate-600 transition-colors"
             >
               <p className="text-sm font-medium text-slate-100">{league.name}</p>

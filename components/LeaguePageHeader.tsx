@@ -9,6 +9,7 @@ import type { LeagueDetails, JoinRequestStatus } from '@/lib/types'
 interface LeaguePageHeaderProps {
   leagueName: string
   leagueId: string
+  leagueSlug: string
   playedCount: number
   totalWeeks: number
   pct: number
@@ -22,6 +23,7 @@ interface LeaguePageHeaderProps {
 export function LeaguePageHeader({
   leagueName,
   leagueId,
+  leagueSlug,
   playedCount,
   totalWeeks,
   pct,
@@ -42,6 +44,7 @@ export function LeaguePageHeader({
         </div>
         <LeagueJoinArea
           leagueId={leagueId}
+          leagueSlug={leagueSlug}
           leagueName={leagueName}
           joinStatus={joinStatus}
           isAdmin={isAdmin}
@@ -49,11 +52,11 @@ export function LeaguePageHeader({
         />
       </div>
       <div className="mt-3">
-        <LeagueInfoBar details={details} leagueId={leagueId} isAdmin={isAdmin} />
+        <LeagueInfoBar details={details} leagueSlug={leagueSlug} isAdmin={isAdmin} />
       </div>
       <nav className="flex gap-6 overflow-x-auto border-b border-slate-700 pt-5 -mx-4 px-4 sm:mx-0 sm:px-0 touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Link
-          href={`/${leagueId}/results`}
+          href={`/${leagueSlug}/results`}
           className={cn(
             '-mb-px flex shrink-0 items-center gap-2 border-b-2 pb-2 text-sm font-medium whitespace-nowrap',
             currentTab === 'results'
@@ -66,7 +69,7 @@ export function LeaguePageHeader({
           Results
         </Link>
         <Link
-          href={`/${leagueId}/players`}
+          href={`/${leagueSlug}/players`}
           className={cn(
             '-mb-px flex shrink-0 items-center gap-2 border-b-2 pb-2 text-sm font-medium whitespace-nowrap',
             currentTab === 'players'
@@ -79,7 +82,7 @@ export function LeaguePageHeader({
           Players
         </Link>
         <Link
-          href={`/${leagueId}/honours`}
+          href={`/${leagueSlug}/honours`}
           className={cn(
             '-mb-px flex shrink-0 items-center gap-2 border-b-2 pb-2 text-sm font-medium whitespace-nowrap',
             currentTab === 'honours'
@@ -92,7 +95,7 @@ export function LeaguePageHeader({
           Honours
         </Link>
         <Link
-          href={`/${leagueId}/lineup-lab`}
+          href={`/${leagueSlug}/lineup-lab`}
           className={cn(
             '-mb-px flex shrink-0 items-center gap-2 border-b-2 pb-2 text-sm font-medium whitespace-nowrap',
             currentTab === 'lineup-lab'

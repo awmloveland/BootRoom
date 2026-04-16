@@ -12,8 +12,18 @@ export const getGame = cache(async (leagueId: string) => {
   const service = createServiceClient()
   const { data } = await service
     .from('games')
-    .select('id, name, location, day, kickoff_time, bio')
+    .select('id, name, slug, location, day, kickoff_time, bio')
     .eq('id', leagueId)
+    .maybeSingle()
+  return data
+})
+
+export const getGameBySlug = cache(async (slug: string) => {
+  const service = createServiceClient()
+  const { data } = await service
+    .from('games')
+    .select('id, name, slug, location, day, kickoff_time, bio')
+    .eq('slug', slug)
     .maybeSingle()
   return data
 })

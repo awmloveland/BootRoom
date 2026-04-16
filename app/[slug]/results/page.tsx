@@ -1,11 +1,12 @@
-// app/[leagueId]/results/page.tsx
+// app/[slug]/results/page.tsx
 export const dynamic = 'force-dynamic'
 
+import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
 import { sortWeeks, dayNameToIndex, isPastDeadline, getMostRecentExpectedGameDate, getNextWeekNumber, deriveSeason } from '@/lib/utils'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
+import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
@@ -20,17 +21,19 @@ import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
 import type { Week, ScheduledWeek, LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
 interface Props {
-  params: Promise<{ leagueId: string }>
+  params: Promise<{ slug: string }>
 }
 
 export default async function LeagueResultsPage({ params }: Props) {
-  const { leagueId } = await params
+  const { slug } = await params
+  const game = await getGameBySlug(slug)
+  if (!game) notFound()
+  const leagueId = game.id
 
-  // getGame, getAuthAndRole, getFeatures are cache hits from the layout.
+  // getAuthAndRole and getFeatures are cache hits from the layout.
   // getPlayerStats and getWeeks run fresh — both start in parallel.
-  const [{ user, userRole, isAuthenticated }, game, features, players, rawWeeks, pendingRequestCount] = await Promise.all([
+  const [{ user, userRole, isAuthenticated }, features, players, rawWeeks, pendingRequestCount] = await Promise.all([
     getAuthAndRole(leagueId),
-    getGame(leagueId),
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
@@ -73,12 +76,12 @@ export default async function LeagueResultsPage({ params }: Props) {
   if (tier === 'public' && !canSeeMatchHistory && !canSeeMatchEntry && !canSeePlayerStats) {
     return (
       <main className="max-w-xl mx-auto px-4 sm:px-6 py-4">
-        <LeaguePrivateState leagueName={game!.name} />
+        <LeaguePrivateState leagueName={game.name} />
       </main>
     )
   }
 
-  const leagueDayIndex = dayNameToIndex(game!.day ?? null) ?? undefined
+  const leagueDayIndex = dayNameToIndex(game.day ?? null) ?? undefined
 
   // Lazily create an unrecorded row if the most recent expected game day passed
   // with no row. Uses the UUID returned by the RPC to construct the Week locally
@@ -143,10 +146,10 @@ export default async function LeagueResultsPage({ params }: Props) {
   const pct = Math.round((playedCount / totalWeeks) * 100)
 
   const details: LeagueDetails = {
-    location: game!.location ?? null,
-    day: game!.day ?? null,
-    kickoff_time: game!.kickoff_time ?? null,
-    bio: game!.bio ?? null,
+    location: game.location ?? null,
+    day: game.day ?? null,
+    kickoff_time: game.kickoff_time ?? null,
+    bio: game.bio ?? null,
     player_count: (tier !== 'public' || canSeeStatsSidebar) ? players.length : undefined,
   }
 
@@ -158,8 +161,9 @@ export default async function LeagueResultsPage({ params }: Props) {
         <div className="flex justify-center gap-6 items-start">
           <div className="w-full max-w-xl shrink-0 space-y-8">
             <LeaguePageHeader
-              leagueName={game!.name}
+              leagueName={game.name}
               leagueId={leagueId}
+              leagueSlug={slug}
               playedCount={playedCount}
               totalWeeks={totalWeeks}
               pct={pct}
@@ -172,9 +176,10 @@ export default async function LeagueResultsPage({ params }: Props) {
             {canSeeMatchEntry && (
               <PublicMatchEntrySection
                 gameId={leagueId}
+                leagueSlug={slug}
                 weeks={weeks}
                 initialScheduledWeek={nextWeek}
-                leagueName={game!.name}
+                leagueName={game.name}
               />
             )}
             {canSeeMatchHistory && (
@@ -224,8 +229,9 @@ export default async function LeagueResultsPage({ params }: Props) {
       <div className="flex justify-center gap-6 items-start">
         <div className="w-full max-w-xl shrink-0">
           <LeaguePageHeader
-            leagueName={game!.name}
+            leagueName={game.name}
             leagueId={leagueId}
+            leagueSlug={slug}
             playedCount={playedCount}
             totalWeeks={totalWeeks}
             pct={pct}
@@ -240,6 +246,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             {canSeeMatchEntry ? (
               <ResultsSection
                 gameId={leagueId}
+                leagueSlug={game.slug}
                 weeks={weeks}
                 goalkeepers={goalkeepers}
                 initialScheduledWeek={nextWeek}
@@ -248,7 +255,7 @@ export default async function LeagueResultsPage({ params }: Props) {
                 showMatchHistory={canSeeMatchHistory}
                 leagueDayIndex={leagueDayIndex}
                 isAdmin={isAdmin}
-                leagueName={game!.name}
+                leagueName={game.name}
               />
             ) : canSeeMatchHistory ? (
               <WeekList
@@ -256,8 +263,9 @@ export default async function LeagueResultsPage({ params }: Props) {
                 goalkeepers={goalkeepers}
                 isAdmin={isAdmin}
                 gameId={leagueId}
+                leagueSlug={game.slug}
                 allPlayers={players}
-                leagueName={game!.name}
+                leagueName={game.name}
               />
             ) : (
               <div className="py-16 text-center">

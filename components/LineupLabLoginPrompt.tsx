@@ -7,10 +7,11 @@ import { JoinRequestDialog } from '@/components/JoinRequestDialog'
 
 interface LineupLabLoginPromptProps {
   leagueId: string
+  leagueSlug: string
   leagueName: string
 }
 
-export function LineupLabLoginPrompt({ leagueId, leagueName }: LineupLabLoginPromptProps) {
+export function LineupLabLoginPrompt({ leagueId, leagueSlug, leagueName }: LineupLabLoginPromptProps) {
   const [signInOpen, setSignInOpen] = useState(false)
   const [signUpOpen, setSignUpOpen] = useState(false)
   const [joinOpen, setJoinOpen] = useState(false)
@@ -44,14 +45,14 @@ export function LineupLabLoginPrompt({ leagueId, leagueName }: LineupLabLoginPro
       <AuthDialog
         open={signInOpen}
         onOpenChange={setSignInOpen}
-        redirect={`/${leagueId}/lineup-lab`}
+        redirect={`/${leagueSlug}/lineup-lab`}
         signinOnly
       />
 
       <AuthDialog
         open={signUpOpen}
         onOpenChange={setSignUpOpen}
-        redirect={`/${leagueId}/lineup-lab`}
+        redirect={`/${leagueSlug}/lineup-lab`}
         initialMode="signup"
         leagueName={leagueName}
         onSignedUp={() => {

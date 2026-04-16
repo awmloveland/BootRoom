@@ -62,7 +62,7 @@ describe('winCopy', () => {
 describe('buildShareText', () => {
   const base = {
     leagueName: 'The Boot Room',
-    leagueId: 'abc123',
+    leagueSlug: 'abc123',
     week: 23,
     date: '10 Apr 2026',
     format: '6-a-side',
@@ -152,7 +152,7 @@ function makeWeek(overrides: Partial<Week> & { week: number; date: string }): We
 
 const BASE_PARAMS = {
   leagueName: 'The Boot Room',
-  leagueId: 'abc123',
+  leagueSlug: 'abc123',
   week: 12,
   date: '10 Apr 2026',
   format: '6-a-side',

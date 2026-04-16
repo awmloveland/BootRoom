@@ -14,6 +14,7 @@ interface Props {
   lineupMetadata: LineupMetadata | null
   allPlayers: Player[]
   gameId: string
+  leagueSlug: string
   leagueName: string
   weeks: Week[]
   publicMode: boolean
@@ -87,7 +88,7 @@ function Stepper({ value, onChange }: { value: number; onChange: (v: number) => 
   )
 }
 
-export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId, leagueName, weeks, publicMode, onSaved, onClose }: Props) {
+export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId, leagueSlug, leagueName, weeks, publicMode, onSaved, onClose }: Props) {
   const guests = lineupMetadata?.guests ?? []
   const newPlayers = lineupMetadata?.new_players ?? []
   const hasReviewStep = guests.length > 0 || newPlayers.length > 0
@@ -205,7 +206,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
 
       const { shareText, highlightsText } = buildResultShareText({
         leagueName,
-        leagueId: gameId,
+        leagueSlug,
         week: scheduledWeek.week,
         date: scheduledWeek.date,
         format: scheduledWeek.format ?? '',

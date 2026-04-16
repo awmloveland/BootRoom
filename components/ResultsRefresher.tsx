@@ -6,6 +6,7 @@ import type { Player, ScheduledWeek, Week } from '@/lib/types'
 
 interface Props {
   gameId: string
+  leagueSlug: string
   weeks: Week[]
   initialScheduledWeek: ScheduledWeek | null
   canEdit: boolean
@@ -14,11 +15,12 @@ interface Props {
   leagueName?: string
 }
 
-export function ResultsRefresher({ gameId, weeks, initialScheduledWeek, canEdit, canAutoPick, allPlayers, leagueName }: Props) {
+export function ResultsRefresher({ gameId, leagueSlug, weeks, initialScheduledWeek, canEdit, canAutoPick, allPlayers, leagueName }: Props) {
   const router = useRouter()
   return (
     <NextMatchCard
       gameId={gameId}
+      leagueSlug={leagueSlug}
       weeks={weeks}
       initialScheduledWeek={initialScheduledWeek}
       onResultSaved={() => router.refresh()}

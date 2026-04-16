@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LeagueInfoBar } from '@/components/LeagueInfoBar'
-import { cn, dayNameToIndex, nextOccurrenceAfterToday } from '@/lib/utils'
+import { cn, dayNameToIndex, nextOccurrenceAfterToday, generateSlug } from '@/lib/utils'
 import type { LeagueDetails } from '@/lib/types'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -15,6 +15,7 @@ const TIMES = Array.from({ length: 48 }, (_, i) => {
 
 interface LeagueDetailsFormProps {
   leagueId: string
+  leagueSlug: string
   initialDetails: LeagueDetails
   playerCount: number
   leagueName: string
@@ -30,6 +31,7 @@ interface DayChangeModal {
 
 export function LeagueDetailsForm({
   leagueId,
+  leagueSlug,
   initialDetails,
   playerCount,
   leagueName,
@@ -196,7 +198,7 @@ export function LeagueDetailsForm({
       )}
 
       {/* Preview */}
-      <LeagueInfoBar details={previewDetails} leagueId={leagueId} isAdmin={false} />
+      <LeagueInfoBar details={previewDetails} leagueSlug={leagueSlug} isAdmin={false} />
 
       {/* Card */}
       <div className="rounded-lg border border-slate-700 bg-slate-800">
@@ -223,6 +225,11 @@ export function LeagueDetailsForm({
               required
               className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400"
             />
+            {name.trim() && (
+              <p className="text-xs text-slate-500 mt-1">
+                URL: <span className="text-slate-400">craft-football.com/{generateSlug(name.trim())}</span>
+              </p>
+            )}
           </div>
 
           {/* Location */}

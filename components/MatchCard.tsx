@@ -21,7 +21,7 @@ interface MatchCardProps {
   allPlayers?: Player[]
   onResultSaved?: () => void
   leagueName?: string
-  shareGameId?: string
+  leagueSlug?: string
   weeks?: Week[]
 }
 
@@ -152,6 +152,7 @@ interface AwaitingResultCardProps {
   onToggle: () => void
   isAdmin: boolean
   gameId: string
+  leagueSlug?: string
   allPlayers: Player[]
   onResultSaved: () => void
 }
@@ -166,7 +167,7 @@ interface PlayedCardProps {
   allPlayers: Player[]
   onResultSaved: () => void
   leagueName?: string
-  shareGameId?: string
+  leagueSlug?: string
   weeks?: Week[]
 }
 
@@ -176,6 +177,7 @@ function AwaitingResultCard({
   onToggle,
   isAdmin,
   gameId,
+  leagueSlug,
   allPlayers,
   onResultSaved,
 }: AwaitingResultCardProps) {
@@ -273,6 +275,7 @@ function AwaitingResultCard({
           lineupMetadata={week.lineupMetadata ?? null}
           allPlayers={allPlayers}
           gameId={gameId}
+          leagueSlug={leagueSlug ?? ''}
           leagueName=""
           weeks={[]}
           publicMode={false}
@@ -308,18 +311,18 @@ function PlayedCard({
   allPlayers,
   onResultSaved,
   leagueName,
-  shareGameId,
+  leagueSlug,
   weeks,
 }: PlayedCardProps) {
   const [showEditModal, setShowEditModal] = useState(false)
   const [copied, setCopied] = useState(false)
 
   async function handleShare() {
-    if (!leagueName || !shareGameId || !weeks || !week.winner) return
+    if (!leagueName || !leagueSlug || !weeks || !week.winner) return
     try {
       const { shareText } = buildResultShareText({
         leagueName,
-        leagueId: shareGameId,
+        leagueSlug,
         week: week.week,
         date: week.date,
         format: week.format ?? '',
@@ -406,7 +409,7 @@ function PlayedCard({
                   />
                 </div>
 
-                {(shouldShowMeta(week.goal_difference, week.notes) || isAdmin || (leagueName && shareGameId && !!weeks)) && (
+                {(shouldShowMeta(week.goal_difference, week.notes) || isAdmin || (leagueName && leagueSlug && !!weeks)) && (
                   <>
                     <div className="border-t border-slate-700 mt-3" />
                     <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -427,7 +430,7 @@ function PlayedCard({
                         {isAdmin && (
                           <EditResultButton onClick={() => setShowEditModal(true)} />
                         )}
-                        {leagueName && shareGameId && weeks && (
+                        {leagueName && leagueSlug && weeks && (
                           <button
                             type="button"
                             onClick={handleShare}
@@ -471,7 +474,7 @@ export function MatchCard({
   allPlayers = [],
   onResultSaved = () => {},
   leagueName,
-  shareGameId,
+  leagueSlug,
   weeks,
 }: MatchCardProps) {
   if (week.status === 'cancelled') {
@@ -505,6 +508,7 @@ export function MatchCard({
         onToggle={onToggle}
         isAdmin={isAdmin}
         gameId={gameId}
+        leagueSlug={leagueSlug}
         allPlayers={allPlayers}
         onResultSaved={onResultSaved}
       />
@@ -521,7 +525,7 @@ export function MatchCard({
       allPlayers={allPlayers}
       onResultSaved={onResultSaved}
       leagueName={leagueName}
-      shareGameId={shareGameId}
+      leagueSlug={leagueSlug}
       weeks={weeks}
     />
   )

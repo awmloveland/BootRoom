@@ -14,6 +14,7 @@ interface Props {
   // Props wired up in Task 7
   isAdmin?: boolean
   gameId?: string
+  leagueSlug?: string
   allPlayers?: Player[]
   onResultSaved?: () => void
   leagueName?: string
@@ -26,6 +27,7 @@ export function WeekList({
   onOpenWeekChange,
   isAdmin = false,
   gameId = '',
+  leagueSlug,
   allPlayers = [],
   onResultSaved = () => {},
   leagueName,
@@ -71,7 +73,7 @@ export function WeekList({
               allPlayers={allPlayers}
               onResultSaved={onResultSaved}
               leagueName={week.week === mostRecent?.week ? leagueName : undefined}
-              shareGameId={week.week === mostRecent?.week ? gameId : undefined}
+              leagueSlug={week.week === mostRecent?.week ? leagueSlug : undefined}
               weeks={week.week === mostRecent?.week ? weeks : undefined}
             />
           </Fragment>

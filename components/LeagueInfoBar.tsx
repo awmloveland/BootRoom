@@ -7,11 +7,11 @@ import type { LeagueDetails } from '@/lib/types'
 
 interface LeagueInfoBarProps {
   details: LeagueDetails | null | undefined
-  leagueId: string
+  leagueSlug: string
   isAdmin: boolean
 }
 
-export function LeagueInfoBar({ details, leagueId, isAdmin }: LeagueInfoBarProps) {
+export function LeagueInfoBar({ details, leagueSlug, isAdmin }: LeagueInfoBarProps) {
   const filled = isLeagueDetailsFilled(details)
 
   // Hide from non-admins when empty
@@ -25,7 +25,7 @@ export function LeagueInfoBar({ details, leagueId, isAdmin }: LeagueInfoBarProps
           Add your league details — location, schedule, and a short bio.
         </p>
         <Link
-          href={`/${leagueId}/settings?tab=details`}
+          href={`/${leagueSlug}/settings?tab=details`}
           className="text-sm text-slate-400 hover:text-slate-200 underline underline-offset-2 whitespace-nowrap transition-colors"
         >
           Add details

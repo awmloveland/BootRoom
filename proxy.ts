@@ -17,13 +17,18 @@ function getSupabaseAnonKey() {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Forward pathname to server components via request header
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-pathname', pathname)
+  const requestWithPathname = { request: { headers: requestHeaders } }
+
   // Skip static assets, API routes, and auth callback
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/auth') ||
     pathname.startsWith('/_next')
   ) {
-    return NextResponse.next({ request })
+    return NextResponse.next(requestWithPathname)
   }
 
   // Fix Supabase magic link: /?code= → /auth/callback?code=
@@ -40,11 +45,11 @@ export async function proxy(request: NextRequest) {
   const needsLeagueAdmin = /^\/[^/]+\/settings(\/|$)/.test(pathname)
 
   if (!needsAuth && !needsDeveloper && !needsLeagueAdmin) {
-    return NextResponse.next({ request })
+    return NextResponse.next(requestWithPathname)
   }
 
   // Build supabase client to check session
-  const response = NextResponse.next({ request })
+  const response = NextResponse.next(requestWithPathname)
   const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
     cookies: {
       getAll: () => request.cookies.getAll(),
@@ -97,17 +102,27 @@ export async function proxy(request: NextRequest) {
   }
 
   if (needsLeagueAdmin) {
-    // Extract leagueId from path like /abc-uuid/settings
-    const leagueId = pathname.split('/')[1]
+    // Extract slug from path like /the-boot-room/settings, resolve to UUID
+    const slug = pathname.split('/')[1]
+    const { data: game } = await supabase
+      .from('games')
+      .select('id')
+      .eq('slug', slug)
+      .maybeSingle()
+
+    if (!game) {
+      return NextResponse.redirect(new URL(`/${slug}/results`, request.url))
+    }
+
     const { data: member } = await supabase
       .from('game_members')
       .select('role')
-      .eq('game_id', leagueId)
+      .eq('game_id', game.id)
       .eq('user_id', user.id)
       .maybeSingle()
 
     if (!member || !['creator', 'admin'].includes(member.role)) {
-      return NextResponse.redirect(new URL(`/${leagueId}/results`, request.url))
+      return NextResponse.redirect(new URL(`/${slug}/results`, request.url))
     }
   }
 

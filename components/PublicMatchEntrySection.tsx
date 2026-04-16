@@ -5,6 +5,7 @@ import type { Week, ScheduledWeek } from '@/lib/types'
 
 interface Props {
   gameId: string
+  leagueSlug: string
   weeks: Week[]
   initialScheduledWeek: ScheduledWeek | null
   leagueName?: string
@@ -15,10 +16,11 @@ interface Props {
  * Accepts serializable props from the server page component and
  * wires onResultSaved to a full page reload (re-fetches server data).
  */
-export function PublicMatchEntrySection({ gameId, weeks, initialScheduledWeek, leagueName }: Props) {
+export function PublicMatchEntrySection({ gameId, leagueSlug, weeks, initialScheduledWeek, leagueName }: Props) {
   return (
     <NextMatchCard
       gameId={gameId}
+      leagueSlug={leagueSlug}
       weeks={weeks}
       publicMode={true}
       initialScheduledWeek={initialScheduledWeek}

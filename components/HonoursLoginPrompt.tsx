@@ -7,10 +7,11 @@ import { JoinRequestDialog } from '@/components/JoinRequestDialog'
 
 interface HonoursLoginPromptProps {
   leagueId: string
+  leagueSlug: string
   leagueName: string
 }
 
-export function HonoursLoginPrompt({ leagueId, leagueName }: HonoursLoginPromptProps) {
+export function HonoursLoginPrompt({ leagueId, leagueSlug, leagueName }: HonoursLoginPromptProps) {
   const [signInOpen, setSignInOpen] = useState(false)
   const [signUpOpen, setSignUpOpen] = useState(false)
   const [joinOpen, setJoinOpen] = useState(false)
@@ -44,14 +45,14 @@ export function HonoursLoginPrompt({ leagueId, leagueName }: HonoursLoginPromptP
       <AuthDialog
         open={signInOpen}
         onOpenChange={setSignInOpen}
-        redirect={`/${leagueId}/honours`}
+        redirect={`/${leagueSlug}/honours`}
         signinOnly
       />
 
       <AuthDialog
         open={signUpOpen}
         onOpenChange={setSignUpOpen}
-        redirect={`/${leagueId}/honours`}
+        redirect={`/${leagueSlug}/honours`}
         initialMode="signup"
         leagueName={leagueName}
         onSignedUp={() => {

@@ -1,8 +1,9 @@
-// app/[leagueId]/honours/page.tsx
+// app/[slug]/honours/page.tsx
 export const dynamic = 'force-dynamic'
 
+import { notFound } from 'next/navigation'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
+import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { isFeatureEnabled } from '@/lib/features'
 import { computeAllCompletedQuarters } from '@/lib/sidebar-stats'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
@@ -15,15 +16,19 @@ import { SidebarSticky } from '@/components/SidebarSticky'
 import type { LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
 interface Props {
-  params: Promise<{ leagueId: string }>
+  params: Promise<{ slug: string }>
 }
 
 export default async function HonoursPage({ params }: Props) {
-  const { leagueId } = await params
+  const { slug } = await params
+  const game = await getGameBySlug(slug)
+  if (!game) notFound()
+  const leagueId = game.id
 
-  const [{ user, userRole, isAuthenticated }, game, features, players, weeks, pendingRequestCount] = await Promise.all([
+  // getAuthAndRole and getFeatures are cache hits from the layout.
+  // getPlayerStats and getWeeks run fresh — both start in parallel.
+  const [{ user, userRole, isAuthenticated }, features, players, weeks, pendingRequestCount] = await Promise.all([
     getAuthAndRole(leagueId),
-    getGame(leagueId),
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
@@ -59,10 +64,10 @@ export default async function HonoursPage({ params }: Props) {
   const pct = Math.round((playedCount / totalWeeks) * 100)
 
   const details: LeagueDetails = {
-    location: game!.location ?? null,
-    day: game!.day ?? null,
-    kickoff_time: game!.kickoff_time ?? null,
-    bio: game!.bio ?? null,
+    location: game.location ?? null,
+    day: game.day ?? null,
+    kickoff_time: game.kickoff_time ?? null,
+    bio: game.bio ?? null,
     player_count: players.length,
   }
 
@@ -71,8 +76,9 @@ export default async function HonoursPage({ params }: Props) {
       <div className="flex justify-center gap-6 items-start">
         <div className="w-full max-w-xl shrink-0">
           <LeaguePageHeader
-            leagueName={game!.name}
+            leagueName={game.name}
             leagueId={leagueId}
+            leagueSlug={slug}
             playedCount={playedCount}
             totalWeeks={totalWeeks}
             pct={pct}
@@ -84,7 +90,7 @@ export default async function HonoursPage({ params }: Props) {
           />
           {showClaimBanner && <ClaimOnboardingBanner leagueId={leagueId} />}
           {tier === 'public' || !isAuthenticated ? (
-            <HonoursLoginPrompt leagueId={leagueId} leagueName={game!.name} />
+            <HonoursLoginPrompt leagueId={leagueId} leagueSlug={slug} leagueName={game.name} />
           ) : (
             <HonoursSection data={computeAllCompletedQuarters(weeks, new Date())} />
           )}

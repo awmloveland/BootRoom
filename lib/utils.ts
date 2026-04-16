@@ -6,6 +6,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Convert a league name to a URL slug: lowercase, hyphens only, no leading/trailing hyphens. */
+export function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 /** Sort weeks descending by week number (most recent first). */
 export function sortWeeks(weeks: Week[]): Week[] {
   return [...weeks].sort((a, b) => b.week - a.week)
@@ -256,7 +264,7 @@ const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
  */
 export function buildShareText(params: {
   leagueName: string
-  leagueId: string
+  leagueSlug: string
   week: number
   date: string        // 'DD MMM YYYY' — the canonical app date format
   format: string
@@ -265,7 +273,7 @@ export function buildShareText(params: {
   teamARating: number
   teamBRating: number
 }): string {
-  const { leagueName, leagueId, week, date, format, teamA, teamB, teamARating, teamBRating } = params
+  const { leagueName, leagueSlug, week, date, format, teamA, teamB, teamARating, teamBRating } = params
   const parsed = parseWeekDate(date)
   const [dd, mmm] = date.split(' ')
   const shortDate = `${DAY_SHORT[parsed.getDay()]} ${dd} ${mmm}`
@@ -283,7 +291,7 @@ export function buildShareText(params: {
     '',
     `📊 ${prediction}`,
     '',
-    `🔗 https://craft-football.com/${leagueId}`,
+    `🔗 https://craft-football.com/${leagueSlug}`,
   ].join('\n')
 }
 
@@ -528,7 +536,7 @@ function currentUnbeatenStreak(playerName: string, weeks: Week[]): number {
  */
 export function buildResultShareText(params: {
   leagueName: string
-  leagueId: string
+  leagueSlug: string
   week: number
   date: string           // 'DD MMM YYYY'
   format: string
@@ -542,7 +550,7 @@ export function buildResultShareText(params: {
   weeks: Week[]          // includes the synthetic week for tonight
 }): { shareText: string; highlightsText: string } {
   const {
-    leagueName, leagueId, week, date, format,
+    leagueName, leagueSlug, week, date, format,
     teamA, teamB, winner, goalDifference,
     teamARating, teamBRating, players, weeks,
   } = params
@@ -694,7 +702,7 @@ export function buildResultShareText(params: {
   }
 
   parts.push('')
-  parts.push(`🔗 https://craft-football.com/${leagueId}`)
+  parts.push(`🔗 https://craft-football.com/${leagueSlug}`)
 
   return { shareText: parts.join('\n'), highlightsText }
 }
