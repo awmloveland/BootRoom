@@ -48,6 +48,8 @@ export async function notifyAdminsOfJoinRequest(
     .single()
 
   const { name: leagueName, slug } = league as { name: string; slug: string }
+  if (!slug) throw new Error(`League ${gameId} has no slug`)
+
   const requesterName =
     (profile as { display_name: string | null } | null)?.display_name ?? requester.email
 
@@ -96,6 +98,7 @@ export async function notifyRequesterOfReview(
   }
 
   if (!req.games) throw new Error(`League not found for request: ${requestId}`)
+  if (!req.games.slug) throw new Error(`League for request ${requestId} has no slug`)
 
   const html = await render(
     JoinRequestStatusEmail({
