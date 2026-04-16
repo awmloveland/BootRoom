@@ -11,7 +11,7 @@
     "supabase:setup": "open 'https://supabase.com/dashboard/project/okkmnluglygrbtcawljr/settings/api' || xdg-open 'https://supabase.com/dashboard/project/okkmnluglygrbtcawljr/settings/api'",
     "supabase:auth": "open 'https://supabase.com/dashboard/project/okkmnluglygrbtcawljr/auth/providers' || xdg-open 'https://supabase.com/dashboard/project/okkmnluglygrbtcawljr/auth/providers'",
     "supabase:vercel": "open 'https://supabase.com/dashboard/integrations/vercel/install' || xdg-open 'https://supabase.com/dashboard/integrations/vercel/install'",
-    "test": "jest"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
