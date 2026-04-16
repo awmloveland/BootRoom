@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
+import { resolveUniqueSlug } from '@/lib/slug'
 import { NextResponse } from 'next/server'
 
 /** GET — public, reads location/day/kickoff_time/bio from games row */
@@ -54,10 +55,12 @@ export async function PATCH(
   const name = typeof b.name === 'string' ? b.name.trim() : ''
   if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
+  const slug = await resolveUniqueSlug(name, id)
+
   const service = createServiceClient()
   const { error } = await service
     .from('games')
-    .update({ name, location, day, kickoff_time, bio })
+    .update({ name, slug, location, day, kickoff_time, bio })
     .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
