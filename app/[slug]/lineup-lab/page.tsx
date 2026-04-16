@@ -1,8 +1,9 @@
-// app/[leagueId]/lineup-lab/page.tsx
+// app/[slug]/lineup-lab/page.tsx
 export const dynamic = 'force-dynamic'
 
+import { notFound } from 'next/navigation'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount } from '@/lib/fetchers'
+import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount } from '@/lib/fetchers'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { LineupLab } from '@/components/LineupLab'
 import { LineupLabLoginPrompt } from '@/components/LineupLabLoginPrompt'
@@ -13,17 +14,19 @@ import { SidebarSticky } from '@/components/SidebarSticky'
 import type { LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
 interface Props {
-  params: Promise<{ leagueId: string }>
+  params: Promise<{ slug: string }>
 }
 
 export default async function LineupLabPage({ params }: Props) {
-  const { leagueId } = await params
+  const { slug } = await params
+  const game = await getGameBySlug(slug)
+  if (!game) notFound()
+  const leagueId = game.id
 
-  // getGame, getAuthAndRole, getFeatures are cache hits from the layout.
+  // getAuthAndRole and getFeatures are cache hits from the layout.
   // getPlayerStats and getWeeks run fresh — both start in parallel.
-  const [{ user, userRole, isAuthenticated }, game, features, players, weeks, pendingRequestCount] = await Promise.all([
+  const [{ user, userRole, isAuthenticated }, features, players, weeks, pendingRequestCount] = await Promise.all([
     getAuthAndRole(leagueId),
-    getGame(leagueId),
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),

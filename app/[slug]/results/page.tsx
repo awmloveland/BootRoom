@@ -1,11 +1,12 @@
-// app/[leagueId]/results/page.tsx
+// app/[slug]/results/page.tsx
 export const dynamic = 'force-dynamic'
 
+import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
 import { sortWeeks, dayNameToIndex, isPastDeadline, getMostRecentExpectedGameDate, getNextWeekNumber, deriveSeason } from '@/lib/utils'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
+import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
@@ -20,17 +21,19 @@ import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
 import type { Week, ScheduledWeek, LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
 interface Props {
-  params: Promise<{ leagueId: string }>
+  params: Promise<{ slug: string }>
 }
 
 export default async function LeagueResultsPage({ params }: Props) {
-  const { leagueId } = await params
+  const { slug } = await params
+  const game = await getGameBySlug(slug)
+  if (!game) notFound()
+  const leagueId = game.id
 
-  // getGame, getAuthAndRole, getFeatures are cache hits from the layout.
+  // getAuthAndRole and getFeatures are cache hits from the layout.
   // getPlayerStats and getWeeks run fresh — both start in parallel.
-  const [{ user, userRole, isAuthenticated }, game, features, players, rawWeeks, pendingRequestCount] = await Promise.all([
+  const [{ user, userRole, isAuthenticated }, features, players, rawWeeks, pendingRequestCount] = await Promise.all([
     getAuthAndRole(leagueId),
-    getGame(leagueId),
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),

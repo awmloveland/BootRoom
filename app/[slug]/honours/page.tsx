@@ -1,8 +1,9 @@
-// app/[leagueId]/honours/page.tsx
+// app/[slug]/honours/page.tsx
 export const dynamic = 'force-dynamic'
 
+import { notFound } from 'next/navigation'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { getGame, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
+import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { isFeatureEnabled } from '@/lib/features'
 import { computeAllCompletedQuarters } from '@/lib/sidebar-stats'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
@@ -15,15 +16,17 @@ import { SidebarSticky } from '@/components/SidebarSticky'
 import type { LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
 interface Props {
-  params: Promise<{ leagueId: string }>
+  params: Promise<{ slug: string }>
 }
 
 export default async function HonoursPage({ params }: Props) {
-  const { leagueId } = await params
+  const { slug } = await params
+  const game = await getGameBySlug(slug)
+  if (!game) notFound()
+  const leagueId = game.id
 
-  const [{ user, userRole, isAuthenticated }, game, features, players, weeks, pendingRequestCount] = await Promise.all([
+  const [{ user, userRole, isAuthenticated }, features, players, weeks, pendingRequestCount] = await Promise.all([
     getAuthAndRole(leagueId),
-    getGame(leagueId),
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
