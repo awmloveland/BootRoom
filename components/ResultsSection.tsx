@@ -9,6 +9,7 @@ import type { Player, ScheduledWeek, Week } from '@/lib/types'
 
 interface Props {
   gameId: string
+  leagueSlug?: string
   weeks: Week[]
   goalkeepers: string[]
   initialScheduledWeek: ScheduledWeek | null
@@ -22,6 +23,7 @@ interface Props {
 
 export function ResultsSection({
   gameId,
+  leagueSlug,
   weeks,
   goalkeepers,
   initialScheduledWeek,
@@ -48,6 +50,7 @@ export function ResultsSection({
     <div className="flex flex-col gap-3">
       <NextMatchCard
         gameId={gameId}
+        leagueSlug={leagueSlug}
         weeks={weeks}
         initialScheduledWeek={initialScheduledWeek}
         onResultSaved={() => router.refresh()}
@@ -66,6 +69,7 @@ export function ResultsSection({
           onOpenWeekChange={setOpenWeek}
           isAdmin={isAdmin}
           gameId={gameId}
+          leagueSlug={leagueSlug}
           allPlayers={allPlayers}
           onResultSaved={() => router.refresh()}
           leagueName={leagueName}

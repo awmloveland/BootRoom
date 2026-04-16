@@ -243,6 +243,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             {canSeeMatchEntry ? (
               <ResultsSection
                 gameId={leagueId}
+                leagueSlug={game.slug}
                 weeks={weeks}
                 goalkeepers={goalkeepers}
                 initialScheduledWeek={nextWeek}
@@ -259,6 +260,7 @@ export default async function LeagueResultsPage({ params }: Props) {
                 goalkeepers={goalkeepers}
                 isAdmin={isAdmin}
                 gameId={leagueId}
+                leagueSlug={game.slug}
                 allPlayers={players}
                 leagueName={game.name}
               />
