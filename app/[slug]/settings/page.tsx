@@ -35,7 +35,8 @@ function formatExpiry(iso: string | null): string {
 export default function LeagueSettingsPage() {
   const params = useParams()
   const router = useRouter()
-  const leagueId = (params?.leagueId as string) ?? ''
+  const slug = (params?.slug as string) ?? ''
+  const [leagueId, setLeagueId] = useState('')
 
   const [section, setSection] = useState<Section>('details')
   const [leagueName, setLeagueName] = useState('')
@@ -79,12 +80,13 @@ export default function LeagueSettingsPage() {
     async function init() {
       try {
         const games = await fetchGames()
-        const game = games.find((g) => g.id === leagueId)
+        const game = games.find((g) => g.slug === slug)
         if (!game) { router.replace('/'); return }
+        setLeagueId(game.id)
         setLeagueName(game.name)
         const adminRoles = ['creator', 'admin']
         if (!adminRoles.includes(game.role)) {
-          router.replace(`/${leagueId}/results`)
+          router.replace(`/${slug}/results`)
           return
         }
         setIsAdmin(true)
@@ -95,7 +97,7 @@ export default function LeagueSettingsPage() {
       }
     }
     init()
-  }, [leagueId, router])
+  }, [slug, router])
 
   const loadDetails = useCallback(async () => {
     setDetailsLoading(true)
