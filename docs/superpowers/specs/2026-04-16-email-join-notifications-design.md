@@ -131,12 +131,27 @@ Both notification functions use `createServiceClient()` from `lib/supabase/servi
 
 ## Template Styling
 
-Built with `@react-email/components`. Dark aesthetic matching BootRoom:
-- Background: `#0f172a` (slate-900)
-- Card: `#1e293b` (slate-800) with `#334155` (slate-700) border
-- Primary text: `#f1f5f9` (slate-100)
-- Secondary text: `#94a3b8` (slate-400)
-- CTA button: solid white text on dark background
+Built with `@react-email/components`. Dark aesthetic matching BootRoom.
+
+**Layout:** Content centred, max-width 640px, background `#0f172a` (slate-900).
+
+**Header (all emails):**
+- Logo (`/logo.png`) centred, 44×44px, `border-radius: 10px`
+- "Craft Football" brand name below logo (`#f1f5f9`, 14px bold)
+- League name below brand name (`#64748b`, 12px)
+- Divider line (`#1e293b`) beneath header
+
+**Body copy:** Centred title (20px bold, `#f1f5f9`) + centred subtitle (14px, `#64748b`)
+
+**Requester detail card (admin email only):** Left-aligned within the centred column. `#1e293b` background, `#334155` border, `border-radius: 8px`. Rows: Name, Email, Message (optional quoted block in `#0f172a` if present).
+
+**CTA button:** Full-width, `#f1f5f9` background, `#0f172a` text, 13px bold, `border-radius: 6px`
+
+**Status badge (requester emails):**
+- Approved: `#0f2a1a` bg, `#4ade80` text, `#14532d` border
+- Declined: `#1c0a0a` bg, `#f87171` text, `#450a0a` border
+
+**Footer:** Centred, 11px, `#334155`, separated by `#1e293b` divider. "Craft Football · craft-football.com" + context line.
 
 ---
 
