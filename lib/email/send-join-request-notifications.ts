@@ -91,21 +91,22 @@ export async function notifyRequesterOfReview(
 
   if (error || !joinRequest) throw new Error(`Join request not found: ${requestId}`)
 
-  const req = joinRequest as {
+  const req = joinRequest as unknown as {
     email: string
     display_name: string
-    games: { name: string; slug: string } | null
+    games: { name: string; slug: string }[] | null
   }
 
-  if (!req.games) throw new Error(`League not found for request: ${requestId}`)
-  if (!req.games.slug) throw new Error(`League for request ${requestId} has no slug`)
+  const league = Array.isArray(req.games) ? req.games[0] : null
+  if (!league) throw new Error(`League not found for request: ${requestId}`)
+  if (!league.slug) throw new Error(`League for request ${requestId} has no slug`)
 
   const html = await render(
     JoinRequestStatusEmail({
-      leagueName: req.games.name,
+      leagueName: league.name,
       requesterName: req.display_name,
       action,
-      leagueUrl: action === 'approved' ? `${origin}/app/league/${req.games.slug}` : null,
+      leagueUrl: action === 'approved' ? `${origin}/app/league/${league.slug}` : null,
     })
   )
 
@@ -115,8 +116,8 @@ export async function notifyRequesterOfReview(
     to: req.email,
     subject:
       action === 'approved'
-        ? `You've been approved to join ${req.games.name}`
-        : `Update on your request to join ${req.games.name}`,
+        ? `You've been approved to join ${league.name}`
+        : `Update on your request to join ${league.name}`,
     html,
   })
 }
