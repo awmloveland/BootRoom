@@ -1,3 +1,5 @@
+import 'server-only'
+
 import { generateSlug } from '@/lib/utils'
 import { createServiceClient } from '@/lib/supabase/service'
 
@@ -12,6 +14,11 @@ import { createServiceClient } from '@/lib/supabase/service'
 export async function resolveUniqueSlug(name: string, excludeId?: string): Promise<string> {
   const service = createServiceClient()
   const base = generateSlug(name)
+
+  if (!base) {
+    throw new Error('generateSlug produced an empty string — name is blank or all special characters')
+  }
+
   let candidate = base
   let counter = 2
 
@@ -25,7 +32,8 @@ export async function resolveUniqueSlug(name: string, excludeId?: string): Promi
       query = query.neq('id', excludeId)
     }
 
-    const { data } = await query.maybeSingle()
+    const { data, error } = await query.maybeSingle()
+    if (error) throw error
     if (!data) return candidate
 
     candidate = `${base}-${counter}`
