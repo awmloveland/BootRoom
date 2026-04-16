@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { notifyRequesterOfReview } from '@/lib/email/send-join-request-notifications'
 
 /** POST — approve or decline a pending join request. Admin/creator only. */
 export async function POST(
@@ -36,6 +37,10 @@ export async function POST(
     console.error('[join-requests review POST]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
+
+  const origin = request.headers.get('origin') ?? 'https://craft-football.com'
+  notifyRequesterOfReview(requestId, action as 'approved' | 'declined', origin)
+    .catch(err => console.error('[email:notifyRequesterOfReview]', err))
 
   return NextResponse.json({ success: true })
 }
