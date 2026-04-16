@@ -18,7 +18,7 @@ import { FormDots } from '@/components/FormDots'
 interface Props {
   gameId: string
   /** League slug used for share URLs (e.g. craft-football.com/[leagueSlug]). Separate from gameId (UUID) which is used for API calls. */
-  leagueSlug?: string
+  leagueSlug: string
   weeks: Week[]
   onResultSaved: () => void
   canEdit?: boolean
@@ -450,7 +450,7 @@ export function NextMatchCard({
     if (!scheduledWeek || !leagueName) return
     const text = buildShareText({
       leagueName,
-      leagueSlug: leagueSlug ?? gameId,
+      leagueSlug,
       week: scheduledWeek.week,
       date: scheduledWeek.date,
       format: scheduledWeek.format ?? '',
@@ -1084,7 +1084,7 @@ export function NextMatchCard({
           allPlayers={allPlayers}
           gameId={gameId}
           leagueSlug={leagueSlug}
-          leagueName={leagueName ?? ''}
+          leagueName={leagueName}
           weeks={weeks}
           publicMode={publicMode}
           onSaved={(result) => {

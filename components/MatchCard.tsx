@@ -152,6 +152,7 @@ interface AwaitingResultCardProps {
   onToggle: () => void
   isAdmin: boolean
   gameId: string
+  leagueSlug?: string
   allPlayers: Player[]
   onResultSaved: () => void
 }
@@ -176,6 +177,7 @@ function AwaitingResultCard({
   onToggle,
   isAdmin,
   gameId,
+  leagueSlug,
   allPlayers,
   onResultSaved,
 }: AwaitingResultCardProps) {
@@ -273,6 +275,7 @@ function AwaitingResultCard({
           lineupMetadata={week.lineupMetadata ?? null}
           allPlayers={allPlayers}
           gameId={gameId}
+          leagueSlug={leagueSlug ?? ''}
           leagueName=""
           weeks={[]}
           publicMode={false}
@@ -505,6 +508,7 @@ export function MatchCard({
         onToggle={onToggle}
         isAdmin={isAdmin}
         gameId={gameId}
+        leagueSlug={leagueSlug}
         allPlayers={allPlayers}
         onResultSaved={onResultSaved}
       />

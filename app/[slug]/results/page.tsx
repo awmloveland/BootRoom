@@ -175,6 +175,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             {canSeeMatchEntry && (
               <PublicMatchEntrySection
                 gameId={leagueId}
+                leagueSlug={slug}
                 weeks={weeks}
                 initialScheduledWeek={nextWeek}
                 leagueName={game.name}

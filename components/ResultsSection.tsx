@@ -9,7 +9,7 @@ import type { Player, ScheduledWeek, Week } from '@/lib/types'
 
 interface Props {
   gameId: string
-  leagueSlug?: string
+  leagueSlug: string
   weeks: Week[]
   goalkeepers: string[]
   initialScheduledWeek: ScheduledWeek | null

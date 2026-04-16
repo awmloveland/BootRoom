@@ -14,7 +14,7 @@ interface Props {
   lineupMetadata: LineupMetadata | null
   allPlayers: Player[]
   gameId: string
-  leagueSlug?: string
+  leagueSlug: string
   leagueName: string
   weeks: Week[]
   publicMode: boolean
@@ -206,7 +206,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
 
       const { shareText, highlightsText } = buildResultShareText({
         leagueName,
-        leagueSlug: leagueSlug ?? gameId,
+        leagueSlug,
         week: scheduledWeek.week,
         date: scheduledWeek.date,
         format: scheduledWeek.format ?? '',
