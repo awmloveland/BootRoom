@@ -11,6 +11,7 @@ import type { JoinRequestStatus } from '@/lib/types'
 
 interface LeagueJoinAreaProps {
   leagueId: string
+  leagueSlug: string
   leagueName: string
   joinStatus: JoinRequestStatus | 'member' | 'not-member' | null
   isAdmin: boolean
@@ -51,7 +52,7 @@ function SearchParamsReader({
   return null
 }
 
-export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin, pendingRequestCount = 0 }: LeagueJoinAreaProps) {
+export function LeagueJoinArea({ leagueId, leagueSlug, leagueName, joinStatus, isAdmin, pendingRequestCount = 0 }: LeagueJoinAreaProps) {
   const [showToast, setShowToast] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
@@ -126,7 +127,7 @@ export function LeagueJoinArea({ leagueId, leagueName, joinStatus, isAdmin, pend
               variant="ghost"
               className="w-7 p-0 border border-slate-700 text-slate-500 hover:bg-slate-800 hover:text-slate-400"
             >
-              <Link href={`/${leagueId}/settings`} aria-label="League settings">
+              <Link href={`/${leagueSlug}/settings`} aria-label="League settings">
                 <SlidersHorizontal className="size-4" />
               </Link>
             </Button>

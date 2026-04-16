@@ -67,6 +67,7 @@ export default async function LineupLabPage({ params }: Props) {
           <LeaguePageHeader
             leagueName={game.name}
             leagueId={leagueId}
+            leagueSlug={slug}
             playedCount={playedCount}
             totalWeeks={totalWeeks}
             pct={pct}
@@ -78,7 +79,7 @@ export default async function LineupLabPage({ params }: Props) {
           />
           {isAuthenticated
             ? <LineupLab allPlayers={players} />
-            : <LineupLabLoginPrompt leagueId={leagueId} leagueName={game.name} />
+            : <LineupLabLoginPrompt leagueId={leagueId} leagueSlug={slug} leagueName={game.name} />
           }
         </div>
         <SidebarSticky>

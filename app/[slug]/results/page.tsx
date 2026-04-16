@@ -163,6 +163,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             <LeaguePageHeader
               leagueName={game.name}
               leagueId={leagueId}
+              leagueSlug={slug}
               playedCount={playedCount}
               totalWeeks={totalWeeks}
               pct={pct}
@@ -230,6 +231,7 @@ export default async function LeagueResultsPage({ params }: Props) {
           <LeaguePageHeader
             leagueName={game.name}
             leagueId={leagueId}
+            leagueSlug={slug}
             playedCount={playedCount}
             totalWeeks={totalWeeks}
             pct={pct}

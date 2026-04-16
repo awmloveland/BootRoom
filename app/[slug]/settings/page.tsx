@@ -280,6 +280,7 @@ export default function LeagueSettingsPage() {
           ) : (
             <LeagueDetailsForm
               leagueId={leagueId}
+              leagueSlug={slug}
               initialDetails={leagueDetails ?? { location: null, day: null, kickoff_time: null, bio: null }}
               playerCount={playerCount}
               leagueName={leagueName}

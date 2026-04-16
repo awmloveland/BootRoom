@@ -78,6 +78,7 @@ export default async function HonoursPage({ params }: Props) {
           <LeaguePageHeader
             leagueName={game.name}
             leagueId={leagueId}
+            leagueSlug={slug}
             playedCount={playedCount}
             totalWeeks={totalWeeks}
             pct={pct}
@@ -89,7 +90,7 @@ export default async function HonoursPage({ params }: Props) {
           />
           {showClaimBanner && <ClaimOnboardingBanner leagueId={leagueId} />}
           {tier === 'public' || !isAuthenticated ? (
-            <HonoursLoginPrompt leagueId={leagueId} leagueName={game.name} />
+            <HonoursLoginPrompt leagueId={leagueId} leagueSlug={slug} leagueName={game.name} />
           ) : (
             <HonoursSection data={computeAllCompletedQuarters(weeks, new Date())} />
           )}
