@@ -73,9 +73,8 @@ export function JoinRequestAdminEmail({
 
           <Hr style={footerDividerStyle} />
           <Text style={footerStyle}>
-            Craft Football · craft-football.com{'\n'}
-            You&apos;re receiving this because you&apos;re an admin of{' '}
-            {leagueName}.
+            Craft Football · craft-football.com<br />
+            You&apos;re receiving this because you&apos;re an admin of {leagueName}.
           </Text>
         </Container>
       </Body>
@@ -170,5 +169,4 @@ const footerStyle = {
   textAlign: 'center' as const,
   lineHeight: '1.6',
   margin: '0',
-  whiteSpace: 'pre-line' as const,
 }
