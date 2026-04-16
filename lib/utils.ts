@@ -6,6 +6,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Convert a league name to a URL slug: lowercase, hyphens only, no leading/trailing hyphens. */
+export function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 /** Sort weeks descending by week number (most recent first). */
 export function sortWeeks(weeks: Week[]): Week[] {
   return [...weeks].sort((a, b) => b.week - a.week)
