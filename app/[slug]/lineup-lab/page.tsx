@@ -53,10 +53,10 @@ export default async function LineupLabPage({ params }: Props) {
   const pct = Math.round((playedCount / totalWeeks) * 100)
 
   const details: LeagueDetails = {
-    location: game!.location ?? null,
-    day: game!.day ?? null,
-    kickoff_time: game!.kickoff_time ?? null,
-    bio: game!.bio ?? null,
+    location: game.location ?? null,
+    day: game.day ?? null,
+    kickoff_time: game.kickoff_time ?? null,
+    bio: game.bio ?? null,
     player_count: players.length,
   }
 
@@ -65,7 +65,7 @@ export default async function LineupLabPage({ params }: Props) {
       <div className="flex justify-center gap-6 items-start">
         <div className="w-full max-w-xl shrink-0">
           <LeaguePageHeader
-            leagueName={game!.name}
+            leagueName={game.name}
             leagueId={leagueId}
             playedCount={playedCount}
             totalWeeks={totalWeeks}
@@ -78,7 +78,7 @@ export default async function LineupLabPage({ params }: Props) {
           />
           {isAuthenticated
             ? <LineupLab allPlayers={players} />
-            : <LineupLabLoginPrompt leagueId={leagueId} leagueName={game!.name} />
+            : <LineupLabLoginPrompt leagueId={leagueId} leagueName={game.name} />
           }
         </div>
         <SidebarSticky>

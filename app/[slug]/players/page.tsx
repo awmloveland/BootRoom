@@ -49,7 +49,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
   const canSeeStatsSidebar = isAdmin || isFeatureEnabled(features, 'stats_sidebar', tier)
 
   if (!isAdmin && !isFeatureEnabled(features, 'player_stats', tier)) {
-    return <LeaguePrivateState leagueName={game!.name} />
+    return <LeaguePrivateState leagueName={game.name} />
   }
 
   // Show onboarding banner for non-admin members with no claim.
@@ -67,10 +67,10 @@ export default async function LeaguePlayersPage({ params }: Props) {
   const pct = Math.round((playedCount / totalWeeks) * 100)
 
   const details: LeagueDetails = {
-    location: game!.location ?? null,
-    day: game!.day ?? null,
-    kickoff_time: game!.kickoff_time ?? null,
-    bio: game!.bio ?? null,
+    location: game.location ?? null,
+    day: game.day ?? null,
+    kickoff_time: game.kickoff_time ?? null,
+    bio: game.bio ?? null,
     player_count: players.length,
   }
 
@@ -84,7 +84,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
       <div className="flex justify-center gap-6 items-start">
         <div className="w-full max-w-xl shrink-0">
           <LeaguePageHeader
-            leagueName={game!.name}
+            leagueName={game.name}
             leagueId={leagueId}
             playedCount={playedCount}
             totalWeeks={totalWeeks}
