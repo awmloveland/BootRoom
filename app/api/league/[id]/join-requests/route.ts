@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { notifyAdminsOfJoinRequest } from '@/lib/email/send-join-request-notifications'
 
 /** GET — return pending join requests for a league. Admin/creator only. */
 export async function GET(
@@ -66,6 +67,13 @@ export async function POST(
     console.error('[join-requests POST]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
+
+  const origin = request.headers.get('origin') ?? 'https://craft-football.com'
+  notifyAdminsOfJoinRequest(
+    id,
+    { userId: user.id, email: user.email ?? '', message },
+    origin
+  ).catch(err => console.error('[email:notifyAdminsOfJoinRequest]', err))
 
   return NextResponse.json({ ok: true }, { status: 201 })
 }
