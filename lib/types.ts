@@ -148,6 +148,17 @@ export interface LineupMetadata {
 
 export type SortKey = 'name' | 'played' | 'won' | 'winRate' | 'recentForm'
 
+export interface YearStats {
+  played: number
+  won: number
+  drew: number
+  lost: number
+  winRate: number   // rounded to 1 decimal, e.g. 60.7
+  points: number    // W=3, D=1, L=0
+  recentForm: string  // last 5 games in that year newest-first, padded with '-', e.g. 'WWDL-'
+  qualified: boolean  // played >= 5 within that year
+}
+
 export type JoinRequestStatus = 'none' | 'pending' | 'approved' | 'declined'
 
 export interface PendingJoinRequest {

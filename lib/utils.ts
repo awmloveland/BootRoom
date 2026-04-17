@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { LeagueDetails, Player, Week, Winner } from './types'
+import { LeagueDetails, Player, Week, Winner, YearStats } from './types'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -376,6 +376,37 @@ export function getNextWeekNumber(weeks: Week[]): number {
   const thisYear = weeks.filter((w) => w.season === currentYear)
   if (thisYear.length === 0) return 1
   return Math.max(...thisYear.map((w) => w.week)) + 1
+}
+
+export function computeYearStats(playerName: string, weeks: Week[], year: string): YearStats {
+  const yearPlayed = weeks.filter(
+    (w) => w.status === 'played' && w.season === year &&
+      (w.teamA.includes(playerName) || w.teamB.includes(playerName))
+  )
+
+  let won = 0, drew = 0, lost = 0
+  for (const w of yearPlayed) {
+    const onTeamA = w.teamA.includes(playerName)
+    if (w.winner === 'draw') { drew++ }
+    else if ((w.winner === 'teamA' && onTeamA) || (w.winner === 'teamB' && !onTeamA)) { won++ }
+    else { lost++ }
+  }
+
+  const played = yearPlayed.length
+  const winRate = played > 0 ? Math.round((won / played) * 1000) / 10 : 0
+  const points = won * 3 + drew
+
+  const recent = [...yearPlayed]
+    .sort((a, b) => b.week - a.week)
+    .slice(0, 5)
+    .map((w) => {
+      const onTeamA = w.teamA.includes(playerName)
+      if (w.winner === 'draw') return 'D'
+      return (w.winner === 'teamA' && onTeamA) || (w.winner === 'teamB' && !onTeamA) ? 'W' : 'L'
+    })
+  const recentForm = recent.join('').padEnd(5, '-')
+
+  return { played, won, drew, lost, winRate, points, recentForm, qualified: played >= 5 }
 }
 
 export function deriveSeason(weeks: Week[]): string {
