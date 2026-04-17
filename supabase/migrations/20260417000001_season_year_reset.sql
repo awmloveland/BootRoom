@@ -44,5 +44,13 @@ FROM renumbered
 WHERE weeks.id = renumbered.id;
 
 -- 4. Recreate the constraint scoped to (game_id, season, week).
-ALTER TABLE weeks
-  ADD CONSTRAINT weeks_game_season_week_key UNIQUE (game_id, season, week);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'weeks'::regclass
+      AND conname = 'weeks_game_season_week_key'
+  ) THEN
+    ALTER TABLE weeks ADD CONSTRAINT weeks_game_season_week_key UNIQUE (game_id, season, week);
+  END IF;
+END $$;
