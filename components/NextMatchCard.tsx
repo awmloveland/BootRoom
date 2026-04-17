@@ -304,7 +304,7 @@ export function NextMatchCard({
 
         const week: ScheduledWeek = {
           id: data.id,
-          season: data.season ?? String(new Date().getFullYear()),
+          season: data.season,
           week: data.week,
           date: data.date,
           format: data.format,
