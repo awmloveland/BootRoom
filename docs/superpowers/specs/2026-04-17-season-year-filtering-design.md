@@ -67,6 +67,8 @@ A `<div id="year-{YYYY}">` anchor is inserted just before the first week of each
 ### `YearJumpNav` component
 A new `'use client'` component rendered above the week list. Shows years in descending order (most recent first) as pill buttons. Clicking a year calls `document.getElementById('year-YYYY')?.scrollIntoView({ behavior: 'smooth' })`. Hidden when `availableYears.length <= 1`.
 
+**Responsive priority:** The year-jump nav is the first element to disappear as viewport narrows. The stats sidebar takes priority and must remain visible at intermediate widths before it eventually collapses into the mobile FAB. Concretely: `YearJumpNav` is hidden below the breakpoint where the sidebar starts to be squeezed (i.e. `hidden lg:block` or similar), while the sidebar follows its existing hide/FAB pattern at the mobile breakpoint.
+
 ### Progress bar (`LeaguePageHeader`)
 Currently shows `playedCount / 52` (all-time). Change to show the current calendar year's week count: the highest `week` number among played/cancelled weeks in the current year. Falls back to the previous year's final week count if no games have been played in the current year yet (e.g. early January). For a past year shown in context this would show that year's final count.
 
