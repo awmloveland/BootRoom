@@ -1,5 +1,7 @@
--- 1. Drop the existing UNIQUE constraint on (season, week) — name varies by DB.
---    We find it dynamically to handle any naming.
+-- 1. Drop any existing unique constraint on weeks that includes 'season'.
+--    We drop by known new name first (idempotent), then scan for any old name.
+ALTER TABLE weeks DROP CONSTRAINT IF EXISTS weeks_game_season_week_key;
+
 DO $$
 DECLARE
   v_constraint text;
@@ -44,13 +46,5 @@ FROM renumbered
 WHERE weeks.id = renumbered.id;
 
 -- 4. Recreate the constraint scoped to (game_id, season, week).
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conrelid = 'weeks'::regclass
-      AND conname = 'weeks_game_season_week_key'
-  ) THEN
-    ALTER TABLE weeks ADD CONSTRAINT weeks_game_season_week_key UNIQUE (game_id, season, week);
-  END IF;
-END $$;
+ALTER TABLE weeks
+  ADD CONSTRAINT weeks_game_season_week_key UNIQUE (game_id, season, week);
