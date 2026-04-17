@@ -125,91 +125,93 @@ export function PlayerCard({
   return (
     <Collapsible.Root open={isOpen} onOpenChange={onToggle}>
       <div className={cn('rounded-lg border bg-slate-800 transition-colors duration-150', borderClass)}>
-        <Collapsible.Trigger asChild>
-          <button
-            className="w-full flex items-center justify-between px-4 py-3 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer"
-            aria-expanded={isOpen}
-            aria-controls={contentId}
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center min-w-0">
-                <span className="text-sm font-semibold text-slate-100 shrink-0">{player.name}</span>
-                {showYearToggle && (
-                  <span
-                    className={cn(
-                      'overflow-hidden transition-all duration-200 ease-in-out whitespace-nowrap',
-                      isOpen ? 'max-w-[140px] opacity-100 ml-1.5' : 'max-w-0 opacity-0 ml-0',
-                    )}
-                  >
-                    <span className="text-slate-500 mr-1 text-sm font-normal">-</span>
-                    <span className="relative inline-block" ref={dropdownRef}>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDropdownOpen((o) => !o)
-                        }}
-                        className="text-sm font-semibold text-sky-400 hover:text-sky-300 inline-flex items-center gap-0.5 focus:outline-none"
-                      >
-                        {selectedYear ?? 'All Time'}
-                        <ChevronDown
+        <div
+          role="button"
+          tabIndex={0}
+          className="w-full flex items-center justify-between px-4 py-3 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer"
+          aria-expanded={isOpen}
+          aria-controls={contentId}
+          onClick={onToggle}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center min-w-0">
+              <span className="text-sm font-semibold text-slate-100 shrink-0">{player.name}</span>
+              {showYearToggle && (
+                <span
+                  className={cn(
+                    'overflow-hidden transition-all duration-200 ease-in-out whitespace-nowrap',
+                    isOpen ? 'max-w-[140px] opacity-100 ml-1.5' : 'max-w-0 opacity-0 ml-0',
+                  )}
+                >
+                  <span className="text-slate-500 mr-1 text-sm font-normal">-</span>
+                  <span className="relative inline-block" ref={dropdownRef}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDropdownOpen((o) => !o)
+                      }}
+                      className="text-sm font-semibold text-sky-400 hover:text-sky-300 inline-flex items-center gap-0.5 focus:outline-none"
+                    >
+                      {selectedYear ?? 'All Time'}
+                      <ChevronDown
+                        className={cn(
+                          'h-3 w-3 text-sky-400 transition-transform duration-150',
+                          dropdownOpen && 'rotate-180',
+                        )}
+                      />
+                    </button>
+                    {dropdownOpen && (
+                      <div className="absolute left-0 top-full mt-1 z-20 bg-slate-950 border border-slate-700 rounded-lg overflow-hidden shadow-lg min-w-[100px]">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setSelectedYear(null); setDropdownOpen(false) }}
                           className={cn(
-                            'h-3 w-3 text-sky-400 transition-transform duration-150',
-                            dropdownOpen && 'rotate-180',
+                            'w-full text-left px-3 py-2 text-sm hover:bg-slate-800 transition-colors',
+                            selectedYear === null ? 'text-sky-400' : 'text-slate-400',
                           )}
-                        />
-                      </button>
-                      {dropdownOpen && (
-                        <div className="absolute left-0 top-full mt-1 z-20 bg-slate-950 border border-slate-700 rounded-lg overflow-hidden shadow-lg min-w-[100px]">
+                        >
+                          All Time
+                        </button>
+                        {playerYears.map((year) => (
                           <button
+                            key={year}
                             type="button"
-                            onClick={(e) => { e.stopPropagation(); setSelectedYear(null); setDropdownOpen(false) }}
+                            onClick={(e) => { e.stopPropagation(); setSelectedYear(year); setDropdownOpen(false) }}
                             className={cn(
                               'w-full text-left px-3 py-2 text-sm hover:bg-slate-800 transition-colors',
-                              selectedYear === null ? 'text-sky-400' : 'text-slate-400',
+                              selectedYear === year ? 'text-sky-400' : 'text-slate-400',
                             )}
                           >
-                            All Time
+                            {year}
                           </button>
-                          {playerYears.map((year) => (
-                            <button
-                              key={year}
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); setSelectedYear(year); setDropdownOpen(false) }}
-                              className={cn(
-                                'w-full text-left px-3 py-2 text-sm hover:bg-slate-800 transition-colors',
-                                selectedYear === year ? 'text-sky-400' : 'text-slate-400',
-                              )}
-                            >
-                              {year}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </span>
+                        ))}
+                      </div>
+                    )}
                   </span>
-                )}
-              </div>
-              {showMentality && (
-                <span className="text-[10px] font-medium text-slate-500 bg-slate-700/60 px-1.5 py-0.5 rounded">
-                  {MENTALITY_LABEL[player.mentality] ?? player.mentality}
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 flex items-center gap-1">
-                {HEADER_METRIC[sortBy](player)}
+            {showMentality && (
+              <span className="text-[10px] font-medium text-slate-500 bg-slate-700/60 px-1.5 py-0.5 rounded">
+                {MENTALITY_LABEL[player.mentality] ?? player.mentality}
               </span>
-              <ChevronDown
-                className={cn(
-                  'h-4 w-4 text-slate-400 transition-transform duration-200 flex-shrink-0',
-                  isOpen && 'rotate-180',
-                )}
-                aria-hidden="true"
-              />
-            </div>
-          </button>
-        </Collapsible.Trigger>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400 flex items-center gap-1">
+              {HEADER_METRIC[sortBy](player)}
+            </span>
+            <ChevronDown
+              className={cn(
+                'h-4 w-4 text-slate-400 transition-transform duration-200 flex-shrink-0',
+                isOpen && 'rotate-180',
+              )}
+              aria-hidden="true"
+            />
+          </div>
+        </div>
 
         <Collapsible.Content
           id={contentId}
