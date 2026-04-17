@@ -101,6 +101,10 @@ export function PlayerCard({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  useEffect(() => {
+    if (!isOpen) setDropdownOpen(false)
+  }, [isOpen])
+
   const borderClass = isOpen
     ? 'border-slate-600'
     : 'border-slate-700 hover:border-slate-500'
@@ -138,14 +142,15 @@ export function PlayerCard({
             <div className="flex items-center min-w-0">
               <span className="text-sm font-semibold text-slate-100 shrink-0">{player.name}</span>
               {showYearToggle && (
-                <span
-                  className={cn(
-                    'overflow-hidden transition-all duration-200 ease-in-out whitespace-nowrap',
-                    isOpen ? 'max-w-[140px] opacity-100 ml-1.5' : 'max-w-0 opacity-0 ml-0',
-                  )}
-                >
-                  <span className="text-slate-500 mr-1 text-sm font-normal">-</span>
-                  <span className="relative inline-block" ref={dropdownRef}>
+                <div className="relative inline-flex items-center" ref={dropdownRef}>
+                  {/* Animated container — overflow-hidden clips only the trigger text */}
+                  <span
+                    className={cn(
+                      'overflow-hidden transition-all duration-200 ease-in-out whitespace-nowrap inline-flex items-center',
+                      isOpen ? 'max-w-[140px] opacity-100 ml-1.5' : 'max-w-0 opacity-0 ml-0',
+                    )}
+                  >
+                    <span className="text-slate-500 mr-1 text-sm font-normal">-</span>
                     <button
                       type="button"
                       onClick={(e) => {
@@ -162,35 +167,36 @@ export function PlayerCard({
                         )}
                       />
                     </button>
-                    {dropdownOpen && (
-                      <div className="absolute left-0 top-full mt-1 z-20 bg-slate-950 border border-slate-700 rounded-lg overflow-hidden shadow-lg min-w-[100px]">
+                  </span>
+                  {/* Dropdown outside overflow-hidden so it isn't clipped */}
+                  {dropdownOpen && (
+                    <div className="absolute left-0 top-full mt-1 z-20 bg-slate-950 border border-slate-700 rounded-lg overflow-hidden shadow-lg min-w-[100px]">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setSelectedYear(null); setDropdownOpen(false) }}
+                        className={cn(
+                          'w-full text-left px-3 py-2 text-sm hover:bg-slate-800 transition-colors',
+                          selectedYear === null ? 'text-sky-400' : 'text-slate-400',
+                        )}
+                      >
+                        All Time
+                      </button>
+                      {playerYears.map((year) => (
                         <button
+                          key={year}
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); setSelectedYear(null); setDropdownOpen(false) }}
+                          onClick={(e) => { e.stopPropagation(); setSelectedYear(year); setDropdownOpen(false) }}
                           className={cn(
                             'w-full text-left px-3 py-2 text-sm hover:bg-slate-800 transition-colors',
-                            selectedYear === null ? 'text-sky-400' : 'text-slate-400',
+                            selectedYear === year ? 'text-sky-400' : 'text-slate-400',
                           )}
                         >
-                          All Time
+                          {year}
                         </button>
-                        {playerYears.map((year) => (
-                          <button
-                            key={year}
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setSelectedYear(year); setDropdownOpen(false) }}
-                            className={cn(
-                              'w-full text-left px-3 py-2 text-sm hover:bg-slate-800 transition-colors',
-                              selectedYear === year ? 'text-sky-400' : 'text-slate-400',
-                            )}
-                          >
-                            {year}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </span>
-                </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             {showMentality && (
