@@ -3,6 +3,7 @@
 import { Fragment, useState } from 'react'
 import { MatchCard } from '@/components/MatchCard'
 import { MonthDivider } from '@/components/MonthDivider'
+import { YearDivider } from '@/components/YearDivider'
 import { getMonthKey, formatMonthYear, getPlayedWeeks } from '@/lib/utils'
 import type { Week } from '@/lib/types'
 
@@ -24,13 +25,17 @@ export function PublicMatchList({ weeks }: PublicMatchListProps) {
 
   return (
     <div className="flex flex-col gap-3">
+      <div id={`year-${weeks[0]?.season}`} />
       {weeks.map((week, index) => {
+        const yearChanged =
+          index > 0 && week.season !== weeks[index - 1].season
         const monthChanged =
           index > 0 &&
           getMonthKey(week.date) !== getMonthKey(weeks[index - 1].date)
         return (
           <Fragment key={week.week}>
-            {monthChanged && <MonthDivider label={formatMonthYear(week.date)} />}
+            {yearChanged && <YearDivider year={week.season} />}
+            {monthChanged && !yearChanged && <MonthDivider label={formatMonthYear(week.date)} />}
             <MatchCard
               week={week}
               isOpen={openWeek === week.week}
