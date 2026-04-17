@@ -157,7 +157,7 @@ export function PlayerCard({
                         e.stopPropagation()
                         setDropdownOpen((o) => !o)
                       }}
-                      className="text-sm font-semibold text-sky-400 hover:text-sky-300 inline-flex items-center gap-0.5 focus:outline-none"
+                      className="text-sm font-semibold text-sky-400 hover:text-sky-300 inline-flex items-center gap-0.5 focus:outline-none cursor-pointer"
                     >
                       {selectedYear ?? 'All Time'}
                       <ChevronDown
@@ -181,7 +181,7 @@ export function PlayerCard({
                       >
                         All Time
                       </button>
-                      {playerYears.map((year) => (
+                      {[...playerYears].reverse().map((year) => (
                         <button
                           key={year}
                           type="button"
