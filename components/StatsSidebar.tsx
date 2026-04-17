@@ -14,11 +14,12 @@ interface StatsSidebarProps {
   linkedPlayerName?: string | null
 }
 
-function WidgetShell({ title, children }: { title: string; children: React.ReactNode }) {
+function WidgetShell({ title, headerRight, children }: { title: string; headerRight?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-slate-700 bg-transparent overflow-hidden">
-      <div className="px-3 py-2 border-b border-slate-700/40 text-xs font-semibold text-slate-500 uppercase tracking-widest">
-        {title}
+      <div className="px-3 py-2 border-b border-slate-700/40 flex items-center justify-between">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">{title}</span>
+        {headerRight}
       </div>
       <div className="px-3 py-3">{children}</div>
     </div>
@@ -233,7 +234,14 @@ function TeamABWidget({ weeks }: { weeks: Week[] }) {
   const { teamAWins, draws, teamBWins, total } = computeTeamAB(weeks)
 
   return (
-    <WidgetShell title="Head to Head">
+    <WidgetShell
+      title="Head to Head"
+      headerRight={
+        <span className="text-[8px] font-bold uppercase tracking-[0.08em] text-sky-400 bg-sky-400/[0.08] border border-sky-400/25 rounded px-[5px] py-px">
+          All Time
+        </span>
+      }
+    >
       {total === 0 ? (
         <EmptyState message="No results yet" />
       ) : (
