@@ -35,7 +35,9 @@ export function WeekList({
 }: Props) {
   const playedWeeks = getPlayedWeeks(weeks)
   const mostRecent = playedWeeks.length > 0
-    ? playedWeeks.reduce((a, b) => (a.week > b.week ? a : b))
+    ? playedWeeks.reduce((a, b) =>
+        a.season > b.season || (a.season === b.season && a.week > b.week) ? a : b
+      )
     : null
   const [internalOpenWeek, setInternalOpenWeek] = useState<number | null>(mostRecent?.week ?? null)
 
@@ -65,7 +67,7 @@ export function WeekList({
           index > 0 &&
           getMonthKey(week.date) !== getMonthKey(weeks[index - 1].date)
         return (
-          <Fragment key={week.week}>
+          <Fragment key={week.id ?? `${week.season}-${week.week}`}>
             {yearChanged && <YearDivider year={week.season} />}
             {monthChanged && !yearChanged && <MonthDivider label={formatMonthYear(week.date)} />}
             <MatchCard

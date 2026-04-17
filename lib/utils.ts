@@ -14,9 +14,11 @@ export function generateSlug(name: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
-/** Sort weeks descending by week number (most recent first). */
+/** Sort weeks descending by season then week number (most recent first). */
 export function sortWeeks(weeks: Week[]): Week[] {
-  return [...weeks].sort((a, b) => b.week - a.week)
+  return [...weeks].sort((a, b) =>
+    a.season !== b.season ? b.season.localeCompare(a.season) : b.week - a.week
+  )
 }
 
 /** Return only played weeks. */
