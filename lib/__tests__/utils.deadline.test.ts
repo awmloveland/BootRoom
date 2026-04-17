@@ -35,6 +35,7 @@ describe('isPastDeadline', () => {
 
 function makeWeek(overrides: Partial<Week> & { date: string }): Week {
   return {
+    season: '2026',
     week: 1,
     status: 'played',
     teamA: [],

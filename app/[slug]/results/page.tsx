@@ -105,6 +105,7 @@ export default async function LeagueResultsPage({ params }: Props) {
       if (newId) {
         const unrecordedWeek: Week = {
           id: newId as string,
+          season,
           week: recentWeekNum,
           date: recentDate,
           status: 'unrecorded',
@@ -127,6 +128,7 @@ export default async function LeagueResultsPage({ params }: Props) {
     if (first && !isPastDeadline(first.date)) {
       nextWeek = {
         id: first.id!,
+        season: first.season,
         week: first.week,
         date: first.date,
         format: first.format ?? null,

@@ -104,6 +104,7 @@ export const getPlayerStats = cache(async (leagueId: string): Promise<Player[]> 
 
 type WeekRow = {
   id: string
+  season: string
   week: number
   date: string
   status: string
@@ -121,6 +122,7 @@ type WeekRow = {
 function mapWeekRow(row: WeekRow): Week {
   return {
     id: row.id,
+    season: row.season,
     week: row.week,
     date: row.date,
     status: row.status as Week['status'],
@@ -258,7 +260,7 @@ export const getWeeks = cache(async (leagueId: string): Promise<Week[]> => {
   const service = createServiceClient()
   const { data } = await service
     .from('weeks')
-    .select('id, week, date, status, format, team_a, team_b, winner, notes, goal_difference, team_a_rating, team_b_rating, lineup_metadata')
+    .select('id, season, week, date, status, format, team_a, team_b, winner, notes, goal_difference, team_a_rating, team_b_rating, lineup_metadata')
     .eq('game_id', leagueId)
     .in('status', ['played', 'cancelled', 'unrecorded', 'scheduled'])
   return sortWeeks(((data ?? []) as WeekRow[]).map(mapWeekRow))

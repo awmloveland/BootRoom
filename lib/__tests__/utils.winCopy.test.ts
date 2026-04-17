@@ -141,6 +141,7 @@ function makePlayer(overrides: Partial<Player> & { name: string }): Player {
 
 function makeWeek(overrides: Partial<Week> & { week: number; date: string }): Week {
   return {
+    season: '2026',
     status: 'played',
     teamA: [],
     teamB: [],

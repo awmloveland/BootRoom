@@ -288,7 +288,7 @@ export function NextMatchCard({
       const supabase = createClient()
       const { data } = await supabase
         .from('weeks')
-        .select('id, week, date, format, team_a, team_b, status, lineup_metadata, team_a_rating, team_b_rating')
+        .select('id, season, week, date, format, team_a, team_b, status, lineup_metadata, team_a_rating, team_b_rating')
         .eq('game_id', gameId)
         .in('status', ['scheduled', 'cancelled', 'unrecorded'])
         .order('week', { ascending: false })
@@ -304,6 +304,7 @@ export function NextMatchCard({
 
         const week: ScheduledWeek = {
           id: data.id,
+          season: data.season ?? String(new Date().getFullYear()),
           week: data.week,
           date: data.date,
           format: data.format,
@@ -417,7 +418,7 @@ export function NextMatchCard({
         if (err) throw err
         weekId = data as string
       }
-      setScheduledWeek({ id: weekId, week: saveWeek, date: saveDate, format, teamA, teamB, status: 'scheduled', lineupMetadata, team_a_rating: teamARating, team_b_rating: teamBRating })
+      setScheduledWeek({ id: weekId, season, week: saveWeek, date: saveDate, format, teamA, teamB, status: 'scheduled', lineupMetadata, team_a_rating: teamARating, team_b_rating: teamBRating })
       setCardState('lineup')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save lineup')
@@ -540,7 +541,7 @@ export function NextMatchCard({
         if (err) throw err
         weekId = data as string
       }
-      setScheduledWeek({ id: weekId, week: cancelWeek, date: cancelDate, format: null, teamA: [], teamB: [], status: 'cancelled' })
+      setScheduledWeek({ id: weekId, season, week: cancelWeek, date: cancelDate, format: null, teamA: [], teamB: [], status: 'cancelled' })
       setShowCancelModal(false)
       setError(null)
       setCardState('cancelled')

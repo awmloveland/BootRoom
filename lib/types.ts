@@ -3,6 +3,7 @@ export type WeekStatus = 'played' | 'cancelled' | 'unrecorded' | 'scheduled';
 
 export interface Week {
   id?: string;         // DB row id — present for rows fetched from DB; absent in legacy test fixtures
+  season: string;      // 4-digit calendar year, e.g. '2026'
   week: number;
   date: string;        // 'DD MMM YYYY'
   status: WeekStatus;
@@ -108,6 +109,7 @@ export interface LeagueMember {
 
 export interface ScheduledWeek {
   id: string;
+  season: string;
   week: number;
   date: string;
   format: string | null;

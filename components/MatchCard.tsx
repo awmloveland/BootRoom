@@ -186,6 +186,7 @@ function AwaitingResultCard({
 
   const scheduledWeek: ScheduledWeek = {
     id: week.id ?? '',
+    season: week.season,
     week: week.week,
     date: week.date,
     format: week.format ?? null,
