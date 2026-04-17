@@ -62,7 +62,16 @@ export default async function LeaguePlayersPage({ params }: Props) {
   }
 
   const playedWeeks = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled')
-  const playedCount = playedWeeks.length
+
+  const currentYear = String(new Date().getFullYear())
+  const currentYearPlayedWeeks = playedWeeks.filter((w) => w.season === currentYear)
+  const playedCount = currentYearPlayedWeeks.length > 0
+    ? Math.max(...currentYearPlayedWeeks.map((w) => w.week))
+    : (() => {
+        const prevYear = String(new Date().getFullYear() - 1)
+        const prev = playedWeeks.filter((w) => w.season === prevYear)
+        return prev.length > 0 ? Math.max(...prev.map((w) => w.week)) : 0
+      })()
   const totalWeeks = 52
   const pct = Math.round((playedCount / totalWeeks) * 100)
 
