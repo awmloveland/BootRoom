@@ -370,24 +370,22 @@ export function nextOccurrenceAfterToday(dayIndex: number): string {
   return formatWeekDate(next)
 }
 
-/** Return the next week number (max existing week + 1, or 1 if none). */
+/** Return the next week number within the current calendar year (or 1 if no weeks this year). */
 export function getNextWeekNumber(weeks: Week[]): number {
-  if (weeks.length === 0) return 1
-  return Math.max(...weeks.map((w) => w.week)) + 1
+  const currentYear = String(new Date().getFullYear())
+  const thisYear = weeks.filter((w) => w.season === currentYear)
+  if (thisYear.length === 0) return 1
+  return Math.max(...thisYear.map((w) => w.week)) + 1
 }
 
-/**
- * Derive a season string like "2025–26" from the played weeks.
- * Uses the calendar year of the first and last played game.
- */
 export function deriveSeason(weeks: Week[]): string {
   const played = getPlayedWeeks(weeks)
-  if (played.length === 0) return ''
-  const sorted = [...played].sort((a, b) => a.week - b.week)
-  const firstYear = sorted[0].date.split(' ')[2]
-  const lastYear = sorted[sorted.length - 1].date.split(' ')[2]
-  if (firstYear === lastYear) return firstYear
-  return `${firstYear}\u2013${lastYear.slice(-2)}`  // en-dash + last 2 digits
+  if (played.length === 0) return String(new Date().getFullYear())
+  const latest = [...played].sort((a, b) => {
+    if (a.season !== b.season) return b.season.localeCompare(a.season)
+    return b.week - a.week
+  })[0]
+  return latest.season
 }
 
 /** Returns the array of non-empty line-1 fact strings for the info bar. */
