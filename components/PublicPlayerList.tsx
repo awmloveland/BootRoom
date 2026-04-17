@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { Search, ArrowUp, ArrowDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PlayerCard } from '@/components/PlayerCard'
-import type { Player, SortKey } from '@/lib/types'
+import type { Player, SortKey, Week } from '@/lib/types'
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: 'name',       label: 'Name' },
@@ -55,9 +55,10 @@ interface Props {
   players: Player[]
   visibleStats?: string[]
   showMentality?: boolean
+  weeks?: Week[]
 }
 
-export function PublicPlayerList({ players, visibleStats, showMentality = true }: Props) {
+export function PublicPlayerList({ players, visibleStats, showMentality = true, weeks }: Props) {
   const [openPlayer, setOpenPlayer]     = useState<string | null>(null)
   const [sortBy, setSortBy]             = useState<SortKey>('name')
   const [sortAsc, setSortAsc]           = useState(true)
@@ -148,6 +149,7 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true }
             visibleStats={visibleStats}
             showMentality={showMentality}
             sortBy={sortBy}
+            weeks={weeks}
           />
         ))
       )}

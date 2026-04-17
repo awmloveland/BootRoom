@@ -110,6 +110,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
             players={players}
             visibleStats={visibleStats}
             showMentality={showMentality}
+            weeks={weeks}
           />
         </div>
         <SidebarSticky>
