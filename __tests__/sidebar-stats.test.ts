@@ -420,10 +420,10 @@ describe('computeTeamAB', () => {
 
   it('computes current streak correctly', () => {
     const weeks: Week[] = [
-      makeWeek({ week: 1, winner: 'teamB' }),
-      makeWeek({ week: 2, winner: 'teamA' }),
-      makeWeek({ week: 3, winner: 'teamA' }),
-      makeWeek({ week: 4, winner: 'teamA' }), // newest
+      makeWeek({ week: 1, date: '01 Jan 2026', winner: 'teamB' }),
+      makeWeek({ week: 2, date: '08 Jan 2026', winner: 'teamA' }),
+      makeWeek({ week: 3, date: '15 Jan 2026', winner: 'teamA' }),
+      makeWeek({ week: 4, date: '22 Jan 2026', winner: 'teamA' }), // newest
     ]
     const r = computeTeamAB(weeks)
     expect(r.streakTeam).toBe('teamA')
@@ -432,8 +432,8 @@ describe('computeTeamAB', () => {
 
   it('streak of 1 when last two differ', () => {
     const weeks: Week[] = [
-      makeWeek({ week: 1, winner: 'teamA' }),
-      makeWeek({ week: 2, winner: 'teamB' }), // newest
+      makeWeek({ week: 1, date: '01 Jan 2026', winner: 'teamA' }),
+      makeWeek({ week: 2, date: '08 Jan 2026', winner: 'teamB' }), // newest
     ]
     const r = computeTeamAB(weeks)
     expect(r.streakTeam).toBe('teamB')

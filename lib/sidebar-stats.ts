@@ -353,7 +353,9 @@ export function computeTeamAB(weeks: Week[]): TeamABResult {
   const draws     = played.filter(w => w.winner === 'draw').length
   const teamBWins = played.filter(w => w.winner === 'teamB').length
 
-  const sorted = [...played].sort((a, b) => b.week - a.week)
+  const sorted = [...played].sort(
+    (a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime()
+  )
   let streakTeam: TeamABResult['streakTeam'] = null
   let streakLength = 0
   for (const w of sorted) {
