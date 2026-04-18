@@ -105,6 +105,7 @@ export default async function LeagueResultsPage({ params }: Props) {
       if (newId) {
         const unrecordedWeek: Week = {
           id: newId as string,
+          season,
           week: recentWeekNum,
           date: recentDate,
           status: 'unrecorded',
@@ -127,6 +128,7 @@ export default async function LeagueResultsPage({ params }: Props) {
     if (first && !isPastDeadline(first.date)) {
       nextWeek = {
         id: first.id!,
+        season: first.season,
         week: first.week,
         date: first.date,
         format: first.format ?? null,
@@ -141,7 +143,20 @@ export default async function LeagueResultsPage({ params }: Props) {
   }
 
   const goalkeepers = players.filter(p => p.goalkeeper).map(p => p.name)
-  const playedCount = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled').length
+
+  const currentYear = String(new Date().getFullYear())
+  const currentYearWeeks = weeks.filter(
+    (w) => w.season === currentYear && (w.status === 'played' || w.status === 'cancelled')
+  )
+  const playedCount = currentYearWeeks.length > 0
+    ? Math.max(...currentYearWeeks.map((w) => w.week))
+    : (() => {
+        const prevYear = String(new Date().getFullYear() - 1)
+        const prevYearWeeks = weeks.filter(
+          (w) => w.season === prevYear && (w.status === 'played' || w.status === 'cancelled')
+        )
+        return prevYearWeeks.length > 0 ? Math.max(...prevYearWeeks.map((w) => w.week)) : 0
+      })()
   const totalWeeks = 52
   const pct = Math.round((playedCount / totalWeeks) * 100)
 

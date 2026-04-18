@@ -27,7 +27,7 @@ describe('dayNameToIndex', () => {
 
 describe('getNextMatchDate — with leagueDayIndex', () => {
   function makePlayedWeek(date: string): Week {
-    return { week: 1, date, status: 'played', teamA: [], teamB: [], winner: null }
+    return { season: '2026', week: 1, date, status: 'played', teamA: [], teamB: [], winner: null }
   }
 
   it('uses leagueDayIndex (Thursday=4) to find next Thursday', () => {

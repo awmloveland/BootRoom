@@ -192,6 +192,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
       // Construct synthetic week so highlights reflect tonight's result
       const syntheticWeek: Week = {
         week: scheduledWeek.week,
+        season: scheduledWeek.season,
         date: scheduledWeek.date,
         status: 'played',
         format: scheduledWeek.format ?? undefined,
