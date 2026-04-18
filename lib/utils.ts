@@ -414,11 +414,7 @@ export function computeYearStats(playerName: string, weeks: Week[], year: string
 export function deriveSeason(weeks: Week[]): string {
   const played = getPlayedWeeks(weeks)
   if (played.length === 0) return String(new Date().getFullYear())
-  const latest = [...played].sort((a, b) => {
-    if (a.season !== b.season) return b.season.localeCompare(a.season)
-    return b.week - a.week
-  })[0]
-  return latest.season
+  return sortWeeks(played)[0].season
 }
 
 /** Returns the array of non-empty line-1 fact strings for the info bar. */
