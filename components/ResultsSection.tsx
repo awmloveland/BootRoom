@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getPlayedWeeks } from '@/lib/utils'
+import { getPlayedWeeks, sortWeeks } from '@/lib/utils'
 import { NextMatchCard } from '@/components/NextMatchCard'
 import { WeekList } from '@/components/WeekList'
 import type { Player, ScheduledWeek, Week } from '@/lib/types'
@@ -39,7 +39,7 @@ export function ResultsSection({
   const [openWeek, setOpenWeek] = useState<number | null>(() => {
     const played = getPlayedWeeks(weeks)
     if (played.length === 0) return null
-    return played.reduce((a, b) => (a.week > b.week ? a : b)).week
+    return sortWeeks(played)[0].week
   })
 
   const handleBuildStart = useCallback(() => {
