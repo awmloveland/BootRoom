@@ -1,4 +1,4 @@
-import { deriveSeason, getNextWeekNumber, computeYearStats } from '@/lib/utils'
+import { deriveSeason, getNextWeekNumber, computeYearStats, sortWeeks } from '@/lib/utils'
 import type { Week } from '@/lib/types'
 
 function makeWeek(overrides: Partial<Week>): Week {
@@ -13,6 +13,54 @@ function makeWeek(overrides: Partial<Week>): Week {
     ...overrides,
   }
 }
+
+describe('sortWeeks', () => {
+  it('orders weeks by date descending', () => {
+    const weeks = [
+      makeWeek({ season: '2026', week: 1, date: '01 Jan 2026' }),
+      makeWeek({ season: '2026', week: 3, date: '15 Jan 2026' }),
+      makeWeek({ season: '2025', week: 50, date: '05 Dec 2025' }),
+    ]
+    const sorted = sortWeeks(weeks)
+    expect(sorted.map((w) => w.date)).toEqual([
+      '15 Jan 2026',
+      '01 Jan 2026',
+      '05 Dec 2025',
+    ])
+  })
+
+  it('orders by date even when week numbers are non-chronological within a year', () => {
+    // Regression: a retroactive entry with a higher week number but earlier date.
+    // Before the fix, sortWeeks used (season DESC, week DESC) so week 6 would
+    // appear above week 5 despite being earlier. After the fix, date wins.
+    const weeks = [
+      makeWeek({ season: '2026', week: 5, date: '10 Mar 2026' }),
+      makeWeek({ season: '2026', week: 6, date: '03 Mar 2026' }),
+    ]
+    const sorted = sortWeeks(weeks)
+    expect(sorted.map((w) => w.date)).toEqual(['10 Mar 2026', '03 Mar 2026'])
+  })
+
+  it('places a later-dated year above an earlier-dated year regardless of week numbers', () => {
+    const weeks = [
+      makeWeek({ season: '2026', week: 1, date: '02 Jan 2026' }),
+      makeWeek({ season: '2025', week: 99, date: '31 Dec 2025' }),
+    ]
+    const sorted = sortWeeks(weeks)
+    expect(sorted[0].season).toBe('2026')
+    expect(sorted[1].season).toBe('2025')
+  })
+
+  it('does not mutate its input', () => {
+    const weeks = [
+      makeWeek({ date: '01 Jan 2026' }),
+      makeWeek({ date: '15 Jan 2026' }),
+    ]
+    const snapshot = weeks.map((w) => w.date)
+    sortWeeks(weeks)
+    expect(weeks.map((w) => w.date)).toEqual(snapshot)
+  })
+})
 
 describe('deriveSeason', () => {
   it('returns the season of the most recently played week', () => {
@@ -51,14 +99,14 @@ describe('getNextWeekNumber', () => {
 describe('computeYearStats', () => {
   const weeks: Week[] = [
     // 2026 games — player is on teamA for all
-    makeWeek({ season: '2026', week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-    makeWeek({ season: '2026', week: 2, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamB' }),
-    makeWeek({ season: '2026', week: 3, teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
-    makeWeek({ season: '2026', week: 4, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-    makeWeek({ season: '2026', week: 5, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-    makeWeek({ season: '2026', week: 6, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    makeWeek({ season: '2026', week: 1, date: '01 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    makeWeek({ season: '2026', week: 2, date: '08 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamB' }),
+    makeWeek({ season: '2026', week: 3, date: '15 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
+    makeWeek({ season: '2026', week: 4, date: '22 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    makeWeek({ season: '2026', week: 5, date: '29 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    makeWeek({ season: '2026', week: 6, date: '05 Feb 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
     // 2025 game — should be excluded when year='2026'
-    makeWeek({ season: '2025', week: 50, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamB' }),
+    makeWeek({ season: '2025', week: 50, date: '01 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamB' }),
   ]
 
   it('counts only games in the given year', () => {
@@ -107,5 +155,20 @@ describe('computeYearStats', () => {
       makeWeek({ season: '2026', week: 7, status: 'cancelled', teamA: ['Alice'], teamB: ['Bob'], winner: null }),
     ]
     expect(computeYearStats('Alice', withCancelled, '2026').played).toBe(6)
+  })
+
+  it('builds recentForm by date even when week numbers are non-chronological', () => {
+    // Regression: week 6 is dated earlier than week 5. Recent form must follow date order, not week number.
+    const weeksOutOfOrder: Week[] = [
+      makeWeek({ season: '2026', week: 1, date: '01 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ season: '2026', week: 2, date: '08 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamB' }),
+      makeWeek({ season: '2026', week: 3, date: '15 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
+      makeWeek({ season: '2026', week: 4, date: '22 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ season: '2026', week: 6, date: '03 Mar 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamB' }),
+      makeWeek({ season: '2026', week: 5, date: '10 Mar 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    ]
+    const stats = computeYearStats('Alice', weeksOutOfOrder, '2026')
+    // Newest-first by date: 10 Mar (W), 03 Mar (L), 22 Jan (W), 15 Jan (D), 08 Jan (L)
+    expect(stats.recentForm).toBe('WLWDL')
   })
 })

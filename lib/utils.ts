@@ -14,10 +14,10 @@ export function generateSlug(name: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
-/** Sort weeks descending by season then week number (most recent first). */
+/** Sort weeks descending by actual match date (most recent first). */
 export function sortWeeks(weeks: Week[]): Week[] {
-  return [...weeks].sort((a, b) =>
-    a.season !== b.season ? b.season.localeCompare(a.season) : b.week - a.week
+  return [...weeks].sort(
+    (a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime()
   )
 }
 
@@ -399,7 +399,7 @@ export function computeYearStats(playerName: string, weeks: Week[], year: string
   const points = won * 3 + drew
 
   const recent = [...yearPlayed]
-    .sort((a, b) => b.week - a.week)
+    .sort((a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime())
     .slice(0, 5)
     .map((w) => {
       const onTeamA = w.teamA.includes(playerName)
@@ -414,11 +414,7 @@ export function computeYearStats(playerName: string, weeks: Week[], year: string
 export function deriveSeason(weeks: Week[]): string {
   const played = getPlayedWeeks(weeks)
   if (played.length === 0) return String(new Date().getFullYear())
-  const latest = [...played].sort((a, b) => {
-    if (a.season !== b.season) return b.season.localeCompare(a.season)
-    return b.week - a.week
-  })[0]
-  return latest.season
+  return sortWeeks(played)[0].season
 }
 
 /** Returns the array of non-empty line-1 fact strings for the info bar. */

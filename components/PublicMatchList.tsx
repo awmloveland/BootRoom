@@ -4,7 +4,7 @@ import { Fragment, useState } from 'react'
 import { MatchCard } from '@/components/MatchCard'
 import { MonthDivider } from '@/components/MonthDivider'
 import { YearDivider } from '@/components/YearDivider'
-import { getMonthKey, formatMonthYear, getPlayedWeeks } from '@/lib/utils'
+import { getMonthKey, formatMonthYear, getPlayedWeeks, sortWeeks } from '@/lib/utils'
 import type { Week } from '@/lib/types'
 
 interface PublicMatchListProps {
@@ -13,11 +13,7 @@ interface PublicMatchListProps {
 
 export function PublicMatchList({ weeks }: PublicMatchListProps) {
   const playedWeeks = getPlayedWeeks(weeks)
-  const mostRecent = playedWeeks.length > 0
-    ? playedWeeks.reduce((a, b) =>
-        a.season > b.season || (a.season === b.season && a.week > b.week) ? a : b
-      )
-    : null
+  const mostRecent = sortWeeks(playedWeeks)[0] ?? null
 
   const [openWeek, setOpenWeek] = useState<number | null>(mostRecent?.week ?? null)
 
