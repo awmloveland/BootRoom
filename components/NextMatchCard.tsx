@@ -586,7 +586,7 @@ export function NextMatchCard({
 
   return (
     <>
-      <div className="rounded-lg border border-slate-600 bg-slate-800 mb-3">
+      <div className="rounded-lg border border-slate-600 bg-slate-800">
 
         {/* ── IDLE ── */}
         {cardState === 'idle' && (

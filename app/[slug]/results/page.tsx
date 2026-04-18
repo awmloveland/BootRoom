@@ -17,7 +17,6 @@ import { StatsSidebar } from '@/components/StatsSidebar'
 import { MobileStatsFAB } from '@/components/MobileStatsFAB'
 import { SidebarSticky } from '@/components/SidebarSticky'
 import { BfcacheRefresh } from '@/components/BfcacheRefresh'
-import { YearJumpNav } from '@/components/YearJumpNav'
 import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
 import type { Week, ScheduledWeek, LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
@@ -161,14 +160,6 @@ export default async function LeagueResultsPage({ params }: Props) {
   const totalWeeks = 52
   const pct = Math.round((playedCount / totalWeeks) * 100)
 
-  const availableYears = Array.from(
-    new Set(
-      weeks
-        .filter((w) => w.status === 'played' || w.status === 'cancelled')
-        .map((w) => w.season)
-    )
-  ).sort((a, b) => b.localeCompare(a))
-
   const details: LeagueDetails = {
     location: game.location ?? null,
     day: game.day ?? null,
@@ -208,7 +199,6 @@ export default async function LeagueResultsPage({ params }: Props) {
             )}
             {canSeeMatchHistory && (
               <section>
-                <YearJumpNav years={availableYears} />
                 <PublicMatchList weeks={weeks} />
               </section>
             )}
@@ -268,7 +258,6 @@ export default async function LeagueResultsPage({ params }: Props) {
           />
           {showClaimBanner && <ClaimOnboardingBanner leagueId={leagueId} />}
           <div className="flex flex-col gap-3">
-            <YearJumpNav years={availableYears} />
             {canSeeMatchEntry ? (
               <ResultsSection
                 gameId={leagueId}

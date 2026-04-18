@@ -59,7 +59,6 @@ export function WeekList({
 
   return (
     <div className="flex flex-col gap-3">
-      <div id={`year-${weeks[0]?.season}`} />
       {weeks.map((week, index) => {
         const yearChanged =
           index > 0 && week.season !== weeks[index - 1].season
