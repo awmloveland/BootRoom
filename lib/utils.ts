@@ -399,7 +399,7 @@ export function computeYearStats(playerName: string, weeks: Week[], year: string
   const points = won * 3 + drew
 
   const recent = [...yearPlayed]
-    .sort((a, b) => b.week - a.week)
+    .sort((a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime())
     .slice(0, 5)
     .map((w) => {
       const onTeamA = w.teamA.includes(playerName)
