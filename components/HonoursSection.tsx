@@ -76,7 +76,7 @@ function CompletedCardBody({ quarter }: { quarter: QuarterSummary }) {
   const [showAll, setShowAll] = useState(false)
   const entries = quarter.entries ?? []
   const visibleEntries = showAll ? entries : entries.slice(0, PAGE_SIZE)
-  const hiddenCount = entries.length - PAGE_SIZE
+  const overflowCount = Math.max(0, entries.length - PAGE_SIZE)
 
   return (
     <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
@@ -143,7 +143,7 @@ function CompletedCardBody({ quarter }: { quarter: QuarterSummary }) {
             </div>
           ))}
         </div>
-        {hiddenCount > 0 && (
+        {overflowCount > 0 && (
           <div className="mt-3 flex justify-center">
             <button
               onClick={(e) => { e.stopPropagation(); setShowAll(v => !v) }}
@@ -244,16 +244,14 @@ function QuarterCard({
 // ── Section ───────────────────────────────────────────────────────────────────
 
 export function HonoursSection({ data }: HonoursSectionProps) {
-  const firstCompletedKey = (() => {
+  const [openKey, setOpenKey] = useState<string | null>(() => {
     for (const yearGroup of data) {
       for (const q of yearGroup.quarters) {
         if (q.status === 'completed') return `${q.year}-${q.q}`
       }
     }
     return null
-  })()
-
-  const [openKey, setOpenKey] = useState<string | null>(firstCompletedKey)
+  })
 
   if (data.length === 0) {
     return (
