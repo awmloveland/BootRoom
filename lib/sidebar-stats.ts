@@ -305,7 +305,7 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gam
 const SEASON_NAMES: Record<number, string> = { 1: 'Winter', 2: 'Spring', 3: 'Summer', 4: 'Autumn' }
 
 export function computeAllQuarters(weeks: Week[], now: Date = new Date()): HonoursYear[] {
-  const { q: currentQ, year: currentYear } = quarterOf(now)
+  const { year: currentYear } = quarterOf(now)
   const gameDay = inferGameDay(weeks)
 
   // Collect all years that have any week data, always include the current year
