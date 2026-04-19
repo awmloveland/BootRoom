@@ -498,6 +498,17 @@ describe('computeAllQuarters', () => {
     expect(q1).toBeUndefined()
   })
 
+  it('excludes a past quarter with scheduled weeks', () => {
+    const weeks = [
+      makeWeek({ week: 1, date: '10 Jan 2025', status: 'played', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 2, date: '17 Jan 2025', status: 'scheduled', teamA: [], teamB: [], winner: null }),
+    ]
+    const now = new Date(2025, 5, 1)
+    const result = computeAllQuarters(weeks, now)
+    const q1 = result.find(y => y.year === 2025)?.quarters.find(q => q.q === 1)
+    expect(q1).toBeUndefined()
+  })
+
   it('excludes a past quarter with no played weeks (all cancelled)', () => {
     const weeks = [
       makeWeek({ week: 1, date: '10 Jan 2025', status: 'cancelled', teamA: [], teamB: [], winner: null }),
