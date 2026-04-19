@@ -1,4 +1,4 @@
-import { computeInForm, computeQuarterlyTable, computeTeamAB, computeAllCompletedQuarters } from '@/lib/sidebar-stats'
+import { computeInForm, computeQuarterlyTable, computeTeamAB, computeAllQuarters } from '@/lib/sidebar-stats'
 import type { Player, Week } from '@/lib/types'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -448,272 +448,228 @@ describe('computeTeamAB', () => {
   })
 })
 
-// ─── computeAllCompletedQuarters ─────────────────────────────────────────────
+// ─── computeAllQuarters ───────────────────────────────────────────────────────
 
-describe('computeAllCompletedQuarters', () => {
-  it('returns empty array when there are no weeks', () => {
-    expect(computeAllCompletedQuarters([])).toEqual([])
+describe('computeAllQuarters', () => {
+  // ── Status determination ───────────────────────────────────────────────────
+
+  it('marks a quarter as upcoming when now is before its start date', () => {
+    // Q3 = Jul–Sep. now = 01 Jun 2025 → before Q3 start.
+    const now = new Date(2025, 5, 1) // 01 Jun 2025 (Q2)
+    const result = computeAllQuarters([], now)
+    const year2025 = result.find(y => y.year === 2025)!
+    const q3 = year2025.quarters.find(q => q.q === 3)!
+    expect(q3.status).toBe('upcoming')
   })
 
-  it('returns a completed quarter when all weeks are played or cancelled and at least one is played', () => {
-    const weeks: Week[] = [
-      makeWeek({ week: 1, date: '06 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-      makeWeek({ week: 2, date: '13 Jan 2025', status: 'cancelled', teamA: [], teamB: [], winner: null }),
-    ]
-    const result = computeAllCompletedQuarters(weeks)
-    expect(result).toHaveLength(1)
-    expect(result[0].year).toBe(2025)
-    expect(result[0].quarters).toHaveLength(1)
-    expect(result[0].quarters[0].quarterLabel).toBe('Q1 25')
-    expect(result[0].quarters[0].champion).toBe('Alice')
+  it('marks the current calendar quarter as in_progress', () => {
+    // now = 15 Feb 2026 → inside Q1 (Jan–Mar 2026)
+    const now = new Date(2026, 1, 15)
+    const result = computeAllQuarters([], now)
+    const year2026 = result.find(y => y.year === 2026)!
+    const q1 = year2026.quarters.find(q => q.q === 1)!
+    expect(q1.status).toBe('in_progress')
   })
 
-  it('excludes a quarter that has an unrecorded week', () => {
-    const weeks: Week[] = [
-      makeWeek({ week: 1, date: '06 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-      makeWeek({ week: 2, date: '13 Jan 2025', status: 'unrecorded', teamA: [], teamB: [], winner: null }),
-    ]
-    expect(computeAllCompletedQuarters(weeks)).toEqual([])
-  })
-
-  it('excludes a quarter that has a scheduled week', () => {
-    const weeks: Week[] = [
-      makeWeek({ week: 1, date: '06 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-      makeWeek({ week: 2, date: '13 Jan 2025', status: 'scheduled', teamA: [], teamB: [], winner: null }),
-    ]
-    expect(computeAllCompletedQuarters(weeks)).toEqual([])
-  })
-
-  it('excludes a quarter where all weeks are cancelled (no played weeks)', () => {
-    const weeks: Week[] = [
-      makeWeek({ week: 1, date: '06 Jan 2025', status: 'cancelled', teamA: [], teamB: [], winner: null }),
-    ]
-    expect(computeAllCompletedQuarters(weeks)).toEqual([])
-  })
-
-  it('returns the full player table, not capped at 5', () => {
-    const players = ['A','B','C','D','E','F','G']
-    const weeks: Week[] = [
-      makeWeek({ week: 1, date: '06 Jan 2025', teamA: players.slice(0, 4), teamB: players.slice(4), winner: 'teamA' }),
-    ]
-    const result = computeAllCompletedQuarters(weeks)
-    expect(result).toHaveLength(1)
-    expect(result[0].quarters[0].entries).toHaveLength(7)
-  })
-
-  it('champion is the highest-points player', () => {
-    const weeks: Week[] = [
-      makeWeek({ week: 1, date: '06 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-      makeWeek({ week: 2, date: '13 Jan 2025', teamA: ['Bob'], teamB: ['Alice'], winner: 'teamA' }),
-      makeWeek({ week: 3, date: '20 Jan 2025', teamA: ['Bob'], teamB: ['Alice'], winner: 'teamA' }),
-    ]
-    // Bob: 2 wins = 6 pts. Alice: 1 win = 3 pts.
-    const result = computeAllCompletedQuarters(weeks)
-    expect(result[0].quarters[0].champion).toBe('Bob')
-  })
-
-  it('groups quarters by year, newest year first', () => {
-    const weeks: Week[] = [
-      makeWeek({ week: 1, date: '06 Jan 2024', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-      makeWeek({ week: 2, date: '06 Jan 2025', teamA: ['Bob'], teamB: ['Alice'], winner: 'teamA' }),
-    ]
-    const result = computeAllCompletedQuarters(weeks)
-    expect(result[0].year).toBe(2025)
-    expect(result[1].year).toBe(2024)
-  })
-
-  it('sorts quarters within a year newest-first (Q4 before Q3)', () => {
-    const weeks: Week[] = [
-      makeWeek({ week: 1, date: '06 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Q1
-      makeWeek({ week: 2, date: '06 Apr 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Q2
-      makeWeek({ week: 3, date: '06 Jul 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Q3
-      makeWeek({ week: 4, date: '06 Oct 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Q4
-    ]
-    const result = computeAllCompletedQuarters(weeks)
-    expect(result[0].year).toBe(2025)
-    const qs = result[0].quarters.map(q => q.q)
-    expect(qs).toEqual([4, 3, 2, 1])
-  })
-
-  it('handles multiple quarters across multiple years', () => {
-    const weeks: Week[] = [
-      makeWeek({ week: 1, date: '06 Oct 2024', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Q4 2024
-      makeWeek({ week: 2, date: '06 Jan 2025', teamA: ['Bob'], teamB: ['Alice'], winner: 'teamA' }), // Q1 2025
-    ]
-    const result = computeAllCompletedQuarters(weeks)
-    expect(result).toHaveLength(2)
-    expect(result[0].year).toBe(2025)
-    expect(result[0].quarters[0].quarterLabel).toBe('Q1 25')
-    expect(result[1].year).toBe(2024)
-    expect(result[1].quarters[0].quarterLabel).toBe('Q4 24')
-  })
-
-  it('excludes a quarter whose calendar end date has not yet passed', () => {
-    // Q2 2026 ends June 30 2026. If now is April 7 2026, Q2 should be hidden
-    // even though its only week is resulted.
-    const now = new Date(2026, 3, 7) // April 7 2026
-    const weeks: Week[] = [
-      makeWeek({ week: 1, date: '06 Apr 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-    ]
-    expect(computeAllCompletedQuarters(weeks, now)).toEqual([])
-  })
-})
-
-// ─── computeAllCompletedQuarters — awards ─────────────────────────────────────
-
-describe('computeAllCompletedQuarters — awards', () => {
-  // All test weeks are in Q1 2025 (end date = 31 Mar 2025, so now must be > that)
-  const NOW = new Date(2025, 3, 1) // 1 Apr 2025
-
-  function makeQ1Week(overrides: Partial<Week> & { week: number }): Week {
-    return {
-      date: '06 Jan 2025',
-      status: 'played',
-      teamA: ['Alice'],
-      teamB: ['Bob'],
-      winner: 'teamA',
-      ...overrides,
-    }
-  }
-
-  function getQ1Awards(weeks: Week[]) {
-    const result = computeAllCompletedQuarters(weeks, NOW)
-    return result[0]?.quarters[0]?.awards ?? []
-  }
-
-  it('champion chip is always first and uses top-of-standings player', () => {
+  it('marks a past quarter as completed when all weeks are settled and at least one played', () => {
     const weeks = [
-      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 1, date: '10 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 2, date: '17 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamB' }),
+      makeWeek({ week: 3, date: '24 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
     ]
-    // Alice: 2 wins = 6 pts. Bob: 0 pts.
-    const awards = getQ1Awards(weeks)
-    expect(awards[0].key).toBe('champion')
-    expect(awards[0].player).toBe('Alice')
-    expect(awards[0].stat).toBe('6 pts')
+    // now = 01 Jun 2025 → Q1 2025 (Jan–Mar) is fully past
+    const now = new Date(2025, 5, 1)
+    const result = computeAllQuarters(weeks, now)
+    const year2025 = result.find(y => y.year === 2025)!
+    const q1 = year2025.quarters.find(q => q.q === 1)!
+    expect(q1.status).toBe('completed')
   })
 
-  it('iron_man is the player with most games played', () => {
+  it('excludes a past quarter with unrecorded weeks', () => {
     const weeks = [
-      makeQ1Week({ week: 1, teamA: ['Alice', 'Bob'], teamB: ['Charlie'], winner: 'teamA' }),
-      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Alice', 'Bob'], teamB: ['Charlie'], winner: 'teamA' }),
-      makeQ1Week({ week: 3, date: '20 Jan 2025', teamA: ['Alice'], teamB: ['Charlie'], winner: 'teamA' }),
+      makeWeek({ week: 1, date: '10 Jan 2025', status: 'played', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 2, date: '17 Jan 2025', status: 'unrecorded', teamA: [], teamB: [], winner: null }),
     ]
-    // Alice: 3 games. Bob: 2. Charlie: 3.
-    const awards = getQ1Awards(weeks)
-    const ironMan = awards.find(a => a.key === 'iron_man')
-    expect(ironMan).toBeDefined()
-    // Alice and Charlie both played 3 — tie goes to earlier standings rank (Alice leads on pts)
-    expect(ironMan!.player).toBe('Alice')
-    expect(ironMan!.stat).toBe('3 games')
+    const now = new Date(2025, 5, 1)
+    const result = computeAllQuarters(weeks, now)
+    const year2025 = result.find(y => y.year === 2025)
+    // Q1 has an unrecorded week so it must not appear
+    const q1 = year2025?.quarters.find(q => q.q === 1)
+    expect(q1).toBeUndefined()
   })
 
-  it('win_machine is the player with most wins', () => {
+  it('excludes a past quarter with scheduled weeks', () => {
     const weeks = [
-      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 1, date: '10 Jan 2025', status: 'played', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 2, date: '17 Jan 2025', status: 'scheduled', teamA: [], teamB: [], winner: null }),
     ]
-    const awards = getQ1Awards(weeks)
-    const winMachine = awards.find(a => a.key === 'win_machine')
-    expect(winMachine!.player).toBe('Alice')
-    expect(winMachine!.stat).toBe('2 wins')
+    const now = new Date(2025, 5, 1)
+    const result = computeAllQuarters(weeks, now)
+    const q1 = result.find(y => y.year === 2025)?.quarters.find(q => q.q === 1)
+    expect(q1).toBeUndefined()
   })
 
-  it('win_machine is absent when nobody has any wins', () => {
+  it('excludes a past quarter with no played weeks (all cancelled)', () => {
     const weeks = [
-      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
+      makeWeek({ week: 1, date: '10 Jan 2025', status: 'cancelled', teamA: [], teamB: [], winner: null }),
     ]
-    const awards = getQ1Awards(weeks)
-    expect(awards.find(a => a.key === 'win_machine')).toBeUndefined()
+    const now = new Date(2025, 5, 1)
+    const result = computeAllQuarters(weeks, now)
+    const year2025 = result.find(y => y.year === 2025)
+    const q1 = year2025?.quarters.find(q => q.q === 1)
+    expect(q1).toBeUndefined()
   })
 
-  it('sharp_shooter uses points/played and requires min 3 games', () => {
-    const weeks = [
-      // Alice: 3 wins in 3 games → 9 pts, PPG 3.0
-      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-      makeQ1Week({ week: 3, date: '20 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-    ]
-    const awards = getQ1Awards(weeks)
-    const ss = awards.find(a => a.key === 'sharp_shooter')
-    expect(ss).toBeDefined()
-    expect(ss!.player).toBe('Alice')
-    expect(ss!.stat).toBe('3.0 PPG')
+  // ── Seasonal names ─────────────────────────────────────────────────────────
+
+  it('assigns correct seasonal names: Q1=Winter Q2=Spring Q3=Summer Q4=Autumn', () => {
+    // now = 15 Feb 2026 → inside Q1 2026; Q2/Q3/Q4 are upcoming
+    const now = new Date(2026, 1, 15)
+    const result = computeAllQuarters([], now)
+    const year2026 = result.find(y => y.year === 2026)!
+    const names = Object.fromEntries(year2026.quarters.map(q => [q.q, q.seasonName]))
+    expect(names[1]).toBe('Winter')
+    expect(names[2]).toBe('Spring')
+    expect(names[3]).toBe('Summer')
+    expect(names[4]).toBe('Autumn')
   })
 
-  it('sharp_shooter is absent when no player has 3+ games', () => {
+  // ── Date ranges ────────────────────────────────────────────────────────────
+
+  it('uses actual week dates for date range when game data exists', () => {
     const weeks = [
-      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 1, date: '10 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 2, date: '17 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamB' }),
+      makeWeek({ week: 3, date: '24 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
     ]
-    const awards = getQ1Awards(weeks)
-    expect(awards.find(a => a.key === 'sharp_shooter')).toBeUndefined()
+    const now = new Date(2025, 5, 1) // Q1 2025 completed
+    const result = computeAllQuarters(weeks, now)
+    const q1 = result.find(y => y.year === 2025)!.quarters.find(q => q.q === 1)!
+    expect(q1.dateRange.from).toBe('10 Jan 2025')
+    expect(q1.dateRange.to).toBe('24 Jan 2025')
   })
 
-  it('clutch is absent when best win-rate player has 0 wins', () => {
-    const weeks = [
-      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
-      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
-      makeQ1Week({ week: 3, date: '20 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
-    ]
-    const awards = getQ1Awards(weeks)
-    expect(awards.find(a => a.key === 'clutch')).toBeUndefined()
+  it('falls back to calendar quarter bounds for upcoming quarters with no game data and no inferrable game day', () => {
+    // now = 15 Feb 2026 (Q1). Q3 = Jul–Sep 2026. No weeks → no game day.
+    const now = new Date(2026, 1, 15)
+    const result = computeAllQuarters([], now)
+    const q3 = result.find(y => y.year === 2026)!.quarters.find(q => q.q === 3)!
+    expect(q3.status).toBe('upcoming')
+    expect(q3.dateRange.from).toBe('01 Jul 2026')
+    expect(q3.dateRange.to).toBe('30 Sep 2026')
   })
 
-  it('untouchable requires 0 losses and min 3 games', () => {
+  it('uses game-day occurrences for upcoming date range when game day can be inferred', () => {
+    // Played weeks on Wednesdays in Q1 2026 (Jan–Mar).
+    // now = 15 May 2026 → Q1 completed, Q3 upcoming (Jul–Sep).
+    // Game day = Wednesday (3). First Wed in Jul 2026 = 1 Jul 2026. Last Wed in Sep 2026 = 30 Sep 2026.
     const weeks = [
-      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
-      makeQ1Week({ week: 3, date: '20 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 1, date: '07 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Wed
+      makeWeek({ week: 2, date: '14 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamB' }), // Wed
     ]
-    const awards = getQ1Awards(weeks)
-    const ut = awards.find(a => a.key === 'untouchable')
-    expect(ut).toBeDefined()
-    expect(ut!.player).toBe('Alice')
-    expect(ut!.stat).toBe('3 games, 0 losses')
+    const now = new Date(2026, 4, 15) // 15 May 2026
+    const result = computeAllQuarters(weeks, now)
+    const q3 = result.find(y => y.year === 2026)!.quarters.find(q => q.q === 3)!
+    expect(q3.status).toBe('upcoming')
+    // First Wednesday in Q3 2026 (Jul 1 – Sep 30): 1 Jul 2026
+    expect(q3.dateRange.from).toBe('01 Jul 2026')
+    // Last Wednesday in Q3 2026: 30 Sep 2026
+    expect(q3.dateRange.to).toBe('30 Sep 2026')
   })
 
-  it('untouchable is absent when all qualified players have at least one loss', () => {
+  // ── Week ranges ────────────────────────────────────────────────────────────
+
+  it('computes weekRange from min/max week numbers of weeks in the quarter', () => {
     const weeks = [
-      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Bob'], teamB: ['Alice'], winner: 'teamA' }),
-      makeQ1Week({ week: 3, date: '20 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 3, date: '17 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 5, date: '31 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamB' }),
+      makeWeek({ week: 4, date: '24 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
     ]
-    // Alice: 2W 1L. Bob: 1W 2L. Both have losses.
-    const awards = getQ1Awards(weeks)
-    expect(awards.find(a => a.key === 'untouchable')).toBeUndefined()
+    const now = new Date(2025, 5, 1)
+    const result = computeAllQuarters(weeks, now)
+    const q1 = result.find(y => y.year === 2025)!.quarters.find(q => q.q === 1)!
+    expect(q1.weekRange).toEqual({ from: 3, to: 5 })
   })
 
-  it('on_fire requires a streak of at least 2 consecutive wins', () => {
-    const weeks = [
-      makeQ1Week({ week: 1, date: '06 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-      makeQ1Week({ week: 3, date: '20 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-    ]
-    const awards = getQ1Awards(weeks)
-    const onFire = awards.find(a => a.key === 'on_fire')
-    expect(onFire).toBeDefined()
-    expect(onFire!.player).toBe('Alice')
-    expect(onFire!.stat).toBe('3-game streak')
+  it('sets weekRange to null for upcoming quarters with no game data', () => {
+    const now = new Date(2026, 1, 15) // Q1 in-progress, no weeks
+    const result = computeAllQuarters([], now)
+    const q3 = result.find(y => y.year === 2026)!.quarters.find(q => q.q === 3)!
+    expect(q3.weekRange).toBeNull()
   })
 
-  it('on_fire is absent when no player has 2+ consecutive wins', () => {
+  // ── completedCount ─────────────────────────────────────────────────────────
+
+  it('sets completedCount correctly for a year with 2 completed and 2 non-completed quarters', () => {
+    // Q1 + Q2 2025 completed. now = 15 Aug 2025 (Q3 in progress).
     const weeks = [
-      makeQ1Week({ week: 1, date: '06 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
-      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Bob'], teamB: ['Alice'], winner: 'teamA' }), // Bob wins
+      makeWeek({ week: 1, date: '10 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 5, date: '28 Mar 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamB' }),
+      makeWeek({ week: 6, date: '18 Apr 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 10, date: '20 Jun 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'draw' }),
     ]
-    // Alice: W then L. Bob: L then W. No streak ≥ 2.
-    const awards = getQ1Awards(weeks)
-    expect(awards.find(a => a.key === 'on_fire')).toBeUndefined()
+    const now = new Date(2025, 7, 15) // 15 Aug 2025
+    const result = computeAllQuarters(weeks, now)
+    const year2025 = result.find(y => y.year === 2025)!
+    expect(year2025.completedCount).toBe(2)
   })
 
-  it('returns champion award for a quarter with a single player', () => {
+  // ── Current year shows all 4 quarters; prior years only completed ──────────────────────────
+
+  it('returns all 4 quarters for the current year', () => {
+    const now = new Date(2026, 1, 15) // Q1 2026 in progress
+    const result = computeAllQuarters([], now)
+    const year2026 = result.find(y => y.year === 2026)!
+    expect(year2026.quarters).toHaveLength(4)
+  })
+
+  it('does not include upcoming quarters for prior years', () => {
+    // One week in Q1 2025. now = 15 Feb 2026 → 2025 is a prior year.
     const weeks = [
-      makeQ1Week({ week: 1, teamA: ['Alice'], teamB: [], winner: 'teamA' }),
-      makeQ1Week({ week: 2, date: '13 Jan 2025', teamA: ['Alice'], teamB: [], winner: 'teamA' }),
-      makeQ1Week({ week: 3, date: '20 Jan 2025', teamA: ['Alice'], teamB: [], winner: 'teamA' }),
+      makeWeek({ week: 1, date: '10 Jan 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
     ]
-    const awards = getQ1Awards(weeks)
-    expect(awards.find(a => a.key === 'champion')!.player).toBe('Alice')
+    const now = new Date(2026, 1, 15)
+    const result = computeAllQuarters(weeks, now)
+    const year2025 = result.find(y => y.year === 2025)!
+    // Only Q1 2025 is completed. Q2/Q3/Q4 have no data → excluded.
+    expect(year2025.quarters).toHaveLength(1)
+    expect(year2025.quarters[0].q).toBe(1)
+  })
+
+  // ── Quarters sorted newest first within year ───────────────────────────────
+
+  it('sorts quarters by status (in_progress → completed → upcoming) then newest-first within status', () => {
+    // now = 15 Feb 2026: Q1 is in_progress, Q2/Q3/Q4 are upcoming, none completed
+    const now = new Date(2026, 1, 15)
+    const result = computeAllQuarters([], now)
+    const year2026 = result.find(y => y.year === 2026)!
+    const qNums = year2026.quarters.map(q => q.q)
+    // in_progress: Q1 first; no completed; upcoming: Q4, Q3, Q2 (newest first within group)
+    expect(qNums).toEqual([1, 4, 3, 2])
+  })
+
+  // ── Completed quarter populates champion + entries ─────────────────────────
+
+  it('populates champion and entries for a completed quarter', () => {
+    const weeks = [
+      makeWeek({ week: 1, date: '10 Jan 2025', teamA: ['Alice', 'Carol'], teamB: ['Bob', 'Dave'], winner: 'teamA' }),
+      makeWeek({ week: 2, date: '17 Jan 2025', teamA: ['Alice', 'Carol'], teamB: ['Bob', 'Dave'], winner: 'teamA' }),
+    ]
+    const now = new Date(2025, 5, 1)
+    const result = computeAllQuarters(weeks, now)
+    const q1 = result.find(y => y.year === 2025)!.quarters.find(q => q.q === 1)!
+    expect(q1.champion).toBe('Alice')
+    expect(q1.entries).toBeDefined()
+    expect(q1.entries!.length).toBeGreaterThan(0)
+  })
+
+  it('does not populate champion or entries for an in_progress quarter', () => {
+    const now = new Date(2026, 1, 15) // Q1 2026 in progress
+    const result = computeAllQuarters([], now)
+    const q1 = result.find(y => y.year === 2026)!.quarters.find(q => q.q === 1)!
+    expect(q1.status).toBe('in_progress')
+    expect(q1.champion).toBeUndefined()
+    expect(q1.entries).toBeUndefined()
   })
 })
 
