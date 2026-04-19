@@ -638,12 +638,14 @@ describe('computeAllQuarters', () => {
 
   // ── Quarters sorted newest first within year ───────────────────────────────
 
-  it('sorts quarters newest first (Q4→Q1) within a year', () => {
-    const now = new Date(2026, 1, 15) // Q1 2026 in progress
+  it('sorts quarters by status (in_progress → upcoming → completed) then newest-first within status', () => {
+    // now = 15 Feb 2026: Q1 is in_progress, Q2/Q3/Q4 are upcoming, none completed
+    const now = new Date(2026, 1, 15)
     const result = computeAllQuarters([], now)
     const year2026 = result.find(y => y.year === 2026)!
     const qNums = year2026.quarters.map(q => q.q)
-    expect(qNums).toEqual([4, 3, 2, 1])
+    // in_progress: Q1 first; upcoming: Q4, Q3, Q2 (newest first within group)
+    expect(qNums).toEqual([1, 4, 3, 2])
   })
 
   // ── Completed quarter populates champion + entries ─────────────────────────

@@ -403,6 +403,9 @@ export function computeAllQuarters(weeks: Week[], now: Date = new Date()): Honou
 
     if (summaries.length === 0) continue
 
+    const STATUS_ORDER: Record<QuarterStatus, number> = { in_progress: 0, upcoming: 1, completed: 2 }
+    summaries.sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || b.q - a.q)
+
     result.push({
       year,
       completedCount: summaries.filter(s => s.status === 'completed').length,

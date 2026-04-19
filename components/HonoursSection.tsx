@@ -267,10 +267,10 @@ export function HonoursSection({ data }: HonoursSectionProps) {
         <div key={yearGroup.year} className="first:mt-0 mt-6">
           {/* Year header */}
           <div className="flex items-baseline justify-between px-1 mb-3">
-            <span className="text-xl font-bold text-slate-100">
+            <span className="text-lg font-bold text-slate-100">
               {yearGroup.year} Season
             </span>
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
               {yearGroup.completedCount} of 4 complete
             </span>
           </div>
