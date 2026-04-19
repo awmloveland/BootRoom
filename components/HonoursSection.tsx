@@ -264,7 +264,7 @@ export function HonoursSection({ data }: HonoursSectionProps) {
             <span className="text-[16px] font-bold text-slate-100">
               {yearGroup.year} Season
             </span>
-            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
               {yearGroup.completedCount} of 4 complete
             </span>
           </div>
