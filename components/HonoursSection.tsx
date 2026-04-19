@@ -201,7 +201,7 @@ function QuarterCard({
         <div className="border-t border-dashed border-blue-900 px-4 py-2.5 flex items-center gap-3">
           <div className="w-[3px] h-7 rounded bg-blue-700 opacity-50 shrink-0" />
           <p className="text-xs text-slate-500 leading-relaxed">
-            Quarter in progress — final standings will appear here once all games are recorded
+            Final standings will appear here once all games are recorded
           </p>
         </div>
       </div>
