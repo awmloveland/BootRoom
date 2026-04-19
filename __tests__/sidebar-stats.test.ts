@@ -638,13 +638,13 @@ describe('computeAllQuarters', () => {
 
   // ── Quarters sorted newest first within year ───────────────────────────────
 
-  it('sorts quarters by status (in_progress → upcoming → completed) then newest-first within status', () => {
+  it('sorts quarters by status (in_progress → completed → upcoming) then newest-first within status', () => {
     // now = 15 Feb 2026: Q1 is in_progress, Q2/Q3/Q4 are upcoming, none completed
     const now = new Date(2026, 1, 15)
     const result = computeAllQuarters([], now)
     const year2026 = result.find(y => y.year === 2026)!
     const qNums = year2026.quarters.map(q => q.q)
-    // in_progress: Q1 first; upcoming: Q4, Q3, Q2 (newest first within group)
+    // in_progress: Q1 first; no completed; upcoming: Q4, Q3, Q2 (newest first within group)
     expect(qNums).toEqual([1, 4, 3, 2])
   })
 

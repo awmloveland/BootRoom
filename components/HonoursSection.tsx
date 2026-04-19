@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
-import { ChevronDown, Trophy } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QuarterSummary, HonoursYear } from '@/lib/sidebar-stats'
 
@@ -222,12 +222,6 @@ function QuarterCard({
               <p className="text-sm font-semibold text-slate-100 leading-snug">{seasonName} quarter</p>
               <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
             </div>
-            {champion && (
-              <span className="flex items-center gap-1.5 text-xs font-semibold rounded px-2 py-0.5 bg-amber-400/10 text-amber-300 border border-amber-400/20 shrink-0">
-                <Trophy className="h-3 w-3" />
-                {champion}
-              </span>
-            )}
             <StatusPill status={status} />
             <ChevronDown className={cn(
               'h-4 w-4 text-slate-400 shrink-0 transition-transform duration-200',
@@ -267,7 +261,7 @@ export function HonoursSection({ data }: HonoursSectionProps) {
         <div key={yearGroup.year} className="first:mt-0 mt-6">
           {/* Year header */}
           <div className="flex items-baseline justify-between px-1 mb-3">
-            <span className="text-lg font-bold text-slate-100">
+            <span className="text-[16px] font-bold text-slate-100">
               {yearGroup.year} Season
             </span>
             <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
