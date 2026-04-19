@@ -53,8 +53,8 @@ export interface HonoursYear {
 Replaces `computeAllCompletedQuarters`. Returns `HonoursYear[]`.
 
 **Status determination per quarter:**
-- `upcoming` — current date is before the start of the calendar quarter
-- `in_progress` — current date falls within the calendar quarter AND at least one week is unrecorded or scheduled
+- `upcoming` — current date is before the first day of the calendar quarter
+- `in_progress` — current date falls within the calendar quarter (first day ≤ now ≤ last day), regardless of how many weeks are recorded
 - `completed` — calendar quarter end date has passed AND all weeks in the quarter are played or cancelled AND at least one played week exists
 
 **Date ranges:**
@@ -108,7 +108,7 @@ Replaces `computeAllCompletedQuarters`. Returns `HonoursYear[]`.
 
 - Title: `"Winter quarter"` — `text-sm font-semibold text-slate-100` (completed/in-progress), `text-slate-500` (upcoming)
 - Subtitle: `"Weeks 11–15 · 04 Feb – 04 Mar 2026"` — `text-xs text-slate-500` (completed/in-progress), `text-slate-600` (upcoming)
-- When `weekRange` is null (upcoming, no scheduled games): subtitle shows just `"Apr – Jun 2026"` (calendar quarter months + year)
+- When `weekRange` is null (upcoming, no scheduled games): subtitle shows the calendar quarter month range, e.g. `"Apr – Jun 2026"` — short month name for first and last month of the quarter, followed by the year
 
 **Right: status pill**
 
