@@ -107,22 +107,50 @@ export interface QuarterlyTableResult {
   isHoldover: boolean
 }
 
-export interface CompletedQuarter {
-  quarterLabel: string      // e.g. "Q1 25"
-  year: number
+export type QuarterStatus = 'completed' | 'in_progress' | 'upcoming'
+
+export interface QuarterSummary {
   q: number
-  champion: string          // top-ranked player name
-  entries: QuarterlyEntry[] // full table, all players, sorted points desc → wins desc → name asc
-  awards: QuarterAward[]    // ordered: champion first, rest conditional
+  year: number
+  quarterLabel: string                             // e.g. "Q3 26"
+  seasonName: string                               // "Winter" | "Spring" | "Summer" | "Autumn"
+  status: QuarterStatus
+  weekRange: { from: number; to: number } | null  // null when no game data exists yet
+  dateRange: { from: string; to: string }          // "DD MMM YYYY" formatted strings
+  champion?: string
+  entries?: QuarterlyEntry[]
+  awards?: QuarterAward[]
 }
 
 export interface HonoursYear {
   year: number
-  quarters: CompletedQuarter[] // sorted newest quarter first within year
+  completedCount: number
+  quarters: QuarterSummary[]
 }
 
 function quarterOf(d: Date): { q: number; year: number } {
   return { q: Math.floor(d.getMonth() / 3) + 1, year: d.getFullYear() }
+}
+
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+function formatDate(d: Date): string {
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${dd} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`
+}
+
+function firstWeekdayOnOrAfter(weekday: number, from: Date): Date {
+  const d = new Date(from)
+  d.setHours(0, 0, 0, 0)
+  while (d.getDay() !== weekday) d.setDate(d.getDate() + 1)
+  return d
+}
+
+function lastWeekdayOnOrBefore(weekday: number, before: Date): Date {
+  const d = new Date(before)
+  d.setHours(0, 0, 0, 0)
+  while (d.getDay() !== weekday) d.setDate(d.getDate() - 1)
+  return d
 }
 
 function weekInQuarter(week: Week, q: number, year: number): boolean {
@@ -274,66 +302,115 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gam
   return { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft, gamesTotal, isHoldover }
 }
 
-// ─── computeAllCompletedQuarters ─────────────────────────────────────────────
+const SEASON_NAMES: Record<number, string> = { 1: 'Winter', 2: 'Spring', 3: 'Summer', 4: 'Autumn' }
 
-export function computeAllCompletedQuarters(weeks: Week[], now: Date = new Date()): HonoursYear[] {
-  // Group all weeks by (year, q) bucket key
-  const buckets = new Map<string, Week[]>()
+export function computeAllQuarters(weeks: Week[], now: Date = new Date()): HonoursYear[] {
+  const { q: currentQ, year: currentYear } = quarterOf(now)
+  const gameDay = inferGameDay(weeks)
+
+  // Collect all years that have any week data, always include the current year
+  const yearsWithData = new Set<number>([currentYear])
   for (const w of weeks) {
-    const d = parseWeekDate(w.date)
-    const { q, year } = quarterOf(d)
-    const key = `${year}-${q}`
-    if (!buckets.has(key)) buckets.set(key, [])
-    buckets.get(key)!.push(w)
+    yearsWithData.add(quarterOf(parseWeekDate(w.date)).year)
   }
 
-  const completed: CompletedQuarter[] = []
+  const result: HonoursYear[] = []
 
-  for (const [key, qWeeks] of buckets) {
-    const [yearStr, qStr] = key.split('-')
-    const year = Number(yearStr)
-    const q = Number(qStr)
+  for (const year of Array.from(yearsWithData).sort((a, b) => b - a)) {
+    const isCurrentYear = year === currentYear
+    const summaries: QuarterSummary[] = []
 
-    // Skip quarters whose calendar end date hasn't passed yet.
-    // new Date(year, q * 3, 0) = last day of the last month of quarter q.
-    // Q1 → Mar 31, Q2 → Jun 30, Q3 → Sep 30, Q4 → Dec 31.
-    const quarterEnd = new Date(year, q * 3, 0)
-    if (now <= quarterEnd) continue
+    // Iterate Q4→Q1 so quarters are newest-first within the year
+    for (let q = 4; q >= 1; q--) {
+      // Calendar bounds for this quarter
+      const qStart = new Date(year, (q - 1) * 3, 1)     // e.g. Q1 → Jan 1
+      const qEnd   = new Date(year, q * 3, 0)             // e.g. Q1 → Mar 31
 
-    // A quarter is complete only when every week is played or cancelled.
-    // A single unrecorded or scheduled week keeps the quarter hidden.
-    const hasIncomplete = qWeeks.some(w => w.status === 'unrecorded' || w.status === 'scheduled')
-    if (hasIncomplete) continue
+      // Determine status purely from calendar position
+      let status: QuarterStatus
+      if (now < qStart) {
+        status = 'upcoming'
+      } else if (now <= qEnd) {
+        status = 'in_progress'
+      } else {
+        status = 'completed'
+      }
 
-    // Skip quarters with no played weeks (e.g. all-cancelled quarter has no rankings).
-    const playedWeeks = qWeeks.filter(w => w.status === 'played')
-    if (playedWeeks.length === 0) continue
+      // For prior years, only show quarters that actually completed with data
+      if (!isCurrentYear && status !== 'completed') continue
 
-    const yy = String(year).slice(-2)
-    const quarterLabel = `Q${q} ${yy}`
+      // Get all weeks in this quarter
+      const qWeeks = weeks.filter(w => weekInQuarter(w, q, year))
 
-    // Full table — no cap. aggregateWeeks sorts points desc → wins desc → name asc.
-    const entries = aggregateWeeks(playedWeeks)
-    if (entries.length === 0) continue
-    const champion = entries[0].name
-    const awards = buildQuarterAwards(entries, playedWeeks)
+      // Completed quarters must have all weeks settled and at least one played
+      if (status === 'completed') {
+        const hasIncomplete = qWeeks.some(w => w.status === 'unrecorded' || w.status === 'scheduled')
+        if (hasIncomplete) continue
+        if (!qWeeks.some(w => w.status === 'played')) continue
+      }
 
-    completed.push({ quarterLabel, year, q, champion, entries, awards })
+      // Date range
+      let dateRange: { from: string; to: string }
+      if (qWeeks.length > 0) {
+        const dates = qWeeks.map(w => parseWeekDate(w.date).getTime())
+        dateRange = {
+          from: formatDate(new Date(Math.min(...dates))),
+          to:   formatDate(new Date(Math.max(...dates))),
+        }
+      } else if (gameDay !== null) {
+        const first = firstWeekdayOnOrAfter(gameDay, qStart)
+        const last  = lastWeekdayOnOrBefore(gameDay, qEnd)
+        dateRange = {
+          from: first <= qEnd   ? formatDate(first) : formatDate(qStart),
+          to:   last  >= qStart ? formatDate(last)  : formatDate(qEnd),
+        }
+      } else {
+        dateRange = { from: formatDate(qStart), to: formatDate(qEnd) }
+      }
+
+      // Week range
+      let weekRange: { from: number; to: number } | null = null
+      if (qWeeks.length > 0) {
+        const weekNums = qWeeks.map(w => w.week)
+        weekRange = { from: Math.min(...weekNums), to: Math.max(...weekNums) }
+      }
+
+      // Standings (completed only)
+      let champion: string | undefined
+      let entries: QuarterlyEntry[] | undefined
+      let awards: QuarterAward[] | undefined
+      if (status === 'completed') {
+        const playedWeeks = qWeeks.filter(w => w.status === 'played')
+        entries  = aggregateWeeks(playedWeeks)
+        champion = entries[0]?.name
+        awards   = buildQuarterAwards(entries, playedWeeks)
+      }
+
+      const yy = String(year).slice(-2)
+      summaries.push({
+        q,
+        year,
+        quarterLabel: `Q${q} ${yy}`,
+        seasonName: SEASON_NAMES[q],
+        status,
+        weekRange,
+        dateRange,
+        champion,
+        entries,
+        awards,
+      })
+    }
+
+    if (summaries.length === 0) continue
+
+    result.push({
+      year,
+      completedCount: summaries.filter(s => s.status === 'completed').length,
+      quarters: summaries,
+    })
   }
 
-  // Sort newest first overall, then group by year
-  completed.sort((a, b) => b.year - a.year || b.q - a.q)
-
-  const byYear = new Map<number, CompletedQuarter[]>()
-  for (const c of completed) {
-    if (!byYear.has(c.year)) byYear.set(c.year, [])
-    byYear.get(c.year)!.push(c)
-  }
-
-  // Return years newest first; quarters within each year already newest-first from sort above
-  return Array.from(byYear.entries())
-    .sort(([a], [b]) => b - a)
-    .map(([year, quarters]) => ({ year, quarters }))
+  return result
 }
 
 // ─── computeTeamAB ────────────────────────────────────────────────────────────
