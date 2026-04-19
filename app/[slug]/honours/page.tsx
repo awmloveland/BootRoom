@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { isFeatureEnabled } from '@/lib/features'
-import { computeAllCompletedQuarters } from '@/lib/sidebar-stats'
+import { computeAllQuarters } from '@/lib/sidebar-stats'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { HonoursSection } from '@/components/HonoursSection'
 import { HonoursLoginPrompt } from '@/components/HonoursLoginPrompt'
@@ -92,7 +92,7 @@ export default async function HonoursPage({ params }: Props) {
           {tier === 'public' || !isAuthenticated ? (
             <HonoursLoginPrompt leagueId={leagueId} leagueSlug={slug} leagueName={game.name} />
           ) : (
-            <HonoursSection data={computeAllCompletedQuarters(weeks, new Date())} />
+            <HonoursSection data={computeAllQuarters(weeks, new Date())} />
           )}
         </div>
         {canSeeStatsSidebar && (
