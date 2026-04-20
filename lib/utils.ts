@@ -163,8 +163,7 @@ export function ewptScore(players: Player[]): number {
   if (players.length === 0) return 0
   const wprScores = players.map((p) => wprScore(p)).sort((a, b) => b - a)
   const avgWpr = wprScores.reduce((sum, s) => sum + s, 0) / players.length
-  // Average of top 2 WPR scores — rewards having multiple strong players,
-  // not just a single standout
+  // Average of top 2 WPR scores — small bonus for having multiple strong players
   const top2Avg = wprScores.length >= 2
     ? (wprScores[0] + wprScores[1]) / 2
     : wprScores[0]
