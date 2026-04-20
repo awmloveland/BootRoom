@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
+import { getSeasonPlayedWeekCount } from '@/lib/utils'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { PublicPlayerList } from '@/components/PublicPlayerList'
@@ -62,16 +63,7 @@ export default async function LeaguePlayersPage({ params }: Props) {
   }
 
   const playedWeeks = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled')
-
-  const currentYear = String(new Date().getFullYear())
-  const currentYearPlayedWeeks = playedWeeks.filter((w) => w.season === currentYear)
-  const playedCount = currentYearPlayedWeeks.length > 0
-    ? Math.max(...currentYearPlayedWeeks.map((w) => w.week))
-    : (() => {
-        const prevYear = String(new Date().getFullYear() - 1)
-        const prev = playedWeeks.filter((w) => w.season === prevYear)
-        return prev.length > 0 ? Math.max(...prev.map((w) => w.week)) : 0
-      })()
+  const playedCount = getSeasonPlayedWeekCount(weeks)
   const totalWeeks = 52
   const pct = Math.round((playedCount / totalWeeks) * 100)
 

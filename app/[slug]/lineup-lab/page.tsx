@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import { notFound } from 'next/navigation'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount } from '@/lib/fetchers'
+import { getSeasonPlayedWeekCount } from '@/lib/utils'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { LineupLab } from '@/components/LineupLab'
 import { LineupLabLoginPrompt } from '@/components/LineupLabLoginPrompt'
@@ -48,7 +49,7 @@ export default async function LineupLabPage({ params }: Props) {
   const canSeeStatsSidebar = isAdmin || isFeatureEnabled(features, 'stats_sidebar', tier)
 
   const playedWeeks = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled')
-  const playedCount = playedWeeks.length
+  const playedCount = getSeasonPlayedWeekCount(weeks)
   const totalWeeks = 52
   const pct = Math.round((playedCount / totalWeeks) * 100)
 

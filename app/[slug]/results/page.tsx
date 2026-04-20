@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
-import { sortWeeks, dayNameToIndex, isPastDeadline, getMostRecentExpectedGameDate, getNextWeekNumber, deriveSeason, parseWeekDate } from '@/lib/utils'
+import { sortWeeks, dayNameToIndex, isPastDeadline, getMostRecentExpectedGameDate, getNextWeekNumber, deriveSeason, parseWeekDate, getSeasonPlayedWeekCount } from '@/lib/utils'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
@@ -142,19 +142,7 @@ export default async function LeagueResultsPage({ params }: Props) {
 
   const goalkeepers = players.filter(p => p.goalkeeper).map(p => p.name)
 
-  const currentYear = String(new Date().getFullYear())
-  const currentYearWeeks = weeks.filter(
-    (w) => w.season === currentYear && (w.status === 'played' || w.status === 'cancelled')
-  )
-  const playedCount = currentYearWeeks.length > 0
-    ? Math.max(...currentYearWeeks.map((w) => w.week))
-    : (() => {
-        const prevYear = String(new Date().getFullYear() - 1)
-        const prevYearWeeks = weeks.filter(
-          (w) => w.season === prevYear && (w.status === 'played' || w.status === 'cancelled')
-        )
-        return prevYearWeeks.length > 0 ? Math.max(...prevYearWeeks.map((w) => w.week)) : 0
-      })()
+  const playedCount = getSeasonPlayedWeekCount(weeks)
   const totalWeeks = 52
   const pct = Math.round((playedCount / totalWeeks) * 100)
 
