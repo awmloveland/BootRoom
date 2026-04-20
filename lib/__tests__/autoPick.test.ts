@@ -185,74 +185,98 @@ describe('autoPick — guest has goalkeeper: true', () => {
   })
 })
 
-// ─── New player alternating distribution ──────────────────────────────────────
+// ─── New player count-balance filter ─────────────────────────────────────────
 
-describe('autoPick — newPlayerPinsA / newPlayerPinsB', () => {
-  it('places a new player pinned to A on Team A in all suggestions', () => {
-    const players = [
-      makePlayer('Alice'),
-      makePlayer('Bob'),
-      makePlayer('Carol'),
-      makePlayer('Dave'),
-      makePlayer('Eve'),
-      makePlayer('Frank'),
-      makePlayer('Grace'),
-      makePlayer('Hank'),
-      makePlayer('NewKid'),
-      makePlayer('Ivy'),
+describe('autoPick — newPlayerNames count-balance filter', () => {
+  it('splits 4 new players evenly (2 per team) in all suggestions', () => {
+    // 6 rated players + 4 new players (all same wprOverride → algorithm needs
+    // count-balance filter to guarantee even split)
+    const rated = Array.from({ length: 6 }, (_, i) =>
+      makePlayer(`Rated ${i + 1}`, { wprOverride: 60 })
+    )
+    const newPlayers = [
+      makePlayer('New1', { wprOverride: 50 }),
+      makePlayer('New2', { wprOverride: 50 }),
+      makePlayer('New3', { wprOverride: 50 }),
+      makePlayer('New4', { wprOverride: 50 }),
     ]
-    const result = autoPick(players, undefined, ['NewKid'], [])
+    const newPlayerNames = new Set(newPlayers.map((p) => p.name))
+    const result = autoPick([...rated, ...newPlayers], undefined, newPlayerNames)
     expect(result.suggestions.length).toBeGreaterThan(0)
     for (const s of result.suggestions) {
-      expect(s.teamA.some((p) => p.name === 'NewKid')).toBe(true)
+      const countA = s.teamA.filter((p) => newPlayerNames.has(p.name)).length
+      const countB = s.teamB.filter((p) => newPlayerNames.has(p.name)).length
+      expect(Math.abs(countA - countB)).toBeLessThanOrEqual(1)
     }
   })
 
-  it('places a new player pinned to B on Team B in all suggestions', () => {
-    const players = [
-      makePlayer('Alice'),
-      makePlayer('Bob'),
-      makePlayer('Carol'),
-      makePlayer('Dave'),
-      makePlayer('Eve'),
-      makePlayer('Frank'),
-      makePlayer('Grace'),
-      makePlayer('Hank'),
-      makePlayer('NewKid'),
-      makePlayer('Ivy'),
-    ]
-    const result = autoPick(players, undefined, [], ['NewKid'])
+  it('splits 5 new players with at most a 1-player count difference per team', () => {
+    const rated = Array.from({ length: 5 }, (_, i) =>
+      makePlayer(`Rated ${i + 1}`, { wprOverride: 60 })
+    )
+    const newPlayers = Array.from({ length: 5 }, (_, i) =>
+      makePlayer(`New ${i + 1}`, { wprOverride: 50 })
+    )
+    const newPlayerNames = new Set(newPlayers.map((p) => p.name))
+    const result = autoPick([...rated, ...newPlayers], undefined, newPlayerNames)
     expect(result.suggestions.length).toBeGreaterThan(0)
     for (const s of result.suggestions) {
-      expect(s.teamB.some((p) => p.name === 'NewKid')).toBe(true)
+      const countA = s.teamA.filter((p) => newPlayerNames.has(p.name)).length
+      const countB = s.teamB.filter((p) => newPlayerNames.has(p.name)).length
+      expect(Math.abs(countA - countB)).toBeLessThanOrEqual(1)
     }
   })
 
-  it('places two new players on opposite teams in all suggestions', () => {
-    const players = [
-      makePlayer('Alice'),
-      makePlayer('Bob'),
-      makePlayer('Carol'),
-      makePlayer('Dave'),
-      makePlayer('Eve'),
-      makePlayer('Frank'),
-      makePlayer('Grace'),
-      makePlayer('Hank'),
-      makePlayer('NewKid1'),
-      makePlayer('NewKid2'),
+  it('uses new player wprOverride ratings to find best balance within count constraint', () => {
+    // Two strong and two weak new players — algorithm should split one strong + one weak per team
+    const rated = Array.from({ length: 6 }, (_, i) =>
+      makePlayer(`Rated ${i + 1}`, { wprOverride: 55 })
+    )
+    const newPlayers = [
+      makePlayer('StrongA', { wprOverride: 80 }),
+      makePlayer('StrongB', { wprOverride: 80 }),
+      makePlayer('WeakA', { wprOverride: 20 }),
+      makePlayer('WeakB', { wprOverride: 20 }),
     ]
-    const result = autoPick(players, undefined, ['NewKid1'], ['NewKid2'])
+    const newPlayerNames = new Set(newPlayers.map((p) => p.name))
+
+    // Run multiple times to reduce sensitivity to random sampling
+    let foundGoodSplit = false
+    for (let i = 0; i < 20; i++) {
+      const result = autoPick([...rated, ...newPlayers], undefined, newPlayerNames)
+      if (result.suggestions.length === 0) continue
+      const s = result.suggestions[0]
+      const strongOnA = s.teamA.filter((p) => p.name === 'StrongA' || p.name === 'StrongB').length
+      const weakOnA = s.teamA.filter((p) => p.name === 'WeakA' || p.name === 'WeakB').length
+      // A balanced split puts one strong and one weak per team
+      if (strongOnA === 1 && weakOnA === 1) {
+        foundGoodSplit = true
+        break
+      }
+    }
+    expect(foundGoodSplit).toBe(true)
+  })
+
+  it('returns valid suggestions with small squads when newPlayerNames is supplied', () => {
+    // Robustness: 3 players total, 2 new. The 2v1 split has valid 1-1 new-player
+    // splits (Rated+New1 vs New2, or Rated+New2 vs New1) so the filter passes —
+    // we just verify the function returns suggestions and distributes all players.
+    const players = [
+      makePlayer('Rated', { wprOverride: 60 }),
+      makePlayer('New1', { wprOverride: 50 }),
+      makePlayer('New2', { wprOverride: 50 }),
+    ]
+    const newPlayerNames = new Set(['New1', 'New2'])
+    const result = autoPick(players, undefined, newPlayerNames)
     expect(result.suggestions.length).toBeGreaterThan(0)
     for (const s of result.suggestions) {
-      expect(s.teamA.some((p) => p.name === 'NewKid1')).toBe(true)
-      expect(s.teamB.some((p) => p.name === 'NewKid2')).toBe(true)
+      expect(s.teamA.length + s.teamB.length).toBe(3)
     }
   })
 
-  it('ignores pins for names not in the player pool (graceful degradation)', () => {
+  it('passes no newPlayerNames — behaviour unchanged from baseline', () => {
     const players = Array.from({ length: 10 }, (_, i) => makePlayer(`Player ${i + 1}`))
-    const result = autoPick(players, undefined, ['Ghost'], [])
-    // Should still produce valid suggestions with all 10 players
+    const result = autoPick(players)
     expect(result.suggestions.length).toBeGreaterThan(0)
     for (const s of result.suggestions) {
       expect(s.teamA.length + s.teamB.length).toBe(10)
