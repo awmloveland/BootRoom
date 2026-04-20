@@ -308,7 +308,6 @@ describe('ewptScore — GK quality weighting', () => {
   function makeTeam(gkWpr: number | null, outfieldWpr = 50): Player[] {
     const outfield = [1, 2, 3, 4].map((i) => makePlayer({ name: `P${i}`, wprOverride: outfieldWpr }))
     if (gkWpr === null) {
-      // No GK — all outfield
       return [makePlayer({ name: 'P0', wprOverride: outfieldWpr }), ...outfield]
     }
     const gk = makePlayer({ name: 'GK', mentality: 'goalkeeper', goalkeeper: true, wprOverride: gkWpr })
@@ -323,33 +322,31 @@ describe('ewptScore — GK quality weighting', () => {
     expect(ewptScore(makeTeam(25))).toBeLessThan(ewptScore(makeTeam(50)))
   })
 
-  it('average GK (WPR 50) produces same score as old flat +3 modifier', () => {
-    // With WPR=50: 1 + (50/100)*4 = 3.0 — identical to the previous hardcoded value
+  it('average GK (WPR 50) gives +1.5 modifier', () => {
+    // gkModifier = 0.5 + (50/100)*2 = 1.5
+    // avgWpr=50, top2Avg=50, avgForm=(7/15)*100≈46.67
+    // ewptScore = 50*0.65 + 50*0.10 + 46.67*0.25 + 1.5 = 32.5 + 5.0 + 11.67 + 1.5 ≈ 50.67
     const avgGkTeam = makeTeam(50)
-    // Verify by computing manually: all WPR=50, 5 players, gkModifier=3
-    // avgWpr=50, top2Avg=50 (GK wprOverride=50 same as outfield),
-    // avgForm = playerFormScore('WWDLL') = (7/15)*100 ≈ 46.67
-    // ewptScore = 50*0.50 + 50*0.25 + 46.67*0.25 + 3 = 25 + 12.5 + 11.67 + 3 ≈ 52.17
-    expect(ewptScore(avgGkTeam)).toBeCloseTo(52.17, 1)
+    expect(ewptScore(avgGkTeam)).toBeCloseTo(50.67, 1)
   })
 
-  it('exceptional GK (WPR 100) gives +5 modifier', () => {
-    const exceptionalGkTeam = makeTeam(100)
-    // gkModifier = 1 + (100/100)*4 = 5.0
+  it('exceptional GK (WPR 100) gives +2.5 modifier', () => {
+    // gkModifier = 0.5 + (100/100)*2 = 2.5
     // avgWpr=(100+50+50+50+50)/5=60, top2Avg=(100+50)/2=75, avgForm≈46.67
-    // ewptScore = 60*0.50 + 75*0.25 + 46.67*0.25 + 5 = 30 + 18.75 + 11.67 + 5 ≈ 65.42
-    expect(ewptScore(exceptionalGkTeam)).toBeCloseTo(65.42, 1)
+    // ewptScore = 60*0.65 + 75*0.10 + 46.67*0.25 + 2.5 = 39 + 7.5 + 11.67 + 2.5 ≈ 60.67
+    const exceptionalGkTeam = makeTeam(100)
+    expect(ewptScore(exceptionalGkTeam)).toBeCloseTo(60.67, 1)
   })
 
-  it('very weak GK (WPR 0) gives +1 modifier', () => {
+  it('very weak GK (WPR 0) gives +0.5 modifier', () => {
+    // gkModifier = 0.5 + (0/100)*2 = 0.5
+    // avgWpr=(0+50+50+50+50)/5=40, top2Avg=(50+50)/2=50, avgForm≈46.67
+    // ewptScore = 40*0.65 + 50*0.10 + 46.67*0.25 + 0.5 = 26 + 5 + 11.67 + 0.5 ≈ 43.17
     const weakGkTeam = makeTeam(0)
-    // gkModifier = 1 + (0/100)*4 = 1.0
-    // avgWpr=(50+50+50+50+0)/5=40, top2Avg=(50+50)/2=50, avgForm≈46.67
-    // ewptScore = 40*0.50 + 50*0.25 + 46.67*0.25 + 1 = 20 + 12.5 + 11.67 + 1 ≈ 45.17
-    expect(ewptScore(weakGkTeam)).toBeCloseTo(45.17, 1)
+    expect(ewptScore(weakGkTeam)).toBeCloseTo(43.17, 1)
   })
 
-  it('two GKs still gives -2 modifier (unchanged)', () => {
+  it('two GKs gives -1 modifier', () => {
     const twoGks = [
       makePlayer({ name: 'GK1', mentality: 'goalkeeper', goalkeeper: true, wprOverride: 70 }),
       makePlayer({ name: 'GK2', mentality: 'goalkeeper', goalkeeper: true, wprOverride: 70 }),
@@ -357,9 +354,25 @@ describe('ewptScore — GK quality weighting', () => {
       makePlayer({ name: 'P2', wprOverride: 50 }),
       makePlayer({ name: 'P3', wprOverride: 50 }),
     ]
-    // gkModifier = -2
-    // avgWpr = (70+70+50+50+50)/5 = 58, top2Avg = (70+70)/2 = 70, avgForm≈46.67
-    // ewptScore ≈ 58*0.5 + 70*0.25 + 46.67*0.25 + (-2) = 29 + 17.5 + 11.67 - 2 ≈ 56.17
-    expect(ewptScore(twoGks)).toBeCloseTo(56.17, 1)
+    // gkModifier = -1
+    // avgWpr=(70+70+50+50+50)/5=58, top2Avg=(70+70)/2=70, avgForm≈46.67
+    // ewptScore = 58*0.65 + 70*0.10 + 46.67*0.25 + (-1) = 37.7 + 7.0 + 11.67 - 1 ≈ 55.37
+    expect(ewptScore(twoGks)).toBeCloseTo(55.37, 1)
+  })
+
+  it('balanced squad outscores a team with one star and five weak teammates', () => {
+    // Star-heavy team: 1 high-WPR player + 4 weak players, no GK
+    const starTeam = [
+      makePlayer({ name: 'Star', wprOverride: 85 }),
+      makePlayer({ name: 'W1', wprOverride: 30 }),
+      makePlayer({ name: 'W2', wprOverride: 30 }),
+      makePlayer({ name: 'W3', wprOverride: 30 }),
+      makePlayer({ name: 'W4', wprOverride: 30 }),
+    ]
+    // Balanced team: 5 solid players, no GK
+    const balancedTeam = Array.from({ length: 5 }, (_, i) =>
+      makePlayer({ name: `B${i}`, wprOverride: 51 })
+    )
+    expect(ewptScore(balancedTeam)).toBeGreaterThan(ewptScore(starTeam))
   })
 })
