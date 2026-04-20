@@ -18,19 +18,20 @@ export interface AutoPickResult {
 /**
  * Given a list of players attending the game, return up to 3 balanced team splits.
  * Uses exhaustive search for n ≤ 20, random sampling for n > 20.
- * Guest players (not in DB) should be passed with rating set to the median league
- * rating and all stats at zero.
+ * Guest players (not in DB) should be passed with a wprOverride set to the appropriate
+ * league percentile and all stats at zero.
  *
  * @param pairs - Optional array of [guestName, associatedPlayerName] pairs.
  *   Each guest will be pinned to the same team as their associated player.
- * @param newPlayerPinsA - Optional array of player names to pin to Team A.
- * @param newPlayerPinsB - Optional array of player names to pin to Team B.
+ * @param newPlayerNames - Optional set of player names that are new/unknown.
+ *   Used as a post-generation count-balance filter: splits where the new-player count
+ *   differs by more than 1 between teams are discarded. If no split passes, falls back
+ *   to the full set.
  */
 export function autoPick(
   players: Player[],
   pairs?: Array<[string, string]>,
-  newPlayerPinsA?: string[],
-  newPlayerPinsB?: string[],
+  newPlayerNames?: Set<string>,
 ): AutoPickResult {
   const n = players.length
   if (n < 2) return { suggestions: [], bestDiff: 0, poolSize: 0 }
@@ -60,21 +61,6 @@ export function autoPick(
   const pinnedTeamA: Player[] = []
   const pinnedTeamB: Player[] = []
   let pairTeamToggle = true
-
-  // New player pinning: pin named new players to their designated team.
-  // These are resolved before pair pinning so guest pair logic can observe them.
-  for (const name of (newPlayerPinsA ?? [])) {
-    const player = searchPool.find((p) => p.name === name)
-    if (!player) continue
-    searchPool = searchPool.filter((p) => p !== player)
-    pinnedTeamA.push(player)
-  }
-  for (const name of (newPlayerPinsB ?? [])) {
-    const player = searchPool.find((p) => p.name === name)
-    if (!player) continue
-    searchPool = searchPool.filter((p) => p !== player)
-    pinnedTeamB.push(player)
-  }
 
   for (const [guestName, associatedName] of (pairs ?? [])) {
     const guest = searchPool.find((p) => p.name === guestName)
@@ -155,14 +141,28 @@ export function autoPick(
     return { teamA: a, teamB: b, scoreA, scoreB, diff }
   })
 
+  // Count-balance filter: when new players are identified, discard splits where
+  // the new-player count differs by more than 1 between teams. This ensures
+  // unknowns are spread evenly regardless of how many there are or their order.
+  // Falls back to the full scored set if no split passes (e.g. extreme small squads).
+  let filteredScored = scored
+  if (newPlayerNames && newPlayerNames.size >= 2) {
+    const balanced = scored.filter((s) => {
+      const countA = s.teamA.filter((p) => newPlayerNames.has(p.name)).length
+      const countB = s.teamB.filter((p) => newPlayerNames.has(p.name)).length
+      return Math.abs(countA - countB) <= 1
+    })
+    if (balanced.length > 0) filteredScored = balanced
+  }
+
   // Find best (minimum) diff
-  const bestDiff = scored.reduce((min, s) => (s.diff < min ? s.diff : min), Infinity)
+  const bestDiff = filteredScored.reduce((min, s) => (s.diff < min ? s.diff : min), Infinity)
 
   // Collect pool: all splits within 5% of bestDiff or within 3 absolute points,
   // whichever is larger. The absolute floor ensures that even when the optimal
   // split is nearly perfect (small bestDiff), enough alternatives surface for
   // the "Try another" feature to offer distinct options after swap-deduplication.
-  const pool = scored.filter((s) => s.diff <= Math.max(bestDiff * 1.05, bestDiff + 3) + 0.001)
+  const pool = filteredScored.filter((s) => s.diff <= Math.max(bestDiff * 1.05, bestDiff + 3) + 0.001)
 
   // Randomly sample up to 3 from the pool, deduplicating team-swaps, then sort by diff ascending
   const shuffledPool = [...pool].sort(() => Math.random() - 0.5)
