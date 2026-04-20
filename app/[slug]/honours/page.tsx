@@ -6,6 +6,7 @@ import { resolveVisibilityTier } from '@/lib/roles'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { isFeatureEnabled } from '@/lib/features'
 import { computeAllQuarters } from '@/lib/sidebar-stats'
+import { getSeasonPlayedWeekCount } from '@/lib/utils'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { HonoursSection } from '@/components/HonoursSection'
 import { HonoursLoginPrompt } from '@/components/HonoursLoginPrompt'
@@ -59,7 +60,7 @@ export default async function HonoursPage({ params }: Props) {
   }
 
   const playedWeeks = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled')
-  const playedCount = playedWeeks.length
+  const playedCount = getSeasonPlayedWeekCount(weeks)
   const totalWeeks = 52
   const pct = Math.round((playedCount / totalWeeks) * 100)
 
