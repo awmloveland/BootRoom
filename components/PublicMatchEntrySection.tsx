@@ -12,6 +12,11 @@ interface Props {
   canEdit?: boolean
 }
 
+/**
+ * Thin client wrapper that renders NextMatchCard in public mode.
+ * Accepts serializable props from the server page component and
+ * wires onResultSaved to a full page reload (re-fetches server data).
+ */
 export function PublicMatchEntrySection({ gameId, leagueSlug, weeks, initialScheduledWeek, leagueName, canEdit = true }: Props) {
   return (
     <NextMatchCard
