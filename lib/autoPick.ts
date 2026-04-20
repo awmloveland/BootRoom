@@ -146,6 +146,9 @@ export function autoPick(
   // unknowns are spread evenly regardless of how many there are or their order.
   // Falls back to the full scored set if no split passes (e.g. extreme small squads).
   let filteredScored = scored
+  // size >= 2: with only 1 new player, every split puts them on exactly one team
+  // (|diff| always === 1), so the filter would reject all splits and fall back
+  // unconditionally — skip it entirely.
   if (newPlayerNames && newPlayerNames.size >= 2) {
     const balanced = scored.filter((s) => {
       const countA = s.teamA.filter((p) => newPlayerNames.has(p.name)).length

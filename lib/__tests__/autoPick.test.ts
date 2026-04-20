@@ -293,4 +293,16 @@ describe('autoPick — newPlayerNames count-balance filter', () => {
       expect(s.teamA.length + s.teamB.length).toBe(10)
     }
   })
+
+  it('with 1 new player, does not apply filter and still returns valid suggestions', () => {
+    // With only 1 new player, every split puts them on exactly one team so
+    // |countA - countB| is always 1 — the filter is bypassed to avoid a no-op.
+    const players = Array.from({ length: 8 }, (_, i) => makePlayer(`Player ${i + 1}`))
+    const newPlayerNames = new Set(['Player 1'])
+    const result = autoPick(players, undefined, newPlayerNames)
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) {
+      expect(s.teamA.length + s.teamB.length).toBe(8)
+    }
+  })
 })
