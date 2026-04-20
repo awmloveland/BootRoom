@@ -118,27 +118,25 @@ export default async function LeagueResultsPage({ params }: Props) {
     }
   }
 
-  // Derive nextWeek from already-fetched weeks — getWeeks includes 'scheduled'
-  // rows so no extra DB query is needed.
+  // Derive nextWeek unconditionally — used for both the editable match entry section
+  // (gated by canSeeMatchEntry) and the always-public read-only lineup display.
   let nextWeek: ScheduledWeek | null = null
-  if (canSeeMatchEntry) {
-    const first = weeks
-      .filter((w) => w.status === 'scheduled')
-      .sort((a, b) => parseWeekDate(a.date).getTime() - parseWeekDate(b.date).getTime())[0]
-    if (first && !isPastDeadline(first.date)) {
-      nextWeek = {
-        id: first.id!,
-        season: first.season,
-        week: first.week,
-        date: first.date,
-        format: first.format ?? null,
-        teamA: first.teamA,
-        teamB: first.teamB,
-        status: 'scheduled',
-        lineupMetadata: first.lineupMetadata ?? null,
-        team_a_rating: first.team_a_rating ?? null,
-        team_b_rating: first.team_b_rating ?? null,
-      }
+  const first = weeks
+    .filter((w) => w.status === 'scheduled')
+    .sort((a, b) => parseWeekDate(a.date).getTime() - parseWeekDate(b.date).getTime())[0]
+  if (first && !isPastDeadline(first.date)) {
+    nextWeek = {
+      id: first.id!,
+      season: first.season,
+      week: first.week,
+      date: first.date,
+      format: first.format ?? null,
+      teamA: first.teamA,
+      teamB: first.teamB,
+      status: 'scheduled',
+      lineupMetadata: first.lineupMetadata ?? null,
+      team_a_rating: first.team_a_rating ?? null,
+      team_b_rating: first.team_b_rating ?? null,
     }
   }
 
@@ -188,12 +186,13 @@ export default async function LeagueResultsPage({ params }: Props) {
               joinStatus={joinStatus}
               pendingRequestCount={pendingRequestCount}
             />
-            {canSeeMatchEntry && (
+            {nextWeek && (
               <PublicMatchEntrySection
                 gameId={leagueId}
                 leagueSlug={slug}
                 weeks={weeks}
                 initialScheduledWeek={nextWeek}
+                canEdit={canSeeMatchEntry}
                 leagueName={game.name}
               />
             )}
