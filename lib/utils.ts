@@ -151,11 +151,11 @@ function playerFormScore(player: Player): number {
  *
  * Returns a single 0–100 score for a group of players representing a team.
  *
- *  - 55%: Average WPR — overall team quality floor
- *  - 20%: Max WPR — star player has outsized impact in 5-a-side
+ *  - 65%: Average WPR — overall team quality floor
+ *  - 10%: Top-2 average WPR — standout players have modest impact
  *  - 25%: Average normalised recent form
- *  - GK modifier: scaled by GK WPR — 1 + (wprScore(gk)/100)*4, range [+1,+5];
- *                 -3 for no GK, -2 for two (wasted slot)
+ *  - GK modifier: scaled by GK WPR — 0.5 + (wprScore(gk)/100)*2, range [+0.5,+2.5];
+ *                 -1.5 for no GK, -1 for two (wasted slot)
  *  - Variety bonus: +2 if team covers 3+ different mentalities
  *  - Depth modifier: small bonus/penalty relative to a 5-player baseline
  */
@@ -173,12 +173,12 @@ export function ewptScore(players: Player[]): number {
   const gkCount = gks.length
   let gkModifier: number
   if (gkCount === 0) {
-    gkModifier = -3
+    gkModifier = -1.5
   } else if (gkCount === 1) {
     const gkWpr = wprScore(gks[0])
-    gkModifier = 1 + (gkWpr / 100) * 4
+    gkModifier = 0.5 + (gkWpr / 100) * 2
   } else {
-    gkModifier = -2
+    gkModifier = -1
   }
   const mentalities = new Set(players.map((p) => p.mentality))
   const varietyBonus = mentalities.size >= 3 ? 2 : 0
@@ -187,7 +187,7 @@ export function ewptScore(players: Player[]): number {
     100,
     Math.max(
       0,
-      avgWpr * 0.50 + top2Avg * 0.25 + avgForm * 0.25 + gkModifier + varietyBonus + depthBonus,
+      avgWpr * 0.65 + top2Avg * 0.10 + avgForm * 0.25 + gkModifier + varietyBonus + depthBonus,
     ),
   )
 }
