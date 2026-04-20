@@ -9,14 +9,10 @@ interface Props {
   weeks: Week[]
   initialScheduledWeek: ScheduledWeek | null
   leagueName?: string
+  canEdit?: boolean
 }
 
-/**
- * Thin client wrapper that renders NextMatchCard in public mode.
- * Accepts serializable props from the server page component and
- * wires onResultSaved to a full page reload (re-fetches server data).
- */
-export function PublicMatchEntrySection({ gameId, leagueSlug, weeks, initialScheduledWeek, leagueName }: Props) {
+export function PublicMatchEntrySection({ gameId, leagueSlug, weeks, initialScheduledWeek, leagueName, canEdit = true }: Props) {
   return (
     <NextMatchCard
       gameId={gameId}
@@ -24,7 +20,7 @@ export function PublicMatchEntrySection({ gameId, leagueSlug, weeks, initialSche
       weeks={weeks}
       publicMode={true}
       initialScheduledWeek={initialScheduledWeek}
-      canEdit={true}
+      canEdit={canEdit}
       onResultSaved={() => window.location.reload()}
       leagueName={leagueName}
     />
