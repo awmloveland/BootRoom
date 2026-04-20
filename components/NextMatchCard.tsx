@@ -236,15 +236,11 @@ export function NextMatchCard({
       .filter((g) => g.associatedPlayer)
       .map((g) => [g.name, g.associatedPlayer] as [string, string])
 
-    const newPlayerNames = newPlayerEntries.map((p) => p.name)
-    const pinsA = newPlayerNames.length >= 2
-      ? newPlayerNames.filter((_, i) => i % 2 === 0)
-      : undefined
-    const pinsB = newPlayerNames.length >= 2
-      ? newPlayerNames.filter((_, i) => i % 2 === 1)
+    const newPlayerNameSet = newPlayerEntries.length > 0
+      ? new Set(newPlayerEntries.map((p) => p.name))
       : undefined
 
-    const result = autoPick(resolved, pairs, pinsA, pinsB)
+    const result = autoPick(resolved, pairs, newPlayerNameSet)
     setAutoPickResult(result)
     setSuggestionIndex(0)
     setIsManuallyEdited(false)
