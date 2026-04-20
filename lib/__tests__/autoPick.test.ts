@@ -228,7 +228,9 @@ describe('autoPick — newPlayerNames count-balance filter', () => {
   })
 
   it('uses new player wprOverride ratings to find best balance within count constraint', () => {
-    // Two strong and two weak new players — algorithm should split one strong + one weak per team
+    // Two strong and two weak new players — the algorithm should produce a balanced
+    // split (1 strong + 1 weak per team) since the 6 rated players are equal and the
+    // count-balance filter ensures exactly 2 new players per team.
     const rated = Array.from({ length: 6 }, (_, i) =>
       makePlayer(`Rated ${i + 1}`, { wprOverride: 55 })
     )
@@ -240,15 +242,24 @@ describe('autoPick — newPlayerNames count-balance filter', () => {
     ]
     const newPlayerNames = new Set(newPlayers.map((p) => p.name))
 
-    // Run multiple times to reduce sensitivity to random sampling
+    // Run 20 times because autoPick uses random sampling — the balanced split
+    // should emerge as the best split in the vast majority of runs.
     let foundGoodSplit = false
     for (let i = 0; i < 20; i++) {
       const result = autoPick([...rated, ...newPlayers], undefined, newPlayerNames)
       if (result.suggestions.length === 0) continue
-      const s = result.suggestions[0]
-      const strongOnA = s.teamA.filter((p) => p.name === 'StrongA' || p.name === 'StrongB').length
-      const weakOnA = s.teamA.filter((p) => p.name === 'WeakA' || p.name === 'WeakB').length
-      // A balanced split puts one strong and one weak per team
+
+      // All suggestions must satisfy count-balance constraint
+      for (const s of result.suggestions) {
+        const countA = s.teamA.filter((p) => newPlayerNames.has(p.name)).length
+        const countB = s.teamB.filter((p) => newPlayerNames.has(p.name)).length
+        expect(Math.abs(countA - countB)).toBeLessThanOrEqual(1)
+      }
+
+      // Best split (lowest diff) should pair one strong + one weak per team
+      const best = result.suggestions[0]
+      const strongOnA = best.teamA.filter((p) => p.name === 'StrongA' || p.name === 'StrongB').length
+      const weakOnA = best.teamA.filter((p) => p.name === 'WeakA' || p.name === 'WeakB').length
       if (strongOnA === 1 && weakOnA === 1) {
         foundGoodSplit = true
         break
