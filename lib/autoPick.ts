@@ -12,7 +12,6 @@ export interface AutoPickSuggestion {
 export interface AutoPickResult {
   suggestions: AutoPickSuggestion[]  // up to SUGGESTION_COUNT, sorted by diff ascending
   bestDiff: number
-  poolSize: number
 }
 
 // --- Split search ---
@@ -22,22 +21,6 @@ const SUGGESTION_COUNT = 5             // distinct splits surfaced in the UI
 
 // --- Filters ---
 const COUNT_BALANCE_SLACK = 1          // max |unknownA − unknownB| tolerated
-
-// --- Tolerance pool ---
-// Accept splits within ±TOLERANCE_WIN_PROB_BAND of a 50/50 match. 0.095 ≈ 3.08
-// score points above bestDiff, matching the legacy "+3 absolute" floor for
-// typical 5-a-side best diffs.
-const TOLERANCE_WIN_PROB_BAND = 0.095
-const POOL_EPSILON = 0.001             // float-safety nudge on pool boundary
-
-/**
- * Inverse of `winProbability`'s logistic curve: given a win-probability band
- * (distance from 0.5), return the corresponding score-difference threshold.
- * 1 / (1 + exp(-diff/8)) = 0.5 + band  →  diff = -8 × ln(1/(0.5+band) - 1).
- */
-export function diffForBand(band: number): number {
-  return -8 * Math.log(1 / (0.5 + band) - 1)
-}
 
 /**
  * Return the team an associated player is currently pinned to, or null if
@@ -62,10 +45,11 @@ export function findAssocTeam(
 
 /**
  * Given a list of players attending the game, return up to SUGGESTION_COUNT
- * balanced team splits — always the closest-to-50/50 splits, sorted by diff
- * ascending, with team-swap duplicates collapsed.
- * Uses exhaustive search for n ≤ 20, random sampling for n > 20.
- * Guest players (not in DB) should be passed with a wprOverride set to the appropriate
+ * (5) balanced team splits — always the closest-to-50/50 splits the algorithm
+ * can find, sorted by score diff ascending, with team-swap duplicates collapsed.
+ *
+ * Uses exhaustive search for n ≤ 20; random sampling for n > 20. Guest players
+ * (not in DB) should be passed with a wprOverride set to the appropriate
  * league percentile and all stats at zero.
  *
  * @param pairs - Optional array of [guestName, associatedPlayerName] pairs.
@@ -85,7 +69,7 @@ export function autoPick(
 ): AutoPickResult {
   const rng = random ?? Math.random
   const n = players.length
-  if (n < 2) return { suggestions: [], bestDiff: 0, poolSize: 0 }
+  if (n < 2) return { suggestions: [], bestDiff: 0 }
 
   // Translate name-based pairs to ID-based at the top so every downstream
   // comparison can use playerId (collision-safe) rather than name.
@@ -240,7 +224,7 @@ export function autoPick(
 
   const bestDiff = suggestions.length > 0 ? suggestions[0].diff : 0
 
-  return { suggestions, bestDiff, poolSize: 0 }
+  return { suggestions, bestDiff }
 }
 
 /** Return all size-k subsets of arr. */

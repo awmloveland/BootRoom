@@ -1,4 +1,4 @@
-import { autoPick, diffForBand, findAssocTeam } from '@/lib/autoPick'
+import { autoPick, findAssocTeam } from '@/lib/autoPick'
 import type { Player } from '@/lib/types'
 import { ewptScore } from '@/lib/utils'
 import { seededRng } from './helpers/seeded-rng'
@@ -537,21 +537,3 @@ describe('autoPick — returns closest-N splits', () => {
   })
 })
 
-describe('diffForBand — inverse logistic helper', () => {
-  it('band = 0.095 yields a diff threshold of ~3.08 (matches legacy +3 absolute floor)', () => {
-    expect(diffForBand(0.095)).toBeCloseTo(3.08, 2)
-  })
-
-  it('band = 0.05 yields ~1.61', () => {
-    expect(diffForBand(0.05)).toBeCloseTo(1.61, 2)
-  })
-
-  it('band = 0.2 yields ~6.78', () => {
-    expect(diffForBand(0.2)).toBeCloseTo(6.78, 2)
-  })
-
-  it('is monotonically increasing in the band', () => {
-    expect(diffForBand(0.05)).toBeLessThan(diffForBand(0.1))
-    expect(diffForBand(0.1)).toBeLessThan(diffForBand(0.2))
-  })
-})
