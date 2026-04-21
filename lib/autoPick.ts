@@ -10,7 +10,7 @@ export interface AutoPickSuggestion {
 }
 
 export interface AutoPickResult {
-  suggestions: AutoPickSuggestion[]  // up to 3, sorted by diff ascending
+  suggestions: AutoPickSuggestion[]  // up to SUGGESTION_COUNT, sorted by diff ascending
   bestDiff: number
   poolSize: number
 }
@@ -61,7 +61,9 @@ export function findAssocTeam(
 }
 
 /**
- * Given a list of players attending the game, return up to 3 balanced team splits.
+ * Given a list of players attending the game, return up to SUGGESTION_COUNT
+ * balanced team splits — always the closest-to-50/50 splits, sorted by diff
+ * ascending, with team-swap duplicates collapsed.
  * Uses exhaustive search for n ≤ 20, random sampling for n > 20.
  * Guest players (not in DB) should be passed with a wprOverride set to the appropriate
  * league percentile and all stats at zero.
