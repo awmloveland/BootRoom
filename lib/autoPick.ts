@@ -10,34 +10,20 @@ export interface AutoPickSuggestion {
 }
 
 export interface AutoPickResult {
-  suggestions: AutoPickSuggestion[]  // up to 3, sorted by diff ascending
+  suggestions: AutoPickSuggestion[]  // up to SUGGESTION_COUNT, sorted by diff ascending
   bestDiff: number
-  poolSize: number
 }
 
 // --- Split search ---
 const EXHAUSTIVE_THRESHOLD = 20        // n ≤ this → try every split; above, sample
+// NOTE: the "closest 5" guarantee holds only on the exhaustive path. For
+// n > EXHAUSTIVE_THRESHOLD the algorithm picks the closest 5 from this
+// sample, so a closer split not present in the sample can still be missed.
 const FALLBACK_SAMPLE_COUNT = 500      // random shuffles tried when n > EXHAUSTIVE_THRESHOLD
-const SUGGESTION_COUNT = 3             // distinct splits surfaced in the UI
+const SUGGESTION_COUNT = 5             // distinct splits surfaced in the UI
 
 // --- Filters ---
 const COUNT_BALANCE_SLACK = 1          // max |unknownA − unknownB| tolerated
-
-// --- Tolerance pool ---
-// Accept splits within ±TOLERANCE_WIN_PROB_BAND of a 50/50 match. 0.095 ≈ 3.08
-// score points above bestDiff, matching the legacy "+3 absolute" floor for
-// typical 5-a-side best diffs.
-const TOLERANCE_WIN_PROB_BAND = 0.095
-const POOL_EPSILON = 0.001             // float-safety nudge on pool boundary
-
-/**
- * Inverse of `winProbability`'s logistic curve: given a win-probability band
- * (distance from 0.5), return the corresponding score-difference threshold.
- * 1 / (1 + exp(-diff/8)) = 0.5 + band  →  diff = -8 × ln(1/(0.5+band) - 1).
- */
-export function diffForBand(band: number): number {
-  return -8 * Math.log(1 / (0.5 + band) - 1)
-}
 
 /**
  * Return the team an associated player is currently pinned to, or null if
@@ -61,9 +47,12 @@ export function findAssocTeam(
 }
 
 /**
- * Given a list of players attending the game, return up to 3 balanced team splits.
- * Uses exhaustive search for n ≤ 20, random sampling for n > 20.
- * Guest players (not in DB) should be passed with a wprOverride set to the appropriate
+ * Given a list of players attending the game, return up to SUGGESTION_COUNT
+ * (5) balanced team splits — always the closest-to-50/50 splits the algorithm
+ * can find, sorted by score diff ascending, with team-swap duplicates collapsed.
+ *
+ * Uses exhaustive search for n ≤ 20; random sampling for n > 20. Guest players
+ * (not in DB) should be passed with a wprOverride set to the appropriate
  * league percentile and all stats at zero.
  *
  * @param pairs - Optional array of [guestName, associatedPlayerName] pairs.
@@ -83,7 +72,7 @@ export function autoPick(
 ): AutoPickResult {
   const rng = random ?? Math.random
   const n = players.length
-  if (n < 2) return { suggestions: [], bestDiff: 0, poolSize: 0 }
+  if (n < 2) return { suggestions: [], bestDiff: 0 }
 
   // Translate name-based pairs to ID-based at the top so every downstream
   // comparison can use playerId (collision-safe) rather than name.
@@ -217,21 +206,14 @@ export function autoPick(
     if (balanced.length > 0) filteredScored = balanced
   }
 
-  // Find best (minimum) diff
-  const bestDiff = filteredScored.reduce((min, s) => (s.diff < min ? s.diff : min), Infinity)
-
-  // Collect pool: all splits whose score-diff falls within the configured
-  // win-probability band (default ±9.5% of 50/50 ≈ 3.08 score points above bestDiff).
-  // The band replaces the legacy "5% of bestDiff or +3 absolute" heuristic with a
-  // single, semantically-meaningful threshold.
-  const tolerance = bestDiff + diffForBand(TOLERANCE_WIN_PROB_BAND)
-  const pool = filteredScored.filter((s) => s.diff <= tolerance + POOL_EPSILON)
-
-  // Randomly sample up to 3 from the pool, deduplicating team-swaps, then sort by diff ascending
-  const shuffledPool = [...pool].sort(() => rng() - 0.5)
+  // Sort all scored splits by diff ascending, then walk with team-swap dedup
+  // to collect the top SUGGESTION_COUNT unique splits. This always surfaces
+  // the closest-to-50/50 splits the algorithm can find — variety is no longer
+  // traded off against tightness.
+  const sortedByDiff = [...filteredScored].sort((a, b) => a.diff - b.diff)
   const seen = new Set<string>()
-  const suggestions: typeof shuffledPool = []
-  for (const candidate of shuffledPool) {
+  const suggestions: typeof sortedByDiff = []
+  for (const candidate of sortedByDiff) {
     const key = [
       [...candidate.teamA].map((p) => p.playerId).sort().join(','),
       [...candidate.teamB].map((p) => p.playerId).sort().join(','),
@@ -242,9 +224,10 @@ export function autoPick(
     }
     if (suggestions.length === SUGGESTION_COUNT) break
   }
-  suggestions.sort((a, b) => a.diff - b.diff)
 
-  return { suggestions, bestDiff, poolSize: pool.length }
+  const bestDiff = suggestions.length > 0 ? suggestions[0].diff : 0
+
+  return { suggestions, bestDiff }
 }
 
 /** Return all size-k subsets of arr. */
