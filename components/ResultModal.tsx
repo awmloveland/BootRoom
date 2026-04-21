@@ -175,7 +175,11 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         const isGk = src
           ? ('mentality' in src ? src.mentality === 'goalkeeper' : Boolean(src.goalkeeper))
           : false
+        // Synthetic playerId prefix differentiates review-scratch Players from
+        // their roster counterparts; irrelevant for scoring but prevents
+        // accidental collisions if this flows through identity-based code.
         return {
+          playerId: `review|${name}`,
           name,
           played: 0, won: 0, drew: 0, lost: 0,
           timesTeamA: 0, timesTeamB: 0,

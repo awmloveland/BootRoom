@@ -33,7 +33,15 @@ export interface PlayerAttribute {
 // "Is this player a goalkeeper?" lives on `mentality === 'goalkeeper'` only.
 // `Player.goalkeeper: boolean` was removed (2026-04-21) in favour of the single mentality enum.
 // GuestEntry.goalkeeper is a separate UI signal and intentionally retained.
+//
+// `playerId` is a synthetic identity stamped at the resolution boundary
+// (resolvePlayersForAutoPick / lib/data.ts / lib/fetchers.ts) so downstream
+// comparisons don't collide on shared names. Prefix convention:
+//   'known|<name>' — roster player, 'roster|<dbId>' when DB id is available
+//   'guest|<name>' — guest (someone's +1)
+//   'new|<name>'   — first-time player added via the new-player flow
 export interface Player {
+  playerId: string;
   name: string;
   played: number;
   won: number;

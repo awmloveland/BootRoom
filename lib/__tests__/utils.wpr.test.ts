@@ -2,8 +2,10 @@ import { wprScore, leagueMedianWpr, leagueWprPercentiles, ewptScore } from '@/li
 import type { Player } from '@/lib/types'
 
 function makePlayer(overrides?: Partial<Player>): Player {
+  const name = overrides?.name ?? 'Test'
   return {
-    name: 'Test',
+    playerId: `known|${name}`,
+    name,
     played: 10, won: 5, drew: 2, lost: 3,
     timesTeamA: 0, timesTeamB: 0,
     winRate: 0.5, qualified: true, points: 17,

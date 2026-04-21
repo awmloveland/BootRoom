@@ -85,11 +85,12 @@ function resolvePlayersForAutoPick(
 
   return names.map((name) => {
     const known = lookup.get(name.toLowerCase())
-    if (known) return known
+    if (known) return known   // already has `roster|<name>` from fetchers
 
     const guest = guestLookup.get(name.toLowerCase())
     if (guest) {
       return {
+        playerId: `guest|${name}`,
         name,
         played: 0, won: 0, drew: 0, lost: 0,
         timesTeamA: 0, timesTeamB: 0,
@@ -104,6 +105,7 @@ function resolvePlayersForAutoPick(
     const newPlayer = newPlayerLookup.get(name.toLowerCase())
     if (newPlayer) {
       return {
+        playerId: `new|${name}`,
         name,
         played: 0, won: 0, drew: 0, lost: 0,
         timesTeamA: 0, timesTeamB: 0,
@@ -116,6 +118,7 @@ function resolvePlayersForAutoPick(
     }
 
     return {
+      playerId: `unknown|${name}`,
       name,
       played: 0, won: 0, drew: 0, lost: 0,
       timesTeamA: 0, timesTeamB: 0,
@@ -239,12 +242,16 @@ export function NextMatchCard({
     // Treat both guests and new players as "unknown" — the count-balance filter
     // spreads them across teams subject to pair-pinning constraints. autoPick
     // no-ops internally when the set is empty or a singleton, so we can pass it
-    // unconditionally.
-    const unknownNameSet = new Set<string>()
-    for (const g of guestEntries) unknownNameSet.add(g.name)
-    for (const p of newPlayerEntries) unknownNameSet.add(p.name)
+    // unconditionally. We collect playerIds (not names) so same-named entities
+    // stay distinct.
+    const unknownEntryNames = new Set<string>()
+    for (const g of guestEntries) unknownEntryNames.add(g.name)
+    for (const p of newPlayerEntries) unknownEntryNames.add(p.name)
+    const unknownIds = new Set(
+      resolved.filter((p) => unknownEntryNames.has(p.name)).map((p) => p.playerId),
+    )
 
-    const result = autoPick(resolved, pairs, unknownNameSet)
+    const result = autoPick(resolved, pairs, unknownIds)
     setAutoPickResult(result)
     setSuggestionIndex(0)
     setIsManuallyEdited(false)

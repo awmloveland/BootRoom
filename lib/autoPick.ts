@@ -46,16 +46,17 @@ export function diffForBand(band: number): number {
  * free search pool (already pinned as GK or by a prior pair).
  */
 export function findAssocTeam(
-  assocName: string,
+  assocId: string | undefined,
   pinnedA: Player | null,
   pinnedB: Player | null,
   pinnedTeamA: Player[],
   pinnedTeamB: Player[],
 ): 'A' | 'B' | null {
-  if (assocName === pinnedA?.name) return 'A'
-  if (assocName === pinnedB?.name) return 'B'
-  if (pinnedTeamA.some((p) => p.name === assocName)) return 'A'
-  if (pinnedTeamB.some((p) => p.name === assocName)) return 'B'
+  if (assocId === undefined) return null
+  if (assocId === pinnedA?.playerId) return 'A'
+  if (assocId === pinnedB?.playerId) return 'B'
+  if (pinnedTeamA.some((p) => p.playerId === assocId)) return 'A'
+  if (pinnedTeamB.some((p) => p.playerId === assocId)) return 'B'
   return null
 }
 
@@ -67,18 +68,33 @@ export function findAssocTeam(
  *
  * @param pairs - Optional array of [guestName, associatedPlayerName] pairs.
  *   Each guest will be pinned to the same team as their associated player.
- * @param unknownNames - Optional set of player names that are unknown — guests or
+ * @param unknownIds - Optional set of `playerId`s that are unknown — guests or
  *   new players. Used as a post-generation count-balance filter: splits where the
  *   unknown-player count differs by more than 1 between teams are discarded. If no
  *   split passes, falls back to the full set.
+ * @param random - Optional RNG function returning `[0, 1)`. Defaults to
+ *   `Math.random`. Tests pass a seeded generator for deterministic behaviour.
  */
 export function autoPick(
   players: Player[],
   pairs?: Array<[string, string]>,
-  unknownNames?: Set<string>,
+  unknownIds?: Set<string>,
+  random?: () => number,
 ): AutoPickResult {
+  const rng = random ?? Math.random
   const n = players.length
   if (n < 2) return { suggestions: [], bestDiff: 0, poolSize: 0 }
+
+  // Translate name-based pairs to ID-based at the top so every downstream
+  // comparison can use playerId (collision-safe) rather than name.
+  const nameToId = new Map<string, string>(players.map((p) => [p.name, p.playerId]))
+  const idPairs: Array<[string, string | undefined]> = (pairs ?? [])
+    .map(([guestName, assocName]) => {
+      const guestId = nameToId.get(guestName)
+      if (!guestId) return null
+      return [guestId, nameToId.get(assocName)] as [string, string | undefined]
+    })
+    .filter((p): p is [string, string | undefined] => p !== null)
 
   // GK constraint: pin one GK to each team (when ≥2 GKs exist) so neither
   // team is ever left without a goalkeeper. Any additional GKs beyond the
@@ -88,14 +104,11 @@ export function autoPick(
   // - 2 GKs: one pinned to each team — guaranteed opposing sides
   // - 3+ GKs: one pinned to each team, the rest distributed freely
   //
-  // Guests (identified by appearance as first element of any pair) are excluded
-  // from the GK pool — their placement is handled by pair pinning instead.
-  // Guest names are matched with exact case. This is safe because player names flow
-  // through from the same source (Player.name / GuestEntry.name) without case normalisation.
-  // If name normalisation is ever added to resolvePlayersForAutoPick, update these comparisons.
-  const guestNames = new Set((pairs ?? []).map(([g]) => g))
-  const gkPlayers = [...players.filter((p) => p.mentality === 'goalkeeper' && !guestNames.has(p.name))]
-    .sort(() => Math.random() - 0.5) // shuffle so pinned pair is random when 3+ GKs
+  // Guests (identified by first element of any id-pair) are excluded from the
+  // GK pool — their placement is handled by pair pinning instead.
+  const guestIds = new Set(idPairs.map(([g]) => g))
+  const gkPlayers = [...players.filter((p) => p.mentality === 'goalkeeper' && !guestIds.has(p.playerId))]
+    .sort(() => rng() - 0.5) // shuffle so pinned pair is random when 3+ GKs
   const pinnedA: Player | null = gkPlayers.length >= 1 ? gkPlayers[0] : null
   const pinnedB: Player | null = gkPlayers.length >= 2 ? gkPlayers[1] : null
   let searchPool = players.filter((p) => p !== pinnedA && p !== pinnedB)
@@ -110,11 +123,13 @@ export function autoPick(
   // (avoids O(n²) array rebuilding per iteration).
   const excluded = new Set<Player>()
 
-  for (const [guestName, assocName] of (pairs ?? [])) {
-    const guest = searchPool.find((p) => p.name === guestName && !excluded.has(p))
+  for (const [guestId, assocId] of idPairs) {
+    const guest = searchPool.find((p) => p.playerId === guestId && !excluded.has(p))
     if (!guest) continue // guest not in pool (absent or already placed) — skip
 
-    const assoc = searchPool.find((p) => p.name === assocName && !excluded.has(p))
+    const assoc = assocId === undefined
+      ? undefined
+      : searchPool.find((p) => p.playerId === assocId && !excluded.has(p))
 
     if (assoc) {
       // Normal case: both in free pool. Assign by toggle, then flip.
@@ -132,7 +147,7 @@ export function autoPick(
     // Associated player not in free pool — follow them to wherever they're
     // already pinned (GK slot or a prior-pair team list). The toggle does NOT
     // flip here: only "new" pair pins advance the alternation.
-    const team = findAssocTeam(assocName, pinnedA, pinnedB, pinnedTeamA, pinnedTeamB)
+    const team = findAssocTeam(assocId, pinnedA, pinnedB, pinnedTeamA, pinnedTeamB)
     if (team === 'A') {
       excluded.add(guest)
       pinnedTeamA.push(guest)
@@ -149,7 +164,7 @@ export function autoPick(
 
   // When n is odd, randomise which team receives the extra slot. Over many games
   // this removes Team A's persistent +0.5 depth-bonus advantage.
-  const extraSlotToA = n % 2 === 0 || Math.random() < 0.5
+  const extraSlotToA = n % 2 === 0 || rng() < 0.5
   const halfSize = extraSlotToA ? Math.ceil(n / 2) : Math.floor(n / 2)
   // How many non-pinned players go into Team A (clamp to 0 to avoid negative, and to searchPool.length to avoid exceeding pool)
   const sizeA = Math.max(0, Math.min(searchPool.length, halfSize - (pinnedA ? 1 : 0) - pinnedTeamA.length))
@@ -159,14 +174,14 @@ export function autoPick(
 
   if (n <= EXHAUSTIVE_THRESHOLD) {
     rawSplits = combinations(searchPool, sizeA).map((teamASlice) => {
-      const inA = new Set(teamASlice.map((p) => p.name))
-      return [teamASlice, searchPool.filter((p) => !inA.has(p.name))] as [Player[], Player[]]
+      const inA = new Set(teamASlice.map((p) => p.playerId))
+      return [teamASlice, searchPool.filter((p) => !inA.has(p.playerId))] as [Player[], Player[]]
     })
   } else {
     // Random-sample fallback for large squads
     rawSplits = []
     for (let i = 0; i < FALLBACK_SAMPLE_COUNT; i++) {
-      const shuffled = [...searchPool].sort(() => Math.random() - 0.5)
+      const shuffled = [...searchPool].sort(() => rng() - 0.5)
       rawSplits.push([shuffled.slice(0, sizeA), shuffled.slice(sizeA)])
     }
   }
@@ -193,10 +208,10 @@ export function autoPick(
   // size >= 2: with only 1 unknown, every split puts them on exactly one team
   // (|diff| always === 1), so the filter would reject all splits and fall back
   // unconditionally — skip it entirely.
-  if (unknownNames && unknownNames.size >= 2) {
+  if (unknownIds && unknownIds.size >= 2) {
     const balanced = scored.filter((s) => {
-      const countA = s.teamA.filter((p) => unknownNames.has(p.name)).length
-      const countB = s.teamB.filter((p) => unknownNames.has(p.name)).length
+      const countA = s.teamA.filter((p) => unknownIds.has(p.playerId)).length
+      const countB = s.teamB.filter((p) => unknownIds.has(p.playerId)).length
       return Math.abs(countA - countB) <= COUNT_BALANCE_SLACK
     })
     if (balanced.length > 0) filteredScored = balanced
@@ -213,13 +228,13 @@ export function autoPick(
   const pool = filteredScored.filter((s) => s.diff <= tolerance + POOL_EPSILON)
 
   // Randomly sample up to 3 from the pool, deduplicating team-swaps, then sort by diff ascending
-  const shuffledPool = [...pool].sort(() => Math.random() - 0.5)
+  const shuffledPool = [...pool].sort(() => rng() - 0.5)
   const seen = new Set<string>()
   const suggestions: typeof shuffledPool = []
   for (const candidate of shuffledPool) {
     const key = [
-      [...candidate.teamA].map((p) => p.name).sort().join(','),
-      [...candidate.teamB].map((p) => p.name).sort().join(','),
+      [...candidate.teamA].map((p) => p.playerId).sort().join(','),
+      [...candidate.teamB].map((p) => p.playerId).sort().join(','),
     ].sort().join('|')
     if (!seen.has(key)) {
       seen.add(key)
