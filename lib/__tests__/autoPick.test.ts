@@ -1,5 +1,6 @@
 import { autoPick, diffForBand, findAssocTeam } from '@/lib/autoPick'
 import type { Player } from '@/lib/types'
+import { ewptScore } from '@/lib/utils'
 import { seededRng } from './helpers/seeded-rng'
 
 function makePlayer(name: string, overrides?: Partial<Player>): Player {
@@ -450,6 +451,88 @@ describe('autoPick — synthetic playerId identity (2.7)', () => {
       const all = [...s.teamA, ...s.teamB]
       expect(all.filter((p) => p.playerId === knownAlice.playerId)).toHaveLength(1)
       expect(all.filter((p) => p.playerId === guestAlice.playerId)).toHaveLength(1)
+    }
+  })
+})
+
+// ─── Closest-N selection ─────────────────────────────────────────────────────
+
+describe('autoPick — returns closest-N splits', () => {
+  // Canonical team-swap key so {A,B} and {B,A} collapse to the same string.
+  // Matches the dedup key used inside autoPick itself.
+  const teamSwapKey = (a: Player[], b: Player[]) =>
+    [a.map((p) => p.playerId).sort().join(','), b.map((p) => p.playerId).sort().join(',')]
+      .sort()
+      .join('|')
+
+  it('returns 5 suggestions sorted ascending by diff, and they are the 5 smallest-diff unique splits', () => {
+    // 10 players with varied ratings to guarantee >5 unique diffs.
+    // No goalkeepers → no GK pinning, so the search is over all 10 players.
+    const players = Array.from({ length: 10 }, (_, i) =>
+      makePlayer(`P${i + 1}`, { rating: 1 + (i % 3), played: 10, recentForm: 'WLDWL' })
+    )
+
+    const result = autoPick(players, undefined, undefined, seededRng(1))
+
+    // Length matches SUGGESTION_COUNT (= 5 after Task 2).
+    expect(result.suggestions.length).toBe(5)
+
+    // Sorted ascending by diff.
+    for (let i = 1; i < result.suggestions.length; i++) {
+      expect(result.suggestions[i].diff).toBeGreaterThanOrEqual(
+        result.suggestions[i - 1].diff,
+      )
+    }
+
+    // Brute-force completeness check: independently enumerate every 5-vs-5
+    // split, collapse team-swaps, and assert no unseen split beats the 5th.
+    const combinations = <T,>(arr: T[], k: number): T[][] => {
+      if (k === 0) return [[]]
+      if (k === arr.length) return [[...arr]]
+      if (k > arr.length) return []
+      const [first, ...rest] = arr
+      return [
+        ...combinations(rest, k - 1).map((c) => [first, ...c]),
+        ...combinations(rest, k),
+      ]
+    }
+
+    const suggestionKeys = new Set(
+      result.suggestions.map((s) => teamSwapKey(s.teamA, s.teamB)),
+    )
+    const worstSuggestedDiff = result.suggestions[4].diff
+
+    const visitedKeys = new Set<string>()
+    for (const teamA of combinations(players, 5)) {
+      const inA = new Set(teamA.map((p) => p.playerId))
+      const teamB = players.filter((p) => !inA.has(p.playerId))
+      const key = teamSwapKey(teamA, teamB)
+      if (visitedKeys.has(key)) continue
+      visitedKeys.add(key)
+      if (suggestionKeys.has(key)) continue
+      const diff = Math.abs(ewptScore(teamA) - ewptScore(teamB))
+      expect(diff).toBeGreaterThanOrEqual(worstSuggestedDiff)
+    }
+  })
+
+  it('returns fewer than 5 suggestions when fewer unique splits exist', () => {
+    // 4 players → sizeA=2 → C(4,2)=6 raw splits → 3 unique after team-swap dedup.
+    const players = [
+      makePlayer('A', { rating: 3 }),
+      makePlayer('B', { rating: 2 }),
+      makePlayer('C', { rating: 1 }),
+      makePlayer('D', { rating: 2 }),
+    ]
+    const result = autoPick(players, undefined, undefined, seededRng(1))
+
+    expect(result.suggestions.length).toBeLessThanOrEqual(5)
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    // No duplicates among suggestions (team-swap dedup invariant).
+    const keys = new Set<string>()
+    for (const s of result.suggestions) {
+      const key = teamSwapKey(s.teamA, s.teamB)
+      expect(keys.has(key)).toBe(false)
+      keys.add(key)
     }
   })
 })

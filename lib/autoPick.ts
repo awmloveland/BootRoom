@@ -18,7 +18,7 @@ export interface AutoPickResult {
 // --- Split search ---
 const EXHAUSTIVE_THRESHOLD = 20        // n ≤ this → try every split; above, sample
 const FALLBACK_SAMPLE_COUNT = 500      // random shuffles tried when n > EXHAUSTIVE_THRESHOLD
-const SUGGESTION_COUNT = 3             // distinct splits surfaced in the UI
+const SUGGESTION_COUNT = 5             // distinct splits surfaced in the UI
 
 // --- Filters ---
 const COUNT_BALANCE_SLACK = 1          // max |unknownA − unknownB| tolerated
@@ -217,21 +217,14 @@ export function autoPick(
     if (balanced.length > 0) filteredScored = balanced
   }
 
-  // Find best (minimum) diff
-  const bestDiff = filteredScored.reduce((min, s) => (s.diff < min ? s.diff : min), Infinity)
-
-  // Collect pool: all splits whose score-diff falls within the configured
-  // win-probability band (default ±9.5% of 50/50 ≈ 3.08 score points above bestDiff).
-  // The band replaces the legacy "5% of bestDiff or +3 absolute" heuristic with a
-  // single, semantically-meaningful threshold.
-  const tolerance = bestDiff + diffForBand(TOLERANCE_WIN_PROB_BAND)
-  const pool = filteredScored.filter((s) => s.diff <= tolerance + POOL_EPSILON)
-
-  // Randomly sample up to 3 from the pool, deduplicating team-swaps, then sort by diff ascending
-  const shuffledPool = [...pool].sort(() => rng() - 0.5)
+  // Sort all scored splits by diff ascending, then walk with team-swap dedup
+  // to collect the top SUGGESTION_COUNT unique splits. This always surfaces
+  // the closest-to-50/50 splits the algorithm can find — variety is no longer
+  // traded off against tightness.
+  const sortedByDiff = [...filteredScored].sort((a, b) => a.diff - b.diff)
   const seen = new Set<string>()
-  const suggestions: typeof shuffledPool = []
-  for (const candidate of shuffledPool) {
+  const suggestions: typeof sortedByDiff = []
+  for (const candidate of sortedByDiff) {
     const key = [
       [...candidate.teamA].map((p) => p.playerId).sort().join(','),
       [...candidate.teamB].map((p) => p.playerId).sort().join(','),
@@ -242,9 +235,10 @@ export function autoPick(
     }
     if (suggestions.length === SUGGESTION_COUNT) break
   }
-  suggestions.sort((a, b) => a.diff - b.diff)
 
-  return { suggestions, bestDiff, poolSize: pool.length }
+  const bestDiff = suggestions.length > 0 ? suggestions[0].diff : 0
+
+  return { suggestions, bestDiff, poolSize: 0 }
 }
 
 /** Return all size-k subsets of arr. */
