@@ -389,7 +389,7 @@ describe('autoPick — odd-player allocation distribution', () => {
   })
 })
 
-// ─── Win-probability tolerance (1.6) ─────────────────────────────────────────
+// ─── findAssocTeam — placement helper ────────────────────────────────────────
 
 describe('findAssocTeam — placement helper', () => {
   it('returns null when the associated player is nowhere', () => {
