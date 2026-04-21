@@ -1,4 +1,4 @@
-import { autoPick, diffForBand } from '@/lib/autoPick'
+import { autoPick, diffForBand, findAssocTeam } from '@/lib/autoPick'
 import type { Player } from '@/lib/types'
 
 function makePlayer(name: string, overrides?: Partial<Player>): Player {
@@ -385,6 +385,38 @@ describe('autoPick — odd-player allocation distribution', () => {
 })
 
 // ─── Win-probability tolerance (1.6) ─────────────────────────────────────────
+
+describe('findAssocTeam — placement helper', () => {
+  it('returns null when the associated player is nowhere', () => {
+    expect(findAssocTeam('Alice', null, null, [], [])).toBeNull()
+  })
+
+  it('returns A when assoc matches the Team A pinned GK', () => {
+    const alice = makePlayer('Alice', { mentality: 'goalkeeper' })
+    expect(findAssocTeam('Alice', alice, null, [], [])).toBe('A')
+  })
+
+  it('returns B when assoc matches the Team B pinned GK', () => {
+    const alice = makePlayer('Alice', { mentality: 'goalkeeper' })
+    expect(findAssocTeam('Alice', null, alice, [], [])).toBe('B')
+  })
+
+  it('returns A when assoc is already in pinnedTeamA (prior pair)', () => {
+    const alice = makePlayer('Alice')
+    expect(findAssocTeam('Alice', null, null, [alice], [])).toBe('A')
+  })
+
+  it('returns B when assoc is already in pinnedTeamB (prior pair)', () => {
+    const alice = makePlayer('Alice')
+    expect(findAssocTeam('Alice', null, null, [], [alice])).toBe('B')
+  })
+
+  it('pinned GK takes precedence over pair-list membership', () => {
+    const alice = makePlayer('Alice', { mentality: 'goalkeeper' })
+    const aliceCopy = makePlayer('Alice')
+    expect(findAssocTeam('Alice', alice, null, [aliceCopy], [])).toBe('A')
+  })
+})
 
 describe('diffForBand — inverse logistic helper', () => {
   it('band = 0.095 yields a diff threshold of ~3.08 (matches legacy +3 absolute floor)', () => {

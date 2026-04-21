@@ -237,16 +237,14 @@ export function NextMatchCard({
       .map((g) => [g.name, g.associatedPlayer] as [string, string])
 
     // Treat both guests and new players as "unknown" — the count-balance filter
-    // spreads them across teams subject to pair-pinning constraints.
+    // spreads them across teams subject to pair-pinning constraints. autoPick
+    // no-ops internally when the set is empty or a singleton, so we can pass it
+    // unconditionally.
     const unknownNameSet = new Set<string>()
     for (const g of guestEntries) unknownNameSet.add(g.name)
     for (const p of newPlayerEntries) unknownNameSet.add(p.name)
 
-    const result = autoPick(
-      resolved,
-      pairs,
-      unknownNameSet.size >= 2 ? unknownNameSet : undefined,
-    )
+    const result = autoPick(resolved, pairs, unknownNameSet)
     setAutoPickResult(result)
     setSuggestionIndex(0)
     setIsManuallyEdited(false)

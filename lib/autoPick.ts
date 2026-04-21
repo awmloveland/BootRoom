@@ -15,10 +15,20 @@ export interface AutoPickResult {
   poolSize: number
 }
 
-// Tolerance pool: accept splits within ±TOLERANCE_WIN_PROB_BAND of a 50/50 match.
-// 0.095 corresponds to a ~3.08 score-point threshold, matching the legacy
-// "+3 absolute" floor for typical 5-a-side best diffs.
+// --- Split search ---
+const EXHAUSTIVE_THRESHOLD = 20        // n ≤ this → try every split; above, sample
+const FALLBACK_SAMPLE_COUNT = 500      // random shuffles tried when n > EXHAUSTIVE_THRESHOLD
+const SUGGESTION_COUNT = 3             // distinct splits surfaced in the UI
+
+// --- Filters ---
+const COUNT_BALANCE_SLACK = 1          // max |unknownA − unknownB| tolerated
+
+// --- Tolerance pool ---
+// Accept splits within ±TOLERANCE_WIN_PROB_BAND of a 50/50 match. 0.095 ≈ 3.08
+// score points above bestDiff, matching the legacy "+3 absolute" floor for
+// typical 5-a-side best diffs.
 const TOLERANCE_WIN_PROB_BAND = 0.095
+const POOL_EPSILON = 0.001             // float-safety nudge on pool boundary
 
 /**
  * Inverse of `winProbability`'s logistic curve: given a win-probability band
@@ -27,6 +37,26 @@ const TOLERANCE_WIN_PROB_BAND = 0.095
  */
 export function diffForBand(band: number): number {
   return -8 * Math.log(1 / (0.5 + band) - 1)
+}
+
+/**
+ * Return the team an associated player is currently pinned to, or null if
+ * they're absent. Used by the pair-pinning loop to place a guest on the same
+ * team as their associated player when the associated player is outside the
+ * free search pool (already pinned as GK or by a prior pair).
+ */
+export function findAssocTeam(
+  assocName: string,
+  pinnedA: Player | null,
+  pinnedB: Player | null,
+  pinnedTeamA: Player[],
+  pinnedTeamB: Player[],
+): 'A' | 'B' | null {
+  if (assocName === pinnedA?.name) return 'A'
+  if (assocName === pinnedB?.name) return 'B'
+  if (pinnedTeamA.some((p) => p.name === assocName)) return 'A'
+  if (pinnedTeamB.some((p) => p.name === assocName)) return 'B'
+  return null
 }
 
 /**
@@ -76,50 +106,46 @@ export function autoPick(
   const pinnedTeamB: Player[] = []
   let pairTeamToggle = true
 
-  for (const [guestName, associatedName] of (pairs ?? [])) {
-    const guest = searchPool.find((p) => p.name === guestName)
+  // Accumulate pool exclusions and drop them in a single filter after the loop
+  // (avoids O(n²) array rebuilding per iteration).
+  const excluded = new Set<Player>()
 
+  for (const [guestName, assocName] of (pairs ?? [])) {
+    const guest = searchPool.find((p) => p.name === guestName && !excluded.has(p))
     if (!guest) continue // guest not in pool (absent or already placed) — skip
 
-    const assoc = searchPool.find((p) => p.name === associatedName)
+    const assoc = searchPool.find((p) => p.name === assocName && !excluded.has(p))
 
-    if (!assoc) {
-      // Associated player not found in free pool — check if they are a pinned GK
-      // or have already been pinned to a pair team by a previous iteration.
-      if (associatedName === pinnedA?.name) {
-        // Remove guest from remaining pool and pin to Team A alongside GK
-        searchPool = searchPool.filter((p) => p !== guest)
-        pinnedTeamA.push(guest)
-        // toggle is NOT flipped in this case
-      } else if (associatedName === pinnedB?.name) {
-        // Remove guest from remaining pool and pin to Team B alongside GK
-        searchPool = searchPool.filter((p) => p !== guest)
-        pinnedTeamB.push(guest)
-        // toggle is NOT flipped in this case
-      } else if (pinnedTeamA.some((p) => p.name === associatedName)) {
-        // Associated player was already pinned to Team A by a prior pair — join them
-        searchPool = searchPool.filter((p) => p !== guest)
-        pinnedTeamA.push(guest)
-        // toggle is NOT flipped in this case
-      } else if (pinnedTeamB.some((p) => p.name === associatedName)) {
-        // Associated player was already pinned to Team B by a prior pair — join them
-        searchPool = searchPool.filter((p) => p !== guest)
-        pinnedTeamB.push(guest)
-        // toggle is NOT flipped in this case
+    if (assoc) {
+      // Normal case: both in free pool. Assign by toggle, then flip.
+      excluded.add(guest)
+      excluded.add(assoc)
+      if (pairTeamToggle) {
+        pinnedTeamA.push(guest, assoc)
+      } else {
+        pinnedTeamB.push(guest, assoc)
       }
-      // Otherwise associated player is absent entirely — skip (graceful degradation)
+      pairTeamToggle = !pairTeamToggle
       continue
     }
 
-    // Normal pair: remove both from free pool and pin together
-    searchPool = searchPool.filter((p) => p !== guest && p !== assoc)
-    if (pairTeamToggle) {
-      pinnedTeamA.push(guest, assoc)
-    } else {
-      pinnedTeamB.push(guest, assoc)
+    // Associated player not in free pool — follow them to wherever they're
+    // already pinned (GK slot or a prior-pair team list). The toggle does NOT
+    // flip here: only "new" pair pins advance the alternation.
+    const team = findAssocTeam(assocName, pinnedA, pinnedB, pinnedTeamA, pinnedTeamB)
+    if (team === 'A') {
+      excluded.add(guest)
+      pinnedTeamA.push(guest)
+    } else if (team === 'B') {
+      excluded.add(guest)
+      pinnedTeamB.push(guest)
     }
-    pairTeamToggle = !pairTeamToggle
+    // Otherwise the associated player is absent entirely — guest stays in
+    // searchPool and gets distributed freely by the split search.
   }
+
+  // Apply all pair-pinning exclusions in one pass.
+  searchPool = searchPool.filter((p) => !excluded.has(p))
 
   // When n is odd, randomise which team receives the extra slot. Over many games
   // this removes Team A's persistent +0.5 depth-bonus advantage.
@@ -131,7 +157,7 @@ export function autoPick(
   // Generate candidate splits
   let rawSplits: [Player[], Player[]][]
 
-  if (n <= 20) {
+  if (n <= EXHAUSTIVE_THRESHOLD) {
     rawSplits = combinations(searchPool, sizeA).map((teamASlice) => {
       const inA = new Set(teamASlice.map((p) => p.name))
       return [teamASlice, searchPool.filter((p) => !inA.has(p.name))] as [Player[], Player[]]
@@ -139,7 +165,7 @@ export function autoPick(
   } else {
     // Random-sample fallback for large squads
     rawSplits = []
-    for (let i = 0; i < 500; i++) {
+    for (let i = 0; i < FALLBACK_SAMPLE_COUNT; i++) {
       const shuffled = [...searchPool].sort(() => Math.random() - 0.5)
       rawSplits.push([shuffled.slice(0, sizeA), shuffled.slice(sizeA)])
     }
@@ -171,7 +197,7 @@ export function autoPick(
     const balanced = scored.filter((s) => {
       const countA = s.teamA.filter((p) => unknownNames.has(p.name)).length
       const countB = s.teamB.filter((p) => unknownNames.has(p.name)).length
-      return Math.abs(countA - countB) <= 1
+      return Math.abs(countA - countB) <= COUNT_BALANCE_SLACK
     })
     if (balanced.length > 0) filteredScored = balanced
   }
@@ -184,7 +210,7 @@ export function autoPick(
   // The band replaces the legacy "5% of bestDiff or +3 absolute" heuristic with a
   // single, semantically-meaningful threshold.
   const tolerance = bestDiff + diffForBand(TOLERANCE_WIN_PROB_BAND)
-  const pool = filteredScored.filter((s) => s.diff <= tolerance + 0.001)
+  const pool = filteredScored.filter((s) => s.diff <= tolerance + POOL_EPSILON)
 
   // Randomly sample up to 3 from the pool, deduplicating team-swaps, then sort by diff ascending
   const shuffledPool = [...pool].sort(() => Math.random() - 0.5)
@@ -199,7 +225,7 @@ export function autoPick(
       seen.add(key)
       suggestions.push(candidate)
     }
-    if (suggestions.length === 3) break
+    if (suggestions.length === SUGGESTION_COUNT) break
   }
   suggestions.sort((a, b) => a.diff - b.diff)
 
