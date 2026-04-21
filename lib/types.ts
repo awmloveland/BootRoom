@@ -30,7 +30,18 @@ export interface PlayerAttribute {
   linked_display_name?: string | null;
 }
 
+// "Is this player a goalkeeper?" lives on `mentality === 'goalkeeper'` only.
+// `Player.goalkeeper: boolean` was removed (2026-04-21) in favour of the single mentality enum.
+// GuestEntry.goalkeeper is a separate UI signal and intentionally retained.
+//
+// `playerId` is a synthetic identity stamped at the resolution boundary
+// (resolvePlayersForAutoPick / lib/data.ts / lib/fetchers.ts) so downstream
+// comparisons don't collide on shared names. Prefix convention:
+//   'known|<name>' — roster player, 'roster|<dbId>' when DB id is available
+//   'guest|<name>' — guest (someone's +1)
+//   'new|<name>'   — first-time player added via the new-player flow
 export interface Player {
+  playerId: string;
   name: string;
   played: number;
   won: number;
@@ -41,7 +52,6 @@ export interface Player {
   winRate: number;
   qualified: boolean;
   points: number;
-  goalkeeper: boolean;
   mentality: Mentality;
   rating: number;
   recentForm: string; // e.g. 'WWDLW' or '--WLW'
@@ -137,7 +147,6 @@ export interface NewPlayerEntry {
   name: string
   rating: number           // 1–3, kept for DB backwards compat — no longer drives scoring
   mentality: Mentality     // balanced | attacking | defensive | goalkeeper
-  goalkeeper?: boolean     // derived: mentality === 'goalkeeper'. Keep for DB backwards compat.
   strengthHint: StrengthHint // drives wprOverride at resolution time
 }
 

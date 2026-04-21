@@ -2,6 +2,30 @@ import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { LeagueDetails, Player, Week, Winner, YearStats } from './types'
 
+// --- Per-player score (wprScore) ---
+const WPR_PPG_WEIGHT = 0.60            // shrunk points-per-game contribution
+const WPR_FORM_WEIGHT = 0.25           // recency-weighted form contribution
+const WPR_RATING_WEIGHT = 0.15         // rating prior contribution (fades with games played)
+const RUSTINESS_MULTIPLIER = 0.88      // applied when calendar-rusty or intermittent
+const RUSTINESS_DAYS = 28              // calendar threshold for rustiness
+const MIN_RECENT_GAMES = 2             // fewer played slots in recentForm → intermittent
+
+// --- Team score (ewptScore, post-1.2) ---
+const EWPT_AVG_WEIGHT = 0.90
+const EWPT_TOP2_WEIGHT = 0.10
+const GK_BASE_BONUS = 0.5              // minimum GK bonus when exactly one keeper present
+const GK_WPR_SCALE = 2.0               // added per unit of (gkWpr / 100)
+const NO_GK_PENALTY = -1.5
+const DUAL_GK_PENALTY = -1
+const VARIETY_BONUS = 2
+const VARIETY_MIN_MENTALITIES = 3      // post-1.3: outfielders only
+const DEPTH_BASELINE = 5               // team size where depth bonus = 0
+const DEPTH_PER_EXTRA_PLAYER = 0.5
+const DEPTH_MAX_BONUS = 3              // cap on cumulative depth bonus
+
+// --- Win probability ---
+const WIN_PROB_SCALE = 8               // logistic scale: diff / SCALE drives the sigmoid
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
@@ -100,7 +124,11 @@ export function wprScore(player: Player, referenceDate?: Date): number {
     const weight = 1 - i * 0.15
     return acc + pts * weight
   }, 0)
-  const maxFormScore = formChars.reduce((acc, _, i) => acc + 3 * (1 - i * 0.15), 0)
+  // Denominator excludes '-' (unplayed) slots so short-history players aren't penalised.
+  const maxFormScore = formChars.reduce(
+    (acc, c, i) => (c === '-' ? acc : acc + 3 * (1 - i * 0.15)),
+    0,
+  )
   const formScore = maxFormScore > 0 ? (rawFormScore / maxFormScore) * 100 : 0
 
   // Component 3: rating prior (1–3 → 0–100), fades as played increases
@@ -108,7 +136,7 @@ export function wprScore(player: Player, referenceDate?: Date): number {
   const ratingWeight = Math.max(0, 1 - player.played / 10)
   const ratingScore = normRating * ratingWeight
 
-  let score = ppgScore * 0.60 + formScore * 0.25 + ratingScore * 0.15
+  let score = ppgScore * WPR_PPG_WEIGHT + formScore * WPR_FORM_WEIGHT + ratingScore * WPR_RATING_WEIGHT
 
   // Experience penalty: players with 1–4 games are still learning the league.
   // Multiplier ramps from 0.85 (1 game) to 0.94 (4 games), then full weight at 5+.
@@ -118,32 +146,21 @@ export function wprScore(player: Player, referenceDate?: Date): number {
 
   // Rustiness penalty: not recently active (calendar absence or intermittent attendance).
   const recentGameCount = player.recentForm.split('').filter((c) => c !== '-').length
-  const isIntermittent = recentGameCount < 2
+  const isIntermittent = recentGameCount < MIN_RECENT_GAMES
 
   let isCalendarRusty = false
   if (player.lastPlayedWeekDate) {
     const lastPlayed = new Date(player.lastPlayedWeekDate)
     const ref = referenceDate ?? new Date()
     const diffDays = (ref.getTime() - lastPlayed.getTime()) / (1000 * 60 * 60 * 24)
-    isCalendarRusty = diffDays > 28
+    isCalendarRusty = diffDays > RUSTINESS_DAYS
   }
 
   if (isIntermittent || isCalendarRusty) {
-    score *= 0.88
+    score *= RUSTINESS_MULTIPLIER
   }
 
   return score
-}
-
-/** Raw form score for a player (used internally by ewptScore). */
-function playerFormScore(player: Player): number {
-  let score = 0
-  for (const c of player.recentForm) {
-    if (c === 'W') score += 3
-    else if (c === 'D') score += 1
-  }
-  // Normalise to 0–100 (max is 3 pts × 5 games = 15)
-  return (score / 15) * 100
 }
 
 /**
@@ -151,43 +168,47 @@ function playerFormScore(player: Player): number {
  *
  * Returns a single 0–100 score for a group of players representing a team.
  *
- *  - 55%: Average WPR — overall team quality floor
- *  - 20%: Max WPR — star player has outsized impact in 5-a-side
- *  - 25%: Average normalised recent form
- *  - GK modifier: scaled by GK WPR — 1 + (wprScore(gk)/100)*4, range [+1,+5];
- *                 -3 for no GK, -2 for two (wasted slot)
- *  - Variety bonus: +2 if team covers 3+ different mentalities
+ *  - 90%: Average WPR — overall team quality (form is already baked in per-player)
+ *  - 10%: Top-2 average WPR — standout players have modest impact
+ *  - GK modifier: scaled by GK WPR — 0.5 + (wprScore(gk)/100)*2, range [+0.5,+2.5];
+ *                 -1.5 for no GK, -1 for two (wasted slot)
+ *  - Variety bonus: +2 if outfielders cover 3+ different mentalities
  *  - Depth modifier: small bonus/penalty relative to a 5-player baseline
  */
 export function ewptScore(players: Player[]): number {
   if (players.length === 0) return 0
   const wprScores = players.map((p) => wprScore(p)).sort((a, b) => b - a)
   const avgWpr = wprScores.reduce((sum, s) => sum + s, 0) / players.length
-  // Average of top 2 WPR scores — rewards having multiple strong players,
-  // not just a single standout
+  // Average of top 2 WPR scores — small bonus for having multiple strong players
   const top2Avg = wprScores.length >= 2
     ? (wprScores[0] + wprScores[1]) / 2
     : wprScores[0]
-  const avgForm = players.reduce((sum, p) => sum + playerFormScore(p), 0) / players.length
-  const gks = players.filter((p) => p.mentality === 'goalkeeper' || p.goalkeeper)
+  const gks = players.filter((p) => p.mentality === 'goalkeeper')
   const gkCount = gks.length
   let gkModifier: number
   if (gkCount === 0) {
-    gkModifier = -3
+    gkModifier = NO_GK_PENALTY
   } else if (gkCount === 1) {
     const gkWpr = wprScore(gks[0])
-    gkModifier = 1 + (gkWpr / 100) * 4
+    gkModifier = GK_BASE_BONUS + (gkWpr / 100) * GK_WPR_SCALE
   } else {
-    gkModifier = -2
+    gkModifier = DUAL_GK_PENALTY
   }
-  const mentalities = new Set(players.map((p) => p.mentality))
-  const varietyBonus = mentalities.size >= 3 ? 2 : 0
-  const depthBonus = Math.min((players.length - 5) * 0.5, 3)
+  // Variety bonus rewards tactical diversity among outfielders.
+  // Goalkeepers are excluded — they're already credited via `gkModifier`.
+  const outfielderMentalities = new Set(
+    players.filter((p) => p.mentality !== 'goalkeeper').map((p) => p.mentality),
+  )
+  const varietyBonus = outfielderMentalities.size >= VARIETY_MIN_MENTALITIES ? VARIETY_BONUS : 0
+  const depthBonus = Math.min(
+    (players.length - DEPTH_BASELINE) * DEPTH_PER_EXTRA_PLAYER,
+    DEPTH_MAX_BONUS,
+  )
   return Math.min(
     100,
     Math.max(
       0,
-      avgWpr * 0.50 + top2Avg * 0.25 + avgForm * 0.25 + gkModifier + varietyBonus + depthBonus,
+      avgWpr * EWPT_AVG_WEIGHT + top2Avg * EWPT_TOP2_WEIGHT + gkModifier + varietyBonus + depthBonus,
     ),
   )
 }
@@ -237,7 +258,7 @@ export function leagueWprPercentiles(players: Player[]): WprPercentiles {
  */
 export function winProbability(scoreA: number, scoreB: number): number {
   if (scoreA === 0 && scoreB === 0) return 0.5
-  return 1 / (1 + Math.exp(-(scoreA - scoreB) / 8))
+  return 1 / (1 + Math.exp(-(scoreA - scoreB) / WIN_PROB_SCALE))
 }
 
 /**

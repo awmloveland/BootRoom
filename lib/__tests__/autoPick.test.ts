@@ -1,13 +1,17 @@
-import { autoPick } from '@/lib/autoPick'
+import { autoPick, diffForBand, findAssocTeam } from '@/lib/autoPick'
 import type { Player } from '@/lib/types'
+import { seededRng } from './helpers/seeded-rng'
 
 function makePlayer(name: string, overrides?: Partial<Player>): Player {
   return {
+    playerId: `known|${name}`,
     name,
     played: 0, won: 0, drew: 0, lost: 0,
     timesTeamA: 0, timesTeamB: 0,
     winRate: 0, qualified: false, points: 0,
-    goalkeeper: false, mentality: 'balanced', rating: 2, /* median league rating — same default used for guest players */ recentForm: '',
+    mentality: 'balanced',
+    rating: 2, /* median league rating — same default used for guest players */
+    recentForm: '',
     ...overrides,
   }
 }
@@ -91,8 +95,8 @@ describe('autoPick — two guests sharing one associated player', () => {
 describe('autoPick — associated player is a GK', () => {
   it('places the guest on the same team as the GK-pinned associated player', () => {
     const players = [
-      makePlayer('Alice', { goalkeeper: true }),
-      makePlayer('Bob', { goalkeeper: true }),
+      makePlayer('Alice', { mentality: 'goalkeeper' }),
+      makePlayer('Bob', { mentality: 'goalkeeper' }),
       makePlayer('Carol'),
       makePlayer('Dave'),
       makePlayer('Alice +1'),
@@ -135,13 +139,14 @@ describe('autoPick — associated player not in squad', () => {
 describe('autoPick — swap deduplication', () => {
   it('does not return two suggestions that are team-swaps of each other', () => {
     // 10 identical-rated players → many valid exhaustive splits, so the pool
-    // will be large enough to potentially surface swaps without deduplication.
+    // is large enough to surface swap-pairs without deduplication.
     const players = Array.from({ length: 10 }, (_, i) =>
       makePlayer(`Player ${i + 1}`, { rating: 2 })
     )
-    // Run many times to exercise the random sampling path
-    for (let run = 0; run < 20; run++) {
-      const result = autoPick(players)
+    // Run across a handful of deterministic seeds to exercise the shuffle-and-pick
+    // logic under varied inputs — each seed must still produce distinct splits.
+    for (const seed of [1, 7, 42, 99, 256]) {
+      const result = autoPick(players, undefined, undefined, seededRng(seed))
       for (let i = 0; i < result.suggestions.length; i++) {
         for (let j = i + 1; j < result.suggestions.length; j++) {
           const a = result.suggestions[i]
@@ -162,11 +167,11 @@ describe('autoPick — swap deduplication', () => {
 describe('autoPick — guest has goalkeeper: true', () => {
   it('excludes the guest-GK from GK pool, places via pair pinning, preserves goalkeeper flag', () => {
     const players = [
-      makePlayer('Alice', { goalkeeper: true }),
-      makePlayer('Bob', { goalkeeper: true }),
+      makePlayer('Alice', { mentality: 'goalkeeper' }),
+      makePlayer('Bob', { mentality: 'goalkeeper' }),
       makePlayer('Carol'),
       makePlayer('Dave'),
-      makePlayer('Bob +1', { goalkeeper: true }), // guest who is also a GK
+      makePlayer('Bob +1', { mentality: 'goalkeeper' }), // guest who is also a GK
       makePlayer('Eve'),
     ]
     const pairs: Array<[string, string]> = [['Bob +1', 'Bob']]
@@ -177,85 +182,293 @@ describe('autoPick — guest has goalkeeper: true', () => {
       expect(onSameTeam(s, 'Bob', 'Bob +1')).toBe(true)
       // Real GKs (Alice, Bob) must be on opposing teams — GK split unaffected
       expect(onSameTeam(s, 'Alice', 'Bob')).toBe(false)
-      // goalkeeper flag preserved on the guest object
+      // Keeper mentality preserved on the guest object
       const allPlayers = [...s.teamA, ...s.teamB]
       const guestObj = allPlayers.find((p) => p.name === 'Bob +1')
-      expect(guestObj?.goalkeeper).toBe(true)
+      expect(guestObj?.mentality).toBe('goalkeeper')
     }
   })
 })
 
-// ─── New player alternating distribution ──────────────────────────────────────
+// ─── New player count-balance filter ─────────────────────────────────────────
 
-describe('autoPick — newPlayerPinsA / newPlayerPinsB', () => {
-  it('places a new player pinned to A on Team A in all suggestions', () => {
+describe('autoPick — unknownNames count-balance filter', () => {
+  it('splits 4 new players evenly (2 per team) in all suggestions', () => {
+    // 6 rated players + 4 new players (all same wprOverride → algorithm needs
+    // count-balance filter to guarantee even split)
+    const rated = Array.from({ length: 6 }, (_, i) =>
+      makePlayer(`Rated ${i + 1}`, { wprOverride: 60 })
+    )
+    const newPlayers = [
+      makePlayer('New1', { wprOverride: 50 }),
+      makePlayer('New2', { wprOverride: 50 }),
+      makePlayer('New3', { wprOverride: 50 }),
+      makePlayer('New4', { wprOverride: 50 }),
+    ]
+    const newPlayerIds = new Set(newPlayers.map((p) => p.playerId))
+    const result = autoPick([...rated, ...newPlayers], undefined, newPlayerIds)
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) {
+      const countA = s.teamA.filter((p) => newPlayerIds.has(p.playerId)).length
+      const countB = s.teamB.filter((p) => newPlayerIds.has(p.playerId)).length
+      expect(Math.abs(countA - countB)).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('splits 5 new players with at most a 1-player count difference per team', () => {
+    const rated = Array.from({ length: 5 }, (_, i) =>
+      makePlayer(`Rated ${i + 1}`, { wprOverride: 60 })
+    )
+    const newPlayers = Array.from({ length: 5 }, (_, i) =>
+      makePlayer(`New ${i + 1}`, { wprOverride: 50 })
+    )
+    const newPlayerIds = new Set(newPlayers.map((p) => p.playerId))
+    const result = autoPick([...rated, ...newPlayers], undefined, newPlayerIds)
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) {
+      const countA = s.teamA.filter((p) => newPlayerIds.has(p.playerId)).length
+      const countB = s.teamB.filter((p) => newPlayerIds.has(p.playerId)).length
+      expect(Math.abs(countA - countB)).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('uses new player wprOverride ratings to find best balance within count constraint', () => {
+    // Two strong and two weak new players — the algorithm should produce a balanced
+    // split (1 strong + 1 weak per team) since the 6 rated players are equal and the
+    // count-balance filter ensures exactly 2 new players per team.
+    const rated = Array.from({ length: 6 }, (_, i) =>
+      makePlayer(`Rated ${i + 1}`, { wprOverride: 55 })
+    )
+    const newPlayers = [
+      makePlayer('StrongA', { wprOverride: 80 }),
+      makePlayer('StrongB', { wprOverride: 80 }),
+      makePlayer('WeakA', { wprOverride: 20 }),
+      makePlayer('WeakB', { wprOverride: 20 }),
+    ]
+    const newPlayerIds = new Set(newPlayers.map((p) => p.playerId))
+
+    const result = autoPick(
+      [...rated, ...newPlayers],
+      undefined,
+      newPlayerIds,
+      seededRng(42),
+    )
+    expect(result.suggestions.length).toBeGreaterThan(0)
+
+    // All suggestions must satisfy count-balance constraint
+    for (const s of result.suggestions) {
+      const countA = s.teamA.filter((p) => newPlayerIds.has(p.playerId)).length
+      const countB = s.teamB.filter((p) => newPlayerIds.has(p.playerId)).length
+      expect(Math.abs(countA - countB)).toBeLessThanOrEqual(1)
+    }
+
+    // Best split (lowest diff) must pair one strong + one weak per team. The
+    // (1+1) configuration is the only one that drives diff to 0 with these
+    // inputs, so it's guaranteed to surface as suggestions[0].
+    const best = result.suggestions[0]
+    const strongOnA = best.teamA.filter((p) => p.name === 'StrongA' || p.name === 'StrongB').length
+    const weakOnA = best.teamA.filter((p) => p.name === 'WeakA' || p.name === 'WeakB').length
+    expect(strongOnA).toBe(1)
+    expect(weakOnA).toBe(1)
+  })
+
+  it('returns valid suggestions with small squads when newPlayerIds is supplied', () => {
+    // Robustness: 3 players total, 2 new. The 2v1 split has valid 1-1 new-player
+    // splits (Rated+New1 vs New2, or Rated+New2 vs New1) so the filter passes —
+    // we just verify the function returns suggestions and distributes all players.
+    const players = [
+      makePlayer('Rated', { wprOverride: 60 }),
+      makePlayer('New1', { wprOverride: 50 }),
+      makePlayer('New2', { wprOverride: 50 }),
+    ]
+    const newPlayerIds = new Set(['known|New1', 'known|New2'])
+    const result = autoPick(players, undefined, newPlayerIds)
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) {
+      expect(s.teamA.length + s.teamB.length).toBe(3)
+    }
+  })
+
+  it('balances total unknowns (guests + new players) across teams', () => {
+    // 2 guests sharing associated player Alice → both pinned to Alice's team.
+    // 2 new players in the free pool. Under the extended filter, splits where
+    // both new players join the Alice-cluster team (3-vs-1 unknowns) must be
+    // rejected; a balanced 2-vs-2 split must be preferred.
     const players = [
       makePlayer('Alice'),
       makePlayer('Bob'),
       makePlayer('Carol'),
       makePlayer('Dave'),
-      makePlayer('Eve'),
-      makePlayer('Frank'),
-      makePlayer('Grace'),
-      makePlayer('Hank'),
-      makePlayer('NewKid'),
-      makePlayer('Ivy'),
+      makePlayer('Alice +1'),
+      makePlayer('Alice +2'),
+      makePlayer('New1', { wprOverride: 50 }),
+      makePlayer('New2', { wprOverride: 50 }),
     ]
-    const result = autoPick(players, undefined, ['NewKid'], [])
+    const pairs: Array<[string, string]> = [
+      ['Alice +1', 'Alice'],
+      ['Alice +2', 'Alice'],
+    ]
+    const unknownIds = new Set(
+      ['Alice +1', 'Alice +2', 'New1', 'New2'].map((n) => `known|${n}`),
+    )
+    const result = autoPick(players, pairs, unknownIds)
     expect(result.suggestions.length).toBeGreaterThan(0)
     for (const s of result.suggestions) {
-      expect(s.teamA.some((p) => p.name === 'NewKid')).toBe(true)
+      const countA = s.teamA.filter((p) => unknownIds.has(p.playerId)).length
+      const countB = s.teamB.filter((p) => unknownIds.has(p.playerId)).length
+      expect(Math.abs(countA - countB)).toBeLessThanOrEqual(1)
     }
   })
 
-  it('places a new player pinned to B on Team B in all suggestions', () => {
-    const players = [
-      makePlayer('Alice'),
-      makePlayer('Bob'),
-      makePlayer('Carol'),
-      makePlayer('Dave'),
-      makePlayer('Eve'),
-      makePlayer('Frank'),
-      makePlayer('Grace'),
-      makePlayer('Hank'),
-      makePlayer('NewKid'),
-      makePlayer('Ivy'),
-    ]
-    const result = autoPick(players, undefined, [], ['NewKid'])
-    expect(result.suggestions.length).toBeGreaterThan(0)
-    for (const s of result.suggestions) {
-      expect(s.teamB.some((p) => p.name === 'NewKid')).toBe(true)
-    }
-  })
-
-  it('places two new players on opposite teams in all suggestions', () => {
-    const players = [
-      makePlayer('Alice'),
-      makePlayer('Bob'),
-      makePlayer('Carol'),
-      makePlayer('Dave'),
-      makePlayer('Eve'),
-      makePlayer('Frank'),
-      makePlayer('Grace'),
-      makePlayer('Hank'),
-      makePlayer('NewKid1'),
-      makePlayer('NewKid2'),
-    ]
-    const result = autoPick(players, undefined, ['NewKid1'], ['NewKid2'])
-    expect(result.suggestions.length).toBeGreaterThan(0)
-    for (const s of result.suggestions) {
-      expect(s.teamA.some((p) => p.name === 'NewKid1')).toBe(true)
-      expect(s.teamB.some((p) => p.name === 'NewKid2')).toBe(true)
-    }
-  })
-
-  it('ignores pins for names not in the player pool (graceful degradation)', () => {
+  it('passes no unknownNames — behaviour unchanged from baseline', () => {
     const players = Array.from({ length: 10 }, (_, i) => makePlayer(`Player ${i + 1}`))
-    const result = autoPick(players, undefined, ['Ghost'], [])
-    // Should still produce valid suggestions with all 10 players
+    const result = autoPick(players)
     expect(result.suggestions.length).toBeGreaterThan(0)
     for (const s of result.suggestions) {
       expect(s.teamA.length + s.teamB.length).toBe(10)
     }
+  })
+
+  it('with 1 new player, does not apply filter and still returns valid suggestions', () => {
+    // With only 1 new player, every split puts them on exactly one team so
+    // |countA - countB| is always 1 — the filter is bypassed to avoid a no-op.
+    const players = Array.from({ length: 8 }, (_, i) => makePlayer(`Player ${i + 1}`))
+    const newPlayerIds = new Set(['known|Player 1'])
+    const result = autoPick(players, undefined, newPlayerIds)
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) {
+      expect(s.teamA.length + s.teamB.length).toBe(8)
+    }
+  })
+})
+
+// ─── Odd-player allocation (1.4) ─────────────────────────────────────────────
+
+describe('autoPick — odd-player allocation distribution', () => {
+  it('odd n=11: extra slot goes to either team roughly equally over 100 runs', () => {
+    const players = Array.from({ length: 11 }, (_, i) => makePlayer(`Player ${i + 1}`))
+    let aBigger = 0
+    for (let i = 0; i < 100; i++) {
+      const result = autoPick(players)
+      if (result.suggestions.length === 0) continue
+      const s = result.suggestions[0]
+      if (s.teamA.length === 6) aBigger++
+    }
+    // Soft bounds tolerating random variance. Pre-1.4 code pegs this at 100.
+    expect(aBigger).toBeGreaterThanOrEqual(35)
+    expect(aBigger).toBeLessThanOrEqual(65)
+  })
+
+  it('even n=10: both teams always size 5', () => {
+    const players = Array.from({ length: 10 }, (_, i) => makePlayer(`Player ${i + 1}`))
+    for (let i = 0; i < 100; i++) {
+      const result = autoPick(players)
+      if (result.suggestions.length === 0) continue
+      const s = result.suggestions[0]
+      expect(s.teamA.length).toBe(5)
+      expect(s.teamB.length).toBe(5)
+    }
+  })
+
+  it('odd n=11 with 2 GKs: extra slot distribution is balanced', () => {
+    const players = [
+      makePlayer('GK1', { mentality: 'goalkeeper' }),
+      makePlayer('GK2', { mentality: 'goalkeeper' }),
+      ...Array.from({ length: 9 }, (_, i) => makePlayer(`Player ${i + 1}`)),
+    ]
+    let aBigger = 0
+    for (let i = 0; i < 100; i++) {
+      const result = autoPick(players)
+      if (result.suggestions.length === 0) continue
+      const s = result.suggestions[0]
+      if (s.teamA.length === 6) aBigger++
+    }
+    expect(aBigger).toBeGreaterThanOrEqual(35)
+    expect(aBigger).toBeLessThanOrEqual(65)
+  })
+})
+
+// ─── Win-probability tolerance (1.6) ─────────────────────────────────────────
+
+describe('findAssocTeam — placement helper', () => {
+  it('returns null when the associated player is nowhere', () => {
+    expect(findAssocTeam('known|Alice', null, null, [], [])).toBeNull()
+  })
+
+  it('returns null when assocId is undefined', () => {
+    expect(findAssocTeam(undefined, null, null, [], [])).toBeNull()
+  })
+
+  it('returns A when assoc matches the Team A pinned GK', () => {
+    const alice = makePlayer('Alice', { mentality: 'goalkeeper' })
+    expect(findAssocTeam(alice.playerId, alice, null, [], [])).toBe('A')
+  })
+
+  it('returns B when assoc matches the Team B pinned GK', () => {
+    const alice = makePlayer('Alice', { mentality: 'goalkeeper' })
+    expect(findAssocTeam(alice.playerId, null, alice, [], [])).toBe('B')
+  })
+
+  it('returns A when assoc is already in pinnedTeamA (prior pair)', () => {
+    const alice = makePlayer('Alice')
+    expect(findAssocTeam(alice.playerId, null, null, [alice], [])).toBe('A')
+  })
+
+  it('returns B when assoc is already in pinnedTeamB (prior pair)', () => {
+    const alice = makePlayer('Alice')
+    expect(findAssocTeam(alice.playerId, null, null, [], [alice])).toBe('B')
+  })
+
+  it('pinned GK takes precedence over pair-list membership when IDs match', () => {
+    const aliceGk = makePlayer('Alice', { mentality: 'goalkeeper' })
+    // Player with the same playerId in the pair list — precedence check
+    expect(findAssocTeam(aliceGk.playerId, aliceGk, null, [aliceGk], [])).toBe('A')
+  })
+})
+
+describe('autoPick — synthetic playerId identity (2.7)', () => {
+  it('distinguishes two players with identical names via different playerId', () => {
+    const alice1 = makePlayer('Alice', { playerId: 'roster|alice-1' })
+    const alice2 = makePlayer('Alice', { playerId: 'roster|alice-2' })
+    const squad = [alice1, alice2, makePlayer('Bob'), makePlayer('Carol')]
+    const result = autoPick(squad, undefined, undefined, seededRng(42))
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) {
+      const all = [...s.teamA, ...s.teamB]
+      expect(all.filter((p) => p.playerId === alice1.playerId)).toHaveLength(1)
+      expect(all.filter((p) => p.playerId === alice2.playerId)).toHaveLength(1)
+    }
+  })
+
+  it('treats guest-Alice and known-Alice as distinct entities', () => {
+    const knownAlice = makePlayer('Alice', { playerId: 'known|Alice' })
+    const guestAlice = makePlayer('Alice', { playerId: 'guest|Alice' })
+    const squad = [knownAlice, guestAlice, makePlayer('Bob'), makePlayer('Carol')]
+    const result = autoPick(squad, undefined, undefined, seededRng(42))
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) {
+      const all = [...s.teamA, ...s.teamB]
+      expect(all.filter((p) => p.playerId === knownAlice.playerId)).toHaveLength(1)
+      expect(all.filter((p) => p.playerId === guestAlice.playerId)).toHaveLength(1)
+    }
+  })
+})
+
+describe('diffForBand — inverse logistic helper', () => {
+  it('band = 0.095 yields a diff threshold of ~3.08 (matches legacy +3 absolute floor)', () => {
+    expect(diffForBand(0.095)).toBeCloseTo(3.08, 2)
+  })
+
+  it('band = 0.05 yields ~1.61', () => {
+    expect(diffForBand(0.05)).toBeCloseTo(1.61, 2)
+  })
+
+  it('band = 0.2 yields ~6.78', () => {
+    expect(diffForBand(0.2)).toBeCloseTo(6.78, 2)
+  })
+
+  it('is monotonically increasing in the band', () => {
+    expect(diffForBand(0.05)).toBeLessThan(diffForBand(0.1))
+    expect(diffForBand(0.1)).toBeLessThan(diffForBand(0.2))
   })
 })

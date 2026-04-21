@@ -115,7 +115,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
     newPlayers.map((p) => ({
       name: p.name,
       rating: p.rating,
-      mentality: p.mentality ?? (p.goalkeeper ? 'goalkeeper' : 'balanced'),
+      mentality: p.mentality,
     }))
   )
 
@@ -172,15 +172,21 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         const known = allPlayers.find((p) => p.name === name)
         if (known) return known
         const src = guestMap.get(name) ?? newPlayerMap.get(name)
+        const isGk = src
+          ? ('mentality' in src ? src.mentality === 'goalkeeper' : Boolean(src.goalkeeper))
+          : false
+        // Synthetic playerId prefix differentiates review-scratch Players from
+        // their roster counterparts; irrelevant for scoring but prevents
+        // accidental collisions if this flows through identity-based code.
         return {
+          playerId: `review|${name}`,
           name,
           played: 0, won: 0, drew: 0, lost: 0,
           timesTeamA: 0, timesTeamB: 0,
           winRate: 0, qualified: false, points: 0,
           recentForm: '',
-          mentality: 'balanced' as const,
+          mentality: isGk ? 'goalkeeper' : 'balanced',
           rating: src?.rating ?? 2,
-          goalkeeper: src ? ('mentality' in src ? src.mentality === 'goalkeeper' : src.goalkeeper) : false,
         }
       })
     }

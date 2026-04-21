@@ -2,12 +2,14 @@ import { wprScore, leagueMedianWpr, leagueWprPercentiles, ewptScore } from '@/li
 import type { Player } from '@/lib/types'
 
 function makePlayer(overrides?: Partial<Player>): Player {
+  const name = overrides?.name ?? 'Test'
   return {
-    name: 'Test',
+    playerId: `known|${name}`,
+    name,
     played: 10, won: 5, drew: 2, lost: 3,
     timesTeamA: 0, timesTeamB: 0,
     winRate: 0.5, qualified: true, points: 17,
-    goalkeeper: false, mentality: 'balanced', rating: 2,
+    mentality: 'balanced', rating: 2,
     recentForm: 'WWDLL',
     ...overrides,
   }
@@ -32,6 +34,40 @@ describe('wprScore — wprOverride short-circuit', () => {
   })
 })
 
+describe('wprScore — form denominator skips unplayed slots', () => {
+  it('100% win rate in 2 played slots matches 100% win rate in 5 played slots', () => {
+    // Identical overall stats; only recentForm differs. After the fix, the form
+    // denominator excludes '-' slots, so both should produce the same form score
+    // (100%) and therefore the same wprScore.
+    const shortHistory = makePlayer({
+      played: 5, won: 5, drew: 0, lost: 0, points: 15, recentForm: 'WW---',
+    })
+    const fullHistory = makePlayer({
+      played: 5, won: 5, drew: 0, lost: 0, points: 15, recentForm: 'WWWWW',
+    })
+    expect(wprScore(shortHistory)).toBeCloseTo(wprScore(fullHistory), 1)
+  })
+
+  it('0% win rate in 2 played slots matches 0% win rate in 5 played slots', () => {
+    const shortHistory = makePlayer({
+      played: 5, won: 0, drew: 0, lost: 5, points: 0, recentForm: 'LL---',
+    })
+    const fullHistory = makePlayer({
+      played: 5, won: 0, drew: 0, lost: 5, points: 0, recentForm: 'LLLLL',
+    })
+    expect(wprScore(shortHistory)).toBeCloseTo(wprScore(fullHistory), 1)
+  })
+
+  it('all-dash recentForm does not produce NaN', () => {
+    const noHistory = makePlayer({
+      played: 5, won: 0, drew: 0, lost: 0, points: 0, recentForm: '-----',
+    })
+    const score = wprScore(noHistory)
+    expect(Number.isNaN(score)).toBe(false)
+    expect(score).toBeGreaterThanOrEqual(0)
+  })
+})
+
 describe('leagueMedianWpr', () => {
   function makeQualifiedPlayer(wprTarget: number): Player {
     // A player with played=10, points adjusted to produce approximately the desired WPR
@@ -41,7 +77,7 @@ describe('leagueMedianWpr', () => {
       played: 10, won: 5, drew: 2, lost: 3,
       timesTeamA: 0, timesTeamB: 0,
       winRate: 0.5, qualified: true, points: 17,
-      goalkeeper: false, mentality: 'balanced', rating: 2,
+      mentality: 'balanced', rating: 2,
       recentForm: 'WWDLL',
       wprOverride: wprTarget,
     }
@@ -53,7 +89,7 @@ describe('leagueMedianWpr', () => {
       played: 2, won: 1, drew: 0, lost: 1,
       timesTeamA: 0, timesTeamB: 0,
       winRate: 0.5, qualified: false, points: 3,
-      goalkeeper: false, mentality: 'balanced', rating: 2,
+      mentality: 'balanced', rating: 2,
       recentForm: 'WL',
     }
   }
@@ -112,7 +148,7 @@ describe('leagueWprPercentiles', () => {
       played: 10, won: 5, drew: 2, lost: 3,
       timesTeamA: 0, timesTeamB: 0,
       winRate: 0.5, qualified: true, points: 17,
-      goalkeeper: false, mentality: 'balanced', rating: 2,
+      mentality: 'balanced', rating: 2,
       recentForm: 'WWDLL',
       wprOverride: wprTarget,
     }
@@ -124,7 +160,7 @@ describe('leagueWprPercentiles', () => {
       played: 2, won: 1, drew: 0, lost: 1,
       timesTeamA: 0, timesTeamB: 0,
       winRate: 0.5, qualified: false, points: 3,
-      goalkeeper: false, mentality: 'balanced', rating: 2,
+      mentality: 'balanced', rating: 2,
       recentForm: 'WL',
     }
   }
@@ -268,10 +304,9 @@ describe('wprScore — rustiness penalty', () => {
       recentForm: '--W--', // only 1 real game
       lastPlayedWeekDate: '2026-04-08', // 7 days ago — not calendar-rusty
     })
-    const fresh = makePlayer({ recentForm: 'WWDLL' })
-    expect(wprScore(intermittent, REF_DATE)).toBeLessThan(wprScore(fresh, REF_DATE))
-    // Verify penalty magnitude: unpenalised base ≈ 37.67, × 0.88 ≈ 33.15
-    expect(wprScore(intermittent, REF_DATE)).toBeCloseTo(37.67 * 0.88, 0)
+    // Post-1.1 the form denominator excludes '-' slots, so '--W--' yields form=100%
+    // (1 win in 1 played slot). Unpenalised base ≈ 57.67; rustiness multiplies by 0.88.
+    expect(wprScore(intermittent, REF_DATE)).toBeCloseTo(57.67 * 0.88, 0)
   })
 
   it('applies 0.88× penalty when recentForm has zero real games', () => {
@@ -308,10 +343,9 @@ describe('ewptScore — GK quality weighting', () => {
   function makeTeam(gkWpr: number | null, outfieldWpr = 50): Player[] {
     const outfield = [1, 2, 3, 4].map((i) => makePlayer({ name: `P${i}`, wprOverride: outfieldWpr }))
     if (gkWpr === null) {
-      // No GK — all outfield
       return [makePlayer({ name: 'P0', wprOverride: outfieldWpr }), ...outfield]
     }
-    const gk = makePlayer({ name: 'GK', mentality: 'goalkeeper', goalkeeper: true, wprOverride: gkWpr })
+    const gk = makePlayer({ name: 'GK', mentality: 'goalkeeper', wprOverride: gkWpr })
     return [gk, ...outfield]
   }
 
@@ -323,43 +357,116 @@ describe('ewptScore — GK quality weighting', () => {
     expect(ewptScore(makeTeam(25))).toBeLessThan(ewptScore(makeTeam(50)))
   })
 
-  it('average GK (WPR 50) produces same score as old flat +3 modifier', () => {
-    // With WPR=50: 1 + (50/100)*4 = 3.0 — identical to the previous hardcoded value
+  it('average GK (WPR 50) gives +1.5 modifier', () => {
+    // Post-1.2: avgWpr=50, top2Avg=50, gkModifier=1.5
+    // ewptScore = 50*0.90 + 50*0.10 + 1.5 = 45 + 5 + 1.5 = 51.5
     const avgGkTeam = makeTeam(50)
-    // Verify by computing manually: all WPR=50, 5 players, gkModifier=3
-    // avgWpr=50, top2Avg=50 (GK wprOverride=50 same as outfield),
-    // avgForm = playerFormScore('WWDLL') = (7/15)*100 ≈ 46.67
-    // ewptScore = 50*0.50 + 50*0.25 + 46.67*0.25 + 3 = 25 + 12.5 + 11.67 + 3 ≈ 52.17
-    expect(ewptScore(avgGkTeam)).toBeCloseTo(52.17, 1)
+    expect(ewptScore(avgGkTeam)).toBeCloseTo(51.5, 1)
   })
 
-  it('exceptional GK (WPR 100) gives +5 modifier', () => {
+  it('exceptional GK (WPR 100) gives +2.5 modifier', () => {
+    // Post-1.2: avgWpr=(100+50*4)/5=60, top2Avg=(100+50)/2=75, gkModifier=2.5
+    // ewptScore = 60*0.90 + 75*0.10 + 2.5 = 54 + 7.5 + 2.5 = 64
     const exceptionalGkTeam = makeTeam(100)
-    // gkModifier = 1 + (100/100)*4 = 5.0
-    // avgWpr=(100+50+50+50+50)/5=60, top2Avg=(100+50)/2=75, avgForm≈46.67
-    // ewptScore = 60*0.50 + 75*0.25 + 46.67*0.25 + 5 = 30 + 18.75 + 11.67 + 5 ≈ 65.42
-    expect(ewptScore(exceptionalGkTeam)).toBeCloseTo(65.42, 1)
+    expect(ewptScore(exceptionalGkTeam)).toBeCloseTo(64, 1)
   })
 
-  it('very weak GK (WPR 0) gives +1 modifier', () => {
+  it('very weak GK (WPR 0) gives +0.5 modifier', () => {
+    // Post-1.2: avgWpr=(0+50*4)/5=40, top2Avg=(50+50)/2=50, gkModifier=0.5
+    // ewptScore = 40*0.90 + 50*0.10 + 0.5 = 36 + 5 + 0.5 = 41.5
     const weakGkTeam = makeTeam(0)
-    // gkModifier = 1 + (0/100)*4 = 1.0
-    // avgWpr=(50+50+50+50+0)/5=40, top2Avg=(50+50)/2=50, avgForm≈46.67
-    // ewptScore = 40*0.50 + 50*0.25 + 46.67*0.25 + 1 = 20 + 12.5 + 11.67 + 1 ≈ 45.17
-    expect(ewptScore(weakGkTeam)).toBeCloseTo(45.17, 1)
+    expect(ewptScore(weakGkTeam)).toBeCloseTo(41.5, 1)
   })
 
-  it('two GKs still gives -2 modifier (unchanged)', () => {
+  it('two GKs gives -1 modifier', () => {
     const twoGks = [
-      makePlayer({ name: 'GK1', mentality: 'goalkeeper', goalkeeper: true, wprOverride: 70 }),
-      makePlayer({ name: 'GK2', mentality: 'goalkeeper', goalkeeper: true, wprOverride: 70 }),
+      makePlayer({ name: 'GK1', mentality: 'goalkeeper', wprOverride: 70 }),
+      makePlayer({ name: 'GK2', mentality: 'goalkeeper', wprOverride: 70 }),
       makePlayer({ name: 'P1', wprOverride: 50 }),
       makePlayer({ name: 'P2', wprOverride: 50 }),
       makePlayer({ name: 'P3', wprOverride: 50 }),
     ]
-    // gkModifier = -2
-    // avgWpr = (70+70+50+50+50)/5 = 58, top2Avg = (70+70)/2 = 70, avgForm≈46.67
-    // ewptScore ≈ 58*0.5 + 70*0.25 + 46.67*0.25 + (-2) = 29 + 17.5 + 11.67 - 2 ≈ 56.17
-    expect(ewptScore(twoGks)).toBeCloseTo(56.17, 1)
+    // Post-1.2: avgWpr=(70+70+50+50+50)/5=58, top2Avg=(70+70)/2=70, gkModifier=-1
+    // ewptScore = 58*0.90 + 70*0.10 - 1 = 52.2 + 7 - 1 = 58.2
+    expect(ewptScore(twoGks)).toBeCloseTo(58.2, 1)
+  })
+
+  it('balanced squad outscores a team with one star and five weak teammates', () => {
+    // Star-heavy team: 1 high-WPR player + 4 weak players, no GK
+    const starTeam = [
+      makePlayer({ name: 'Star', wprOverride: 85 }),
+      makePlayer({ name: 'W1', wprOverride: 30 }),
+      makePlayer({ name: 'W2', wprOverride: 30 }),
+      makePlayer({ name: 'W3', wprOverride: 30 }),
+      makePlayer({ name: 'W4', wprOverride: 30 }),
+    ]
+    // Balanced team: 5 solid players, no GK
+    const balancedTeam = Array.from({ length: 5 }, (_, i) =>
+      makePlayer({ name: `B${i}`, wprOverride: 51 })
+    )
+    expect(ewptScore(balancedTeam)).toBeGreaterThan(ewptScore(starTeam))
+  })
+})
+
+describe('ewptScore — no team-level form term (post-1.2)', () => {
+  it('varying team form at same avgWpr produces the same ewptScore', () => {
+    const lowForm = Array.from({ length: 6 }, (_, i) =>
+      makePlayer({ name: `P${i}`, wprOverride: 60, recentForm: 'LLLLL' }),
+    )
+    const highForm = Array.from({ length: 6 }, (_, i) =>
+      makePlayer({ name: `P${i}`, wprOverride: 60, recentForm: 'WWWWW' }),
+    )
+    expect(Math.abs(ewptScore(lowForm) - ewptScore(highForm))).toBeLessThan(0.5)
+  })
+
+  it('guest with empty form does not drag team score vs equivalent all-rated team', () => {
+    const allRated = Array.from({ length: 6 }, (_, i) =>
+      makePlayer({ name: `R${i}`, wprOverride: 60, recentForm: 'WWDLL' }),
+    )
+    const fiveRatedPlusGuest = [
+      ...Array.from({ length: 5 }, (_, i) =>
+        makePlayer({ name: `R${i}`, wprOverride: 60, recentForm: 'WWDLL' }),
+      ),
+      makePlayer({ name: 'Guest', wprOverride: 60, recentForm: '' }),
+    ]
+    expect(Math.abs(ewptScore(allRated) - ewptScore(fiveRatedPlusGuest))).toBeLessThan(0.5)
+  })
+})
+
+describe('ewptScore — variety bonus excludes goalkeeper', () => {
+  function teamWith(mentalities: Array<Player['mentality']>): Player[] {
+    return mentalities.map((m, i) =>
+      makePlayer({ name: `P${i}`, mentality: m, wprOverride: 50 })
+    )
+  }
+
+  it('GK + 3 balanced + 1 attacker does NOT get variety bonus (2 outfielder mentalities)', () => {
+    const mixed = teamWith(['goalkeeper', 'balanced', 'balanced', 'balanced', 'attacking'])
+    const uniform = teamWith(['goalkeeper', 'balanced', 'balanced', 'balanced', 'balanced'])
+    // Both have ≤2 outfielder mentalities → neither should get the variety bonus.
+    // They share avgWpr, avgForm, top2Avg, GK modifier, depth. So scores should match.
+    expect(ewptScore(mixed)).toBeCloseTo(ewptScore(uniform), 1)
+  })
+
+  it('GK + balanced + attacker + defender earns variety bonus (3 outfielder mentalities)', () => {
+    const varied = teamWith(['goalkeeper', 'balanced', 'attacking', 'defensive', 'balanced'])
+    const uniform = teamWith(['goalkeeper', 'balanced', 'balanced', 'balanced', 'balanced'])
+    // varied has 3 distinct outfielder mentalities → +2 bonus.
+    // uniform has 1 → no bonus. Everything else identical.
+    expect(ewptScore(varied) - ewptScore(uniform)).toBeCloseTo(2, 1)
+  })
+
+  it('team with no GK: 3 distinct outfielder mentalities earns variety bonus', () => {
+    const varied = teamWith(['balanced', 'attacking', 'defensive', 'balanced', 'attacking'])
+    const uniform = teamWith(['balanced', 'balanced', 'balanced', 'balanced', 'balanced'])
+    // No GK on either side → same no-GK penalty. Variety diff = 2.
+    expect(ewptScore(varied) - ewptScore(uniform)).toBeCloseTo(2, 1)
+  })
+
+  it('GK + attacker + defender (2 outfielder mentalities) gets no variety bonus', () => {
+    const team = teamWith(['goalkeeper', 'attacking', 'defensive'])
+    const uniform = teamWith(['goalkeeper', 'attacking', 'attacking'])
+    // Both have fewer than 3 outfielder mentalities → neither gets the bonus.
+    expect(ewptScore(team)).toBeCloseTo(ewptScore(uniform), 1)
   })
 })

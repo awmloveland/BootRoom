@@ -11,7 +11,6 @@ function makePlayer(overrides: Partial<Player> & { name: string }): Player {
     winRate: 50,
     qualified: true,
     points: 17,
-    goalkeeper: false,
     mentality: 'balanced',
     rating: 2,
     recentForm: 'WWWWW',

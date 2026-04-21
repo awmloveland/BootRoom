@@ -83,6 +83,10 @@ export const getPlayerStats = cache(async (leagueId: string): Promise<Player[]> 
   const service = createServiceClient()
   const { data } = await service.rpc('get_player_stats_public', { p_game_id: leagueId })
   return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
+    // Roster players are identified by name since the public RPC doesn't expose
+    // a DB id. Two identical-name players on the roster would collide here;
+    // preferred fix is to switch to `roster|<row.id>` once the RPC returns it.
+    playerId: `roster|${String(row.name)}`,
     name: String(row.name),
     played: Number(row.played),
     won: Number(row.won),
@@ -93,8 +97,11 @@ export const getPlayerStats = cache(async (leagueId: string): Promise<Player[]> 
     winRate: Number(row.winRate),
     qualified: Boolean(row.qualified),
     points: Number(row.points ?? 0),
-    goalkeeper: Boolean(row.goalkeeper),
-    mentality: String(row.mentality ?? 'balanced') as Player['mentality'],
+    // DB keeps a legacy `goalkeeper` boolean column alongside `mentality`.
+    // On read, collapse to the single source of truth: mentality.
+    mentality: (row.goalkeeper
+      ? 'goalkeeper'
+      : String(row.mentality ?? 'balanced')) as Player['mentality'],
     rating: Number(row.rating ?? 0),
     recentForm: String(row.recentForm ?? ''),
   }))
@@ -148,8 +155,8 @@ function mapWeekRow(row: WeekRow): Week {
             type: 'new_player' as const,
             name: p.name,
             rating: p.rating,
+            // Legacy metadata may have only `goalkeeper` set; derive mentality from it.
             mentality: (p.mentality as Mentality) ?? (p.goalkeeper ? 'goalkeeper' : 'balanced'),
-            goalkeeper: p.goalkeeper ?? false,
             strengthHint: p.strength_hint ?? 'average',
           })),
         }

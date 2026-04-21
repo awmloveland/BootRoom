@@ -140,7 +140,7 @@ export default async function LeagueResultsPage({ params }: Props) {
     }
   }
 
-  const goalkeepers = players.filter(p => p.goalkeeper).map(p => p.name)
+  const goalkeepers = players.filter((p) => p.mentality === 'goalkeeper').map((p) => p.name)
 
   const playedCount = getSeasonPlayedWeekCount(weeks)
   const totalWeeks = 52

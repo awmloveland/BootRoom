@@ -64,7 +64,8 @@ export type PlayerStat = {
   winRate: number
   qualified: boolean
   points: number
-  goalkeeper: boolean
+  // `mentality === 'goalkeeper'` is the single source of truth for keeper identity.
+  // The DB column `goalkeeper` is collapsed into `mentality` at read time.
   mentality: string
   rating: number
   recentForm: string
@@ -86,8 +87,7 @@ export async function fetchPlayers(gameId: string): Promise<PlayerStat[]> {
       winRate: row.winRate,
       qualified: row.qualified,
       points: row.points,
-      goalkeeper: row.goalkeeper,
-      mentality: row.mentality,
+      mentality: row.goalkeeper ? 'goalkeeper' : (row.mentality ?? 'balanced'),
       rating: row.rating,
       recentForm: row.recentForm ?? '',
     }))
@@ -106,8 +106,7 @@ export async function fetchPlayers(gameId: string): Promise<PlayerStat[]> {
     winRate: Number(row.winRate),
     qualified: Boolean(row.qualified),
     points: Number(row.points),
-    goalkeeper: Boolean(row.goalkeeper),
-    mentality: String(row.mentality ?? 'balanced'),
+    mentality: row.goalkeeper ? 'goalkeeper' : String(row.mentality ?? 'balanced'),
     rating: Number(row.rating ?? 0),
     recentForm: String(row.recentForm ?? ''),
   }))

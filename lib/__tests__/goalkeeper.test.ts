@@ -1,13 +1,13 @@
 import type { Player } from '@/lib/types'
 
-function makePlayer(name: string, goalkeeper: boolean): Player {
+function makePlayer(name: string, isGoalkeeper: boolean): Player {
   return {
     name,
-    goalkeeper,
     played: 0, won: 0, drew: 0, lost: 0,
     timesTeamA: 0, timesTeamB: 0,
     winRate: 0, qualified: false, points: 0,
-    mentality: 'balanced', rating: 0, recentForm: '',
+    mentality: isGoalkeeper ? 'goalkeeper' : 'balanced',
+    rating: 0, recentForm: '',
   }
 }
 
@@ -18,18 +18,18 @@ describe('goalkeeper name derivation', () => {
       makePlayer('Bob', false),
       makePlayer('Carol', true),
     ]
-    const goalkeepers = players.filter(p => p.goalkeeper).map(p => p.name)
+    const goalkeepers = players.filter((p) => p.mentality === 'goalkeeper').map((p) => p.name)
     expect(goalkeepers).toEqual(['Alice', 'Carol'])
   })
 
   it('returns empty array when no players are goalkeepers', () => {
     const players = [makePlayer('Bob', false), makePlayer('Dave', false)]
-    const goalkeepers = players.filter(p => p.goalkeeper).map(p => p.name)
+    const goalkeepers = players.filter((p) => p.mentality === 'goalkeeper').map((p) => p.name)
     expect(goalkeepers).toEqual([])
   })
 
   it('returns empty array when player list is empty', () => {
-    const goalkeepers = ([] as Player[]).filter(p => p.goalkeeper).map(p => p.name)
+    const goalkeepers = ([] as Player[]).filter((p) => p.mentality === 'goalkeeper').map((p) => p.name)
     expect(goalkeepers).toEqual([])
   })
 })
