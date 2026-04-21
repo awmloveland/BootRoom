@@ -75,7 +75,6 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
       name: trimmed,
       rating: 2,
       mentality: newMentality,
-      goalkeeper: newMentality === 'goalkeeper',
       strengthHint: newStrength,
     })
     onClose()

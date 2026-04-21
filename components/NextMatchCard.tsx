@@ -94,7 +94,7 @@ function resolvePlayersForAutoPick(
         played: 0, won: 0, drew: 0, lost: 0,
         timesTeamA: 0, timesTeamB: 0,
         winRate: 0, qualified: false, points: 0,
-        goalkeeper: guest.goalkeeper ?? false, mentality: 'balanced' as const,
+        mentality: guest.goalkeeper ? 'goalkeeper' : 'balanced',
         rating: 2,
         recentForm: '',
         wprOverride: hintToWpr(guest.strengthHint),
@@ -108,7 +108,7 @@ function resolvePlayersForAutoPick(
         played: 0, won: 0, drew: 0, lost: 0,
         timesTeamA: 0, timesTeamB: 0,
         winRate: 0, qualified: false, points: 0,
-        goalkeeper: newPlayer.goalkeeper ?? false, mentality: newPlayer.mentality,
+        mentality: newPlayer.mentality,
         rating: 2,
         recentForm: '',
         wprOverride: hintToWpr(newPlayer.strengthHint),
@@ -120,7 +120,7 @@ function resolvePlayersForAutoPick(
       played: 0, won: 0, drew: 0, lost: 0,
       timesTeamA: 0, timesTeamB: 0,
       winRate: 0, qualified: false, points: 0,
-      goalkeeper: false, mentality: 'balanced' as const,
+      mentality: 'balanced' as const,
       rating: fallbackRating,
       recentForm: '',
     }
@@ -201,7 +201,7 @@ export function NextMatchCard({
   const season = useMemo(() => deriveSeason(weeks), [weeks])
 
   const goalkeepers = useMemo(
-    () => allPlayers.filter(p => p.goalkeeper).map(p => p.name),
+    () => allPlayers.filter((p) => p.mentality === 'goalkeeper').map((p) => p.name),
     [allPlayers]
   )
 
@@ -236,11 +236,17 @@ export function NextMatchCard({
       .filter((g) => g.associatedPlayer)
       .map((g) => [g.name, g.associatedPlayer] as [string, string])
 
-    const newPlayerNameSet = newPlayerEntries.length > 0
-      ? new Set(newPlayerEntries.map((p) => p.name))
-      : undefined
+    // Treat both guests and new players as "unknown" — the count-balance filter
+    // spreads them across teams subject to pair-pinning constraints.
+    const unknownNameSet = new Set<string>()
+    for (const g of guestEntries) unknownNameSet.add(g.name)
+    for (const p of newPlayerEntries) unknownNameSet.add(p.name)
 
-    const result = autoPick(resolved, pairs, newPlayerNameSet)
+    const result = autoPick(
+      resolved,
+      pairs,
+      unknownNameSet.size >= 2 ? unknownNameSet : undefined,
+    )
     setAutoPickResult(result)
     setSuggestionIndex(0)
     setIsManuallyEdited(false)
@@ -321,8 +327,8 @@ export function NextMatchCard({
                   type: 'new_player' as const,
                   name: p.name,
                   rating: p.rating,
+                  // Legacy metadata may carry only `goalkeeper`; derive mentality from it.
                   mentality: (p.mentality as Mentality) ?? (p.goalkeeper ? 'goalkeeper' : 'balanced'),
-                  goalkeeper: p.goalkeeper ?? false,
                   strengthHint: (p.strength_hint ?? 'average') as StrengthHint,
                 })),
               }
@@ -380,7 +386,8 @@ export function NextMatchCard({
         name: p.name,
         rating: p.rating,
         mentality: p.mentality,
-        goalkeeper: p.goalkeeper ?? false,
+        // DB metadata still accepts a `goalkeeper` key for back-compat with older readers.
+        goalkeeper: p.mentality === 'goalkeeper',
         strength_hint: p.strengthHint,
       })),
     }
@@ -778,7 +785,7 @@ export function NextMatchCard({
                               )}
                             >
                               <span className={cn('text-xs font-medium', team === 'A' ? 'text-sky-100' : 'text-violet-100')}>
-                                {p.name}{p.goalkeeper ? ' 🧤' : ''}
+                                {p.name}{p.mentality === 'goalkeeper' ? ' 🧤' : ''}
                               </span>
                               {p.recentForm && <FormDots form={p.recentForm} />}
                             </div>

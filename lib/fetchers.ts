@@ -93,8 +93,11 @@ export const getPlayerStats = cache(async (leagueId: string): Promise<Player[]> 
     winRate: Number(row.winRate),
     qualified: Boolean(row.qualified),
     points: Number(row.points ?? 0),
-    goalkeeper: Boolean(row.goalkeeper),
-    mentality: String(row.mentality ?? 'balanced') as Player['mentality'],
+    // DB keeps a legacy `goalkeeper` boolean column alongside `mentality`.
+    // On read, collapse to the single source of truth: mentality.
+    mentality: (row.goalkeeper
+      ? 'goalkeeper'
+      : String(row.mentality ?? 'balanced')) as Player['mentality'],
     rating: Number(row.rating ?? 0),
     recentForm: String(row.recentForm ?? ''),
   }))
@@ -148,8 +151,8 @@ function mapWeekRow(row: WeekRow): Week {
             type: 'new_player' as const,
             name: p.name,
             rating: p.rating,
+            // Legacy metadata may have only `goalkeeper` set; derive mentality from it.
             mentality: (p.mentality as Mentality) ?? (p.goalkeeper ? 'goalkeeper' : 'balanced'),
-            goalkeeper: p.goalkeeper ?? false,
             strengthHint: p.strength_hint ?? 'average',
           })),
         }

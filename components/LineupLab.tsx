@@ -170,7 +170,7 @@ export function LineupLab({ allPlayers }: Props) {
                             )}
                           >
                             <span className={cn('text-xs font-medium', team === 'A' ? 'text-sky-100' : 'text-violet-100')}>
-                              {p.name}{p.goalkeeper ? ' 🧤' : ''}
+                              {p.name}{p.mentality === 'goalkeeper' ? ' 🧤' : ''}
                             </span>
                             {p.recentForm && <FormDots form={p.recentForm} />}
                           </div>
@@ -240,7 +240,7 @@ export function LineupLab({ allPlayers }: Props) {
                       : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500 hover:text-slate-100'
                 )}
               >
-                {player.name}{player.goalkeeper ? ' 🧤' : ''}
+                {player.name}{player.mentality === 'goalkeeper' ? ' 🧤' : ''}
               </button>
             )
           })}

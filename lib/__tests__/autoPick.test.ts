@@ -1,4 +1,4 @@
-import { autoPick } from '@/lib/autoPick'
+import { autoPick, diffForBand } from '@/lib/autoPick'
 import type { Player } from '@/lib/types'
 
 function makePlayer(name: string, overrides?: Partial<Player>): Player {
@@ -7,7 +7,9 @@ function makePlayer(name: string, overrides?: Partial<Player>): Player {
     played: 0, won: 0, drew: 0, lost: 0,
     timesTeamA: 0, timesTeamB: 0,
     winRate: 0, qualified: false, points: 0,
-    goalkeeper: false, mentality: 'balanced', rating: 2, /* median league rating — same default used for guest players */ recentForm: '',
+    mentality: 'balanced',
+    rating: 2, /* median league rating — same default used for guest players */
+    recentForm: '',
     ...overrides,
   }
 }
@@ -91,8 +93,8 @@ describe('autoPick — two guests sharing one associated player', () => {
 describe('autoPick — associated player is a GK', () => {
   it('places the guest on the same team as the GK-pinned associated player', () => {
     const players = [
-      makePlayer('Alice', { goalkeeper: true }),
-      makePlayer('Bob', { goalkeeper: true }),
+      makePlayer('Alice', { mentality: 'goalkeeper' }),
+      makePlayer('Bob', { mentality: 'goalkeeper' }),
       makePlayer('Carol'),
       makePlayer('Dave'),
       makePlayer('Alice +1'),
@@ -162,11 +164,11 @@ describe('autoPick — swap deduplication', () => {
 describe('autoPick — guest has goalkeeper: true', () => {
   it('excludes the guest-GK from GK pool, places via pair pinning, preserves goalkeeper flag', () => {
     const players = [
-      makePlayer('Alice', { goalkeeper: true }),
-      makePlayer('Bob', { goalkeeper: true }),
+      makePlayer('Alice', { mentality: 'goalkeeper' }),
+      makePlayer('Bob', { mentality: 'goalkeeper' }),
       makePlayer('Carol'),
       makePlayer('Dave'),
-      makePlayer('Bob +1', { goalkeeper: true }), // guest who is also a GK
+      makePlayer('Bob +1', { mentality: 'goalkeeper' }), // guest who is also a GK
       makePlayer('Eve'),
     ]
     const pairs: Array<[string, string]> = [['Bob +1', 'Bob']]
@@ -177,17 +179,17 @@ describe('autoPick — guest has goalkeeper: true', () => {
       expect(onSameTeam(s, 'Bob', 'Bob +1')).toBe(true)
       // Real GKs (Alice, Bob) must be on opposing teams — GK split unaffected
       expect(onSameTeam(s, 'Alice', 'Bob')).toBe(false)
-      // goalkeeper flag preserved on the guest object
+      // Keeper mentality preserved on the guest object
       const allPlayers = [...s.teamA, ...s.teamB]
       const guestObj = allPlayers.find((p) => p.name === 'Bob +1')
-      expect(guestObj?.goalkeeper).toBe(true)
+      expect(guestObj?.mentality).toBe('goalkeeper')
     }
   })
 })
 
 // ─── New player count-balance filter ─────────────────────────────────────────
 
-describe('autoPick — newPlayerNames count-balance filter', () => {
+describe('autoPick — unknownNames count-balance filter', () => {
   it('splits 4 new players evenly (2 per team) in all suggestions', () => {
     // 6 rated players + 4 new players (all same wprOverride → algorithm needs
     // count-balance filter to guarantee even split)
@@ -285,7 +287,36 @@ describe('autoPick — newPlayerNames count-balance filter', () => {
     }
   })
 
-  it('passes no newPlayerNames — behaviour unchanged from baseline', () => {
+  it('balances total unknowns (guests + new players) across teams', () => {
+    // 2 guests sharing associated player Alice → both pinned to Alice's team.
+    // 2 new players in the free pool. Under the extended filter, splits where
+    // both new players join the Alice-cluster team (3-vs-1 unknowns) must be
+    // rejected; a balanced 2-vs-2 split must be preferred.
+    const players = [
+      makePlayer('Alice'),
+      makePlayer('Bob'),
+      makePlayer('Carol'),
+      makePlayer('Dave'),
+      makePlayer('Alice +1'),
+      makePlayer('Alice +2'),
+      makePlayer('New1', { wprOverride: 50 }),
+      makePlayer('New2', { wprOverride: 50 }),
+    ]
+    const pairs: Array<[string, string]> = [
+      ['Alice +1', 'Alice'],
+      ['Alice +2', 'Alice'],
+    ]
+    const unknownNames = new Set(['Alice +1', 'Alice +2', 'New1', 'New2'])
+    const result = autoPick(players, pairs, unknownNames)
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) {
+      const countA = s.teamA.filter((p) => unknownNames.has(p.name)).length
+      const countB = s.teamB.filter((p) => unknownNames.has(p.name)).length
+      expect(Math.abs(countA - countB)).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('passes no unknownNames — behaviour unchanged from baseline', () => {
     const players = Array.from({ length: 10 }, (_, i) => makePlayer(`Player ${i + 1}`))
     const result = autoPick(players)
     expect(result.suggestions.length).toBeGreaterThan(0)
@@ -304,5 +335,72 @@ describe('autoPick — newPlayerNames count-balance filter', () => {
     for (const s of result.suggestions) {
       expect(s.teamA.length + s.teamB.length).toBe(8)
     }
+  })
+})
+
+// ─── Odd-player allocation (1.4) ─────────────────────────────────────────────
+
+describe('autoPick — odd-player allocation distribution', () => {
+  it('odd n=11: extra slot goes to either team roughly equally over 100 runs', () => {
+    const players = Array.from({ length: 11 }, (_, i) => makePlayer(`Player ${i + 1}`))
+    let aBigger = 0
+    for (let i = 0; i < 100; i++) {
+      const result = autoPick(players)
+      if (result.suggestions.length === 0) continue
+      const s = result.suggestions[0]
+      if (s.teamA.length === 6) aBigger++
+    }
+    // Soft bounds tolerating random variance. Pre-1.4 code pegs this at 100.
+    expect(aBigger).toBeGreaterThanOrEqual(35)
+    expect(aBigger).toBeLessThanOrEqual(65)
+  })
+
+  it('even n=10: both teams always size 5', () => {
+    const players = Array.from({ length: 10 }, (_, i) => makePlayer(`Player ${i + 1}`))
+    for (let i = 0; i < 100; i++) {
+      const result = autoPick(players)
+      if (result.suggestions.length === 0) continue
+      const s = result.suggestions[0]
+      expect(s.teamA.length).toBe(5)
+      expect(s.teamB.length).toBe(5)
+    }
+  })
+
+  it('odd n=11 with 2 GKs: extra slot distribution is balanced', () => {
+    const players = [
+      makePlayer('GK1', { mentality: 'goalkeeper' }),
+      makePlayer('GK2', { mentality: 'goalkeeper' }),
+      ...Array.from({ length: 9 }, (_, i) => makePlayer(`Player ${i + 1}`)),
+    ]
+    let aBigger = 0
+    for (let i = 0; i < 100; i++) {
+      const result = autoPick(players)
+      if (result.suggestions.length === 0) continue
+      const s = result.suggestions[0]
+      if (s.teamA.length === 6) aBigger++
+    }
+    expect(aBigger).toBeGreaterThanOrEqual(35)
+    expect(aBigger).toBeLessThanOrEqual(65)
+  })
+})
+
+// ─── Win-probability tolerance (1.6) ─────────────────────────────────────────
+
+describe('diffForBand — inverse logistic helper', () => {
+  it('band = 0.095 yields a diff threshold of ~3.08 (matches legacy +3 absolute floor)', () => {
+    expect(diffForBand(0.095)).toBeCloseTo(3.08, 2)
+  })
+
+  it('band = 0.05 yields ~1.61', () => {
+    expect(diffForBand(0.05)).toBeCloseTo(1.61, 2)
+  })
+
+  it('band = 0.2 yields ~6.78', () => {
+    expect(diffForBand(0.2)).toBeCloseTo(6.78, 2)
+  })
+
+  it('is monotonically increasing in the band', () => {
+    expect(diffForBand(0.05)).toBeLessThan(diffForBand(0.1))
+    expect(diffForBand(0.1)).toBeLessThan(diffForBand(0.2))
   })
 })

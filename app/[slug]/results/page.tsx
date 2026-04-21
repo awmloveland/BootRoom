@@ -142,7 +142,7 @@ export default async function LeagueResultsPage({ params }: Props) {
     }
   }
 
-  const goalkeepers = players.filter(p => p.goalkeeper).map(p => p.name)
+  const goalkeepers = players.filter((p) => p.mentality === 'goalkeeper').map((p) => p.name)
 
   const currentYear = String(new Date().getFullYear())
   const currentYearWeeks = weeks.filter(

@@ -15,6 +15,20 @@ export interface AutoPickResult {
   poolSize: number
 }
 
+// Tolerance pool: accept splits within ±TOLERANCE_WIN_PROB_BAND of a 50/50 match.
+// 0.095 corresponds to a ~3.08 score-point threshold, matching the legacy
+// "+3 absolute" floor for typical 5-a-side best diffs.
+const TOLERANCE_WIN_PROB_BAND = 0.095
+
+/**
+ * Inverse of `winProbability`'s logistic curve: given a win-probability band
+ * (distance from 0.5), return the corresponding score-difference threshold.
+ * 1 / (1 + exp(-diff/8)) = 0.5 + band  →  diff = -8 × ln(1/(0.5+band) - 1).
+ */
+export function diffForBand(band: number): number {
+  return -8 * Math.log(1 / (0.5 + band) - 1)
+}
+
 /**
  * Given a list of players attending the game, return up to 3 balanced team splits.
  * Uses exhaustive search for n ≤ 20, random sampling for n > 20.
@@ -23,15 +37,15 @@ export interface AutoPickResult {
  *
  * @param pairs - Optional array of [guestName, associatedPlayerName] pairs.
  *   Each guest will be pinned to the same team as their associated player.
- * @param newPlayerNames - Optional set of player names that are new/unknown.
- *   Used as a post-generation count-balance filter: splits where the new-player count
- *   differs by more than 1 between teams are discarded. If no split passes, falls back
- *   to the full set.
+ * @param unknownNames - Optional set of player names that are unknown — guests or
+ *   new players. Used as a post-generation count-balance filter: splits where the
+ *   unknown-player count differs by more than 1 between teams are discarded. If no
+ *   split passes, falls back to the full set.
  */
 export function autoPick(
   players: Player[],
   pairs?: Array<[string, string]>,
-  newPlayerNames?: Set<string>,
+  unknownNames?: Set<string>,
 ): AutoPickResult {
   const n = players.length
   if (n < 2) return { suggestions: [], bestDiff: 0, poolSize: 0 }
@@ -50,7 +64,7 @@ export function autoPick(
   // through from the same source (Player.name / GuestEntry.name) without case normalisation.
   // If name normalisation is ever added to resolvePlayersForAutoPick, update these comparisons.
   const guestNames = new Set((pairs ?? []).map(([g]) => g))
-  const gkPlayers = [...players.filter((p) => (p.goalkeeper || p.mentality === 'goalkeeper') && !guestNames.has(p.name))]
+  const gkPlayers = [...players.filter((p) => p.mentality === 'goalkeeper' && !guestNames.has(p.name))]
     .sort(() => Math.random() - 0.5) // shuffle so pinned pair is random when 3+ GKs
   const pinnedA: Player | null = gkPlayers.length >= 1 ? gkPlayers[0] : null
   const pinnedB: Player | null = gkPlayers.length >= 2 ? gkPlayers[1] : null
@@ -107,8 +121,12 @@ export function autoPick(
     pairTeamToggle = !pairTeamToggle
   }
 
+  // When n is odd, randomise which team receives the extra slot. Over many games
+  // this removes Team A's persistent +0.5 depth-bonus advantage.
+  const extraSlotToA = n % 2 === 0 || Math.random() < 0.5
+  const halfSize = extraSlotToA ? Math.ceil(n / 2) : Math.floor(n / 2)
   // How many non-pinned players go into Team A (clamp to 0 to avoid negative, and to searchPool.length to avoid exceeding pool)
-  const sizeA = Math.max(0, Math.min(searchPool.length, Math.ceil(n / 2) - (pinnedA ? 1 : 0) - pinnedTeamA.length))
+  const sizeA = Math.max(0, Math.min(searchPool.length, halfSize - (pinnedA ? 1 : 0) - pinnedTeamA.length))
 
   // Generate candidate splits
   let rawSplits: [Player[], Player[]][]
@@ -141,18 +159,18 @@ export function autoPick(
     return { teamA: a, teamB: b, scoreA, scoreB, diff }
   })
 
-  // Count-balance filter: when new players are identified, discard splits where
-  // the new-player count differs by more than 1 between teams. This ensures
-  // unknowns are spread evenly regardless of how many there are or their order.
+  // Count-balance filter: when unknown players are identified (guests or new players),
+  // discard splits where the unknown-player count differs by more than 1 between teams.
+  // This ensures unknowns are spread evenly regardless of how many there are or their order.
   // Falls back to the full scored set if no split passes (e.g. extreme small squads).
   let filteredScored = scored
-  // size >= 2: with only 1 new player, every split puts them on exactly one team
+  // size >= 2: with only 1 unknown, every split puts them on exactly one team
   // (|diff| always === 1), so the filter would reject all splits and fall back
   // unconditionally — skip it entirely.
-  if (newPlayerNames && newPlayerNames.size >= 2) {
+  if (unknownNames && unknownNames.size >= 2) {
     const balanced = scored.filter((s) => {
-      const countA = s.teamA.filter((p) => newPlayerNames.has(p.name)).length
-      const countB = s.teamB.filter((p) => newPlayerNames.has(p.name)).length
+      const countA = s.teamA.filter((p) => unknownNames.has(p.name)).length
+      const countB = s.teamB.filter((p) => unknownNames.has(p.name)).length
       return Math.abs(countA - countB) <= 1
     })
     if (balanced.length > 0) filteredScored = balanced
@@ -161,11 +179,12 @@ export function autoPick(
   // Find best (minimum) diff
   const bestDiff = filteredScored.reduce((min, s) => (s.diff < min ? s.diff : min), Infinity)
 
-  // Collect pool: all splits within 5% of bestDiff or within 3 absolute points,
-  // whichever is larger. The absolute floor ensures that even when the optimal
-  // split is nearly perfect (small bestDiff), enough alternatives surface for
-  // the "Try another" feature to offer distinct options after swap-deduplication.
-  const pool = filteredScored.filter((s) => s.diff <= Math.max(bestDiff * 1.05, bestDiff + 3) + 0.001)
+  // Collect pool: all splits whose score-diff falls within the configured
+  // win-probability band (default ±9.5% of 50/50 ≈ 3.08 score points above bestDiff).
+  // The band replaces the legacy "5% of bestDiff or +3 absolute" heuristic with a
+  // single, semantically-meaningful threshold.
+  const tolerance = bestDiff + diffForBand(TOLERANCE_WIN_PROB_BAND)
+  const pool = filteredScored.filter((s) => s.diff <= tolerance + 0.001)
 
   // Randomly sample up to 3 from the pool, deduplicating team-swaps, then sort by diff ascending
   const shuffledPool = [...pool].sort(() => Math.random() - 0.5)

@@ -100,7 +100,11 @@ export function wprScore(player: Player, referenceDate?: Date): number {
     const weight = 1 - i * 0.15
     return acc + pts * weight
   }, 0)
-  const maxFormScore = formChars.reduce((acc, _, i) => acc + 3 * (1 - i * 0.15), 0)
+  // Denominator excludes '-' (unplayed) slots so short-history players aren't penalised.
+  const maxFormScore = formChars.reduce(
+    (acc, c, i) => (c === '-' ? acc : acc + 3 * (1 - i * 0.15)),
+    0,
+  )
   const formScore = maxFormScore > 0 ? (rawFormScore / maxFormScore) * 100 : 0
 
   // Component 3: rating prior (1–3 → 0–100), fades as played increases
@@ -135,28 +139,16 @@ export function wprScore(player: Player, referenceDate?: Date): number {
   return score
 }
 
-/** Raw form score for a player (used internally by ewptScore). */
-function playerFormScore(player: Player): number {
-  let score = 0
-  for (const c of player.recentForm) {
-    if (c === 'W') score += 3
-    else if (c === 'D') score += 1
-  }
-  // Normalise to 0–100 (max is 3 pts × 5 games = 15)
-  return (score / 15) * 100
-}
-
 /**
  * Estimated Weighted Team Performance Indicator (EWTPI).
  *
  * Returns a single 0–100 score for a group of players representing a team.
  *
- *  - 65%: Average WPR — overall team quality floor
+ *  - 90%: Average WPR — overall team quality (form is already baked in per-player)
  *  - 10%: Top-2 average WPR — standout players have modest impact
- *  - 25%: Average normalised recent form
  *  - GK modifier: scaled by GK WPR — 0.5 + (wprScore(gk)/100)*2, range [+0.5,+2.5];
  *                 -1.5 for no GK, -1 for two (wasted slot)
- *  - Variety bonus: +2 if team covers 3+ different mentalities
+ *  - Variety bonus: +2 if outfielders cover 3+ different mentalities
  *  - Depth modifier: small bonus/penalty relative to a 5-player baseline
  */
 export function ewptScore(players: Player[]): number {
@@ -167,8 +159,7 @@ export function ewptScore(players: Player[]): number {
   const top2Avg = wprScores.length >= 2
     ? (wprScores[0] + wprScores[1]) / 2
     : wprScores[0]
-  const avgForm = players.reduce((sum, p) => sum + playerFormScore(p), 0) / players.length
-  const gks = players.filter((p) => p.mentality === 'goalkeeper' || p.goalkeeper)
+  const gks = players.filter((p) => p.mentality === 'goalkeeper')
   const gkCount = gks.length
   let gkModifier: number
   if (gkCount === 0) {
@@ -179,14 +170,18 @@ export function ewptScore(players: Player[]): number {
   } else {
     gkModifier = -1
   }
-  const mentalities = new Set(players.map((p) => p.mentality))
-  const varietyBonus = mentalities.size >= 3 ? 2 : 0
+  // Variety bonus rewards tactical diversity among outfielders.
+  // Goalkeepers are excluded — they're already credited via `gkModifier`.
+  const outfielderMentalities = new Set(
+    players.filter((p) => p.mentality !== 'goalkeeper').map((p) => p.mentality),
+  )
+  const varietyBonus = outfielderMentalities.size >= 3 ? 2 : 0
   const depthBonus = Math.min((players.length - 5) * 0.5, 3)
   return Math.min(
     100,
     Math.max(
       0,
-      avgWpr * 0.65 + top2Avg * 0.10 + avgForm * 0.25 + gkModifier + varietyBonus + depthBonus,
+      avgWpr * 0.90 + top2Avg * 0.10 + gkModifier + varietyBonus + depthBonus,
     ),
   )
 }

@@ -30,6 +30,9 @@ export interface PlayerAttribute {
   linked_display_name?: string | null;
 }
 
+// "Is this player a goalkeeper?" lives on `mentality === 'goalkeeper'` only.
+// `Player.goalkeeper: boolean` was removed (2026-04-21) in favour of the single mentality enum.
+// GuestEntry.goalkeeper is a separate UI signal and intentionally retained.
 export interface Player {
   name: string;
   played: number;
@@ -41,7 +44,6 @@ export interface Player {
   winRate: number;
   qualified: boolean;
   points: number;
-  goalkeeper: boolean;
   mentality: Mentality;
   rating: number;
   recentForm: string; // e.g. 'WWDLW' or '--WLW'
@@ -137,7 +139,6 @@ export interface NewPlayerEntry {
   name: string
   rating: number           // 1–3, kept for DB backwards compat — no longer drives scoring
   mentality: Mentality     // balanced | attacking | defensive | goalkeeper
-  goalkeeper?: boolean     // derived: mentality === 'goalkeeper'. Keep for DB backwards compat.
   strengthHint: StrengthHint // drives wprOverride at resolution time
 }
 
