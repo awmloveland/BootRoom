@@ -525,8 +525,8 @@ describe('autoPick — returns closest-N splits', () => {
     ]
     const result = autoPick(players, undefined, undefined, seededRng(1))
 
-    expect(result.suggestions.length).toBeLessThanOrEqual(5)
-    expect(result.suggestions.length).toBeGreaterThan(0)
+    // 4 players → exactly 3 unique splits after team-swap dedup.
+    expect(result.suggestions.length).toBe(3)
     // No duplicates among suggestions (team-swap dedup invariant).
     const keys = new Set<string>()
     for (const s of result.suggestions) {

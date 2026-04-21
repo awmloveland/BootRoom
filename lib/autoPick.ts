@@ -16,6 +16,9 @@ export interface AutoPickResult {
 
 // --- Split search ---
 const EXHAUSTIVE_THRESHOLD = 20        // n ≤ this → try every split; above, sample
+// NOTE: the "closest 5" guarantee holds only on the exhaustive path. For
+// n > EXHAUSTIVE_THRESHOLD the algorithm picks the closest 5 from this
+// sample, so a closer split not present in the sample can still be missed.
 const FALLBACK_SAMPLE_COUNT = 500      // random shuffles tried when n > EXHAUSTIVE_THRESHOLD
 const SUGGESTION_COUNT = 5             // distinct splits surfaced in the UI
 
