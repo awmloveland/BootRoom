@@ -306,6 +306,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
 
         const { error: resultErr } = await supabase.rpc('record_result', {
           p_week_id: scheduledWeek.id,
+          p_dnf: false,
           p_winner: winner,
           p_notes: notes.trim() || null,
           p_goal_difference: winner === 'draw' ? 0 : goalDifference,
