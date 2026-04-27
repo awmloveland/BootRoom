@@ -15,7 +15,7 @@ interface EditWeekModalProps {
   onClose: () => void
 }
 
-type EditStatus = 'played' | 'cancelled' | 'unrecorded'
+type EditStatus = 'played' | 'cancelled' | 'unrecorded' | 'dnf'
 
 const RESULT_OPTIONS = ['teamA', 'draw', 'teamB'] as const
 
@@ -264,6 +264,11 @@ export function EditWeekModal({
       body.teamB = teamB
     }
 
+    if (status === 'dnf') {
+      body.teamA = teamA
+      body.teamB = teamB
+    }
+
     try {
       const res = await fetch(`/api/league/${gameId}/weeks/${week.id}/edit`, {
         method: 'PATCH',
@@ -333,6 +338,7 @@ export function EditWeekModal({
                 <option value="played">Played</option>
                 <option value="cancelled">Cancelled</option>
                 <option value="unrecorded">Unrecorded</option>
+                <option value="dnf">DNF</option>
               </select>
             </div>
           </div>
@@ -417,6 +423,22 @@ export function EditWeekModal({
                 />
               </div>
             </>
+          )}
+
+          {/* DNF fields — lineups editable, no result or margin */}
+          {status === 'dnf' && (
+            <div>
+              <label className="block text-xs font-medium uppercase tracking-wide text-slate-500 mb-1.5">
+                Lineups
+              </label>
+              <LineupEditor
+                teamA={teamA}
+                teamB={teamB}
+                allPlayers={allPlayers}
+                onChangeTeamA={setTeamA}
+                onChangeTeamB={setTeamB}
+              />
+            </div>
           )}
 
           {/* Notes */}

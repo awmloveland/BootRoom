@@ -9,6 +9,10 @@ import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality, Week } f
 import { EyeTestSlider } from '@/components/EyeTestSlider'
 import { Toggle } from '@/components/ui/toggle'
 
+export type ResultSavedPayload =
+  | { dnf: false; winner: NonNullable<Winner>; goalDifference: number; shareText: string; highlightsText: string }
+  | { dnf: true }
+
 interface Props {
   scheduledWeek: ScheduledWeek
   lineupMetadata: LineupMetadata | null
@@ -18,7 +22,7 @@ interface Props {
   leagueName: string
   weeks: Week[]
   publicMode: boolean
-  onSaved: (result: { winner: NonNullable<Winner>; goalDifference: number; shareText: string; highlightsText: string }) => void
+  onSaved: (result: ResultSavedPayload) => void
   onClose: () => void
 }
 
@@ -100,6 +104,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   const [goalDifference, setGoalDifference] = useState<number>(1)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isDnf, setIsDnf] = useState(false)
 
   const [guestStates, setGuestStates] = useState<GuestReviewState[]>(
     guests.map((g) => ({
@@ -159,43 +164,95 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   }
 
   async function handleSave() {
-    if (!winner) return
+    if (!winner && !isDnf) return
     setSaving(true)
     setError(null)
 
-    // Compute frozen team strength scores to store alongside the result.
-    const guestMap = new Map(guestStates.map((g) => [g.name, g]))
-    const newPlayerMap = new Map(newPlayerStates.map((p) => [p.name, p]))
-
-    function resolveTeam(names: string[]): Player[] {
-      return names.map((name) => {
-        const known = allPlayers.find((p) => p.name === name)
-        if (known) return known
-        const src = guestMap.get(name) ?? newPlayerMap.get(name)
-        const isGk = src
-          ? ('mentality' in src ? src.mentality === 'goalkeeper' : Boolean(src.goalkeeper))
-          : false
-        // Synthetic playerId prefix differentiates review-scratch Players from
-        // their roster counterparts; irrelevant for scoring but prevents
-        // accidental collisions if this flows through identity-based code.
-        return {
-          playerId: `review|${name}`,
-          name,
-          played: 0, won: 0, drew: 0, lost: 0,
-          timesTeamA: 0, timesTeamB: 0,
-          winRate: 0, qualified: false, points: 0,
-          recentForm: '',
-          mentality: isGk ? 'goalkeeper' : 'balanced',
-          rating: src?.rating ?? 2,
-        }
-      })
-    }
-
-    const teamAScore = parseFloat(ewptScore(resolveTeam(scheduledWeek.teamA)).toFixed(3))
-    const teamBScore = parseFloat(ewptScore(resolveTeam(scheduledWeek.teamB)).toFixed(3))
-
     try {
-      // Construct synthetic week so highlights reflect tonight's result
+      if (isDnf) {
+        if (publicMode) {
+          const res = await fetch(`/api/public/league/${gameId}/result`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              weekId: scheduledWeek.id,
+              dnf: true,
+              notes: notes.trim() || null,
+            }),
+          })
+          if (!res.ok) {
+            const d = await res.json()
+            throw new Error(d.error ?? 'Failed to save result')
+          }
+        } else {
+          const supabase = createClient()
+
+          const { error: resultErr } = await supabase.rpc('record_result', {
+            p_week_id: scheduledWeek.id,
+            p_dnf: true,
+            p_winner: null,
+            p_notes: notes.trim() || null,
+            p_goal_difference: null,
+            p_team_a_rating: null,
+            p_team_b_rating: null,
+          })
+          if (resultErr) throw resultErr
+
+          const entries = [
+            ...newPlayerStates.map((p) => ({
+              name: p.name,
+              rating: p.rating,
+              mentality: p.mentality,
+              goalkeeper: p.mentality === 'goalkeeper',
+            })),
+            ...guestStates
+              .filter((g) => g.addToRoster && g.rosterName.trim())
+              .map((g) => ({ name: g.rosterName.trim(), rating: g.rating, goalkeeper: g.goalkeeper })),
+          ]
+          if (entries.length > 0) {
+            const { error: promoteErr } = await supabase.rpc('promote_roster', {
+              p_game_id: gameId,
+              p_entries: entries,
+            })
+            if (promoteErr) throw promoteErr
+          }
+        }
+
+        onSaved({ dnf: true })
+        return
+      }
+
+      // ── Normal (non-DNF) result path ──────────────────────────────────────────
+
+      if (!winner) return
+
+      const guestMap = new Map(guestStates.map((g) => [g.name, g]))
+      const newPlayerMap = new Map(newPlayerStates.map((p) => [p.name, p]))
+
+      function resolveTeam(names: string[]): Player[] {
+        return names.map((name) => {
+          const known = allPlayers.find((p) => p.name === name)
+          if (known) return known
+          const src = guestMap.get(name) ?? newPlayerMap.get(name)
+          const isGk = src
+            ? ('mentality' in src ? src.mentality === 'goalkeeper' : Boolean(src.goalkeeper))
+            : false
+          return {
+            playerId: `review|${name}`,
+            name,
+            played: 0, won: 0, drew: 0, lost: 0,
+            timesTeamA: 0, timesTeamB: 0,
+            winRate: 0, qualified: false, points: 0,
+            recentForm: '',
+            mentality: isGk ? 'goalkeeper' : 'balanced',
+            rating: src?.rating ?? 2,
+          }
+        })
+      }
+
+      const teamAScore = parseFloat(ewptScore(resolveTeam(scheduledWeek.teamA)).toFixed(3))
+      const teamBScore = parseFloat(ewptScore(resolveTeam(scheduledWeek.teamB)).toFixed(3))
+
       const syntheticWeek: Week = {
         week: scheduledWeek.week,
         season: scheduledWeek.season,
@@ -249,6 +306,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
 
         const { error: resultErr } = await supabase.rpc('record_result', {
           p_week_id: scheduledWeek.id,
+          p_dnf: false,
           p_winner: winner,
           p_notes: notes.trim() || null,
           p_goal_difference: winner === 'draw' ? 0 : goalDifference,
@@ -277,7 +335,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         }
       }
 
-      onSaved({ winner, goalDifference, shareText, highlightsText })
+      onSaved({ dnf: false, winner, goalDifference, shareText, highlightsText })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save result')
     } finally {
@@ -317,17 +375,18 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                       type="button"
                       onClick={() => {
                         setWinner(opt)
+                        setIsDnf(false)
                         if (opt !== 'draw') setGoalDifference(1)
                       }}
                       className={cn(
                         'flex-1 py-2 rounded border text-sm font-medium transition-colors',
-                        opt === 'teamA' && (winner === 'teamA'
+                        opt === 'teamA' && (winner === 'teamA' && !isDnf
                           ? 'bg-blue-900 border-blue-700 text-blue-300'
                           : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-blue-700 hover:text-blue-300'),
-                        opt === 'draw' && (winner === 'draw'
+                        opt === 'draw' && (winner === 'draw' && !isDnf
                           ? 'bg-slate-700 border-slate-600 text-slate-300'
                           : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-300'),
-                        opt === 'teamB' && (winner === 'teamB'
+                        opt === 'teamB' && (winner === 'teamB' && !isDnf
                           ? 'bg-violet-900 border-violet-700 text-violet-300'
                           : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-violet-700 hover:text-violet-300'),
                       )}
@@ -335,9 +394,21 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                       {opt === 'teamA' ? 'Team A' : opt === 'draw' ? 'Draw' : 'Team B'}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => { setWinner(null); setIsDnf(true) }}
+                    className={cn(
+                      'flex-1 py-2 rounded border text-sm font-medium transition-colors',
+                      isDnf
+                        ? 'bg-zinc-800 border-zinc-600 text-zinc-300'
+                        : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-zinc-600 hover:text-zinc-300',
+                    )}
+                  >
+                    DNF
+                  </button>
                 </div>
 
-                {winner && winner !== 'draw' && (
+                {!isDnf && winner && winner !== 'draw' && (
                   <div className="flex items-center justify-between bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 mb-4">
                     <div>
                       <p className="text-xs font-semibold text-slate-100">Margin of Victory</p>
@@ -368,7 +439,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                   <button
                     type="button"
                     onClick={() => setStep('review')}
-                    disabled={!winner || (winner !== 'draw' && (goalDifference < 1 || goalDifference > 20))}
+                    disabled={(!winner && !isDnf) || (!!winner && winner !== 'draw' && (goalDifference < 1 || goalDifference > 20))}
                     className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold disabled:opacity-40"
                   >
                     Next →
@@ -377,7 +448,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                   <button
                     type="button"
                     onClick={handleSave}
-                    disabled={saving || !winner || (winner !== 'draw' && (goalDifference < 1 || goalDifference > 20))}
+                    disabled={saving || (!winner && !isDnf) || (!!winner && winner !== 'draw' && (goalDifference < 1 || goalDifference > 20))}
                     className="px-4 py-2 rounded bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold disabled:opacity-50"
                   >
                     {saving ? 'Saving…' : 'Confirm Result'}
@@ -509,12 +580,15 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
             <>
               <div className="p-5 flex flex-col gap-2">
                 <div className="flex justify-between items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
-                  <span className="text-slate-400">Winner</span>
+                  <span className="text-slate-400">Result</span>
                   <span className={cn(
                     'font-semibold',
-                    winner === 'teamA' ? 'text-blue-300' : winner === 'teamB' ? 'text-violet-300' : 'text-slate-300'
+                    isDnf ? 'text-zinc-300'
+                      : winner === 'teamA' ? 'text-blue-300'
+                      : winner === 'teamB' ? 'text-violet-300'
+                      : 'text-slate-300'
                   )}>
-                    {winner === 'teamA' ? 'Team A' : winner === 'teamB' ? 'Team B' : 'Draw'}
+                    {isDnf ? 'DNF' : winner === 'teamA' ? 'Team A' : winner === 'teamB' ? 'Team B' : 'Draw'}
                   </span>
                 </div>
 
