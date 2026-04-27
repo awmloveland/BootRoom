@@ -11,6 +11,8 @@ ALTER TABLE weeks ADD CONSTRAINT weeks_status_check
   CHECK (status IN ('played', 'cancelled', 'scheduled', 'unrecorded', 'dnf'));
 
 -- 2. Replace record_result RPC
+DROP FUNCTION IF EXISTS public.record_result(UUID, TEXT, TEXT, INTEGER, NUMERIC(6,3), NUMERIC(6,3));
+
 CREATE OR REPLACE FUNCTION record_result(
   p_week_id         UUID,
   p_winner          TEXT,
@@ -44,6 +46,17 @@ BEGIN
         team_a_rating   = NULL,
         team_b_rating   = NULL
     WHERE id = p_week_id;
+
+    -- Upsert all players from this match into player_attributes.
+    -- Participants are real league members either way (played or dnf).
+    INSERT INTO player_attributes (game_id, name)
+    SELECT v_game_id, player_name
+    FROM (
+      SELECT jsonb_array_elements_text(team_a) AS player_name FROM weeks WHERE id = p_week_id
+      UNION
+      SELECT jsonb_array_elements_text(team_b) AS player_name FROM weeks WHERE id = p_week_id
+    ) players
+    ON CONFLICT (game_id, name) DO NOTHING;
   ELSE
     UPDATE weeks
     SET status           = 'played',
@@ -53,6 +66,17 @@ BEGIN
         team_a_rating    = p_team_a_rating,
         team_b_rating    = p_team_b_rating
     WHERE id = p_week_id;
+
+    -- Upsert all players from this match into player_attributes.
+    -- ON CONFLICT DO NOTHING preserves existing eye test ratings and mentalities.
+    INSERT INTO player_attributes (game_id, name)
+    SELECT v_game_id, player_name
+    FROM (
+      SELECT jsonb_array_elements_text(team_a) AS player_name FROM weeks WHERE id = p_week_id
+      UNION
+      SELECT jsonb_array_elements_text(team_b) AS player_name FROM weeks WHERE id = p_week_id
+    ) players
+    ON CONFLICT (game_id, name) DO NOTHING;
   END IF;
 END;
 $$;
