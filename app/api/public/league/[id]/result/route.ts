@@ -30,6 +30,10 @@ export async function POST(request: Request, { params }: Params) {
     dnf?: boolean
   }
 
+  if (dnf !== undefined && typeof dnf !== 'boolean') {
+    return NextResponse.json({ error: 'dnf must be a boolean' }, { status: 400 })
+  }
+
   if (dnf && (winner !== undefined && winner !== null)) {
     return NextResponse.json({ error: 'DNF games cannot have a winner' }, { status: 422 })
   }
