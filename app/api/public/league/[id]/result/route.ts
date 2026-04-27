@@ -4,16 +4,10 @@ import type { Winner } from '@/lib/types'
 
 type Params = { params: Promise<{ id: string }> }
 
-/**
- * POST — record a match result for a scheduled week.
- * Body: { weekId, winner, notes? }
- * Returns: { ok: true }
- */
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params
   const service = createServiceClient()
 
-  // Verify match_entry is public-enabled
   const { data: feat } = await service
     .from('league_features')
     .select('public_enabled')
@@ -26,13 +20,18 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const body = await request.json()
-  const { weekId, winner, notes, goalDifference, teamARating, teamBRating } = body as {
+  const { weekId, winner, notes, goalDifference, teamARating, teamBRating, dnf } = body as {
     weekId: string
     winner: Winner
     notes?: string
     goalDifference: unknown
     teamARating: unknown
     teamBRating: unknown
+    dnf?: boolean
+  }
+
+  if (dnf && (winner !== undefined && winner !== null)) {
+    return NextResponse.json({ error: 'DNF games cannot have a winner' }, { status: 422 })
   }
 
   function safeRating(val: unknown): number | null {
@@ -40,18 +39,12 @@ export async function POST(request: Request, { params }: Params) {
     return null
   }
 
-  // Validate goalDifference — must be present and a whole number.
-  // Both wins (1–20) and draws (0) must always include this field.
-  // Number.isInteger(null) and Number.isInteger(undefined) both return false,
-  // so absent or null values are rejected here too.
-  if (!Number.isInteger(goalDifference)) {
+  if (!dnf && !Number.isInteger(goalDifference)) {
     return NextResponse.json({ error: 'goalDifference must be an integer' }, { status: 400 })
   }
 
-  // Safe to cast — we've validated it is an integer
-  const goalDiff = goalDifference as number
+  const goalDiff = dnf ? null : (goalDifference as number)
 
-  // Verify the week belongs to this game and fetch team rosters for player sync
   const { data: weekRow } = await service
     .from('weeks')
     .select('game_id, team_a, team_b')
@@ -64,20 +57,29 @@ export async function POST(request: Request, { params }: Params) {
 
   const { error } = await service
     .from('weeks')
-    .update({
-      status: 'played',
-      winner,
-      notes: notes?.trim() || null,
-      goal_difference: goalDiff,
-      team_a_rating: safeRating(teamARating),
-      team_b_rating: safeRating(teamBRating),
-    })
+    .update(
+      dnf
+        ? {
+            status: 'dnf',
+            winner: null,
+            notes: notes?.trim() || null,
+            goal_difference: null,
+            team_a_rating: null,
+            team_b_rating: null,
+          }
+        : {
+            status: 'played',
+            winner,
+            notes: notes?.trim() || null,
+            goal_difference: goalDiff,
+            team_a_rating: safeRating(teamARating),
+            team_b_rating: safeRating(teamBRating),
+          }
+    )
     .eq('id', weekId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Sync all players from this match into player_attributes.
-  // ignoreDuplicates: true preserves existing eye test ratings and mentalities.
   function toStringArray(val: unknown): string[] {
     return Array.isArray(val) ? val.filter((v): v is string => typeof v === 'string') : []
   }
