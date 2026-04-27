@@ -171,6 +171,120 @@ interface PlayedCardProps {
   weeks?: Week[]
 }
 
+// ── DnfCard ───────────────────────────────────────────────────────────────────
+
+interface DnfCardProps {
+  week: Week
+  isOpen: boolean
+  onToggle: () => void
+  isAdmin: boolean
+  gameId: string
+  allPlayers: Player[]
+  onResultSaved: () => void
+}
+
+function DnfCard({
+  week,
+  isOpen,
+  onToggle,
+  isAdmin,
+  gameId,
+  allPlayers,
+  onResultSaved,
+}: DnfCardProps) {
+  const [showEditModal, setShowEditModal] = useState(false)
+
+  return (
+    <>
+      <Collapsible.Root open={isOpen} onOpenChange={onToggle}>
+        <div
+          className={cn(
+            'rounded-lg border bg-slate-800 transition-colors duration-150',
+            isOpen ? 'border-slate-600' : 'border-slate-700 hover:border-slate-500'
+          )}
+        >
+          <Collapsible.Trigger asChild>
+            <button
+              className="w-full flex items-center justify-between px-4 py-3 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer"
+              aria-expanded={isOpen}
+              aria-controls={`week-${week.week}-dnf-content`}
+            >
+              <div className="text-left">
+                <p className="text-sm font-semibold text-slate-100">Week {week.week}</p>
+                <p className="text-xs text-slate-400">
+                  {week.date}
+                  {week.format && (
+                    <span className="ml-2 text-slate-400">· {week.format}</span>
+                  )}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <WinnerBadge winner={null} dnf />
+                <ChevronDown
+                  className={cn(
+                    'h-4 w-4 text-slate-400 transition-transform duration-200 flex-shrink-0',
+                    isOpen && 'rotate-180'
+                  )}
+                  aria-hidden="true"
+                />
+              </div>
+            </button>
+          </Collapsible.Trigger>
+
+          <Collapsible.Content
+            id={`week-${week.week}-dnf-content`}
+            className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up"
+          >
+            <div className="border-t border-slate-700">
+              <div className="p-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <TeamList
+                    label="Team A"
+                    players={week.teamA}
+                    team="A"
+                    rating={week.team_a_rating ?? null}
+                  />
+                  <TeamList
+                    label="Team B"
+                    players={week.teamB}
+                    team="B"
+                    rating={week.team_b_rating ?? null}
+                  />
+                </div>
+                {week.notes?.trim() && (
+                  <>
+                    <div className="border-t border-slate-700 mt-3" />
+                    <div className="mt-3">
+                      <div className="bg-slate-900 border border-slate-800 rounded px-2.5 py-2 text-xs text-slate-400 italic">
+                        {week.notes.trim()}
+                      </div>
+                    </div>
+                  </>
+                )}
+                {isAdmin && (
+                  <div className="border-t border-slate-700 mt-4 pt-4 flex justify-end">
+                    <EditResultButton onClick={() => setShowEditModal(true)} />
+                  </div>
+                )}
+              </div>
+            </div>
+          </Collapsible.Content>
+        </div>
+      </Collapsible.Root>
+
+      {showEditModal && (
+        <EditWeekModal
+          week={week}
+          gameId={gameId}
+          allPlayers={allPlayers}
+          onSaved={() => { setShowEditModal(false); onResultSaved() }}
+          onClose={() => setShowEditModal(false)}
+        />
+      )}
+    </>
+  )
+}
+
 function AwaitingResultCard({
   week,
   isOpen,
@@ -493,6 +607,19 @@ export function MatchCard({
     return (
       <UnrecordedCard
         week={week}
+        isAdmin={isAdmin}
+        gameId={gameId}
+        allPlayers={allPlayers}
+        onResultSaved={onResultSaved}
+      />
+    )
+  }
+  if (week.status === 'dnf') {
+    return (
+      <DnfCard
+        week={week}
+        isOpen={isOpen}
+        onToggle={onToggle}
         isAdmin={isAdmin}
         gameId={gameId}
         allPlayers={allPlayers}
