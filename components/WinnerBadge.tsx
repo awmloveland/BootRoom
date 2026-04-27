@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 interface WinnerBadgeProps {
   winner: Winner
   cancelled?: boolean
+  dnf?: boolean
 }
 
 const BADGE_CLASSES: Record<NonNullable<Winner>, string> = {
@@ -18,13 +19,21 @@ const BADGE_LABELS: Record<NonNullable<Winner>, string> = {
   draw: 'Match Drawn',
 }
 
-export function WinnerBadge({ winner, cancelled = false }: WinnerBadgeProps) {
+export function WinnerBadge({ winner, cancelled = false, dnf = false }: WinnerBadgeProps) {
   const base = 'text-xs font-semibold rounded-full px-2.5 py-0.5 whitespace-nowrap'
 
   if (cancelled) {
     return (
       <span className={cn(base, 'bg-red-950 text-red-400 border border-red-900')}>
         Cancelled
+      </span>
+    )
+  }
+
+  if (dnf) {
+    return (
+      <span className={cn(base, 'bg-zinc-800 text-zinc-300 border border-zinc-600')}>
+        DNF
       </span>
     )
   }
