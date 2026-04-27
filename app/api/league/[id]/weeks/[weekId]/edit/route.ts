@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-const VALID_STATUSES = ['played', 'cancelled', 'unrecorded'] as const
+const VALID_STATUSES = ['played', 'cancelled', 'unrecorded', 'dnf'] as const
 type EditStatus = typeof VALID_STATUSES[number]
 
 /** PATCH — admin-only, edits any field on an existing week. */
@@ -37,7 +37,7 @@ export async function PATCH(
   const status = typeof b.status === 'string' ? b.status : ''
   if (!VALID_STATUSES.includes(status as EditStatus)) {
     return NextResponse.json(
-      { error: 'status must be played, cancelled, or unrecorded' },
+      { error: 'status must be played, cancelled, unrecorded, or dnf' },
       { status: 400 }
     )
   }
