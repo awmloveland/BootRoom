@@ -318,6 +318,59 @@ export function buildShareText(params: {
   ].join('\n')
 }
 
+/**
+ * Builds a formatted plain-text share message for a DNF (Did Not Finish) week.
+ *
+ * Mirrors the lineup-share format but replaces the win-probability copy with a
+ * DNF headline. Format segment, rating parentheticals, and the notes paragraph
+ * are omitted when the corresponding inputs are empty/null.
+ */
+export function buildDnfShareText(params: {
+  leagueName: string
+  leagueSlug: string
+  week: number
+  date: string                // 'DD MMM YYYY'
+  format: string              // '' when absent — function omits the "· {format}" segment
+  teamA: string[]
+  teamB: string[]
+  teamARating: number | null  // null → no parenthetical on Team A header
+  teamBRating: number | null  // null → no parenthetical on Team B header
+  notes: string               // '' when absent — function omits the notes paragraph
+}): string {
+  const { leagueName, leagueSlug, week, date, format, teamA, teamB, teamARating, teamBRating, notes } = params
+  const parsed = parseWeekDate(date)
+  const [dd, mmm] = date.split(' ')
+  const shortDate = `${DAY_SHORT[parsed.getDay()]} ${dd} ${mmm}`
+  const dateLine = format ? `📅 ${shortDate} · ${format}` : `📅 ${shortDate}`
+  const teamAHeader = teamARating !== null
+    ? `🔵 Team A (${teamARating.toFixed(1)})`
+    : '🔵 Team A'
+  const teamBHeader = teamBRating !== null
+    ? `🟣 Team B (${teamBRating.toFixed(1)})`
+    : '🟣 Team B'
+  const trimmedNotes = notes.trim()
+
+  const lines: string[] = [
+    `⚽ ${leagueName} — Week ${week}`,
+    dateLine,
+    '',
+    '⚠️ Game called off — DNF',
+    '',
+    teamAHeader,
+    teamA.join(', '),
+    '',
+    teamBHeader,
+    teamB.join(', '),
+  ]
+
+  if (trimmedNotes.length > 0) {
+    lines.push('', trimmedNotes)
+  }
+
+  lines.push('', `🔗 https://craft-football.com/${leagueSlug}`)
+  return lines.join('\n')
+}
+
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const MONTH_IDX: Record<string, number> = Object.fromEntries(MONTH_SHORT.map((m, i) => [m, i]))
 
