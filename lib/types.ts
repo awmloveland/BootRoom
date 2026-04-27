@@ -1,5 +1,5 @@
 export type Winner = 'teamA' | 'teamB' | 'draw' | null;
-export type WeekStatus = 'played' | 'cancelled' | 'unrecorded' | 'scheduled';
+export type WeekStatus = 'played' | 'cancelled' | 'unrecorded' | 'scheduled' | 'dnf';
 
 export interface Week {
   id?: string;         // DB row id — present for rows fetched from DB; absent in legacy test fixtures
@@ -8,8 +8,8 @@ export interface Week {
   date: string;        // 'DD MMM YYYY'
   status: WeekStatus;
   format?: string;     // e.g. '6-a-side' (absent for cancelled/unrecorded)
-  teamA: string[];     // empty array for cancelled/unrecorded weeks
-  teamB: string[];     // empty array for cancelled/unrecorded weeks
+  teamA: string[];     // empty array for cancelled/unrecorded/scheduled weeks; populated for dnf
+  teamB: string[];     // empty array for cancelled/unrecorded/scheduled weeks; populated for dnf
   winner: Winner;      // null for non-played weeks
   notes?: string;      // result notes or cancellation reason
   // Non-negative integer. 0 = draw. Positive = win margin (UI enforces 1–20, DB has no constraint).

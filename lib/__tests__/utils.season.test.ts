@@ -1,4 +1,4 @@
-import { deriveSeason, getNextWeekNumber, computeYearStats, sortWeeks } from '@/lib/utils'
+import { deriveSeason, getNextWeekNumber, computeYearStats, sortWeeks, getSeasonPlayedWeekCount } from '@/lib/utils'
 import type { Week } from '@/lib/types'
 
 function makeWeek(overrides: Partial<Week>): Week {
@@ -170,5 +170,54 @@ describe('computeYearStats', () => {
     const stats = computeYearStats('Alice', weeksOutOfOrder, '2026')
     // Newest-first by date: 10 Mar (W), 03 Mar (L), 22 Jan (W), 15 Jan (D), 08 Jan (L)
     expect(stats.recentForm).toBe('WLWDL')
+  })
+})
+
+describe('getSeasonPlayedWeekCount', () => {
+  const currentYear = String(new Date().getFullYear())
+  const prevYear = String(new Date().getFullYear() - 1)
+
+  it('returns max week number from current year played weeks', () => {
+    const weeks = [
+      makeWeek({ season: currentYear, week: 3, status: 'played' }),
+      makeWeek({ season: currentYear, week: 5, status: 'played' }),
+    ]
+    expect(getSeasonPlayedWeekCount(weeks)).toBe(5)
+  })
+
+  it('includes cancelled weeks in the count', () => {
+    const weeks = [
+      makeWeek({ season: currentYear, week: 3, status: 'played' }),
+      makeWeek({ season: currentYear, week: 4, status: 'cancelled' }),
+    ]
+    expect(getSeasonPlayedWeekCount(weeks)).toBe(4)
+  })
+
+  it('includes dnf weeks in the count', () => {
+    const weeks = [
+      makeWeek({ season: currentYear, week: 3, status: 'played' }),
+      makeWeek({ season: currentYear, week: 4, status: 'dnf' }),
+    ]
+    expect(getSeasonPlayedWeekCount(weeks)).toBe(4)
+  })
+
+  it('excludes unrecorded and scheduled weeks from the count', () => {
+    const weeks = [
+      makeWeek({ season: currentYear, week: 3, status: 'played' }),
+      makeWeek({ season: currentYear, week: 5, status: 'unrecorded' }),
+      makeWeek({ season: currentYear, week: 6, status: 'scheduled' }),
+    ]
+    expect(getSeasonPlayedWeekCount(weeks)).toBe(3)
+  })
+
+  it('falls back to previous year when current year has no relevant weeks', () => {
+    const weeks = [
+      makeWeek({ season: prevYear, week: 40, status: 'played' }),
+    ]
+    expect(getSeasonPlayedWeekCount(weeks)).toBe(40)
+  })
+
+  it('returns 0 when no relevant weeks exist at all', () => {
+    expect(getSeasonPlayedWeekCount([])).toBe(0)
   })
 })

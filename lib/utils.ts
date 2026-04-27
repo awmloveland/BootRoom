@@ -445,7 +445,7 @@ export function deriveSeason(weeks: Week[]): string {
  * current year has none yet.
  */
 export function getSeasonPlayedWeekCount(weeks: Week[]): number {
-  const relevant = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled')
+  const relevant = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled' || w.status === 'dnf')
   const currentYear = String(new Date().getFullYear())
   const currentYearWeeks = relevant.filter((w) => w.season === currentYear)
   if (currentYearWeeks.length > 0) {
