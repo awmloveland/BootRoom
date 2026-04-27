@@ -269,6 +269,6 @@ export const getWeeks = cache(async (leagueId: string): Promise<Week[]> => {
     .from('weeks')
     .select('id, season, week, date, status, format, team_a, team_b, winner, notes, goal_difference, team_a_rating, team_b_rating, lineup_metadata')
     .eq('game_id', leagueId)
-    .in('status', ['played', 'cancelled', 'unrecorded', 'scheduled'])
+    .in('status', ['played', 'cancelled', 'unrecorded', 'scheduled', 'dnf'])
   return sortWeeks(((data ?? []) as WeekRow[]).map(mapWeekRow))
 })
