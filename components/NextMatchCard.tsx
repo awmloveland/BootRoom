@@ -12,6 +12,7 @@ import { WinnerBadge } from '@/components/WinnerBadge'
 import { TeamList } from '@/components/TeamList'
 import { AddPlayerModal } from '@/components/AddPlayerModal'
 import { ResultModal } from '@/components/ResultModal'
+import type { ResultSavedPayload } from '@/components/ResultModal'
 import { ResultSuccessPanel } from '@/components/ResultSuccessPanel'
 import { FormDots } from '@/components/FormDots'
 
@@ -171,12 +172,7 @@ export function NextMatchCard({
 
   // Result modal
   const [showResultModal, setShowResultModal] = useState(false)
-  const [savedResult, setSavedResult] = useState<{
-    winner: NonNullable<Winner>
-    goalDifference: number
-    shareText: string
-    highlightsText: string
-  } | null>(null)
+  const [savedResult, setSavedResult] = useState<Extract<ResultSavedPayload, { dnf: false }> | null>(null)
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -1100,7 +1096,13 @@ export function NextMatchCard({
             setShowResultModal(false)
             setGuestEntries([])
             setNewPlayerEntries([])
-            setSavedResult(result)
+            if (result.dnf) {
+              setScheduledWeek(null)
+              setCardState('idle')
+              onResultSaved()
+            } else {
+              setSavedResult(result)
+            }
           }}
           onClose={() => setShowResultModal(false)}
         />
