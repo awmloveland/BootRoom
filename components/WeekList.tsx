@@ -4,7 +4,7 @@ import { Fragment, useState } from 'react'
 import { MatchCard } from '@/components/MatchCard'
 import { MonthDivider } from '@/components/MonthDivider'
 import { YearDivider } from '@/components/YearDivider'
-import { getPlayedWeeks, getMonthKey, formatMonthYear, sortWeeks } from '@/lib/utils'
+import { getMonthKey, formatMonthYear, sortWeeks } from '@/lib/utils'
 import type { Player, Week } from '@/lib/types'
 
 interface Props {
@@ -33,8 +33,8 @@ export function WeekList({
   onResultSaved = () => {},
   leagueName,
 }: Props) {
-  const playedWeeks = getPlayedWeeks(weeks)
-  const mostRecent = sortWeeks(playedWeeks)[0] ?? null
+  const recentEligible = sortWeeks(weeks.filter((w) => w.status === 'played' || w.status === 'dnf'))
+  const mostRecent = recentEligible[0] ?? null
   const [internalOpenWeek, setInternalOpenWeek] = useState<number | null>(mostRecent?.week ?? null)
 
   const isControlled = controlledOpenWeek !== undefined

@@ -1,4 +1,4 @@
-import { winCopy, buildShareText, buildResultShareText } from '../utils'
+import { winCopy, buildShareText, buildResultShareText, buildDnfShareText } from '../utils'
 import type { Player, Week } from '../types'
 
 describe('winCopy', () => {
@@ -423,5 +423,94 @@ describe('buildResultShareText', () => {
     expect(highlightsText).not.toContain('💔')
     expect(highlightsText).not.toContain('😱')
     expect(highlightsText).not.toContain('🎖️')
+  })
+})
+
+describe('buildDnfShareText', () => {
+  const baseParams = {
+    leagueName: 'Test League',
+    leagueSlug: 'test-league',
+    week: 5,
+    date: '27 Apr 2026', // Monday
+    format: '6-a-side',
+    teamA: ['Alice', 'Bob', 'Carol'],
+    teamB: ['Dave', 'Eve', 'Frank'],
+    teamARating: 3.4,
+    teamBRating: 3.2,
+    notes: 'Pitch flooded after 30 mins',
+  }
+
+  it('produces canonical multi-line message with notes and ratings', () => {
+    const text = buildDnfShareText(baseParams)
+    expect(text).toBe(
+      [
+        '⚽ Test League — Week 5',
+        '📅 Mon 27 Apr · 6-a-side',
+        '',
+        '⚠️ Game called off — DNF',
+        '',
+        '🔵 Team A (3.4)',
+        'Alice, Bob, Carol',
+        '',
+        '🟣 Team B (3.2)',
+        'Dave, Eve, Frank',
+        '',
+        'Pitch flooded after 30 mins',
+        '',
+        '🔗 https://craft-football.com/test-league',
+      ].join('\n'),
+    )
+  })
+
+  it('omits notes paragraph when notes is empty string', () => {
+    const text = buildDnfShareText({ ...baseParams, notes: '' })
+    expect(text).not.toContain('Pitch flooded')
+    expect(text).toBe(
+      [
+        '⚽ Test League — Week 5',
+        '📅 Mon 27 Apr · 6-a-side',
+        '',
+        '⚠️ Game called off — DNF',
+        '',
+        '🔵 Team A (3.4)',
+        'Alice, Bob, Carol',
+        '',
+        '🟣 Team B (3.2)',
+        'Dave, Eve, Frank',
+        '',
+        '🔗 https://craft-football.com/test-league',
+      ].join('\n'),
+    )
+  })
+
+  it('omits notes paragraph when notes is whitespace-only', () => {
+    const text = buildDnfShareText({ ...baseParams, notes: '   \n  ' })
+    expect(text).not.toMatch(/\n {3}\n/)
+  })
+
+  it('omits format segment when format is empty string', () => {
+    const text = buildDnfShareText({ ...baseParams, format: '' })
+    expect(text).toContain('📅 Mon 27 Apr\n')
+    expect(text).not.toContain(' · ')
+  })
+
+  it('omits team rating parentheticals when ratings are null', () => {
+    const text = buildDnfShareText({ ...baseParams, teamARating: null, teamBRating: null })
+    expect(text).toContain('🔵 Team A\n')
+    expect(text).toContain('🟣 Team B\n')
+    expect(text).not.toContain('(3.4)')
+    expect(text).not.toContain('(3.2)')
+  })
+
+  it('still includes Team A rating when only Team B is null', () => {
+    const text = buildDnfShareText({ ...baseParams, teamBRating: null })
+    expect(text).toContain('🔵 Team A (3.4)')
+    expect(text).toContain('🟣 Team B\n')
+    expect(text).not.toContain('(3.2)')
+  })
+
+  it('places a blank line between the date/format line and the DNF headline', () => {
+    const text = buildDnfShareText(baseParams)
+    expect(text).toContain('📅 Mon 27 Apr · 6-a-side\n\n⚠️ Game called off — DNF')
   })
 })

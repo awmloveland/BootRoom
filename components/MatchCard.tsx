@@ -7,7 +7,7 @@ import { Week } from '@/lib/types'
 import type { Player, ScheduledWeek } from '@/lib/types'
 import { WinnerBadge } from './WinnerBadge'
 import { TeamList } from './TeamList'
-import { cn, shouldShowMeta, isPastDeadline, buildResultShareText } from '@/lib/utils'
+import { cn, shouldShowMeta, isPastDeadline, buildResultShareText, buildDnfShareText } from '@/lib/utils'
 import { ResultModal } from '@/components/ResultModal'
 import { EditWeekModal } from '@/components/EditWeekModal'
 
@@ -181,6 +181,8 @@ interface DnfCardProps {
   gameId: string
   allPlayers: Player[]
   onResultSaved: () => void
+  leagueName?: string
+  leagueSlug?: string
 }
 
 function DnfCard({
@@ -191,8 +193,48 @@ function DnfCard({
   gameId,
   allPlayers,
   onResultSaved,
+  leagueName,
+  leagueSlug,
 }: DnfCardProps) {
   const [showEditModal, setShowEditModal] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const canShare = !!(leagueName && leagueSlug)
+
+  async function handleShare() {
+    if (!canShare) return
+    const shareText = buildDnfShareText({
+      leagueName: leagueName!,
+      leagueSlug: leagueSlug!,
+      week: week.week,
+      date: week.date,
+      format: week.format ?? '',
+      teamA: week.teamA ?? [],
+      teamB: week.teamB ?? [],
+      teamARating: week.team_a_rating ?? null,
+      teamBRating: week.team_b_rating ?? null,
+      notes: week.notes ?? '',
+    })
+    if (navigator.share && window.innerWidth < 768) {
+      try {
+        await navigator.share({ text: shareText })
+      } catch (err) {
+        if (err instanceof DOMException && err.name !== 'AbortError') {
+          try {
+            await navigator.clipboard.writeText(shareText)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+          } catch { /* clipboard unavailable */ }
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareText)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch { /* clipboard unavailable */ }
+    }
+  }
 
   return (
     <>
@@ -261,9 +303,20 @@ function DnfCard({
                     </div>
                   </>
                 )}
-                {isAdmin && (
-                  <div className="border-t border-slate-700 mt-4 pt-4 flex justify-end">
-                    <EditResultButton onClick={() => setShowEditModal(true)} />
+                {(isAdmin || canShare) && (
+                  <div className="border-t border-slate-700 mt-4 pt-4 flex justify-end items-center gap-2">
+                    {isAdmin && (
+                      <EditResultButton onClick={() => setShowEditModal(true)} />
+                    )}
+                    {canShare && (
+                      <button
+                        type="button"
+                        onClick={handleShare}
+                        className="px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold transition-colors"
+                      >
+                        {copied ? 'Copied!' : 'Share'}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -624,6 +677,8 @@ export function MatchCard({
         gameId={gameId}
         allPlayers={allPlayers}
         onResultSaved={onResultSaved}
+        leagueName={leagueName}
+        leagueSlug={leagueSlug}
       />
     )
   }
