@@ -7,6 +7,12 @@
 -- target_email is null for open invites (email = '*'), populated for
 -- targeted invites so the client can detect mismatch before calling
 -- accept_game_invite (the RPC also enforces this server-side).
+--
+-- Disclosure note: target_email is intentionally returned to anon callers
+-- so the client can render a "this invite was sent to X" message before
+-- sign-in. Mitigation: tokens are 32-byte random hex (effectively
+-- unguessable) and single-use, so this only leaks to a holder of a valid
+-- targeted-invite token — i.e. someone who has already received the link.
 
 CREATE OR REPLACE FUNCTION public.preview_invite(invite_token text)
 RETURNS TABLE (
