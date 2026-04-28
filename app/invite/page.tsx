@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { AuthDialog } from '@/components/AuthDialog'
 
 type Preview = {
   league_name: string
@@ -125,13 +126,25 @@ function InviteFlow() {
     return <GenericErrorCard message={state.message} />
   }
 
-  // state.kind === 'preview' — unauthenticated path, wired up in next task
+  // state.kind === 'preview' — unauthenticated visitor
   return (
-    <InviteCard>
-      <p className="text-slate-400 text-sm">
-        Preview loaded: {state.preview.league_name} ({state.preview.role}) — sign-in UI lands in next task.
-      </p>
-    </InviteCard>
+    <>
+      <InviteCard>
+        <h1 className="text-lg font-semibold text-slate-100">
+          You&apos;ve been invited to join {state.preview.league_name}
+        </h1>
+        <p className="text-sm text-slate-400">
+          Sign in or create an account to join as a <span className="text-slate-200">{state.preview.role}</span>.
+        </p>
+      </InviteCard>
+      <AuthDialog
+        open
+        onOpenChange={() => { /* dialog stays open — this page exists to capture the sign-in */ }}
+        redirect={`/invite?token=${encodeURIComponent(token)}`}
+        leagueName={state.preview.league_name}
+        initialMode="signup"
+      />
+    </>
   )
 }
 
