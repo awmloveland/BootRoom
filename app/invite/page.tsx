@@ -15,6 +15,8 @@ type State =
   | { kind: 'loading' }
   | { kind: 'invalid' }
   | { kind: 'preview'; preview: Preview }
+  | { kind: 'joining'; preview: Preview }
+  | { kind: 'error'; message: string }
 
 function InviteCard({ children }: { children: React.ReactNode }) {
   return (
@@ -43,6 +45,21 @@ function InvalidInviteCard() {
   )
 }
 
+function GenericErrorCard({ message }: { message: string }) {
+  return (
+    <InviteCard>
+      <h1 className="text-lg font-semibold text-slate-100">Couldn&apos;t accept this invite</h1>
+      <p className="text-sm text-slate-400">{message}</p>
+      <a
+        href="/"
+        className="inline-block w-full text-center py-2 px-4 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium transition-colors"
+      >
+        Back to home
+      </a>
+    </InviteCard>
+  )
+}
+
 function InviteFlow() {
   const params = useSearchParams()
   const token = params.get('token')?.trim() ?? ''
@@ -56,14 +73,40 @@ function InviteFlow() {
     let cancelled = false
     async function run() {
       const supabase = createClient()
-      const { data, error } = await supabase.rpc('preview_invite', { invite_token: token })
+
+      const { data: previewData, error: previewErr } = await supabase.rpc(
+        'preview_invite',
+        { invite_token: token }
+      )
       if (cancelled) return
-      const row = Array.isArray(data) ? data[0] : null
-      if (error || !row) {
+      const preview = (Array.isArray(previewData) ? previewData[0] : null) as Preview | null
+      if (previewErr || !preview) {
         setState({ kind: 'invalid' })
         return
       }
-      setState({ kind: 'preview', preview: row as Preview })
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (cancelled) return
+
+      if (!user) {
+        setState({ kind: 'preview', preview })
+        return
+      }
+
+      setState({ kind: 'joining', preview })
+
+      const { error: acceptErr } = await supabase.rpc('accept_game_invite', {
+        invite_token: token,
+      })
+      if (cancelled) return
+      if (acceptErr) {
+        setState({ kind: 'error', message: acceptErr.message })
+        return
+      }
+
+      // Full-page navigation so middleware re-runs and the new
+      // game_members row is visible to the league pages.
+      window.location.href = `/${preview.league_slug}/results`
     }
     run()
     return () => { cancelled = true }
@@ -75,13 +118,18 @@ function InviteFlow() {
   if (state.kind === 'invalid') {
     return <InvalidInviteCard />
   }
+  if (state.kind === 'joining') {
+    return <InviteCard><p className="text-slate-400 text-sm">Joining {state.preview.league_name}…</p></InviteCard>
+  }
+  if (state.kind === 'error') {
+    return <GenericErrorCard message={state.message} />
+  }
 
-  // state.kind === 'preview' — for now just dump the preview so we can verify
-  // the RPC works end-to-end. Later tasks replace this with the real UI.
+  // state.kind === 'preview' — unauthenticated path, wired up in next task
   return (
     <InviteCard>
       <p className="text-slate-400 text-sm">
-        Preview loaded: {state.preview.league_name} ({state.preview.role})
+        Preview loaded: {state.preview.league_name} ({state.preview.role}) — sign-in UI lands in next task.
       </p>
     </InviteCard>
   )
