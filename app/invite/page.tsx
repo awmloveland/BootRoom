@@ -56,6 +56,7 @@ function MismatchCard({ token, targetEmail, currentEmail }: {
 
   async function handleSignOut() {
     setSigningOut(true)
+    await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' })
     const supabase = createClient()
     await supabase.auth.signOut()
     window.location.href = `/invite?token=${encodeURIComponent(token)}`
