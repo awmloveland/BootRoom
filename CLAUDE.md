@@ -43,8 +43,8 @@ BootRoom/
 │   │   ├── page.tsx          # / — league list
 │   │   ├── league/[id]/      # League home, players, settings
 │   │   ├── settings/         # User settings + invite admin
-│   │   ├── invite/           # Invite accept flow
 │   │   └── add-game/         # Create a new league
+│   ├── invite/               # Invite accept page (consumes ?token=)
 │   ├── api/                  # API routes
 │   └── globals.css           # Tailwind base import only
 ├── components/
