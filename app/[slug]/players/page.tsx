@@ -47,7 +47,6 @@ export default async function LeaguePlayersPage({ params }: Props) {
 
   const tier = resolveVisibilityTier(userRole)
   const isAdmin = tier === 'admin'
-  const canSeeStatsSidebar = isAdmin || isFeatureEnabled(features, 'stats_sidebar', tier)
 
   if (!isAdmin && !isFeatureEnabled(features, 'player_stats', tier)) {
     return <LeaguePrivateState leagueName={game.name} />
@@ -109,23 +108,17 @@ export default async function LeaguePlayersPage({ params }: Props) {
           <StatsSidebar
             players={players}
             weeks={playedWeeks}
-            features={features}
-            role={userRole}
             linkedPlayerName={linkedPlayerName}
           />
         </SidebarSticky>
       </div>
-      {canSeeStatsSidebar && (
-        <MobileStatsFAB>
-          <StatsSidebar
-            players={players}
-            weeks={playedWeeks}
-            features={features}
-            role={userRole}
-            linkedPlayerName={linkedPlayerName}
-          />
-        </MobileStatsFAB>
-      )}
+      <MobileStatsFAB>
+        <StatsSidebar
+          players={players}
+          weeks={playedWeeks}
+          linkedPlayerName={linkedPlayerName}
+        />
+      </MobileStatsFAB>
     </main>
   )
 }

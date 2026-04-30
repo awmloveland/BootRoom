@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic'
 import { notFound } from 'next/navigation'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
-import { isFeatureEnabled } from '@/lib/features'
 import { computeAllQuarters } from '@/lib/sidebar-stats'
 import { getSeasonPlayedWeekCount } from '@/lib/utils'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
@@ -48,7 +47,6 @@ export default async function HonoursPage({ params }: Props) {
 
   const tier = resolveVisibilityTier(userRole)
   const isAdmin = tier === 'admin'
-  const canSeeStatsSidebar = isAdmin || isFeatureEnabled(features, 'stats_sidebar', tier)
 
   // Show onboarding banner for non-admin members with no claim.
   let linkedPlayerName: string | null = null
@@ -96,29 +94,21 @@ export default async function HonoursPage({ params }: Props) {
             <HonoursSection data={computeAllQuarters(weeks, new Date())} />
           )}
         </div>
-        {canSeeStatsSidebar && (
-          <SidebarSticky>
-            <StatsSidebar
-              players={players}
-              weeks={playedWeeks}
-              features={features}
-              role={userRole}
-              linkedPlayerName={linkedPlayerName}
-            />
-          </SidebarSticky>
-        )}
-      </div>
-      {canSeeStatsSidebar && (
-        <MobileStatsFAB>
+        <SidebarSticky>
           <StatsSidebar
             players={players}
             weeks={playedWeeks}
-            features={features}
-            role={userRole}
             linkedPlayerName={linkedPlayerName}
           />
-        </MobileStatsFAB>
-      )}
+        </SidebarSticky>
+      </div>
+      <MobileStatsFAB>
+        <StatsSidebar
+          players={players}
+          weeks={playedWeeks}
+          linkedPlayerName={linkedPlayerName}
+        />
+      </MobileStatsFAB>
     </main>
   )
 }
