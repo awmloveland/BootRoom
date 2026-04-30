@@ -35,7 +35,6 @@ export function FeaturePanel({ leagueId, features, onChanged }: FeaturePanelProp
         feature={getFeature(features, 'player_stats')}
         onChanged={onChanged}
       />
-
     </div>
   )
 }
