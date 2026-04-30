@@ -11,7 +11,6 @@ const FEATURE_LABELS: Record<FeatureKey, string> = {
   match_entry:       'Match Entry',
   player_stats:      'Player Stats',
   player_comparison: 'Player Comparison',
-  stats_sidebar:     'Stats Sidebar',
 }
 
 interface Experiment {
