@@ -90,8 +90,7 @@ export type FeatureKey =
   | 'match_history'
   | 'match_entry'
   | 'player_stats'
-  | 'player_comparison'
-  | 'stats_sidebar';
+  | 'player_comparison';
 
 export interface FeatureConfig {
   max_players?: number | null;

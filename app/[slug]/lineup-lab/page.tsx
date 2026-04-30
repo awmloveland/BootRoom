@@ -9,7 +9,6 @@ import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { LineupLab } from '@/components/LineupLab'
 import { LineupLabLoginPrompt } from '@/components/LineupLabLoginPrompt'
 import { StatsSidebar } from '@/components/StatsSidebar'
-import { isFeatureEnabled } from '@/lib/features'
 import { MobileStatsFAB } from '@/components/MobileStatsFAB'
 import { SidebarSticky } from '@/components/SidebarSticky'
 import type { LeagueDetails, JoinRequestStatus } from '@/lib/types'
@@ -46,7 +45,6 @@ export default async function LineupLabPage({ params }: Props) {
 
   const tier = resolveVisibilityTier(userRole)
   const isAdmin = tier === 'admin'
-  const canSeeStatsSidebar = isAdmin || isFeatureEnabled(features, 'stats_sidebar', tier)
 
   const playedWeeks = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled')
   const playedCount = getSeasonPlayedWeekCount(weeks)
@@ -87,21 +85,15 @@ export default async function LineupLabPage({ params }: Props) {
           <StatsSidebar
             players={players}
             weeks={playedWeeks}
-            features={features}
-            role={userRole}
           />
         </SidebarSticky>
       </div>
-      {canSeeStatsSidebar && (
-        <MobileStatsFAB>
-          <StatsSidebar
-            players={players}
-            weeks={playedWeeks}
-            features={features}
-            role={userRole}
-          />
-        </MobileStatsFAB>
-      )}
+      <MobileStatsFAB>
+        <StatsSidebar
+          players={players}
+          weeks={playedWeeks}
+        />
+      </MobileStatsFAB>
     </main>
   )
 }

@@ -71,7 +71,6 @@ export default async function LeagueResultsPage({ params }: Props) {
   const canSeeMatchHistory = isAdmin || isFeatureEnabled(features, 'match_history', tier)
   const canSeeMatchEntry = isAdmin || isFeatureEnabled(features, 'match_entry', tier)
   const canSeePlayerStats = isAdmin || isFeatureEnabled(features, 'player_stats', tier)
-  const canSeeStatsSidebar = isAdmin || isFeatureEnabled(features, 'stats_sidebar', tier)
 
   if (tier === 'public' && !canSeeMatchHistory && !canSeeMatchEntry && !canSeePlayerStats) {
     return (
@@ -151,7 +150,7 @@ export default async function LeagueResultsPage({ params }: Props) {
     day: game.day ?? null,
     kickoff_time: game.kickoff_time ?? null,
     bio: game.bio ?? null,
-    player_count: (tier !== 'public' || canSeeStatsSidebar) ? players.length : undefined,
+    player_count: players.length,
   }
 
   // ── Public tier ──
@@ -195,31 +194,23 @@ export default async function LeagueResultsPage({ params }: Props) {
               </p>
             )}
           </div>
-          {canSeeStatsSidebar && (
-            <SidebarSticky>
-              <StatsSidebar
-                players={players}
-                weeks={weeks}
-                features={features}
-                role={userRole}
-                leagueDayIndex={leagueDayIndex}
-                linkedPlayerName={linkedPlayerName}
-              />
-            </SidebarSticky>
-          )}
-        </div>
-        {canSeeStatsSidebar && (
-          <MobileStatsFAB>
+          <SidebarSticky>
             <StatsSidebar
               players={players}
               weeks={weeks}
-              features={features}
-              role={userRole}
               leagueDayIndex={leagueDayIndex}
               linkedPlayerName={linkedPlayerName}
             />
-          </MobileStatsFAB>
-        )}
+          </SidebarSticky>
+        </div>
+        <MobileStatsFAB>
+          <StatsSidebar
+            players={players}
+            weeks={weeks}
+            leagueDayIndex={leagueDayIndex}
+            linkedPlayerName={linkedPlayerName}
+          />
+        </MobileStatsFAB>
       </main>
     )
   }
@@ -280,25 +271,19 @@ export default async function LeagueResultsPage({ params }: Props) {
           <StatsSidebar
             players={players}
             weeks={weeks}
-            features={features}
-            role={userRole}
             leagueDayIndex={leagueDayIndex}
             linkedPlayerName={linkedPlayerName}
           />
         </SidebarSticky>
       </div>
-      {canSeeStatsSidebar && (
-        <MobileStatsFAB>
-          <StatsSidebar
-            players={players}
-            weeks={weeks}
-            features={features}
-            role={userRole}
-            leagueDayIndex={leagueDayIndex}
-            linkedPlayerName={linkedPlayerName}
-          />
-        </MobileStatsFAB>
-      )}
+      <MobileStatsFAB>
+        <StatsSidebar
+          players={players}
+          weeks={weeks}
+          leagueDayIndex={leagueDayIndex}
+          linkedPlayerName={linkedPlayerName}
+        />
+      </MobileStatsFAB>
     </main>
   )
 }

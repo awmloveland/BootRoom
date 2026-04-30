@@ -1,15 +1,11 @@
 import { cn } from '@/lib/utils'
-import { isFeatureEnabled } from '@/lib/features'
-import { resolveVisibilityTier } from '@/lib/roles'
 import { computeInForm, computeQuarterlyTable, computeTeamAB } from '@/lib/sidebar-stats'
 import { FormDots } from '@/components/FormDots'
-import type { Player, Week, LeagueFeature, GameRole } from '@/lib/types'
+import type { Player, Week } from '@/lib/types'
 
 interface StatsSidebarProps {
   players: Player[]
   weeks: Week[]
-  features: LeagueFeature[]
-  role: GameRole | null
   leagueDayIndex?: number
   linkedPlayerName?: string | null
 }
@@ -282,11 +278,7 @@ function TeamABWidget({ weeks }: { weeks: Week[] }) {
 
 // ─── StatsSidebar ─────────────────────────────────────────────────────────────
 
-export function StatsSidebar({ players, weeks, features, role, leagueDayIndex, linkedPlayerName }: StatsSidebarProps) {
-  const tier = resolveVisibilityTier(role)
-  const showStatsSidebar = isFeatureEnabled(features, 'stats_sidebar', tier)
-  if (!showStatsSidebar) return null
-
+export function StatsSidebar({ players, weeks, leagueDayIndex, linkedPlayerName }: StatsSidebarProps) {
   return (
     <div className="space-y-3">
       <YourStatsWidget players={players} linkedPlayerName={linkedPlayerName} />

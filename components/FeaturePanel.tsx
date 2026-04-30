@@ -1,7 +1,6 @@
 'use client'
 
 import { PlayerStatsCard } from '@/components/PlayerStatsCard'
-import { StatsSidebarCard } from '@/components/StatsSidebarCard'
 import type { FeatureKey, LeagueFeature } from '@/lib/types'
 
 interface FeaturePanelProps {
@@ -34,11 +33,6 @@ export function FeaturePanel({ leagueId, features, onChanged }: FeaturePanelProp
       <PlayerStatsCard
         leagueId={leagueId}
         feature={getFeature(features, 'player_stats')}
-        onChanged={onChanged}
-      />
-      <StatsSidebarCard
-        leagueId={leagueId}
-        feature={getFeature(features, 'stats_sidebar')}
         onChanged={onChanged}
       />
     </div>

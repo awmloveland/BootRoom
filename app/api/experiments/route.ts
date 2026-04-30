@@ -40,7 +40,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Invalid body: feature and available required' }, { status: 400 })
   }
 
-  const VALID_FEATURES = new Set(['match_history', 'match_entry', 'player_stats', 'player_comparison', 'stats_sidebar'])
+  const VALID_FEATURES = new Set(['match_history', 'match_entry', 'player_stats', 'player_comparison'])
   if (!VALID_FEATURES.has(body.feature)) {
     return NextResponse.json({ error: 'Unknown feature key' }, { status: 400 })
   }
