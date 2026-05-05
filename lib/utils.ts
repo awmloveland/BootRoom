@@ -651,7 +651,7 @@ function currentUnbeatenStreak(playerName: string, weeks: Week[]): number {
 /**
  * Builds a formatted plain-text share message for a saved result.
  * Returns { shareText, highlightsText } — shareText is the full message;
- * highlightsText is just the highlights block, used by ResultSuccessPanel.
+ * highlightsText is just the highlights block, rendered separately in the share step.
  */
 export function buildResultShareText(params: {
   leagueName: string
