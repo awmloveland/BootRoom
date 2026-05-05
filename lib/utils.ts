@@ -214,6 +214,26 @@ export function ewptScore(players: Player[]): number {
 }
 
 /**
+ * Resolves the team rating to write when a result is recorded.
+ *
+ * Prefers the snapshot saved by `save_lineup` (the pre-game rating that was
+ * shown when teams were balanced). Falls back to a fresh `ewptScore` only
+ * for legacy lineups saved before the snapshot column existed.
+ *
+ * Recomputing at result-recording time is unsafe because the inputs to
+ * `ewptScore` (notably `Player.lastPlayedWeekDate` and the per-guest
+ * `wprOverride`) are not persisted, so the recomputed value drifts from
+ * the snapshot a member saw pre-game.
+ */
+export function resolveTeamRatingForResult(
+  snapshot: number | null | undefined,
+  recomputePlayers: Player[],
+): number {
+  if (snapshot !== null && snapshot !== undefined) return snapshot
+  return parseFloat(ewptScore(recomputePlayers).toFixed(3))
+}
+
+/**
  * Computes the median WPR score of all players with 5 or more games played.
  * Used as the default strength for new players and guests when auto-picking.
  * Falls back to 50 if fewer than 3 qualified players exist (very new league).
