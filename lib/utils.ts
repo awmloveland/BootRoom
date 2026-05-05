@@ -854,3 +854,22 @@ export function getAvatarColor(name: string): { bg: string; border: string; text
   const index = name.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % AVATAR_PALETTE.length
   return { ...AVATAR_PALETTE[index] }
 }
+
+/**
+ * Result-phrase portion of the share-step header, e.g. "Team A Wins! (+2 goals)".
+ * Singular goal handled. DNF takes priority over winner inputs.
+ */
+export function buildResultHeadline(
+  winner: Winner,
+  goalDifference: number,
+  isDnf: boolean
+): string {
+  if (isDnf) return 'Did Not Finish'
+  if (winner === 'draw') return 'Draw'
+  if (winner === 'teamA' || winner === 'teamB') {
+    const teamLabel = winner === 'teamA' ? 'Team A' : 'Team B'
+    const goalWord = goalDifference === 1 ? 'goal' : 'goals'
+    return `${teamLabel} Wins! (+${goalDifference} ${goalWord})`
+  }
+  return ''
+}
