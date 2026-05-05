@@ -3,7 +3,7 @@
 
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { cn, ewptScore, buildResultShareText, buildDnfShareText, buildResultHeadline, formatShareDate } from '@/lib/utils'
+import { cn, ewptScore, buildResultShareText, buildDnfShareText, buildResultHeadline } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality, Week } from '@/lib/types'
 import { EyeTestSlider } from '@/components/EyeTestSlider'
@@ -402,7 +402,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                   : `Result — Week ${scheduledWeek.week}`}
               </Dialog.Title>
               <Dialog.Description className="text-xs text-slate-400 mt-0.5">
-                {step === 'share' ? formatShareDate(scheduledWeek.date) : scheduledWeek.date}
+                {scheduledWeek.date}
               </Dialog.Description>
             </div>
             {step === 'share' && (
