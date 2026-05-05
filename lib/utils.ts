@@ -671,7 +671,7 @@ function currentUnbeatenStreak(playerName: string, weeks: Week[]): number {
 /**
  * Builds a formatted plain-text share message for a saved result.
  * Returns { shareText, highlightsText } — shareText is the full message;
- * highlightsText is just the highlights block, used by ResultSuccessPanel.
+ * highlightsText is just the highlights block, rendered separately in the share step.
  */
 export function buildResultShareText(params: {
   leagueName: string
@@ -873,4 +873,23 @@ export function getInitials(name: string): string {
 export function getAvatarColor(name: string): { bg: string; border: string; text: string } {
   const index = name.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % AVATAR_PALETTE.length
   return { ...AVATAR_PALETTE[index] }
+}
+
+/**
+ * Result-phrase portion of the share-step header, e.g. "Team A Wins! (+2 goals)".
+ * Singular goal handled. DNF takes priority over winner inputs.
+ */
+export function buildResultHeadline(
+  winner: Winner,
+  goalDifference: number,
+  isDnf: boolean
+): string {
+  if (isDnf) return 'Did Not Finish'
+  if (winner === 'draw') return 'Draw'
+  if (winner === 'teamA' || winner === 'teamB') {
+    const teamLabel = winner === 'teamA' ? 'Team A' : 'Team B'
+    const goalWord = goalDifference === 1 ? 'goal' : 'goals'
+    return `${teamLabel} Wins! (+${goalDifference} ${goalWord})`
+  }
+  return ''
 }

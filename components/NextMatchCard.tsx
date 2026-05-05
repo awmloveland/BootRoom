@@ -12,8 +12,6 @@ import { WinnerBadge } from '@/components/WinnerBadge'
 import { TeamList } from '@/components/TeamList'
 import { AddPlayerModal } from '@/components/AddPlayerModal'
 import { ResultModal } from '@/components/ResultModal'
-import type { ResultSavedPayload } from '@/components/ResultModal'
-import { ResultSuccessPanel } from '@/components/ResultSuccessPanel'
 import { FormDots } from '@/components/FormDots'
 
 interface Props {
@@ -172,7 +170,6 @@ export function NextMatchCard({
 
   // Result modal
   const [showResultModal, setShowResultModal] = useState(false)
-  const [savedResult, setSavedResult] = useState<Extract<ResultSavedPayload, { dnf: false }> | null>(null)
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -1092,40 +1089,18 @@ export function NextMatchCard({
           leagueName={leagueName}
           weeks={weeks}
           publicMode={publicMode}
-          onSaved={(result) => {
+          onSaved={() => {
             setShowResultModal(false)
             setGuestEntries([])
             setNewPlayerEntries([])
-            if (result.dnf) {
-              setScheduledWeek(null)
-              setCardState('idle')
-              onResultSaved()
-            } else {
-              setSavedResult(result)
-            }
+            setScheduledWeek(null)
+            setCardState('idle')
+            onResultSaved()
           }}
           onClose={() => setShowResultModal(false)}
         />
       )}
 
-      {savedResult && scheduledWeek && (
-        <ResultSuccessPanel
-          week={scheduledWeek.week}
-          date={scheduledWeek.date}
-          winner={savedResult.winner}
-          goalDifference={savedResult.goalDifference}
-          teamA={scheduledWeek.teamA}
-          teamB={scheduledWeek.teamB}
-          highlightsText={savedResult.highlightsText}
-          shareText={savedResult.shareText}
-          onDismiss={() => {
-            setSavedResult(null)
-            setScheduledWeek(null)
-            setCardState('idle')
-            onResultSaved()
-          }}
-        />
-      )}
     </>
   )
 }
