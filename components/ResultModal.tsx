@@ -3,7 +3,7 @@
 
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { cn, ewptScore, buildResultShareText } from '@/lib/utils'
+import { cn, buildResultShareText, resolveTeamRatingForResult } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality, Week } from '@/lib/types'
 import { EyeTestSlider } from '@/components/EyeTestSlider'
@@ -250,8 +250,14 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         })
       }
 
-      const teamAScore = parseFloat(ewptScore(resolveTeam(scheduledWeek.teamA)).toFixed(3))
-      const teamBScore = parseFloat(ewptScore(resolveTeam(scheduledWeek.teamB)).toFixed(3))
+      const teamAScore = resolveTeamRatingForResult(
+        scheduledWeek.team_a_rating,
+        resolveTeam(scheduledWeek.teamA),
+      )
+      const teamBScore = resolveTeamRatingForResult(
+        scheduledWeek.team_b_rating,
+        resolveTeam(scheduledWeek.teamB),
+      )
 
       const syntheticWeek: Week = {
         week: scheduledWeek.week,
