@@ -10,10 +10,6 @@ import { EyeTestSlider } from '@/components/EyeTestSlider'
 import { Toggle } from '@/components/ui/toggle'
 import { X, Share2 } from 'lucide-react'
 
-export type ResultSavedPayload =
-  | { dnf: false; winner: NonNullable<Winner>; goalDifference: number; shareText: string; highlightsText: string }
-  | { dnf: true }
-
 interface Props {
   scheduledWeek: ScheduledWeek
   lineupMetadata: LineupMetadata | null
@@ -23,7 +19,7 @@ interface Props {
   leagueName: string
   weeks: Week[]
   publicMode: boolean
-  onSaved: (result: ResultSavedPayload) => void
+  onSaved: () => void
   onClose: () => void
 }
 
@@ -246,7 +242,20 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           }
         }
 
-        onSaved({ dnf: true })
+        const dnfShareText = buildDnfShareText({
+          leagueName,
+          leagueSlug,
+          week: scheduledWeek.week,
+          date: scheduledWeek.date,
+          format: scheduledWeek.format ?? '',
+          teamA: scheduledWeek.teamA,
+          teamB: scheduledWeek.teamB,
+          teamARating: null,
+          teamBRating: null,
+          notes: notes.trim(),
+        })
+        setShareData({ dnf: true, shareText: dnfShareText })
+        setStep('share')
         return
       }
 
@@ -363,7 +372,8 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         }
       }
 
-      onSaved({ dnf: false, winner, goalDifference, shareText, highlightsText })
+      setShareData({ dnf: false, winner, goalDifference, shareText, highlightsText })
+      setStep('share')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save result')
     } finally {
@@ -374,7 +384,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   const currentStepNum = step === 'winner' ? 1 : step === 'review' ? 2 : step === 'confirm' ? 3 : totalSteps
 
   return (
-    <Dialog.Root open onOpenChange={(open) => { if (!open) onClose() }}>
+    <Dialog.Root open onOpenChange={(open) => { if (!open) { if (step === 'share') onSaved(); else onClose() } }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/70 z-[999]" />
         <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-sm rounded-xl bg-slate-800 border border-slate-700 shadow-xl focus:outline-none overflow-hidden">
@@ -735,7 +745,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                 </button>
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={onSaved}
                   className="px-4 py-2.5 rounded-lg border border-slate-600 text-slate-300 text-sm hover:border-slate-500 transition-colors"
                 >
                   Done
