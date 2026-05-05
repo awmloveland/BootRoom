@@ -170,6 +170,27 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
     return valid
   }
 
+  async function handleShareClick() {
+    if (!shareData) return
+    const text = shareData.shareText
+    if (typeof navigator !== 'undefined' && navigator.share && window.innerWidth < 768) {
+      try {
+        await navigator.share({ text })
+        return
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        // fall through to clipboard
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2000)
+    } catch {
+      // clipboard unavailable — nothing to do
+    }
+  }
+
   async function handleSave() {
     if (!winner && !isDnf) return
     setSaving(true)
@@ -359,13 +380,32 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-sm rounded-xl bg-slate-800 border border-slate-700 shadow-xl focus:outline-none overflow-hidden">
 
           {/* Header */}
-          <div className="px-5 pt-4 pb-3 border-b border-slate-700">
-            <Dialog.Title className="text-base font-semibold text-slate-100">
-              Result — Week {scheduledWeek.week}
-            </Dialog.Title>
-            <Dialog.Description className="text-xs text-slate-400 mt-0.5">
-              {scheduledWeek.date}
-            </Dialog.Description>
+          <div className="px-5 pt-4 pb-3 border-b border-slate-700 flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <Dialog.Title className="text-base font-semibold text-slate-100">
+                {step === 'share' && shareData
+                  ? `Week ${scheduledWeek.week} — ${buildResultHeadline(
+                      shareData.dnf ? null : shareData.winner,
+                      shareData.dnf ? 0 : shareData.goalDifference,
+                      shareData.dnf
+                    )}`
+                  : `Result — Week ${scheduledWeek.week}`}
+              </Dialog.Title>
+              <Dialog.Description className="text-xs text-slate-400 mt-0.5">
+                {step === 'share' ? formatShareDate(scheduledWeek.date) : scheduledWeek.date}
+              </Dialog.Description>
+            </div>
+            {step === 'share' && (
+              <Dialog.Close asChild>
+                <button
+                  type="button"
+                  aria-label="Close"
+                  className="text-slate-500 hover:text-slate-300 p-1 rounded transition-colors flex-shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </Dialog.Close>
+            )}
           </div>
 
           {hasReviewStep && step !== 'share' && <StepIndicator current={currentStepNum} total={totalSteps} />}
@@ -638,6 +678,67 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                   className="px-4 py-2 rounded bg-green-700 hover:bg-green-600 text-white text-sm font-semibold disabled:opacity-50"
                 >
                   {saving ? 'Saving…' : 'Save result'}
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── Step: share ── */}
+          {step === 'share' && shareData && (
+            <>
+              <div className="p-5 flex flex-col gap-2 max-h-[70vh] overflow-y-auto">
+                {/* Team A */}
+                <div className="bg-slate-900 border border-blue-900/50 rounded-lg p-3">
+                  <p className="text-[10px] font-semibold text-blue-400 uppercase tracking-wide mb-2">🔵 Team A</p>
+                  <p className="text-xs text-slate-300 leading-relaxed">{scheduledWeek.teamA.join(', ')}</p>
+                </div>
+
+                {/* Team B */}
+                <div className="bg-slate-900 border border-violet-900/50 rounded-lg p-3">
+                  <p className="text-[10px] font-semibold text-violet-400 uppercase tracking-wide mb-2">🟣 Team B</p>
+                  <p className="text-xs text-slate-300 leading-relaxed">{scheduledWeek.teamB.join(', ')}</p>
+                </div>
+
+                {/* Highlights — non-DNF only, when text non-empty */}
+                {!shareData.dnf && shareData.highlightsText.trim().length > 0 && (
+                  <div className="bg-slate-900 border border-slate-700 rounded-lg p-3">
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Highlights</p>
+                    <div className="flex flex-col gap-1.5">
+                      {shareData.highlightsText
+                        .split('\n')
+                        .map((l) => l.trim())
+                        .filter(Boolean)
+                        .map((line) => (
+                          <p key={line} className="text-xs text-slate-300">{line}</p>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes — both result types, when present */}
+                {notes.trim().length > 0 && (
+                  <div className="bg-slate-900 border border-slate-700 rounded-lg p-3">
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Notes</p>
+                    <p className="text-xs text-slate-300 italic leading-relaxed">{notes.trim()}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 px-5 pb-5 pt-1">
+                <button
+                  type="button"
+                  onClick={handleShareClick}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors"
+                >
+                  <Share2 className="h-4 w-4" />
+                  {shareCopied ? 'Result copied!' : 'Share Result'}
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2.5 rounded-lg border border-slate-600 text-slate-300 text-sm hover:border-slate-500 transition-colors"
+                >
+                  Done
                 </button>
               </div>
             </>
