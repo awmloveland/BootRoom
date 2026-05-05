@@ -873,3 +873,18 @@ export function buildResultHeadline(
   }
   return ''
 }
+
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/**
+ * Reformats a YYYY-MM-DD date string as `DD MMM YYYY` (e.g. "05 May 2026").
+ * Returns the input unchanged if it does not match the expected format.
+ */
+export function formatShareDate(date: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
+  if (!match) return date
+  const [, year, monthStr, day] = match
+  const monthIndex = parseInt(monthStr, 10) - 1
+  if (monthIndex < 0 || monthIndex > 11) return date
+  return `${day} ${SHORT_MONTHS[monthIndex]} ${year}`
+}
