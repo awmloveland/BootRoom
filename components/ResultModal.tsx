@@ -3,11 +3,12 @@
 
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { cn, ewptScore, buildResultShareText } from '@/lib/utils'
+import { cn, ewptScore, buildResultShareText, buildDnfShareText, buildResultHeadline, formatShareDate } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality, Week } from '@/lib/types'
 import { EyeTestSlider } from '@/components/EyeTestSlider'
 import { Toggle } from '@/components/ui/toggle'
+import { X, Share2 } from 'lucide-react'
 
 export type ResultSavedPayload =
   | { dnf: false; winner: NonNullable<Winner>; goalDifference: number; shareText: string; highlightsText: string }
@@ -26,7 +27,7 @@ interface Props {
   onClose: () => void
 }
 
-type ResultStep = 'winner' | 'review' | 'confirm'
+type ResultStep = 'winner' | 'review' | 'confirm' | 'share'
 
 interface GuestReviewState {
   name: string
@@ -96,7 +97,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   const guests = lineupMetadata?.guests ?? []
   const newPlayers = lineupMetadata?.new_players ?? []
   const hasReviewStep = guests.length > 0 || newPlayers.length > 0
-  const totalSteps = hasReviewStep ? 3 : 1
+  const totalSteps = hasReviewStep ? 4 : 2
 
   const [step, setStep] = useState<ResultStep>('winner')
   const [winner, setWinner] = useState<Winner>(null)
@@ -105,6 +106,12 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isDnf, setIsDnf] = useState(false)
+
+  type ShareData =
+    | { dnf: false; winner: NonNullable<Winner>; goalDifference: number; shareText: string; highlightsText: string }
+    | { dnf: true; shareText: string }
+  const [shareData, setShareData] = useState<ShareData | null>(null)
+  const [shareCopied, setShareCopied] = useState(false)
 
   const [guestStates, setGuestStates] = useState<GuestReviewState[]>(
     guests.map((g) => ({
@@ -343,7 +350,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
     }
   }
 
-  const currentStepNum = step === 'winner' ? 1 : step === 'review' ? 2 : 3
+  const currentStepNum = step === 'winner' ? 1 : step === 'review' ? 2 : step === 'confirm' ? 3 : totalSteps
 
   return (
     <Dialog.Root open onOpenChange={(open) => { if (!open) onClose() }}>
@@ -361,7 +368,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
             </Dialog.Description>
           </div>
 
-          {hasReviewStep && <StepIndicator current={currentStepNum} total={totalSteps} />}
+          {hasReviewStep && step !== 'share' && <StepIndicator current={currentStepNum} total={totalSteps} />}
 
           {/* ── Step: winner ── */}
           {step === 'winner' && (
