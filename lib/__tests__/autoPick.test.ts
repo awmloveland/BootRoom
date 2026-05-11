@@ -455,6 +455,138 @@ describe('autoPick — synthetic playerId identity (2.7)', () => {
   })
 })
 
+// ─── Initial pair toggle randomisation ───────────────────────────────────────
+
+describe('autoPick — initial pair toggle randomisation', () => {
+  it('places the pair on Team A when the seeded RNG opens with < 0.5', () => {
+    // seededRng(582)'s first value is ~0.462 — below 0.5, so toggle starts true → pair on A.
+    const players = [
+      makePlayer('Alice'),
+      makePlayer('Bob'),
+      makePlayer('Carol'),
+      makePlayer('Dave'),
+      makePlayer('Eve'),
+      makePlayer('Frank'),
+      makePlayer('Alice +1'),
+    ]
+    const pairs: Array<[string, string]> = [['Alice +1', 'Alice']]
+    const result = autoPick(players, pairs, undefined, seededRng(582))
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    const inA = result.suggestions[0].teamA.some((p) => p.name === 'Alice')
+    expect(inA).toBe(true)
+  })
+
+  it('places the pair on Team B when the seeded RNG opens with >= 0.5', () => {
+    // seededRng(682)'s first value is ~0.500 — at or above 0.5, so toggle starts false → pair on B.
+    const players = [
+      makePlayer('Alice'),
+      makePlayer('Bob'),
+      makePlayer('Carol'),
+      makePlayer('Dave'),
+      makePlayer('Eve'),
+      makePlayer('Frank'),
+      makePlayer('Alice +1'),
+    ]
+    const pairs: Array<[string, string]> = [['Alice +1', 'Alice']]
+    const result = autoPick(players, pairs, undefined, seededRng(682))
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    const inB = result.suggestions[0].teamB.some((p) => p.name === 'Alice')
+    expect(inB).toBe(true)
+  })
+
+  it('pair lands on each team roughly half the time across 200 runs', () => {
+    const players = [
+      makePlayer('Alice'),
+      makePlayer('Bob'),
+      makePlayer('Carol'),
+      makePlayer('Dave'),
+      makePlayer('Eve'),
+      makePlayer('Frank'),
+      makePlayer('Alice +1'),
+    ]
+    const pairs: Array<[string, string]> = [['Alice +1', 'Alice']]
+    let pairOnA = 0
+    for (let seed = 582; seed <= 781; seed++) {
+      const result = autoPick(players, pairs, undefined, seededRng(seed))
+      if (result.suggestions.length === 0) continue
+      const onA = result.suggestions[0].teamA.some((p) => p.name === 'Alice +1')
+      if (onA) pairOnA++
+    }
+    // Soft bounds tolerating random variance — pre-fix code would peg this at 200.
+    expect(pairOnA).toBeGreaterThanOrEqual(75)
+    expect(pairOnA).toBeLessThanOrEqual(125)
+  })
+
+  it('alternation across multiple pairs still works when initial toggle is false', () => {
+    // Two independent pairs (different associated players). With initial
+    // toggle = false (first pair to B), the second pair must alternate to A.
+    const players = [
+      makePlayer('Alice'),
+      makePlayer('Bob'),
+      makePlayer('Carol'),
+      makePlayer('Dave'),
+      makePlayer('Alice +1'),
+      makePlayer('Bob +1'),
+    ]
+    const pairs: Array<[string, string]> = [
+      ['Alice +1', 'Alice'],
+      ['Bob +1', 'Bob'],
+    ]
+    const result = autoPick(players, pairs, undefined, seededRng(682))
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    const s = result.suggestions[0]
+    // Pair constraints satisfied
+    expect(onSameTeam(s, 'Alice', 'Alice +1')).toBe(true)
+    expect(onSameTeam(s, 'Bob', 'Bob +1')).toBe(true)
+    // Pairs land on opposing teams (alternation preserved)
+    expect(onSameTeam(s, 'Alice', 'Bob')).toBe(false)
+  })
+})
+
+// ─── Regression: 7v7 with one guest at "Average" ─────────────────────────────
+
+describe('autoPick — regression: 7v7 with one Average guest', () => {
+  it('gives the pair team stronger free picks on average than the other team', () => {
+    // Mirrors the user's scenario: 14 attendees (2 GKs + 12 outfielders) where
+    // one outfielder is the guest (a +1) and another is the guest's associated
+    // player ("Lloyd", mid-rated). The remaining 10 outfielders form a spread
+    // free pool so the optimizer has variance to balance against.
+    //
+    // Guest WPR is the discounted "Average" value (p50 * 0.85 = 51 when p50 = 60).
+    // Pair team starts behind (avg pinned ≈ 53.7) vs other team (pinned = 55).
+    // To minimise EWTPI diff, the optimizer must give the pair team's 4 free
+    // slots a higher mean WPR than the other team's 6 — which is exactly the
+    // property we assert.
+    const regulars = Array.from({ length: 10 }, (_, i) =>
+      makePlayer(`Regular ${i + 1}`, { wprOverride: 55 + i }),
+    )
+    const lloyd = makePlayer('Lloyd', { wprOverride: 55 })
+    const gk1 = makePlayer('GK1', { mentality: 'goalkeeper', wprOverride: 55 })
+    const gk2 = makePlayer('GK2', { mentality: 'goalkeeper', wprOverride: 55 })
+    const guest = makePlayer('Lloyd +1', { wprOverride: 51 })
+
+    const players = [gk1, gk2, lloyd, guest, ...regulars]
+    const pairs: Array<[string, string]> = [['Lloyd +1', 'Lloyd']]
+
+    // Seeded so the test is deterministic across CI runs.
+    const result = autoPick(players, pairs, undefined, seededRng(7))
+    expect(result.suggestions.length).toBeGreaterThan(0)
+
+    const best = result.suggestions[0]
+    const pairTeam = best.teamA.some((p) => p.name === 'Lloyd +1') ? best.teamA : best.teamB
+    const otherTeam = pairTeam === best.teamA ? best.teamB : best.teamA
+
+    const isPinned = (p: Player) =>
+      p.name === 'GK1' || p.name === 'GK2' || p.name === 'Lloyd' || p.name === 'Lloyd +1'
+    const meanFreeWpr = (team: Player[]) => {
+      const free = team.filter((p) => !isPinned(p))
+      return free.reduce((sum, p) => sum + (p.wprOverride ?? 0), 0) / free.length
+    }
+
+    expect(meanFreeWpr(pairTeam)).toBeGreaterThan(meanFreeWpr(otherTeam))
+  })
+})
+
 // ─── Closest-N selection ─────────────────────────────────────────────────────
 
 describe('autoPick — returns closest-N splits', () => {

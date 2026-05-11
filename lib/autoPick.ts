@@ -103,10 +103,12 @@ export function autoPick(
   let searchPool = players.filter((p) => p !== pinnedA && p !== pinnedB)
 
   // Pair pinning: pin each guest+associated player to the same team.
-  // Pairs alternate between Team A and Team B for balance.
+  // The first pair lands on Team A or Team B with equal probability (a
+  // coin flip) — same pattern as the GK shuffle above. Pairs after the
+  // first alternate between teams for within-game balance.
   const pinnedTeamA: Player[] = []
   const pinnedTeamB: Player[] = []
-  let pairTeamToggle = true
+  let pairTeamToggle = rng() < 0.5
 
   // Accumulate pool exclusions and drop them in a single filter after the loop
   // (avoids O(n²) array rebuilding per iteration).
