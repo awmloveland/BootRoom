@@ -12,7 +12,6 @@ interface Props {
   goalkeepers?: string[]
   openWeek?: number | null           // controlled: if provided, overrides internal state
   onOpenWeekChange?: (week: number | null) => void  // controlled setter
-  // Props wired up in Task 7
   isAdmin?: boolean
   gameId?: string
   leagueSlug?: string
