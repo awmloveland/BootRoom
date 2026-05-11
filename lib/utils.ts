@@ -284,8 +284,8 @@ export function leagueWprPercentiles(players: Player[]): WprPercentiles {
  * information, so they get a lighter discount roughly equivalent to 3 games
  * of observed play.
  */
-export const HINT_UNKNOWN_MULTIPLIER = 1.0  // Will be lowered to 0.85 in Task 2.
-export const HINT_EXPLICIT_MULTIPLIER = 1.0 // Will be lowered to 0.92 in Task 2.
+export const HINT_UNKNOWN_MULTIPLIER = 0.85
+export const HINT_EXPLICIT_MULTIPLIER = 0.92
 
 export function hintToWpr(
   hint: StrengthHint | undefined,

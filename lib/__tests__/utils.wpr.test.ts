@@ -1,4 +1,12 @@
-import { wprScore, leagueMedianWpr, leagueWprPercentiles, ewptScore } from '@/lib/utils'
+import {
+  wprScore,
+  leagueMedianWpr,
+  leagueWprPercentiles,
+  ewptScore,
+  hintToWpr,
+  HINT_UNKNOWN_MULTIPLIER,
+  HINT_EXPLICIT_MULTIPLIER,
+} from '@/lib/utils'
 import type { Player } from '@/lib/types'
 
 function makePlayer(overrides?: Partial<Player>): Player {
@@ -468,5 +476,47 @@ describe('ewptScore — variety bonus excludes goalkeeper', () => {
     const uniform = teamWith(['goalkeeper', 'attacking', 'attacking'])
     // Both have fewer than 3 outfielder mentalities → neither gets the bonus.
     expect(ewptScore(team)).toBeCloseTo(ewptScore(uniform), 1)
+  })
+})
+
+describe('hintToWpr', () => {
+  const percentiles = { p25: 40, p50: 50, p75: 60 }
+
+  it('exports a 0.85 multiplier for the "Average"/unknown case', () => {
+    expect(HINT_UNKNOWN_MULTIPLIER).toBeCloseTo(0.85, 5)
+  })
+
+  it('exports a 0.92 multiplier for explicit "Below"/"Above" hints', () => {
+    expect(HINT_EXPLICIT_MULTIPLIER).toBeCloseTo(0.92, 5)
+  })
+
+  it('discounts the p50 percentile by the unknown multiplier when hint is "average"', () => {
+    expect(hintToWpr('average', percentiles)).toBeCloseTo(50 * 0.85, 5)
+  })
+
+  it('treats undefined hint the same as "average"', () => {
+    expect(hintToWpr(undefined, percentiles)).toBeCloseTo(50 * 0.85, 5)
+  })
+
+  it('discounts the p25 percentile by the explicit multiplier when hint is "below"', () => {
+    expect(hintToWpr('below', percentiles)).toBeCloseTo(40 * 0.92, 5)
+  })
+
+  it('discounts the p75 percentile by the explicit multiplier when hint is "above"', () => {
+    expect(hintToWpr('above', percentiles)).toBeCloseTo(60 * 0.92, 5)
+  })
+
+  it('clamps the raw p75 to 100 before multiplying (so the result never exceeds 92)', () => {
+    expect(hintToWpr('above', { p25: 40, p50: 50, p75: 150 })).toBeCloseTo(100 * 0.92, 5)
+  })
+
+  it('floors the raw p25 at 0 before multiplying (so the result never goes negative)', () => {
+    expect(hintToWpr('below', { p25: -20, p50: 50, p75: 60 })).toBeCloseTo(0 * 0.92, 5)
+  })
+
+  it('rates a guest below the league median when the league has a non-trivial spread', () => {
+    // Median of the league is exactly p50. An "Average" guest should land
+    // strictly below it, which is the whole point of the discount.
+    expect(hintToWpr('average', percentiles)).toBeLessThan(percentiles.p50)
   })
 })
