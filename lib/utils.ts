@@ -283,6 +283,11 @@ export function leagueWprPercentiles(players: Player[]): WprPercentiles {
  * receive in `wprScore`. "Below" and "Above" carry explicit but uncertain
  * information, so they get a lighter discount roughly equivalent to 3 games
  * of observed play.
+ *
+ * The final values are clamped so `below ≤ average ≤ above` for any percentile
+ * spread. Without the clamp, tightly-clustered percentiles (e.g. p25=49, p50=50)
+ * can flip the order because 0.92 / 0.85 ≈ 1.082 — an explicit "Below" hint
+ * would then rate a guest higher than the "Average" default.
  */
 export const HINT_UNKNOWN_MULTIPLIER = 0.85
 export const HINT_EXPLICIT_MULTIPLIER = 0.92
@@ -291,9 +296,14 @@ export function hintToWpr(
   hint: StrengthHint | undefined,
   percentiles: WprPercentiles,
 ): number {
-  if (hint === 'above') return Math.min(100, percentiles.p75) * HINT_EXPLICIT_MULTIPLIER
-  if (hint === 'below') return Math.max(0, percentiles.p25) * HINT_EXPLICIT_MULTIPLIER
-  return percentiles.p50 * HINT_UNKNOWN_MULTIPLIER
+  const avg = percentiles.p50 * HINT_UNKNOWN_MULTIPLIER
+  if (hint === 'above') {
+    return Math.max(avg, Math.min(100, percentiles.p75) * HINT_EXPLICIT_MULTIPLIER)
+  }
+  if (hint === 'below') {
+    return Math.min(avg, Math.max(0, percentiles.p25) * HINT_EXPLICIT_MULTIPLIER)
+  }
+  return avg
 }
 
 /**

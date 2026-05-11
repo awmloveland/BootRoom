@@ -519,4 +519,25 @@ describe('hintToWpr', () => {
     // strictly below it, which is the whole point of the discount.
     expect(hintToWpr('average', percentiles)).toBeLessThan(percentiles.p50)
   })
+
+  it('enforces below ≤ average ≤ above when percentiles are tightly clustered', () => {
+    // With p25=49, p50=50, p75=51, the raw two-multiplier formula would give
+    // below=45.08 > average=42.5 — flipping the natural ordering. The clamp
+    // ensures monotonicity holds for any percentile distribution.
+    const tight = { p25: 49, p50: 50, p75: 51 }
+    const below = hintToWpr('below', tight)
+    const average = hintToWpr('average', tight)
+    const above = hintToWpr('above', tight)
+    expect(below).toBeLessThanOrEqual(average)
+    expect(average).toBeLessThanOrEqual(above)
+  })
+
+  it('leaves wide-spread values untouched (clamp is inert when monotonicity already holds)', () => {
+    // With p25=30, p50=50, p75=70 the raw formula already satisfies
+    // below < average < above, so the clamp must not change the values.
+    const wide = { p25: 30, p50: 50, p75: 70 }
+    expect(hintToWpr('below', wide)).toBeCloseTo(30 * 0.92, 5)
+    expect(hintToWpr('average', wide)).toBeCloseTo(50 * 0.85, 5)
+    expect(hintToWpr('above', wide)).toBeCloseTo(70 * 0.92, 5)
+  })
 })
