@@ -73,8 +73,7 @@ Behaviour:
 4. Verify `newName` does not exist (case-insensitive) in `player_attributes` for this `game_id`. Return 409 with `{ error: 'name_taken' }` otherwise.
 5. Inside a single Postgres function (RPC) so the operation is atomic:
    - Update the specified `weeks` row only: replace `oldName` with `newName` in whichever of `team_a` / `team_b` contains it.
-   - Update the `autopick_results` row scoped to this week, if one exists, replacing `oldName` with `newName`.
-   - Do **not** touch `player_claims` or any other league-level table — `oldName` may still legitimately refer to other guests in other weeks.
+   - Do **not** touch `player_claims` or any other league-level table — `oldName` may still legitimately refer to other guests in other weeks. (Matches the existing `admin_rename_player` cascade list, minus the league-wide updates that don't apply here.)
    - Insert a new `player_attributes` row for `(game_id, newName)` with the chosen `mentality` and `rating`.
    - If after the week update `oldName` no longer appears in any `weeks.team_a` / `team_b` row for this league, delete its `player_attributes` row to avoid an orphaned roster entry.
 6. Return 200 with the new player row.
