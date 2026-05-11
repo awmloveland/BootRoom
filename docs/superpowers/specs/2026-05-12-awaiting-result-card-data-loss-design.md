@@ -120,13 +120,14 @@ both are now real values.
 **Existing unit tests** stay green. `resolveTeamRatingForResult` and
 `buildResultShareText` are unchanged — only the data reaching them changes.
 
-**New regression test** alongside `__tests__/match-card-ratings.test.ts`:
-render `MatchCard` with a `scheduled` week whose deadline has passed and
-whose `team_a_rating` / `team_b_rating` are set, simulate clicking
-*Record Result*, and assert that the `ResultModal` receives a
-`ScheduledWeek` with both ratings set plus a non-empty `weeks` array and a
-non-empty `leagueName`. This is the regression we'd want to catch if either
-hard-coded default crept back in.
+**No new automated test.** The codebase has no React-component testing
+framework installed (every `__tests__/` file is a pure type/logic test) and
+the bug is entirely in JSX-time prop plumbing rather than in any extractable
+pure function. Adding `@testing-library/react` to cover a single regression
+is outside the scope of this fix. The TypeScript compiler does provide one
+form of coverage: `ScheduledWeek.team_a_rating` and the `MatchCard` prop
+types are already typed, so anyone who deletes the new forwarding will at
+least see the props become optional/`undefined` again.
 
 **Manual verification on the dev server:**
 1. Save a lineup with at least one "average"-hint guest so the ewpt
