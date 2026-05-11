@@ -74,9 +74,10 @@ export function WeekList({
               gameId={gameId}
               allPlayers={allPlayers}
               onResultSaved={onResultSaved}
-              leagueName={week.week === mostRecent?.week ? leagueName : undefined}
-              leagueSlug={week.week === mostRecent?.week ? leagueSlug : undefined}
-              weeks={week.week === mostRecent?.week ? weeks : undefined}
+              leagueName={leagueName}
+              leagueSlug={leagueSlug}
+              weeks={weeks}
+              isMostRecent={week.week === mostRecent?.week}
             />
           </Fragment>
         )
