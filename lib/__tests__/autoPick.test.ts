@@ -455,6 +455,94 @@ describe('autoPick — synthetic playerId identity (2.7)', () => {
   })
 })
 
+// ─── Initial pair toggle randomisation ───────────────────────────────────────
+
+describe('autoPick — initial pair toggle randomisation', () => {
+  it('places the pair on Team A when the seeded RNG opens with < 0.5', () => {
+    // seededRng(582)'s first value is ~0.462 — below 0.5, so toggle starts true → pair on A.
+    const players = [
+      makePlayer('Alice'),
+      makePlayer('Bob'),
+      makePlayer('Carol'),
+      makePlayer('Dave'),
+      makePlayer('Eve'),
+      makePlayer('Frank'),
+      makePlayer('Alice +1'),
+    ]
+    const pairs: Array<[string, string]> = [['Alice +1', 'Alice']]
+    const result = autoPick(players, pairs, undefined, seededRng(582))
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    const inA = result.suggestions[0].teamA.some((p) => p.name === 'Alice')
+    expect(inA).toBe(true)
+  })
+
+  it('places the pair on Team B when the seeded RNG opens with >= 0.5', () => {
+    // seededRng(682)'s first value is ~0.500 — at or above 0.5, so toggle starts false → pair on B.
+    const players = [
+      makePlayer('Alice'),
+      makePlayer('Bob'),
+      makePlayer('Carol'),
+      makePlayer('Dave'),
+      makePlayer('Eve'),
+      makePlayer('Frank'),
+      makePlayer('Alice +1'),
+    ]
+    const pairs: Array<[string, string]> = [['Alice +1', 'Alice']]
+    const result = autoPick(players, pairs, undefined, seededRng(682))
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    const inB = result.suggestions[0].teamB.some((p) => p.name === 'Alice')
+    expect(inB).toBe(true)
+  })
+
+  it('pair lands on each team roughly half the time across 200 runs', () => {
+    const players = [
+      makePlayer('Alice'),
+      makePlayer('Bob'),
+      makePlayer('Carol'),
+      makePlayer('Dave'),
+      makePlayer('Eve'),
+      makePlayer('Frank'),
+      makePlayer('Alice +1'),
+    ]
+    const pairs: Array<[string, string]> = [['Alice +1', 'Alice']]
+    let pairOnA = 0
+    for (let seed = 582; seed <= 781; seed++) {
+      const result = autoPick(players, pairs, undefined, seededRng(seed))
+      if (result.suggestions.length === 0) continue
+      const onA = result.suggestions[0].teamA.some((p) => p.name === 'Alice +1')
+      if (onA) pairOnA++
+    }
+    // Soft bounds tolerating random variance — pre-fix code would peg this at 200.
+    expect(pairOnA).toBeGreaterThanOrEqual(75)
+    expect(pairOnA).toBeLessThanOrEqual(125)
+  })
+
+  it('alternation across multiple pairs still works when initial toggle is false', () => {
+    // Two independent pairs (different associated players). With initial
+    // toggle = false (first pair to B), the second pair must alternate to A.
+    const players = [
+      makePlayer('Alice'),
+      makePlayer('Bob'),
+      makePlayer('Carol'),
+      makePlayer('Dave'),
+      makePlayer('Alice +1'),
+      makePlayer('Bob +1'),
+    ]
+    const pairs: Array<[string, string]> = [
+      ['Alice +1', 'Alice'],
+      ['Bob +1', 'Bob'],
+    ]
+    const result = autoPick(players, pairs, undefined, seededRng(682))
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    const s = result.suggestions[0]
+    // Pair constraints satisfied
+    expect(onSameTeam(s, 'Alice', 'Alice +1')).toBe(true)
+    expect(onSameTeam(s, 'Bob', 'Bob +1')).toBe(true)
+    // Pairs land on opposing teams (alternation preserved)
+    expect(onSameTeam(s, 'Alice', 'Bob')).toBe(false)
+  })
+})
+
 // ─── Closest-N selection ─────────────────────────────────────────────────────
 
 describe('autoPick — returns closest-N splits', () => {
