@@ -21,10 +21,11 @@ Let an admin name a guest entry on a recorded match, converting it into a real p
 
 ## Constraints from the existing system
 
-- Player stats are derived from `weeks.team_a` / `weeks.team_b` JSONB arrays joined with `player_attributes`. Renaming a guest name in those JSONB arrays automatically credits the new name with all matches that contained the old name.
+- Player stats are derived from `weeks.team_a` / `weeks.team_b` JSONB arrays joined with `player_attributes`. Renaming a guest name in a specific week's JSONB credits the new name with that match only.
 - When a match result is posted, `/api/public/league/[id]/result` upserts every name in `team_a` / `team_b` into `player_attributes` with `(game_id, name)`. So a recorded guest like "Lloyd +1" already exists as a `player_attributes` row by the time this feature is used.
 - Guest names follow the `${base} +${n}` convention (e.g. "Lloyd +1", "Lloyd +2"), so guests are detectable client-side via a regex on the name.
-- A rename endpoint already exists at `/api/league/[id]/players/[name]/rename` and handles cascading the new name across the tables that store player names as strings.
+- The guest name string is not a stable identity across matches — different physical people may have appeared as "Lloyd +1" in different weeks. The rename must therefore be scoped to a single week.
+- A rename endpoint already exists at `/api/league/[id]/players/[name]/rename` for league-wide renames. We do not reuse it because its semantics are global, which is the opposite of what we need here.
 
 ## Approach
 
@@ -56,6 +57,7 @@ Request body:
 
 ```ts
 {
+  weekId: string;         // the week the guest appeared in
   oldName: string;        // "Lloyd +1"
   newName: string;        // "Steve"
   mentality: 'goalkeeper' | 'defensive' | 'balanced' | 'attacking';
@@ -67,26 +69,28 @@ Behaviour:
 
 1. Verify the caller is an admin or creator of the league. Return 403 otherwise.
 2. Trim `newName`, reject if empty (400).
-3. Verify `newName` does not exist (case-insensitive) in `player_attributes` for this `game_id`. Return 409 with `{ error: 'name_taken' }` otherwise.
-4. Verify `oldName` exists in `player_attributes` for this `game_id` and matches the guest-name pattern. Return 404 with `{ error: 'guest_not_found' }` if not.
+3. Load the specified `weeks` row, verify it belongs to this `game_id`, and verify `oldName` appears in its `team_a` or `team_b`. Return 404 with `{ error: 'guest_not_found' }` if not.
+4. Verify `newName` does not exist (case-insensitive) in `player_attributes` for this `game_id`. Return 409 with `{ error: 'name_taken' }` otherwise.
 5. Inside a single Postgres function (RPC) so the operation is atomic:
-   - Update every `weeks` row in this league: replace `oldName` with `newName` in both `team_a` and `team_b` JSONB arrays.
-   - Cascade the rename across the same tables that the existing rename endpoint already touches (`player_claims`, `autopick_results`, etc. — match its cascade list exactly so we don't introduce drift).
-   - Update the `player_attributes` row: rename `oldName` → `newName`, set `mentality` and `rating` from the request.
-6. Return 200 with the updated player row.
+   - Update the specified `weeks` row only: replace `oldName` with `newName` in whichever of `team_a` / `team_b` contains it.
+   - Update the `autopick_results` row scoped to this week, if one exists, replacing `oldName` with `newName`.
+   - Do **not** touch `player_claims` or any other league-level table — `oldName` may still legitimately refer to other guests in other weeks.
+   - Insert a new `player_attributes` row for `(game_id, newName)` with the chosen `mentality` and `rating`.
+   - If after the week update `oldName` no longer appears in any `weeks.team_a` / `team_b` row for this league, delete its `player_attributes` row to avoid an orphaned roster entry.
+6. Return 200 with the new player row.
 
-Rationale for a new endpoint instead of extending `PATCH .../rename`: this operation is conceptually distinct (naming a guest, not fixing a typo), and it writes attributes in the same call. A new endpoint keeps the client surface simple and the write atomic.
+Rationale for a new endpoint instead of extending `PATCH .../rename`: the existing rename is league-wide; this operation is intentionally scoped to one week, and it inserts attributes in the same call. Wrapping it in its own endpoint keeps the semantics clear and the write atomic.
 
-The rename is **global** across the league — every occurrence of the guest name in any past match is replaced. This matches the existing rename semantics and is acceptable because the same guest name string would refer to the same physical person if reused (current behaviour: if Lloyd brings different +1s to different matches, they already share the same name today; this feature does not change that).
+The rename is **scoped to the specified week**. Other weeks containing the same `oldName` string are untouched — those guests are different physical people who happen to share the "Lloyd +1" string. Their `player_attributes` row persists if any other week still references it; otherwise it is cleaned up.
 
 ### Data flow
 
 1. Admin opens the match card on the league home, sees the guest's `UserPlus` icon.
-2. Click → `NameGuestModal` opens, pre-loaded with the guest's name in the header.
+2. Click → `NameGuestModal` opens, pre-loaded with the guest's name and the week's id in scope.
 3. Admin enters name, picks mentality, picks strength, submits.
-4. Client POSTs to `/api/league/[id]/guests/name`.
+4. Client POSTs to `/api/league/[id]/guests/name` with the `weekId` of the match the card represents.
 5. Server validates, runs the RPC, returns 200.
-6. Client invalidates the match-card data and the players list, re-renders. The team list now shows the new name. The Players tab shows the new player with one match played, with the correct W/L/D from that match.
+6. Client invalidates the match-card data and the players list, re-renders. The team list for that match now shows the new name; other matches that contained "Lloyd +1" are unchanged. The Players tab shows the new player with one match played, with the correct W/L/D from that match.
 
 ### Error handling
 
@@ -99,9 +103,11 @@ The rename is **global** across the league — every occurrence of the guest nam
 
 - **Unit** — `NameGuestModal` validates required name, surfaces collision error inline, calls the API with the expected payload.
 - **Integration** — against a seeded league with a recorded match containing "Lloyd +1", POST to the endpoint and assert:
-  - the week's `team_a` / `team_b` no longer contains "Lloyd +1" and now contains the new name
-  - `player_attributes` has one row for the new name with the chosen mentality and rating, and the old row is gone
+  - the targeted week's `team_a` / `team_b` no longer contains "Lloyd +1" and now contains the new name
+  - `player_attributes` has a new row for the new name with the chosen mentality and rating
   - `getPlayerStats` returns the new player with one match played and the correct result
+- **Integration — multi-week guest** — seed two weeks both containing "Lloyd +1" (different physical guests), POST to name only the first week's guest. Assert the second week is unchanged, the "Lloyd +1" `player_attributes` row still exists (because the second week still references it), and stats credit the new player with one match and "Lloyd +1" with the other.
+- **Integration — orphan cleanup** — seed a single week with "Lloyd +1", POST to name them. Assert the "Lloyd +1" `player_attributes` row is deleted after the rename.
 - **Manual smoke** — open tonight's match card as admin, click `UserPlus` next to "Lloyd +1", name them "Steve" (DEF, strength 2). Verify Steve appears in the team list, in the Players tab with mentality DEF and rating 2, and in stats with one match played credited correctly.
 
 ## Open questions
