@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, wprScore, leagueWprPercentiles, parseWeekDate } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, wprScore, leagueWprPercentiles, parseWeekDate, hintToWpr } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality, StrengthHint } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
@@ -76,12 +76,6 @@ function resolvePlayersForAutoPick(
   const fallbackRating = medianRating(allPlayers)
   const percentiles = leagueWprPercentiles(allPlayers)
 
-  function hintToWpr(hint: StrengthHint | undefined): number {
-    if (hint === 'above') return Math.min(100, percentiles.p75)
-    if (hint === 'below') return Math.max(0, percentiles.p25)
-    return percentiles.p50
-  }
-
   return names.map((name) => {
     const known = lookup.get(name.toLowerCase())
     if (known) return known   // already has `roster|<name>` from fetchers
@@ -97,7 +91,7 @@ function resolvePlayersForAutoPick(
         mentality: guest.goalkeeper ? 'goalkeeper' : 'balanced',
         rating: 2,
         recentForm: '',
-        wprOverride: hintToWpr(guest.strengthHint),
+        wprOverride: hintToWpr(guest.strengthHint, percentiles),
       }
     }
 
@@ -112,7 +106,7 @@ function resolvePlayersForAutoPick(
         mentality: newPlayer.mentality,
         rating: 2,
         recentForm: '',
-        wprOverride: hintToWpr(newPlayer.strengthHint),
+        wprOverride: hintToWpr(newPlayer.strengthHint, percentiles),
       }
     }
 

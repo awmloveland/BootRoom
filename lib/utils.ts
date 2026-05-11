@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { LeagueDetails, Player, Week, Winner, YearStats } from './types'
+import { LeagueDetails, Player, StrengthHint, Week, Winner, YearStats } from './types'
 
 // --- Per-player score (wprScore) ---
 const WPR_PPG_WEIGHT = 0.60            // shrunk points-per-game contribution
@@ -270,6 +270,30 @@ export function leagueWprPercentiles(players: Player[]): WprPercentiles {
     : scores[Math.floor(n / 2)]
   const p75 = scores[Math.ceil(n * 0.75) - 1]
   return { p25, p50, p75 }
+}
+
+/**
+ * Maps a strength hint to a WPR value using the league's WPR percentiles.
+ * Used to assign a `wprOverride` to guests and new players for the team-build.
+ *
+ * The multipliers discount the percentile to reflect that an unrated player's
+ * true strength is uncertain. "Average" carries no information (default when
+ * the admin doesn't know the guest), so it gets the strongest discount —
+ * equivalent to the experience-penalty multiplier a real 1-game player would
+ * receive in `wprScore`. "Below" and "Above" carry explicit but uncertain
+ * information, so they get a lighter discount roughly equivalent to 3 games
+ * of observed play.
+ */
+export const HINT_UNKNOWN_MULTIPLIER = 1.0  // Will be lowered to 0.85 in Task 2.
+export const HINT_EXPLICIT_MULTIPLIER = 1.0 // Will be lowered to 0.92 in Task 2.
+
+export function hintToWpr(
+  hint: StrengthHint | undefined,
+  percentiles: WprPercentiles,
+): number {
+  if (hint === 'above') return Math.min(100, percentiles.p75) * HINT_EXPLICIT_MULTIPLIER
+  if (hint === 'below') return Math.max(0, percentiles.p25) * HINT_EXPLICIT_MULTIPLIER
+  return percentiles.p50 * HINT_UNKNOWN_MULTIPLIER
 }
 
 /**
