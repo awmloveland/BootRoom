@@ -1,0 +1,149 @@
+'use client'
+
+import { useState } from 'react'
+import { cn } from '@/lib/utils'
+import { validateNameGuestInput } from '@/lib/guestName'
+import type { Mentality, StrengthHint } from '@/lib/types'
+
+interface Props {
+  guestName: string
+  existingPlayers: string[]
+  onSubmit: (entry: { newName: string; mentality: Mentality; strengthHint: StrengthHint }) => Promise<void>
+  onClose: () => void
+}
+
+const MENTALITY_OPTIONS: { value: Mentality; label: string }[] = [
+  { value: 'goalkeeper', label: 'GK' },
+  { value: 'defensive', label: 'DEF' },
+  { value: 'balanced', label: 'BAL' },
+  { value: 'attacking', label: 'ATT' },
+]
+
+const STRENGTH_OPTIONS: { value: StrengthHint; label: string }[] = [
+  { value: 'below', label: 'Below average' },
+  { value: 'average', label: 'Average' },
+  { value: 'above', label: 'Above average' },
+]
+
+export function NameGuestModal({ guestName, existingPlayers, onSubmit, onClose }: Props) {
+  const [name, setName] = useState('')
+  const [mentality, setMentality] = useState<Mentality>('balanced')
+  const [strengthHint, setStrengthHint] = useState<StrengthHint>('average')
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit() {
+    const validationError = validateNameGuestInput(name, existingPlayers)
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+    setError(null)
+    setSubmitting(true)
+    try {
+      await onSubmit({ newName: name.trim(), mentality, strengthHint })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-lg border border-slate-700 bg-slate-800 p-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-sm font-semibold text-slate-100">Name {guestName}</h2>
+        <p className="mt-1 text-xs text-slate-400">
+          Replace this guest entry with a real player for this match.
+        </p>
+
+        <div className="mt-4">
+          <label htmlFor="name-guest-name" className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Name
+          </label>
+          <input
+            id="name-guest-name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="mt-1 w-full rounded border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-sm text-slate-100 focus:border-blue-700 focus:outline-none"
+            autoFocus
+          />
+        </div>
+
+        <div className="mt-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Mentality</p>
+          <div className="mt-1 flex overflow-hidden rounded border border-slate-700">
+            {MENTALITY_OPTIONS.map((opt, i) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setMentality(opt.value)}
+                className={cn(
+                  'flex-1 px-2 py-1.5 text-xs font-semibold',
+                  i < MENTALITY_OPTIONS.length - 1 && 'border-r border-slate-700',
+                  mentality === opt.value
+                    ? 'bg-blue-950 text-blue-300'
+                    : 'text-slate-500 hover:text-slate-300'
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Strength hint</p>
+          <div className="mt-1 flex overflow-hidden rounded border border-slate-700">
+            {STRENGTH_OPTIONS.map((opt, i) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setStrengthHint(opt.value)}
+                className={cn(
+                  'flex-1 px-2 py-1.5 text-xs font-semibold',
+                  i < STRENGTH_OPTIONS.length - 1 && 'border-r border-slate-700',
+                  strengthHint === opt.value
+                    ? 'bg-blue-950 text-blue-300'
+                    : 'text-slate-500 hover:text-slate-300'
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
+
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            className="rounded border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-700"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="rounded bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 disabled:opacity-50"
+          >
+            Add player
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
