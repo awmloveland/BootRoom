@@ -23,6 +23,7 @@ interface MatchCardProps {
   leagueName?: string
   leagueSlug?: string
   weeks?: Week[]
+  isMostRecent?: boolean
   onNameGuest?: (week: Week, guestName: string) => void
 }
 
@@ -156,6 +157,8 @@ interface AwaitingResultCardProps {
   leagueSlug?: string
   allPlayers: Player[]
   onResultSaved: () => void
+  leagueName?: string
+  weeks?: Week[]
   onNameGuest?: (guestName: string) => void
 }
 
@@ -171,6 +174,7 @@ interface PlayedCardProps {
   leagueName?: string
   leagueSlug?: string
   weeks?: Week[]
+  isMostRecent: boolean
   onNameGuest?: (guestName: string) => void
 }
 
@@ -186,6 +190,7 @@ interface DnfCardProps {
   onResultSaved: () => void
   leagueName?: string
   leagueSlug?: string
+  isMostRecent: boolean
   onNameGuest?: (guestName: string) => void
 }
 
@@ -199,12 +204,13 @@ function DnfCard({
   onResultSaved,
   leagueName,
   leagueSlug,
+  isMostRecent,
   onNameGuest,
 }: DnfCardProps) {
   const [showEditModal, setShowEditModal] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  const canShare = !!(leagueName && leagueSlug)
+  const canShare = isMostRecent && !!(leagueName && leagueSlug)
 
   async function handleShare() {
     if (!canShare) return
@@ -354,6 +360,8 @@ function AwaitingResultCard({
   leagueSlug,
   allPlayers,
   onResultSaved,
+  leagueName,
+  weeks,
   onNameGuest,
 }: AwaitingResultCardProps) {
   const [showResultModal, setShowResultModal] = useState(false)
@@ -369,6 +377,8 @@ function AwaitingResultCard({
     teamB: week.teamB,
     status: 'scheduled',
     lineupMetadata: week.lineupMetadata ?? null,
+    team_a_rating: week.team_a_rating ?? null,
+    team_b_rating: week.team_b_rating ?? null,
   }
 
   return (
@@ -454,8 +464,8 @@ function AwaitingResultCard({
           allPlayers={allPlayers}
           gameId={gameId}
           leagueSlug={leagueSlug ?? ''}
-          leagueName=""
-          weeks={[]}
+          leagueName={leagueName ?? ''}
+          weeks={weeks ?? []}
           publicMode={false}
           onSaved={() => {
             setShowResultModal(false)
@@ -491,6 +501,7 @@ function PlayedCard({
   leagueName,
   leagueSlug,
   weeks,
+  isMostRecent,
   onNameGuest,
 }: PlayedCardProps) {
   const [showEditModal, setShowEditModal] = useState(false)
@@ -590,7 +601,7 @@ function PlayedCard({
                   />
                 </div>
 
-                {(shouldShowMeta(week.goal_difference, week.notes) || isAdmin || (leagueName && leagueSlug && !!weeks)) && (
+                {(shouldShowMeta(week.goal_difference, week.notes) || isAdmin || (isMostRecent && leagueName && leagueSlug && !!weeks)) && (
                   <>
                     <div className="border-t border-slate-700 mt-3" />
                     <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -611,7 +622,7 @@ function PlayedCard({
                         {isAdmin && (
                           <EditResultButton onClick={() => setShowEditModal(true)} />
                         )}
-                        {leagueName && leagueSlug && weeks && (
+                        {isMostRecent && leagueName && leagueSlug && weeks && (
                           <button
                             type="button"
                             onClick={handleShare}
@@ -657,6 +668,7 @@ export function MatchCard({
   leagueName,
   leagueSlug,
   weeks,
+  isMostRecent = false,
   onNameGuest,
 }: MatchCardProps) {
   const nameGuestHandler =
@@ -698,6 +710,7 @@ export function MatchCard({
         onResultSaved={onResultSaved}
         leagueName={leagueName}
         leagueSlug={leagueSlug}
+        isMostRecent={isMostRecent}
         onNameGuest={nameGuestHandler}
       />
     )
@@ -714,6 +727,8 @@ export function MatchCard({
         leagueSlug={leagueSlug}
         allPlayers={allPlayers}
         onResultSaved={onResultSaved}
+        leagueName={leagueName}
+        weeks={weeks}
         onNameGuest={nameGuestHandler}
       />
     )
@@ -731,6 +746,7 @@ export function MatchCard({
       leagueName={leagueName}
       leagueSlug={leagueSlug}
       weeks={weeks}
+      isMostRecent={isMostRecent}
       onNameGuest={nameGuestHandler}
     />
   )

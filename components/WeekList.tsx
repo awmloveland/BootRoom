@@ -12,8 +12,8 @@ import type { Mentality, Player, StrengthHint, Week } from '@/lib/types'
 interface Props {
   weeks: Week[]
   goalkeepers?: string[]
-  openWeek?: number | null
-  onOpenWeekChange?: (week: number | null) => void
+  openWeek?: number | null           // controlled: if provided, overrides internal state
+  onOpenWeekChange?: (week: number | null) => void  // controlled setter
   isAdmin?: boolean
   gameId?: string
   leagueSlug?: string
@@ -115,9 +115,10 @@ export function WeekList({
               gameId={gameId}
               allPlayers={allPlayers}
               onResultSaved={onResultSaved}
-              leagueName={week.week === mostRecent?.week ? leagueName : undefined}
-              leagueSlug={week.week === mostRecent?.week ? leagueSlug : undefined}
-              weeks={week.week === mostRecent?.week ? weeks : undefined}
+              leagueName={leagueName}
+              leagueSlug={leagueSlug}
+              weeks={weeks}
+              isMostRecent={week.week === mostRecent?.week}
               onNameGuest={handleNameGuestRequest}
             />
           </Fragment>
