@@ -130,7 +130,10 @@ export interface ScheduledWeek {
   team_b_rating?: number | null;
 }
 
-export type StrengthHint = 'below' | 'average' | 'above';
+export type Strength = 'below' | 'average' | 'above';
+
+/** @deprecated Use Strength. Removed in this PR after all callers are migrated. */
+export type StrengthHint = Strength;
 
 export interface GuestEntry {
   type: 'guest'            // runtime discriminant — not persisted to DB

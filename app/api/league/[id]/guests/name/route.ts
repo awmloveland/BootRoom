@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { strengthHintToRating } from '@/lib/guestName'
+import { strengthToRating } from '@/lib/strength'
 import type { Mentality, StrengthHint } from '@/lib/types'
 
 interface Body {
@@ -46,7 +46,7 @@ export async function POST(
     return NextResponse.json({ error: 'invalid_strength_hint' }, { status: 400 })
   }
 
-  const rating = strengthHintToRating(strengthHint)
+  const rating = strengthToRating(strengthHint)
 
   const { error } = await supabase.rpc('admin_name_guest', {
     p_game_id: id,

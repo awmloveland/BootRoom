@@ -1,4 +1,5 @@
-export type Strength = 'below' | 'average' | 'above'
+import type { Strength } from '@/lib/types'
+export type { Strength }
 
 export function strengthToRating(strength: Strength): number {
   switch (strength) {
