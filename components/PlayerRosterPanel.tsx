@@ -161,7 +161,10 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-end mb-2">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-sm font-semibold text-slate-200">
+          {players.length} {players.length === 1 ? 'Player' : 'Players'}
+        </h2>
         <button
           type="button"
           onClick={() => setAddOpen(true)}
