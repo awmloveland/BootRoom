@@ -90,7 +90,18 @@ The existing `strengthHintToRating` in `lib/guestName.ts` is removed; `guestName
 
 ### `wprScore` internals
 
-`wprScore` in `lib/utils.ts:110` keeps its math identical. The function now receives `Player.strength: Strength | null` instead of `Player.rating: number`. A small internal helper converts `strength → number` (mapping `null → 0` so the existing `player.rating > 0 ? ... : 50` neutral-prior branch at line 135 continues to fire for unrated players). The 15% weight, the linear fade by 10 games, and all other math are unchanged.
+`wprScore` in `lib/utils.ts:110` keeps its math identical. The function now receives `Player.strength: Strength | null` instead of `Player.rating: number`. The component-3 block at lines 134-137 is rewritten so the neutral-prior branch keys off `strength === null` rather than `rating === 0`:
+
+```ts
+// Component 3: strength prior, fades as played increases
+const normRating = player.strength === null
+  ? 50
+  : ((strengthToRating(player.strength) - 1) / 2) * 100
+const ratingWeight = Math.max(0, 1 - player.played / 10)
+const ratingScore = normRating * ratingWeight
+```
+
+The 15% weight (`WPR_RATING_WEIGHT`), the linear fade by 10 games, and all numeric outputs for any given input are unchanged. `strengthToRating` is imported from `lib/strength.ts`.
 
 `hintToWpr` in `lib/utils.ts:295` keeps its math identical. Its parameter type changes from `StrengthHint | undefined` to `Strength | null`. The `'above'` / `'below'` / fallthrough branches behave the same.
 
