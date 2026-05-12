@@ -40,23 +40,6 @@ interface NewPlayerReviewState {
   mentality: Mentality
 }
 
-function StepIndicator({ current, total }: { current: number; total: number }) {
-  return (
-    <div className="flex items-center gap-1.5 px-5 py-2.5 bg-slate-900 border-b border-slate-700">
-      {Array.from({ length: total }).map((_, i) => (
-        <div
-          key={i}
-          className={cn(
-            'w-1.5 h-1.5 rounded-full',
-            i < current - 1 ? 'bg-green-500' : i === current - 1 ? 'bg-blue-500' : 'bg-slate-600'
-          )}
-        />
-      ))}
-      <span className="ml-1 text-[11px] text-slate-500">{current} of {total}</span>
-    </div>
-  )
-}
-
 function Stepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
     <div className="flex items-center border border-slate-700 rounded-md overflow-hidden">
@@ -93,7 +76,6 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   const guests = lineupMetadata?.guests ?? []
   const newPlayers = lineupMetadata?.new_players ?? []
   const hasReviewStep = guests.length > 0 || newPlayers.length > 0
-  const totalSteps = hasReviewStep ? 4 : 2
 
   const [step, setStep] = useState<ResultStep>('winner')
   const [winner, setWinner] = useState<Winner>(null)
@@ -387,8 +369,6 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
     }
   }
 
-  const currentStepNum = step === 'winner' ? 1 : step === 'review' ? 2 : step === 'confirm' ? 3 : totalSteps
-
   return (
     <Dialog.Root open onOpenChange={(open) => { if (!open) { if (step === 'share') onSaved(); else onClose() } }}>
       <Dialog.Portal>
@@ -423,8 +403,6 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
               </Dialog.Close>
             )}
           </div>
-
-          {hasReviewStep && step !== 'share' && <StepIndicator current={currentStepNum} total={totalSteps} />}
 
           {/* ── Step: winner ── */}
           {step === 'winner' && (
@@ -505,7 +483,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                     disabled={(!winner && !isDnf) || (!!winner && winner !== 'draw' && (goalDifference < 1 || goalDifference > 20))}
                     className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold disabled:opacity-40"
                   >
-                    Next →
+                    Next
                   </button>
                 ) : (
                   <button
@@ -632,7 +610,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                   onClick={() => { if (validateReview()) setStep('confirm') }}
                   className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold"
                 >
-                  Next →
+                  Next
                 </button>
               </div>
             </>
