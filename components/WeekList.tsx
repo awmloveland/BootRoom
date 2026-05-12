@@ -7,7 +7,7 @@ import { MonthDivider } from '@/components/MonthDivider'
 import { YearDivider } from '@/components/YearDivider'
 import { NameGuestModal } from '@/components/NameGuestModal'
 import { getMonthKey, formatMonthYear, sortWeeks } from '@/lib/utils'
-import type { Mentality, Player, StrengthHint, Week } from '@/lib/types'
+import type { Mentality, Player, Strength, Week } from '@/lib/types'
 
 interface Props {
   weeks: Week[]
@@ -65,7 +65,7 @@ export function WeekList({
   async function handleNameGuestSubmit(entry: {
     newName: string
     mentality: Mentality
-    strengthHint: StrengthHint
+    strength: Strength
   }) {
     if (!nameGuestTarget || !nameGuestTarget.week.id) return
     const res = await fetch(`/api/league/${gameId}/guests/name`, {
@@ -76,7 +76,7 @@ export function WeekList({
         oldName: nameGuestTarget.guestName,
         newName: entry.newName,
         mentality: entry.mentality,
-        strengthHint: entry.strengthHint,
+        strength: entry.strength,
       }),
     })
     if (!res.ok) {

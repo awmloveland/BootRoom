@@ -6,7 +6,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { cn, buildResultShareText, buildDnfShareText, buildResultHeadline, resolveTeamRatingForResult } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality, Week } from '@/lib/types'
-import { ratingToStrength } from '@/lib/strength'
+import { ratingToStrength, strengthToRating } from '@/lib/strength'
 import { EyeTestSlider } from '@/components/EyeTestSlider'
 import { Toggle } from '@/components/ui/toggle'
 import { X, Share2 } from 'lucide-react'
@@ -95,7 +95,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   const [guestStates, setGuestStates] = useState<GuestReviewState[]>(
     guests.map((g) => ({
       name: g.name,
-      rating: g.rating,
+      rating: strengthToRating(g.strength),
       goalkeeper: g.goalkeeper ?? false,
       addToRoster: false,
       rosterName: '',
@@ -105,7 +105,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   const [newPlayerStates, setNewPlayerStates] = useState<NewPlayerReviewState[]>(
     newPlayers.map((p) => ({
       name: p.name,
-      rating: p.rating,
+      rating: strengthToRating(p.strength),
       mentality: p.mentality,
     }))
   )

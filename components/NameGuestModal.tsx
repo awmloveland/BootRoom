@@ -4,12 +4,12 @@ import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
 import { validateNameGuestInput } from '@/lib/guestName'
-import type { Mentality, StrengthHint } from '@/lib/types'
+import type { Mentality, Strength } from '@/lib/types'
 
 interface Props {
   guestName: string
   existingPlayers: string[]
-  onSubmit: (entry: { newName: string; mentality: Mentality; strengthHint: StrengthHint }) => Promise<void>
+  onSubmit: (entry: { newName: string; mentality: Mentality; strength: Strength }) => Promise<void>
   onClose: () => void
 }
 
@@ -20,7 +20,7 @@ const MENTALITY_OPTIONS: { value: Mentality; label: string }[] = [
   { value: 'attacking', label: 'ATT' },
 ]
 
-const STRENGTH_OPTIONS: { value: StrengthHint; label: string }[] = [
+const STRENGTH_OPTIONS: { value: Strength; label: string }[] = [
   { value: 'below', label: 'Below average' },
   { value: 'average', label: 'Average' },
   { value: 'above', label: 'Above average' },
@@ -29,7 +29,7 @@ const STRENGTH_OPTIONS: { value: StrengthHint; label: string }[] = [
 export function NameGuestModal({ guestName, existingPlayers, onSubmit, onClose }: Props) {
   const [name, setName] = useState('')
   const [mentality, setMentality] = useState<Mentality>('balanced')
-  const [strengthHint, setStrengthHint] = useState<StrengthHint>('average')
+  const [strength, setStrength] = useState<Strength>('average')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -44,7 +44,7 @@ export function NameGuestModal({ guestName, existingPlayers, onSubmit, onClose }
     setError(null)
     setSubmitting(true)
     try {
-      await onSubmit({ newName: name.trim(), mentality, strengthHint })
+      await onSubmit({ newName: name.trim(), mentality, strength })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
@@ -120,12 +120,12 @@ export function NameGuestModal({ guestName, existingPlayers, onSubmit, onClose }
                     key={opt.value}
                     type="button"
                     role="radio"
-                    aria-checked={strengthHint === opt.value}
-                    onClick={() => setStrengthHint(opt.value)}
+                    aria-checked={strength === opt.value}
+                    onClick={() => setStrength(opt.value)}
                     className={cn(
                       'flex-1 px-2 py-1.5 text-xs font-semibold',
                       i < STRENGTH_OPTIONS.length - 1 && 'border-r border-slate-700',
-                      strengthHint === opt.value
+                      strength === opt.value
                         ? 'bg-blue-950 text-blue-300'
                         : 'text-slate-500 hover:text-slate-300'
                     )}

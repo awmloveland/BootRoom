@@ -3,7 +3,7 @@
 
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import type { Player, GuestEntry, NewPlayerEntry, Mentality, StrengthHint } from '@/lib/types'
+import type { Player, GuestEntry, NewPlayerEntry, Mentality, Strength } from '@/lib/types'
 import { Toggle } from '@/components/ui/toggle'
 import { cn } from '@/lib/utils'
 
@@ -17,7 +17,7 @@ interface Props {
 
 type Step = 'choose' | 'guest' | 'new_player'
 
-const STRENGTH_OPTIONS: { value: StrengthHint; label: string }[] = [
+const STRENGTH_OPTIONS: { value: Strength; label: string }[] = [
   { value: 'below', label: 'Below average' },
   { value: 'average', label: 'Average' },
   { value: 'above', label: 'Above average' },
@@ -28,12 +28,12 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
 
   // Guest sub-flow state
   const [associatedPlayer, setAssociatedPlayer] = useState('')
-  const [guestStrength, setGuestStrength] = useState<StrengthHint>('average')
+  const [guestStrength, setGuestStrength] = useState<Strength>('average')
   const [guestIsGoalkeeper, setGuestIsGoalkeeper] = useState(false)
 
   // New player sub-flow state
   const [newName, setNewName] = useState('')
-  const [newStrength, setNewStrength] = useState<StrengthHint>('average')
+  const [newStrength, setNewStrength] = useState<Strength>('average')
   const [nameError, setNameError] = useState<string | null>(null)
   const [newMentality, setNewMentality] = useState<Mentality>('balanced')
 
@@ -53,9 +53,8 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
       type: 'guest',
       name,
       associatedPlayer,
-      rating: 2,
       goalkeeper: guestIsGoalkeeper,
-      strengthHint: guestStrength,
+      strength: guestStrength,
     })
     onClose()
   }
@@ -73,9 +72,8 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
     onAdd({
       type: 'new_player',
       name: trimmed,
-      rating: 2,
       mentality: newMentality,
-      strengthHint: newStrength,
+      strength: newStrength,
     })
     onClose()
   }

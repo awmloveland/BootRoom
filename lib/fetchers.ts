@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sortWeeks } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
-import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality, JoinRequestStatus, PendingJoinRequest, PlayerClaimStatus } from '@/lib/types'
+import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality, Strength, JoinRequestStatus, PendingJoinRequest, PlayerClaimStatus } from '@/lib/types'
 import { ratingToStrength } from '@/lib/strength'
 
 // ── Game ─────────────────────────────────────────────────────────────────────
@@ -148,17 +148,17 @@ function mapWeekRow(row: WeekRow): Week {
             type: 'guest' as const,
             name: g.name,
             associatedPlayer: g.associated_player,
-            rating: g.rating,
             goalkeeper: g.goalkeeper ?? false,
-            strengthHint: g.strength_hint ?? 'average',
+            // Accept new `strength` key or legacy `strength_hint`; fall back to 'average'
+            strength: (g.strength ?? g.strength_hint ?? 'average') as Strength,
           })),
           new_players: ((row.lineup_metadata.new_players as any[]) ?? []).map((p: any) => ({
             type: 'new_player' as const,
             name: p.name,
-            rating: p.rating,
             // Legacy metadata may have only `goalkeeper` set; derive mentality from it.
             mentality: (p.mentality as Mentality) ?? (p.goalkeeper ? 'goalkeeper' : 'balanced'),
-            strengthHint: p.strength_hint ?? 'average',
+            // Accept new `strength` key or legacy `strength_hint`; fall back to 'average'
+            strength: (p.strength ?? p.strength_hint ?? 'average') as Strength,
           })),
         }
       : null,

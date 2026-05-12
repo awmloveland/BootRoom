@@ -140,17 +140,15 @@ export interface GuestEntry {
   type: 'guest'            // runtime discriminant — not persisted to DB
   name: string             // e.g. "Alice +1"
   associatedPlayer: string // e.g. "Alice"
-  rating: number           // 1–3, kept for DB backwards compat — no longer drives scoring
   goalkeeper?: boolean     // whether this guest is playing as goalkeeper
-  strengthHint: StrengthHint // drives wprOverride at resolution time
+  strength: Strength       // drives wprOverride at resolution time
 }
 
 export interface NewPlayerEntry {
   type: 'new_player'       // runtime discriminant — not persisted to DB
   name: string
-  rating: number           // 1–3, kept for DB backwards compat — no longer drives scoring
   mentality: Mentality     // balanced | attacking | defensive | goalkeeper
-  strengthHint: StrengthHint // drives wprOverride at resolution time
+  strength: Strength       // drives wprOverride at resolution time
 }
 
 export interface LineupMetadata {
