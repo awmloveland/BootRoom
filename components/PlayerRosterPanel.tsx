@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { ChevronDown, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Mentality, PlayerAttribute } from '@/lib/types'
+import { strengthToRating, ratingToStrength } from '@/lib/strength'
 import MemberLinkPicker from '@/components/MemberLinkPicker'
 
 interface Props {
@@ -38,7 +39,7 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
   const [renameSubmitting, setRenameSubmitting] = useState(false)
 
   const patch = useCallback(
-    async (name: string, update: Partial<Pick<PlayerAttribute, 'rating' | 'mentality'>>) => {
+    async (name: string, update: Partial<Pick<PlayerAttribute, 'strength' | 'mentality'>>) => {
       // Capture current state before optimistic update so we can revert
       let snapshot: PlayerAttribute[] = []
       setPlayers((prev) => {
@@ -122,9 +123,12 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
   }
 
   function handleRatingClick(player: PlayerAttribute, dot: number) {
-    // Clicking the active dot decrements by 1 (min 1)
-    const next = player.rating === dot ? Math.max(1, dot - 1) : dot
-    if (next !== player.rating) patch(player.name, { rating: next })
+    // Clicking the active dot decrements by 1 (min 1). Converts dot (1–3) to/from Strength.
+    // TODO: Task 11 replaces this with StrengthPills.
+    const currentDot = strengthToRating(player.strength ?? 'average')
+    const next = currentDot === dot ? Math.max(1, dot - 1) : dot
+    const nextStrength = ratingToStrength(next)
+    if (nextStrength && nextStrength !== player.strength) patch(player.name, { strength: nextStrength })
   }
 
   if (players.length === 0) {
@@ -193,7 +197,7 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                   </button>
                 )}
 
-                {/* Rating dots */}
+                {/* Rating dots — TODO: Task 11 replaces with StrengthPills */}
                 <div className="flex items-center gap-1">
                   <span className="text-[10px] text-slate-500 mr-1">Eye Test</span>
                   {[1, 2, 3].map((dot) => (
@@ -202,7 +206,7 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                       onClick={() => handleRatingClick(player, dot)}
                       className={cn(
                         'w-4 h-4 rounded-full border-2 transition-colors',
-                        dot <= player.rating
+                        dot <= strengthToRating(player.strength ?? 'average')
                           ? 'bg-blue-500 border-blue-600'
                           : 'bg-slate-900 border-slate-600 hover:border-slate-400'
                       )}
@@ -243,7 +247,7 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                       key={dot}
                       className={cn(
                         'w-1.5 h-1.5 rounded-full',
-                        dot <= player.rating ? 'bg-blue-500' : 'bg-slate-600'
+                        dot <= strengthToRating(player.strength ?? 'average') ? 'bg-blue-500' : 'bg-slate-600'
                       )}
                     />
                   ))}
@@ -269,7 +273,7 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                         onClick={() => handleRatingClick(player, n)}
                         className={cn(
                           'flex-1 py-1.5 rounded-md border text-sm font-semibold transition-colors',
-                          n <= player.rating
+                          n <= strengthToRating(player.strength ?? 'average')
                             ? 'bg-blue-950 border-blue-700 text-blue-300'
                             : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500'
                         )}

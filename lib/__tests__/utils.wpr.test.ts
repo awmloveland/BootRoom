@@ -17,7 +17,7 @@ function makePlayer(overrides?: Partial<Player>): Player {
     played: 10, won: 5, drew: 2, lost: 3,
     timesTeamA: 0, timesTeamB: 0,
     winRate: 0.5, qualified: true, points: 17,
-    mentality: 'balanced', rating: 2,
+    mentality: 'balanced', strength: 'average',
     recentForm: 'WWDLL',
     ...overrides,
   }
@@ -85,7 +85,7 @@ describe('leagueMedianWpr', () => {
       played: 10, won: 5, drew: 2, lost: 3,
       timesTeamA: 0, timesTeamB: 0,
       winRate: 0.5, qualified: true, points: 17,
-      mentality: 'balanced', rating: 2,
+      mentality: 'balanced', strength: 'average',
       recentForm: 'WWDLL',
       wprOverride: wprTarget,
     }
@@ -97,7 +97,7 @@ describe('leagueMedianWpr', () => {
       played: 2, won: 1, drew: 0, lost: 1,
       timesTeamA: 0, timesTeamB: 0,
       winRate: 0.5, qualified: false, points: 3,
-      mentality: 'balanced', rating: 2,
+      mentality: 'balanced', strength: 'average',
       recentForm: 'WL',
     }
   }
@@ -156,7 +156,7 @@ describe('leagueWprPercentiles', () => {
       played: 10, won: 5, drew: 2, lost: 3,
       timesTeamA: 0, timesTeamB: 0,
       winRate: 0.5, qualified: true, points: 17,
-      mentality: 'balanced', rating: 2,
+      mentality: 'balanced', strength: 'average',
       recentForm: 'WWDLL',
       wprOverride: wprTarget,
     }
@@ -168,7 +168,7 @@ describe('leagueWprPercentiles', () => {
       played: 2, won: 1, drew: 0, lost: 1,
       timesTeamA: 0, timesTeamB: 0,
       winRate: 0.5, qualified: false, points: 3,
-      mentality: 'balanced', rating: 2,
+      mentality: 'balanced', strength: 'average',
       recentForm: 'WL',
     }
   }

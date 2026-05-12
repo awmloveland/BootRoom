@@ -11,7 +11,7 @@ function makePlayer(name: string, overrides?: Partial<Player>): Player {
     timesTeamA: 0, timesTeamB: 0,
     winRate: 0, qualified: false, points: 0,
     mentality: 'balanced',
-    rating: 2, /* median league rating — same default used for guest players */
+    strength: 'average', /* median league strength — same default used for guest players */
     recentForm: '',
     ...overrides,
   }
@@ -142,7 +142,7 @@ describe('autoPick — swap deduplication', () => {
     // 10 identical-rated players → many valid exhaustive splits, so the pool
     // is large enough to surface swap-pairs without deduplication.
     const players = Array.from({ length: 10 }, (_, i) =>
-      makePlayer(`Player ${i + 1}`, { rating: 2 })
+      makePlayer(`Player ${i + 1}`, { strength: 'average' })
     )
     // Run across a handful of deterministic seeds to exercise the shuffle-and-pick
     // logic under varied inputs — each seed must still produce distinct splits.
@@ -601,7 +601,7 @@ describe('autoPick — returns closest-N splits', () => {
     // 10 players with varied ratings to guarantee >5 unique diffs.
     // No goalkeepers → no GK pinning, so the search is over all 10 players.
     const players = Array.from({ length: 10 }, (_, i) =>
-      makePlayer(`P${i + 1}`, { rating: 1 + (i % 3), played: 10, recentForm: 'WLDWL' })
+      makePlayer(`P${i + 1}`, { strength: (['below', 'average', 'above'] as const)[i % 3], played: 10, recentForm: 'WLDWL' })
     )
 
     const result = autoPick(players, undefined, undefined, seededRng(1))
@@ -650,10 +650,10 @@ describe('autoPick — returns closest-N splits', () => {
   it('returns fewer than 5 suggestions when fewer unique splits exist', () => {
     // 4 players → sizeA=2 → C(4,2)=6 raw splits → 3 unique after team-swap dedup.
     const players = [
-      makePlayer('A', { rating: 3 }),
-      makePlayer('B', { rating: 2 }),
-      makePlayer('C', { rating: 1 }),
-      makePlayer('D', { rating: 2 }),
+      makePlayer('A', { strength: 'above' }),
+      makePlayer('B', { strength: 'average' }),
+      makePlayer('C', { strength: 'below' }),
+      makePlayer('D', { strength: 'average' }),
     ]
     const result = autoPick(players, undefined, undefined, seededRng(1))
 

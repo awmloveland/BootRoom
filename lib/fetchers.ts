@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { sortWeeks } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
 import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality, JoinRequestStatus, PendingJoinRequest, PlayerClaimStatus } from '@/lib/types'
+import { ratingToStrength } from '@/lib/strength'
 
 // ── Game ─────────────────────────────────────────────────────────────────────
 
@@ -102,7 +103,7 @@ export const getPlayerStats = cache(async (leagueId: string): Promise<Player[]> 
     mentality: (row.goalkeeper
       ? 'goalkeeper'
       : String(row.mentality ?? 'balanced')) as Player['mentality'],
-    rating: Number(row.rating ?? 0),
+    strength: ratingToStrength(Number(row.rating ?? 0)),
     recentForm: String(row.recentForm ?? ''),
   }))
 })

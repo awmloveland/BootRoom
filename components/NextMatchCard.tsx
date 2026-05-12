@@ -39,13 +39,6 @@ interface Props {
 
 type CardState = 'loading' | 'idle' | 'building' | 'lineup' | 'cancelled'
 
-function medianRating(players: Player[]): number {
-  if (players.length === 0) return 2
-  const sorted = [...players].map((p) => p.rating).sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
-}
-
 /**
  * Scans played weeks to find the most recent week date each player appeared in.
  * Returns a map of player name → date string ('DD MMM YYYY'), or undefined if never played.
@@ -73,7 +66,6 @@ function resolvePlayersForAutoPick(
   const lookup = new Map(allPlayers.map((p) => [p.name.toLowerCase(), p]))
   const guestLookup = new Map(guests.map((g) => [g.name.toLowerCase(), g]))
   const newPlayerLookup = new Map(newPlayers.map((p) => [p.name.toLowerCase(), p]))
-  const fallbackRating = medianRating(allPlayers)
   const percentiles = leagueWprPercentiles(allPlayers)
 
   return names.map((name) => {
@@ -89,7 +81,7 @@ function resolvePlayersForAutoPick(
         timesTeamA: 0, timesTeamB: 0,
         winRate: 0, qualified: false, points: 0,
         mentality: guest.goalkeeper ? 'goalkeeper' : 'balanced',
-        rating: 2,
+        strength: guest.strengthHint ?? 'average',
         recentForm: '',
         wprOverride: hintToWpr(guest.strengthHint, percentiles),
       }
@@ -104,7 +96,7 @@ function resolvePlayersForAutoPick(
         timesTeamA: 0, timesTeamB: 0,
         winRate: 0, qualified: false, points: 0,
         mentality: newPlayer.mentality,
-        rating: 2,
+        strength: newPlayer.strengthHint ?? 'average',
         recentForm: '',
         wprOverride: hintToWpr(newPlayer.strengthHint, percentiles),
       }
@@ -117,7 +109,7 @@ function resolvePlayersForAutoPick(
       timesTeamA: 0, timesTeamB: 0,
       winRate: 0, qualified: false, points: 0,
       mentality: 'balanced' as const,
-      rating: fallbackRating,
+      strength: null,
       recentForm: '',
     }
   })

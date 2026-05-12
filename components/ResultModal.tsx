@@ -6,6 +6,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { cn, buildResultShareText, buildDnfShareText, buildResultHeadline, resolveTeamRatingForResult } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality, Week } from '@/lib/types'
+import { ratingToStrength } from '@/lib/strength'
 import { EyeTestSlider } from '@/components/EyeTestSlider'
 import { Toggle } from '@/components/ui/toggle'
 import { X, Share2 } from 'lucide-react'
@@ -264,7 +265,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
             winRate: 0, qualified: false, points: 0,
             recentForm: '',
             mentality: isGk ? 'goalkeeper' : 'balanced',
-            rating: src?.rating ?? 2,
+            strength: ratingToStrength(src?.rating ?? 2),
           }
         })
       }
