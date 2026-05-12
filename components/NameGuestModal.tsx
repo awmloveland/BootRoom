@@ -4,6 +4,7 @@ import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
 import { validateNameGuestInput } from '@/lib/guestName'
+import { StrengthPills } from '@/components/ui/StrengthPills'
 import type { Mentality, Strength } from '@/lib/types'
 
 interface Props {
@@ -18,12 +19,6 @@ const MENTALITY_OPTIONS: { value: Mentality; label: string }[] = [
   { value: 'defensive', label: 'DEF' },
   { value: 'balanced', label: 'BAL' },
   { value: 'attacking', label: 'ATT' },
-]
-
-const STRENGTH_OPTIONS: { value: Strength; label: string }[] = [
-  { value: 'below', label: 'Below average' },
-  { value: 'average', label: 'Average' },
-  { value: 'above', label: 'Above average' },
 ]
 
 export function NameGuestModal({ guestName, existingPlayers, onSubmit, onClose }: Props) {
@@ -109,30 +104,9 @@ export function NameGuestModal({ guestName, existingPlayers, onSubmit, onClose }
             </div>
 
             <div className="mt-3">
-              <p id="strength-label" className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Strength hint</p>
-              <div
-                role="radiogroup"
-                aria-labelledby="strength-label"
-                className="mt-1 flex overflow-hidden rounded border border-slate-700"
-              >
-                {STRENGTH_OPTIONS.map((opt, i) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={strength === opt.value}
-                    onClick={() => setStrength(opt.value)}
-                    className={cn(
-                      'flex-1 px-2 py-1.5 text-xs font-semibold',
-                      i < STRENGTH_OPTIONS.length - 1 && 'border-r border-slate-700',
-                      strength === opt.value
-                        ? 'bg-blue-950 text-blue-300'
-                        : 'text-slate-500 hover:text-slate-300'
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Strength</p>
+              <div className="mt-1">
+                <StrengthPills value={strength} onChange={setStrength} />
               </div>
             </div>
 
