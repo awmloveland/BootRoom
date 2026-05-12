@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import type { Mentality, PlayerAttribute, Strength } from '@/lib/types'
 import { StrengthPills } from '@/components/ui/StrengthPills'
 import MemberLinkPicker from '@/components/MemberLinkPicker'
+import { AddRosterPlayerModal } from '@/components/AddRosterPlayerModal'
 
 interface Props {
   leagueId: string
@@ -37,6 +38,7 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
   const [renameValue, setRenameValue] = useState('')
   const [renameError, setRenameError] = useState<string | null>(null)
   const [renameSubmitting, setRenameSubmitting] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
 
   const patch = useCallback(
     async (name: string, update: Partial<Pick<PlayerAttribute, 'strength' | 'mentality'>>) => {
@@ -126,12 +128,49 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
     patch(name, { strength: next })
   }
 
+  function appendPlayer(player: PlayerAttribute) {
+    setPlayers((prev) =>
+      [...prev, player].sort((a, b) => a.name.localeCompare(b.name))
+    )
+  }
+
   if (players.length === 0) {
-    return <p className="text-sm text-slate-400">No players in this league yet.</p>
+    return (
+      <>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm text-slate-400">No players in this league yet.</p>
+          <button
+            type="button"
+            onClick={() => setAddOpen(true)}
+            className="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
+          >
+            + Add player
+          </button>
+        </div>
+        {addOpen && (
+          <AddRosterPlayerModal
+            leagueId={leagueId}
+            existingNames={[]}
+            onCreated={appendPlayer}
+            onClose={() => setAddOpen(false)}
+          />
+        )}
+      </>
+    )
   }
 
   return (
     <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-end mb-2">
+        <button
+          type="button"
+          onClick={() => setAddOpen(true)}
+          className="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
+        >
+          + Add player
+        </button>
+      </div>
+
       <div className="bg-sky-950/40 border border-sky-900/40 rounded-lg px-3.5 py-2.5 mb-3.5">
         <div className="text-xs font-semibold text-sky-400 mb-0.5">Strength &amp; mentality influence Auto-Pick</div>
         <div className="text-xs text-slate-400">
@@ -307,6 +346,14 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
         )
       })}
 
+      {addOpen && (
+        <AddRosterPlayerModal
+          leagueId={leagueId}
+          existingNames={players.map((p) => p.name)}
+          onCreated={appendPlayer}
+          onClose={() => setAddOpen(false)}
+        />
+      )}
     </div>
   )
 }
