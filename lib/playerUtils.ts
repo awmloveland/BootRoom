@@ -49,3 +49,32 @@ export function parseRenameName(value: unknown): string | null {
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
 }
+
+export interface AddPlayerInput {
+  name: string
+  strength: Strength
+  mentality: Mentality
+}
+
+/**
+ * Validates and parses a POST /api/league/[id]/players body.
+ * Returns a typed input object, or null if the body is invalid.
+ * Trims the name; rejects empty/whitespace-only.
+ */
+export function parseAddPlayerBody(body: unknown): AddPlayerInput | null {
+  if (body === null || typeof body !== 'object' || Array.isArray(body)) return null
+  const b = body as Record<string, unknown>
+
+  if (typeof b.name !== 'string') return null
+  const name = b.name.trim()
+  if (name.length === 0) return null
+
+  if (typeof b.strength !== 'string' || !VALID_STRENGTHS.includes(b.strength as Strength)) return null
+  if (typeof b.mentality !== 'string' || !VALID_MENTALITIES.includes(b.mentality as Mentality)) return null
+
+  return {
+    name,
+    strength: b.strength as Strength,
+    mentality: b.mentality as Mentality,
+  }
+}
