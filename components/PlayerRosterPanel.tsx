@@ -151,74 +151,8 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
               hasError ? 'border-red-800' : isExpanded || renamingPlayer === player.name ? 'border-slate-600' : 'border-slate-700'
             )}
           >
-            {/* ── Desktop: two-row layout ── */}
-            <div className={cn('hidden sm:flex sm:flex-col', renamingPlayer === player.name && 'opacity-60')}>
-              {/* Row 1: name + link member */}
-              <div className="flex items-center gap-3 px-3 pt-2.5 pb-1">
-                <span className="flex items-center gap-1.5 flex-1 min-w-0">
-                  <span className="text-sm font-semibold text-slate-100 truncate">{player.name}</span>
-                  {renamingPlayer !== player.name && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRenamingPlayer(player.name)
-                        setRenameValue(player.name)
-                        setRenameError(null)
-                      }}
-                      className="text-slate-600 hover:text-slate-400 transition-colors shrink-0"
-                      aria-label={`Rename ${player.name}`}
-                    >
-                      <Pencil className="size-3" />
-                    </button>
-                  )}
-                </span>
-
-                {player.linked_display_name ? (
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs border bg-emerald-900/40 text-emerald-300 border-emerald-700/50 shrink-0">
-                    <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" />
-                    {player.linked_display_name}
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLinkingPlayerName(linkingPlayerName === player.name ? null : player.name)
-                      setLinkError(null)
-                    }}
-                    className="text-xs text-slate-500 border border-dashed border-slate-600 px-2 py-0.5 rounded hover:border-slate-400 hover:text-slate-300 transition-colors shrink-0"
-                  >
-                    + Link member
-                  </button>
-                )}
-              </div>
-
-              {/* Row 2: strength + mentality */}
-              <div className="flex items-center gap-3 px-3 pt-1 pb-2.5">
-                {(player.played ?? 0) < 10 && (
-                  <>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-slate-500">Strength</span>
-                      <StrengthPills
-                        value={player.strength}
-                        onChange={(s) => handleStrengthChange(player.name, s)}
-                        size="sm"
-                      />
-                    </div>
-                    <div className="w-px h-4 bg-slate-700" />
-                  </>
-                )}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-slate-500">Mentality</span>
-                  <MentalityControl
-                    value={player.mentality}
-                    onChange={(m) => patch(player.name, { mentality: m })}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* ── Mobile: single row + chevron ── */}
-            <div className={cn('flex items-center gap-3 px-3 py-2.5 sm:hidden', renamingPlayer === player.name && 'opacity-60')}>
+            {/* ── Collapsed row ── */}
+            <div className={cn('flex items-center gap-3 px-3 py-2.5', renamingPlayer === player.name && 'opacity-60')}>
               <span className="flex items-center gap-1.5 flex-1 min-w-0">
                 <span className="text-sm font-semibold text-slate-100 truncate">{player.name}</span>
                 {renamingPlayer !== player.name && (
@@ -238,6 +172,7 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
               </span>
 
               <button
+                type="button"
                 className="flex items-center gap-2"
                 onClick={() => setExpandedName(isExpanded ? null : player.name)}
                 aria-expanded={isExpanded}
@@ -252,11 +187,6 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                 <span className="text-[10px] font-semibold bg-blue-950 text-blue-300 border border-blue-800 rounded px-1.5 py-0.5">
                   {MENTALITY_DISPLAY[player.mentality]}
                 </span>
-                {(player.played ?? 0) < 10 && player.strength && (
-                  <span className="text-[10px] font-semibold bg-slate-900 text-slate-400 border border-slate-700 rounded px-1.5 py-0.5">
-                    {player.strength === 'below' ? 'Below' : player.strength === 'above' ? 'Above' : 'Avg'}
-                  </span>
-                )}
                 <ChevronDown
                   className={cn(
                     'size-3.5 text-slate-500 transition-transform',
@@ -266,9 +196,9 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
               </button>
             </div>
 
-            {/* ── Mobile expanded controls ── */}
+            {/* ── Expanded controls ── */}
             {isExpanded && (
-              <div className="sm:hidden border-t border-slate-700 px-3 py-3 flex flex-col gap-3">
+              <div className="border-t border-slate-700 px-3 py-3 flex flex-col gap-3">
                 {(player.played ?? 0) < 10 && (
                   <div>
                     <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">Strength</p>
