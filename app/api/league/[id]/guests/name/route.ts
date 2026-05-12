@@ -1,18 +1,19 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { strengthToRating } from '@/lib/strength'
-import type { Mentality, StrengthHint } from '@/lib/types'
+import type { Mentality, Strength } from '@/lib/types'
 
 interface Body {
   weekId?: string
   oldName?: string
   newName?: string
   mentality?: Mentality
-  strengthHint?: StrengthHint
+  strength?: Strength
+  strengthHint?: Strength // legacy fallback, removed in follow-up PR
 }
 
 const VALID_MENTALITIES: Mentality[] = ['balanced', 'attacking', 'defensive', 'goalkeeper']
-const VALID_STRENGTHS: StrengthHint[] = ['below', 'average', 'above']
+const VALID_STRENGTHS: Strength[] = ['below', 'average', 'above']
 
 export async function POST(
   request: Request,
@@ -34,7 +35,8 @@ export async function POST(
   const oldName = typeof body.oldName === 'string' ? body.oldName : ''
   const newName = typeof body.newName === 'string' ? body.newName.trim() : ''
   const mentality = body.mentality
-  const strengthHint = body.strengthHint
+  // Accept canonical `strength` key with legacy `strengthHint` fallback.
+  const strength = body.strength ?? body.strengthHint
 
   if (!weekId || !oldName || !newName) {
     return NextResponse.json({ error: 'weekId, oldName and newName are required' }, { status: 400 })
@@ -42,11 +44,11 @@ export async function POST(
   if (!mentality || !VALID_MENTALITIES.includes(mentality)) {
     return NextResponse.json({ error: 'invalid_mentality' }, { status: 400 })
   }
-  if (!strengthHint || !VALID_STRENGTHS.includes(strengthHint)) {
-    return NextResponse.json({ error: 'invalid_strength_hint' }, { status: 400 })
+  if (!strength || !VALID_STRENGTHS.includes(strength)) {
+    return NextResponse.json({ error: 'invalid_strength' }, { status: 400 })
   }
 
-  const rating = strengthToRating(strengthHint)
+  const rating = strengthToRating(strength)
 
   const { error } = await supabase.rpc('admin_name_guest', {
     p_game_id: id,
