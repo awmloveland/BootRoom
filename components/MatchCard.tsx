@@ -23,6 +23,7 @@ interface MatchCardProps {
   leagueName?: string
   leagueSlug?: string
   weeks?: Week[]
+  onNameGuest?: (week: Week, guestName: string) => void
 }
 
 // ── Edit button helpers ───────────────────────────────────────────────────────
@@ -155,6 +156,7 @@ interface AwaitingResultCardProps {
   leagueSlug?: string
   allPlayers: Player[]
   onResultSaved: () => void
+  onNameGuest?: (guestName: string) => void
 }
 
 interface PlayedCardProps {
@@ -169,6 +171,7 @@ interface PlayedCardProps {
   leagueName?: string
   leagueSlug?: string
   weeks?: Week[]
+  onNameGuest?: (guestName: string) => void
 }
 
 // ── DnfCard ───────────────────────────────────────────────────────────────────
@@ -183,6 +186,7 @@ interface DnfCardProps {
   onResultSaved: () => void
   leagueName?: string
   leagueSlug?: string
+  onNameGuest?: (guestName: string) => void
 }
 
 function DnfCard({
@@ -195,6 +199,7 @@ function DnfCard({
   onResultSaved,
   leagueName,
   leagueSlug,
+  onNameGuest,
 }: DnfCardProps) {
   const [showEditModal, setShowEditModal] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -285,12 +290,14 @@ function DnfCard({
                     players={week.teamA}
                     team="A"
                     rating={week.team_a_rating ?? null}
+                    onNameGuest={onNameGuest}
                   />
                   <TeamList
                     label="Team B"
                     players={week.teamB}
                     team="B"
                     rating={week.team_b_rating ?? null}
+                    onNameGuest={onNameGuest}
                   />
                 </div>
                 {week.notes?.trim() && (
@@ -347,6 +354,7 @@ function AwaitingResultCard({
   leagueSlug,
   allPlayers,
   onResultSaved,
+  onNameGuest,
 }: AwaitingResultCardProps) {
   const [showResultModal, setShowResultModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -412,12 +420,14 @@ function AwaitingResultCard({
                     players={week.teamA}
                     team="A"
                     rating={week.team_a_rating ?? null}
+                    onNameGuest={onNameGuest}
                   />
                   <TeamList
                     label="Team B"
                     players={week.teamB}
                     team="B"
                     rating={week.team_b_rating ?? null}
+                    onNameGuest={onNameGuest}
                   />
                 </div>
                 {isAdmin && (
@@ -481,6 +491,7 @@ function PlayedCard({
   leagueName,
   leagueSlug,
   weeks,
+  onNameGuest,
 }: PlayedCardProps) {
   const [showEditModal, setShowEditModal] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -567,6 +578,7 @@ function PlayedCard({
                     team="A"
                     rating={week.team_a_rating}
                     goalkeepers={goalkeepers}
+                    onNameGuest={onNameGuest}
                   />
                   <TeamList
                     label="Team B"
@@ -574,6 +586,7 @@ function PlayedCard({
                     team="B"
                     rating={week.team_b_rating}
                     goalkeepers={goalkeepers}
+                    onNameGuest={onNameGuest}
                   />
                 </div>
 
@@ -644,7 +657,13 @@ export function MatchCard({
   leagueName,
   leagueSlug,
   weeks,
+  onNameGuest,
 }: MatchCardProps) {
+  const nameGuestHandler =
+    isAdmin && week.id && onNameGuest
+      ? (guestName: string) => onNameGuest(week, guestName)
+      : undefined
+
   if (week.status === 'cancelled') {
     return (
       <CancelledCard
@@ -679,6 +698,7 @@ export function MatchCard({
         onResultSaved={onResultSaved}
         leagueName={leagueName}
         leagueSlug={leagueSlug}
+        onNameGuest={nameGuestHandler}
       />
     )
   }
@@ -694,6 +714,7 @@ export function MatchCard({
         leagueSlug={leagueSlug}
         allPlayers={allPlayers}
         onResultSaved={onResultSaved}
+        onNameGuest={nameGuestHandler}
       />
     )
   }
@@ -710,6 +731,7 @@ export function MatchCard({
       leagueName={leagueName}
       leagueSlug={leagueSlug}
       weeks={weeks}
+      onNameGuest={nameGuestHandler}
     />
   )
 }
