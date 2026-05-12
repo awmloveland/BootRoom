@@ -1,4 +1,4 @@
-import { UserPlus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isGuestName } from '@/lib/guestName'
 
@@ -40,6 +40,7 @@ export function TeamList({ label, players, team, rating, goalkeepers, onNameGues
               key={player}
               className={cn(
                 'text-xs font-medium px-2.5 py-1.5 rounded border flex items-center justify-between gap-2',
+                showNameGuest && 'border-dashed',
                 isA
                   ? 'bg-sky-950/40 border-sky-900/60 text-sky-100'
                   : 'bg-violet-950/40 border-violet-900/60 text-violet-100'
@@ -51,9 +52,17 @@ export function TeamList({ label, players, team, rating, goalkeepers, onNameGues
                   type="button"
                   onClick={() => onNameGuest!(player)}
                   aria-label={`Name ${player}`}
-                  className="shrink-0 text-slate-300 hover:text-slate-100"
+                  className={cn(
+                    'shrink-0 inline-flex items-center gap-1 whitespace-nowrap',
+                    'text-[11px] font-semibold px-1 py-0.5 rounded',
+                    'hover:underline focus-visible:outline-none focus-visible:ring-2',
+                    isA
+                      ? 'text-sky-400 hover:text-sky-300 focus-visible:ring-sky-400'
+                      : 'text-violet-400 hover:text-violet-300 focus-visible:ring-violet-400'
+                  )}
                 >
-                  <UserPlus className="h-3.5 w-3.5" />
+                  <Plus className="h-3.5 w-3.5" />
+                  Add Player
                 </button>
               )}
             </li>
