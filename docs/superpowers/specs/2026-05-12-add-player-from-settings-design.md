@@ -54,7 +54,20 @@ Reuse the visual treatment of `AddPlayerModal`:
 - Three fields (in order): name (text input, autoFocus), strength
   (`StrengthPills`: Below / Average / Above, default **Average**), mentality
   (button group: GK / DEF / BAL / ATT, default **Balanced**)
-- Footer: **Cancel** + **Add** buttons
+- Helper copy:
+  - Name field: **no helper text** (the field is self-evident; the lineup
+    builder's "added permanently after confirming during result" line does not
+    apply since settings persists immediately).
+  - Strength: keep "Defaults to Average — change only if you know this player."
+  - Mentality: keep "GK = dedicated goalkeeper, plays in goal every game."
+- Footer: **Cancel** + **Add player** buttons (right-aligned). Primary button
+  uses the same blue treatment as the panel's "+ Add player" trigger.
+
+### Trigger styling
+
+Primary blue button (`bg-blue-600 hover:bg-blue-500`, white text), right-aligned
+in the panel header. Mirrors the existing primary-action treatment used
+elsewhere in the app (e.g. the lineup builder's "Add player" button).
 
 Dismiss on backdrop click, Esc, or Cancel.
 
