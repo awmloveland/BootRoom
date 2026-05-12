@@ -87,12 +87,14 @@ export async function POST(
   }
   const { name, strength, mentality } = parsed
 
-  // Case-insensitive collision check against existing roster
+  // Case-insensitive collision check against existing roster.
+  // Escape `%` and `_` so they are treated as literal characters, not SQL ILIKE wildcards.
+  const escapedName = name.replace(/[\\%_]/g, '\\$&')
   const { data: existing, error: existingErr } = await supabase
     .from('player_attributes')
     .select('name')
     .eq('game_id', id)
-    .ilike('name', name)
+    .ilike('name', escapedName)
     .maybeSingle()
 
   if (existingErr) {
