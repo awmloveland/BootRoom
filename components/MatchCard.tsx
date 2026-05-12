@@ -23,6 +23,7 @@ interface MatchCardProps {
   leagueName?: string
   leagueSlug?: string
   weeks?: Week[]
+  isMostRecent?: boolean
 }
 
 // ── Edit button helpers ───────────────────────────────────────────────────────
@@ -155,6 +156,9 @@ interface AwaitingResultCardProps {
   leagueSlug?: string
   allPlayers: Player[]
   onResultSaved: () => void
+  leagueName?: string
+  weeks?: Week[]
+  isMostRecent: boolean
 }
 
 interface PlayedCardProps {
@@ -169,6 +173,7 @@ interface PlayedCardProps {
   leagueName?: string
   leagueSlug?: string
   weeks?: Week[]
+  isMostRecent: boolean
 }
 
 // ── DnfCard ───────────────────────────────────────────────────────────────────
@@ -183,6 +188,7 @@ interface DnfCardProps {
   onResultSaved: () => void
   leagueName?: string
   leagueSlug?: string
+  isMostRecent: boolean
 }
 
 function DnfCard({
@@ -195,6 +201,7 @@ function DnfCard({
   onResultSaved,
   leagueName,
   leagueSlug,
+  isMostRecent,
 }: DnfCardProps) {
   const [showEditModal, setShowEditModal] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -347,6 +354,9 @@ function AwaitingResultCard({
   leagueSlug,
   allPlayers,
   onResultSaved,
+  leagueName,
+  weeks,
+  isMostRecent,
 }: AwaitingResultCardProps) {
   const [showResultModal, setShowResultModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -481,6 +491,7 @@ function PlayedCard({
   leagueName,
   leagueSlug,
   weeks,
+  isMostRecent,
 }: PlayedCardProps) {
   const [showEditModal, setShowEditModal] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -644,6 +655,7 @@ export function MatchCard({
   leagueName,
   leagueSlug,
   weeks,
+  isMostRecent = false,
 }: MatchCardProps) {
   if (week.status === 'cancelled') {
     return (
@@ -679,6 +691,7 @@ export function MatchCard({
         onResultSaved={onResultSaved}
         leagueName={leagueName}
         leagueSlug={leagueSlug}
+        isMostRecent={isMostRecent}
       />
     )
   }
@@ -694,6 +707,9 @@ export function MatchCard({
         leagueSlug={leagueSlug}
         allPlayers={allPlayers}
         onResultSaved={onResultSaved}
+        leagueName={leagueName}
+        weeks={weeks}
+        isMostRecent={isMostRecent}
       />
     )
   }
@@ -710,6 +726,7 @@ export function MatchCard({
       leagueName={leagueName}
       leagueSlug={leagueSlug}
       weeks={weeks}
+      isMostRecent={isMostRecent}
     />
   )
 }
