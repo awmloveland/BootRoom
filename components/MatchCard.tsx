@@ -158,7 +158,6 @@ interface AwaitingResultCardProps {
   onResultSaved: () => void
   leagueName?: string
   weeks?: Week[]
-  isMostRecent: boolean
 }
 
 interface PlayedCardProps {
@@ -356,7 +355,6 @@ function AwaitingResultCard({
   onResultSaved,
   leagueName,
   weeks,
-  isMostRecent,
 }: AwaitingResultCardProps) {
   const [showResultModal, setShowResultModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -371,6 +369,8 @@ function AwaitingResultCard({
     teamB: week.teamB,
     status: 'scheduled',
     lineupMetadata: week.lineupMetadata ?? null,
+    team_a_rating: week.team_a_rating ?? null,
+    team_b_rating: week.team_b_rating ?? null,
   }
 
   return (
@@ -454,8 +454,8 @@ function AwaitingResultCard({
           allPlayers={allPlayers}
           gameId={gameId}
           leagueSlug={leagueSlug ?? ''}
-          leagueName=""
-          weeks={[]}
+          leagueName={leagueName ?? ''}
+          weeks={weeks ?? []}
           publicMode={false}
           onSaved={() => {
             setShowResultModal(false)
@@ -709,7 +709,6 @@ export function MatchCard({
         onResultSaved={onResultSaved}
         leagueName={leagueName}
         weeks={weeks}
-        isMostRecent={isMostRecent}
       />
     )
   }
