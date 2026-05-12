@@ -11,35 +11,46 @@ interface Props {
   ariaLabel?: string
 }
 
-const OPTIONS: { value: Strength; label: string }[] = [
-  { value: 'below', label: 'Below average' },
-  { value: 'average', label: 'Average' },
-  { value: 'above', label: 'Above average' },
-]
+const LONG_LABELS: Record<Strength, string> = {
+  below: 'Below average',
+  average: 'Average',
+  above: 'Above average',
+}
+
+const SHORT_LABELS: Record<Strength, string> = {
+  below: 'Below',
+  average: 'Avg',
+  above: 'Above',
+}
+
+const OPTIONS: Strength[] = ['below', 'average', 'above']
 
 export function StrengthPills({ value, onChange, disabled = false, size = 'md', ariaLabel = 'Strength' }: Props) {
+  const isSm = size === 'sm'
+  const labels = isSm ? SHORT_LABELS : LONG_LABELS
   return (
     <div
       role="radiogroup"
       aria-label={ariaLabel}
       className={cn(
-        'flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden font-semibold',
-        size === 'sm' ? 'text-[10px]' : 'text-[11px]'
+        'inline-flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden font-semibold',
+        isSm ? 'text-[10px]' : 'flex w-full text-[11px]'
       )}
     >
       {OPTIONS.map((opt, i) => {
-        const selected = value === opt.value
+        const selected = value === opt
         return (
           <button
-            key={opt.value}
+            key={opt}
             type="button"
             role="radio"
             aria-checked={selected}
+            aria-label={LONG_LABELS[opt]}
             disabled={disabled}
-            onClick={() => { if (!disabled) onChange(opt.value) }}
+            onClick={() => { if (!disabled) onChange(opt) }}
             className={cn(
-              'flex-1 transition-colors',
-              size === 'sm' ? 'py-1.5' : 'py-2',
+              'transition-colors whitespace-nowrap',
+              isSm ? 'px-2 py-1' : 'flex-1 py-2',
               i < OPTIONS.length - 1 && 'border-r',
               selected
                 ? 'bg-blue-950 text-blue-300 border-blue-800'
@@ -47,7 +58,7 @@ export function StrengthPills({ value, onChange, disabled = false, size = 'md', 
               disabled && 'opacity-50 cursor-not-allowed hover:text-slate-500'
             )}
           >
-            {opt.label}
+            {labels[opt]}
           </button>
         )
       })}
