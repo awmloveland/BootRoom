@@ -206,7 +206,7 @@ function DnfCard({
   const [showEditModal, setShowEditModal] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  const canShare = !!(leagueName && leagueSlug)
+  const canShare = isMostRecent && !!(leagueName && leagueSlug)
 
   async function handleShare() {
     if (!canShare) return
@@ -588,7 +588,7 @@ function PlayedCard({
                   />
                 </div>
 
-                {(shouldShowMeta(week.goal_difference, week.notes) || isAdmin || (leagueName && leagueSlug && !!weeks)) && (
+                {(shouldShowMeta(week.goal_difference, week.notes) || isAdmin || (isMostRecent && leagueName && leagueSlug && !!weeks)) && (
                   <>
                     <div className="border-t border-slate-700 mt-3" />
                     <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -609,7 +609,7 @@ function PlayedCard({
                         {isAdmin && (
                           <EditResultButton onClick={() => setShowEditModal(true)} />
                         )}
-                        {leagueName && leagueSlug && weeks && (
+                        {isMostRecent && leagueName && leagueSlug && weeks && (
                           <button
                             type="button"
                             onClick={handleShare}
