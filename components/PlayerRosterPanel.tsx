@@ -201,7 +201,12 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
               <div className="border-t border-slate-700 px-3 py-3 flex flex-col gap-3">
                 {(player.played ?? 0) < 10 && (
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">Strength</p>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">
+                      Strength
+                      <span className="ml-1.5 normal-case tracking-normal text-slate-600">
+                        — fades after {10 - (player.played ?? 0)} more {10 - (player.played ?? 0) === 1 ? 'game' : 'games'}
+                      </span>
+                    </p>
                     <StrengthPills
                       value={player.strength}
                       onChange={(s) => handleStrengthChange(player.name, s)}
