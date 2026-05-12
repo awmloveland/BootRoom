@@ -5,9 +5,9 @@ import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn, buildResultShareText, buildDnfShareText, buildResultHeadline, resolveTeamRatingForResult } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality, Week } from '@/lib/types'
-import { ratingToStrength, strengthToRating } from '@/lib/strength'
-import { EyeTestSlider } from '@/components/EyeTestSlider'
+import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality, Week, Strength } from '@/lib/types'
+import { strengthToRating } from '@/lib/strength'
+import { StrengthPills } from '@/components/ui/StrengthPills'
 import { Toggle } from '@/components/ui/toggle'
 import { X, Share2 } from 'lucide-react'
 
@@ -28,7 +28,7 @@ type ResultStep = 'winner' | 'review' | 'confirm' | 'share'
 
 interface GuestReviewState {
   name: string
-  rating: number
+  strength: Strength
   goalkeeper: boolean
   addToRoster: boolean
   rosterName: string
@@ -37,7 +37,7 @@ interface GuestReviewState {
 
 interface NewPlayerReviewState {
   name: string
-  rating: number
+  strength: Strength
   mentality: Mentality
 }
 
@@ -95,7 +95,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   const [guestStates, setGuestStates] = useState<GuestReviewState[]>(
     guests.map((g) => ({
       name: g.name,
-      rating: strengthToRating(g.strength),
+      strength: g.strength,
       goalkeeper: g.goalkeeper ?? false,
       addToRoster: false,
       rosterName: '',
@@ -105,13 +105,13 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   const [newPlayerStates, setNewPlayerStates] = useState<NewPlayerReviewState[]>(
     newPlayers.map((p) => ({
       name: p.name,
-      rating: strengthToRating(p.strength),
+      strength: p.strength,
       mentality: p.mentality,
     }))
   )
 
-  function updateGuestRating(i: number, rating: number) {
-    setGuestStates((prev) => prev.map((g, idx) => idx === i ? { ...g, rating } : g))
+  function updateGuestStrength(i: number, strength: Strength) {
+    setGuestStates((prev) => prev.map((g, idx) => idx === i ? { ...g, strength } : g))
   }
   function updateGuestRoster(i: number, addToRoster: boolean) {
     setGuestStates((prev) => prev.map((g, idx) => idx === i ? { ...g, addToRoster, nameError: null } : g))
@@ -119,8 +119,8 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   function updateGuestRosterName(i: number, rosterName: string) {
     setGuestStates((prev) => prev.map((g, idx) => idx === i ? { ...g, rosterName, nameError: null } : g))
   }
-  function updateNewPlayerRating(i: number, rating: number) {
-    setNewPlayerStates((prev) => prev.map((p, idx) => idx === i ? { ...p, rating } : p))
+  function updateNewPlayerStrength(i: number, strength: Strength) {
+    setNewPlayerStates((prev) => prev.map((p, idx) => idx === i ? { ...p, strength } : p))
   }
   function updateGuestGoalkeeper(i: number, goalkeeper: boolean) {
     setGuestStates((prev) => prev.map((g, idx) => idx === i ? { ...g, goalkeeper } : g))
@@ -208,13 +208,13 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           const entries = [
             ...newPlayerStates.map((p) => ({
               name: p.name,
-              rating: p.rating,
+              rating: strengthToRating(p.strength),
               mentality: p.mentality,
               goalkeeper: p.mentality === 'goalkeeper',
             })),
             ...guestStates
               .filter((g) => g.addToRoster && g.rosterName.trim())
-              .map((g) => ({ name: g.rosterName.trim(), rating: g.rating, goalkeeper: g.goalkeeper })),
+              .map((g) => ({ name: g.rosterName.trim(), rating: strengthToRating(g.strength), goalkeeper: g.goalkeeper })),
           ]
           if (entries.length > 0) {
             const { error: promoteErr } = await supabase.rpc('promote_roster', {
@@ -265,7 +265,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
             winRate: 0, qualified: false, points: 0,
             recentForm: '',
             mentality: isGk ? 'goalkeeper' : 'balanced',
-            strength: ratingToStrength(src?.rating ?? 2),
+            strength: src?.strength ?? 'average',
           }
         })
       }
@@ -344,13 +344,13 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         const entries = [
           ...newPlayerStates.map((p) => ({
             name: p.name,
-            rating: p.rating,
+            rating: strengthToRating(p.strength),
             mentality: p.mentality,
             goalkeeper: p.mentality === 'goalkeeper',
           })),
           ...guestStates
             .filter((g) => g.addToRoster && g.rosterName.trim())
-            .map((g) => ({ name: g.rosterName.trim(), rating: g.rating, goalkeeper: g.goalkeeper })),
+            .map((g) => ({ name: g.rosterName.trim(), rating: strengthToRating(g.strength), goalkeeper: g.goalkeeper })),
         ]
         if (entries.length > 0) {
           const { error: promoteErr } = await supabase.rpc('promote_roster', {
@@ -512,8 +512,8 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                       <span className="text-sm font-semibold text-slate-100">{p.name}</span>
                       <span className="text-[10px] font-semibold bg-blue-950 border border-blue-800 text-blue-300 rounded-full px-2 py-0.5">New player</span>
                     </div>
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">The Eye Test</p>
-                    <EyeTestSlider value={p.rating} onChange={(v) => updateNewPlayerRating(i, v)} />
+                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Strength</p>
+                    <StrengthPills value={p.strength} onChange={(v) => updateNewPlayerStrength(i, v)} />
 
                     <div className="mt-3 pt-3 border-t border-slate-800">
                       <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Mentality</p>
@@ -552,8 +552,8 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                       <span className="text-sm font-semibold text-slate-100">{g.name}</span>
                       <span className="text-[10px] font-semibold bg-slate-800 border border-slate-600 text-slate-400 rounded-full px-2 py-0.5">Guest</span>
                     </div>
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">The Eye Test</p>
-                    <EyeTestSlider value={g.rating} onChange={(v) => updateGuestRating(i, v)} />
+                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Strength</p>
+                    <StrengthPills value={g.strength} onChange={(v) => updateGuestStrength(i, v)} />
 
                     <div className="mt-3 pt-3 border-t border-slate-800">
                       {/* Goalkeeper toggle */}
@@ -644,7 +644,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                 {newPlayerStates.map((p) => (
                   <div key={p.name} className="flex justify-between items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
                     <span className="text-slate-300 font-medium">{p.name}</span>
-                    <span className="text-slate-500 text-xs">Added to roster · rating {p.rating}</span>
+                    <span className="text-slate-500 text-xs">Added to roster · {p.strength}</span>
                   </div>
                 ))}
 
@@ -654,7 +654,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                       {g.addToRoster ? `${g.name} → ${g.rosterName.trim()}` : g.name}
                     </span>
                     <span className="text-slate-500 text-xs">
-                      {g.addToRoster ? `Added to roster · rating ${g.rating}` : 'Guest only'}
+                      {g.addToRoster ? `Added to roster · ${g.strength}` : 'Guest only'}
                     </span>
                   </div>
                 ))}
