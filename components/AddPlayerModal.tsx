@@ -5,6 +5,7 @@ import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import type { Player, GuestEntry, NewPlayerEntry, Mentality, Strength } from '@/lib/types'
 import { Toggle } from '@/components/ui/toggle'
+import { StrengthPills } from '@/components/ui/StrengthPills'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -16,12 +17,6 @@ interface Props {
 }
 
 type Step = 'choose' | 'guest' | 'new_player'
-
-const STRENGTH_OPTIONS: { value: Strength; label: string }[] = [
-  { value: 'below', label: 'Below average' },
-  { value: 'average', label: 'Average' },
-  { value: 'above', label: 'Above average' },
-]
 
 export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAdd, onClose }: Props) {
   const [step, setStep] = useState<Step>('choose')
@@ -172,24 +167,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
                   <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
                     Strength
                   </label>
-                  <div className="flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden text-[11px] font-semibold">
-                    {STRENGTH_OPTIONS.map(({ value, label }, i) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setGuestStrength(value)}
-                        className={cn(
-                          'flex-1 py-2 transition-colors',
-                          i < STRENGTH_OPTIONS.length - 1 && 'border-r',
-                          value === guestStrength
-                            ? 'bg-blue-950 text-blue-300 border-blue-800'
-                            : 'text-slate-500 border-slate-700 hover:text-slate-300'
-                        )}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+                  <StrengthPills value={guestStrength} onChange={setGuestStrength} />
                   <p className="text-[11px] text-slate-500 mt-1">
                     Defaults to Average — change only if you know this player.
                   </p>
@@ -255,24 +233,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
                   <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
                     Strength
                   </label>
-                  <div className="flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden text-[11px] font-semibold">
-                    {STRENGTH_OPTIONS.map(({ value, label }, i) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setNewStrength(value)}
-                        className={cn(
-                          'flex-1 py-2 transition-colors',
-                          i < STRENGTH_OPTIONS.length - 1 && 'border-r',
-                          value === newStrength
-                            ? 'bg-blue-950 text-blue-300 border-blue-800'
-                            : 'text-slate-500 border-slate-700 hover:text-slate-300'
-                        )}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+                  <StrengthPills value={newStrength} onChange={setNewStrength} />
                   <p className="text-[11px] text-slate-500 mt-1">
                     Defaults to Average — change only if you know this player.
                   </p>
