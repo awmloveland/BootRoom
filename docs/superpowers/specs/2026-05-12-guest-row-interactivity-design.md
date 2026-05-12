@@ -47,7 +47,7 @@ Replace the icon-only `UserPlus` button with an inline icon + text button:
 - Hover: `hover:underline` in addition to the colour shift
 - Focus: `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400` for Team A, `focus-visible:ring-violet-400` for Team B, matching existing focus patterns in `MatchCard` / `HonoursSection`
 - `type="button"` (already present)
-- `aria-label={`Name ${player}`}` is kept — the visible "Add Player" text reads to sighted users, the aria-label gives screen-reader users the guest's name as part of the action
+- Accessibility: `aria-label={`Add player: ${player}`}`. Because `aria-label` replaces the visible "Add Player" text for AT users, the aria-label must keep the same action verb and also disambiguate which guest slot the button refers to. Add `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400` (or `ring-violet-400` for B) to match existing focus patterns in the app
 
 The icon swap from `UserPlus` to `Plus` is deliberate: with a text label present, `Plus` is the more direct "add an item" affordance and matches the "+ Add Player" reading.
 

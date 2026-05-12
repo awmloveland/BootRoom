@@ -51,7 +51,7 @@ export function TeamList({ label, players, team, rating, goalkeepers, onNameGues
                 <button
                   type="button"
                   onClick={() => onNameGuest!(player)}
-                  aria-label={`Name ${player}`}
+                  aria-label={`Add player: ${player}`}
                   className={cn(
                     'shrink-0 inline-flex items-center gap-1 whitespace-nowrap',
                     'text-[11px] font-semibold px-1 py-0.5 rounded',
