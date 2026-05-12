@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { ratingToStrength } from '@/lib/strength'
 import { NextResponse } from 'next/server'
 
 /** GET — returns all players in a league with linked member info. Admin only. */
@@ -15,13 +16,14 @@ export async function GET(
   const { data: isAdmin } = await supabase.rpc('is_game_admin', { p_game_id: id })
   if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const [playersResult, membersResult] = await Promise.all([
+  const [playersResult, membersResult, statsResult] = await Promise.all([
     supabase
       .from('player_attributes')
       .select('name, rating, mentality')
       .eq('game_id', id)
       .order('name', { ascending: true }),
     supabase.rpc('get_league_members', { p_game_id: id }),
+    supabase.rpc('get_player_stats_public', { p_game_id: id }),
   ])
 
   if (playersResult.error) {
@@ -40,8 +42,17 @@ export async function GET(
     }
   }
 
+  // Build map: player_name -> played count
+  const playedMap = new Map<string, number>()
+  for (const s of (statsResult.data ?? []) as Array<{ name: string; played: number }>) {
+    playedMap.set(s.name, Number(s.played ?? 0))
+  }
+
   const result = (playersResult.data ?? []).map((p) => ({
-    ...p,
+    name: p.name,
+    strength: ratingToStrength(Number(p.rating ?? 0)),
+    mentality: p.mentality,
+    played: playedMap.get(p.name) ?? 0,
     ...(linkMap.get(p.name) ?? { linked_user_id: null, linked_display_name: null }),
   }))
 
