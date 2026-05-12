@@ -133,9 +133,6 @@ export interface ScheduledWeek {
 
 export type Strength = 'below' | 'average' | 'above';
 
-/** @deprecated Use Strength. Removed in this PR after all callers are migrated. */
-export type StrengthHint = Strength;
-
 export interface GuestEntry {
   type: 'guest'            // runtime discriminant — not persisted to DB
   name: string             // e.g. "Alice +1"
