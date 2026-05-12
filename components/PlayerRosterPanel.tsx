@@ -3,8 +3,8 @@
 import { useState, useCallback } from 'react'
 import { ChevronDown, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Mentality, PlayerAttribute } from '@/lib/types'
-import { strengthToRating, ratingToStrength } from '@/lib/strength'
+import type { Mentality, PlayerAttribute, Strength } from '@/lib/types'
+import { StrengthPills } from '@/components/ui/StrengthPills'
 import MemberLinkPicker from '@/components/MemberLinkPicker'
 
 interface Props {
@@ -122,13 +122,8 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
     }
   }
 
-  function handleRatingClick(player: PlayerAttribute, dot: number) {
-    // Clicking the active dot decrements by 1 (min 1). Converts dot (1–3) to/from Strength.
-    // TODO: Task 11 replaces this with StrengthPills.
-    const currentDot = strengthToRating(player.strength ?? 'average')
-    const next = currentDot === dot ? Math.max(1, dot - 1) : dot
-    const nextStrength = ratingToStrength(next)
-    if (nextStrength && nextStrength !== player.strength) patch(player.name, { strength: nextStrength })
+  function handleStrengthChange(name: string, next: Strength) {
+    patch(name, { strength: next })
   }
 
   if (players.length === 0) {
@@ -138,9 +133,9 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="bg-sky-950/40 border border-sky-900/40 rounded-lg px-3.5 py-2.5 mb-3.5">
-        <div className="text-xs font-semibold text-sky-400 mb-0.5">Eye test &amp; mentality influence Auto-Pick</div>
+        <div className="text-xs font-semibold text-sky-400 mb-0.5">Strength &amp; mentality influence Auto-Pick</div>
         <div className="text-xs text-slate-400">
-          <span className="text-slate-300">Eye test</span> is your private read on each player — only admins ever see it. <span className="text-slate-300">1</span> = developing, <span className="text-slate-300">2</span> = solid, <span className="text-slate-300">3</span> = top player. <span className="text-slate-300">Mentality</span> (GK · DEF · BAL · ATT) tells Auto-Pick where they&apos;re best deployed. Changes save as you tap.
+          <span className="text-slate-300">Strength</span> is your private read on each player — only admins ever see it. Set <span className="text-slate-300">Below / Average / Above</span> for players new to the league; it stops contributing after their first 10 games. <span className="text-slate-300">Mentality</span> (GK · DEF · BAL · ATT) tells Auto-Pick where they&apos;re best deployed. Changes save as you tap.
         </div>
       </div>
 
@@ -197,26 +192,21 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                   </button>
                 )}
 
-                {/* Rating dots — TODO: Task 11 replaces with StrengthPills */}
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] text-slate-500 mr-1">Eye Test</span>
-                  {[1, 2, 3].map((dot) => (
-                    <button
-                      key={dot}
-                      onClick={() => handleRatingClick(player, dot)}
-                      className={cn(
-                        'w-4 h-4 rounded-full border-2 transition-colors',
-                        dot <= strengthToRating(player.strength ?? 'average')
-                          ? 'bg-blue-500 border-blue-600'
-                          : 'bg-slate-900 border-slate-600 hover:border-slate-400'
-                      )}
-                      aria-label={`Set rating to ${dot}`}
-                    />
-                  ))}
-                </div>
-
-                {/* Divider */}
-                <div className="w-px h-4 bg-slate-700" />
+                {/* Strength pills (hidden for established players) */}
+                {(player.played ?? 0) < 10 && (
+                  <>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-slate-500 mr-1">Strength</span>
+                      <StrengthPills
+                        value={player.strength}
+                        onChange={(s) => handleStrengthChange(player.name, s)}
+                        size="sm"
+                      />
+                    </div>
+                    {/* Divider */}
+                    <div className="w-px h-4 bg-slate-700" />
+                  </>
+                )}
 
                 {/* Mentality segmented control */}
                 <MentalityControl
@@ -241,17 +231,11 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                 <span className="text-[10px] font-semibold bg-blue-950 text-blue-300 border border-blue-800 rounded px-1.5 py-0.5">
                   {MENTALITY_DISPLAY[player.mentality]}
                 </span>
-                <div className="flex gap-1">
-                  {[1, 2, 3].map((dot) => (
-                    <div
-                      key={dot}
-                      className={cn(
-                        'w-1.5 h-1.5 rounded-full',
-                        dot <= strengthToRating(player.strength ?? 'average') ? 'bg-blue-500' : 'bg-slate-600'
-                      )}
-                    />
-                  ))}
-                </div>
+                {(player.played ?? 0) < 10 && player.strength && (
+                  <span className="text-[10px] font-semibold bg-slate-900 text-slate-400 border border-slate-700 rounded px-1.5 py-0.5">
+                    {player.strength === 'below' ? 'Below' : player.strength === 'above' ? 'Above' : 'Avg'}
+                  </span>
+                )}
                 <ChevronDown
                   className={cn(
                     'size-3.5 text-slate-500 transition-transform',
@@ -264,25 +248,15 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
             {/* ── Mobile expanded controls ── */}
             {isExpanded && (
               <div className="sm:hidden border-t border-slate-700 px-3 py-3 flex flex-col gap-3">
-                <div>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">Eye Test</p>
-                  <div className="flex gap-2">
-                    {[1, 2, 3].map((n) => (
-                      <button
-                        key={n}
-                        onClick={() => handleRatingClick(player, n)}
-                        className={cn(
-                          'flex-1 py-1.5 rounded-md border text-sm font-semibold transition-colors',
-                          n <= strengthToRating(player.strength ?? 'average')
-                            ? 'bg-blue-950 border-blue-700 text-blue-300'
-                            : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500'
-                        )}
-                      >
-                        {n}
-                      </button>
-                    ))}
+                {(player.played ?? 0) < 10 && (
+                  <div>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">Strength</p>
+                    <StrengthPills
+                      value={player.strength}
+                      onChange={(s) => handleStrengthChange(player.name, s)}
+                    />
                   </div>
-                </div>
+                )}
 
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">Mentality</p>
