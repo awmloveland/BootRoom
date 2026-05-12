@@ -37,6 +37,8 @@
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/postcss": "^4.2.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19.2.14",
@@ -45,6 +47,8 @@
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.2",
     "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.4.1",
+    "jsdom": "^29.1.1",
     "postcss": "^8",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.2",

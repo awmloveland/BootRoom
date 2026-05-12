@@ -24,8 +24,9 @@ export type Mentality = 'balanced' | 'attacking' | 'defensive' | 'goalkeeper';
 
 export interface PlayerAttribute {
   name: string;
-  rating: number;   // 1–3
+  strength: Strength | null;   // null = unrated (legacy rating === 0)
   mentality: Mentality;
+  played?: number;             // optional roster-context field; required when fetched from /api/league/[id]/players
   linked_user_id?: string | null;
   linked_display_name?: string | null;
 }
@@ -53,7 +54,7 @@ export interface Player {
   qualified: boolean;
   points: number;
   mentality: Mentality;
-  rating: number;
+  strength: Strength | null;
   recentForm: string; // e.g. 'WWDLW' or '--WLW'
   wprOverride?: number; // if set, wprScore returns this directly — used for guests/new players
   lastPlayedWeekDate?: string; // 'DD MMM YYYY' — derived at runtime before auto-pick; not persisted
@@ -130,23 +131,21 @@ export interface ScheduledWeek {
   team_b_rating?: number | null;
 }
 
-export type StrengthHint = 'below' | 'average' | 'above';
+export type Strength = 'below' | 'average' | 'above';
 
 export interface GuestEntry {
   type: 'guest'            // runtime discriminant — not persisted to DB
   name: string             // e.g. "Alice +1"
   associatedPlayer: string // e.g. "Alice"
-  rating: number           // 1–3, kept for DB backwards compat — no longer drives scoring
   goalkeeper?: boolean     // whether this guest is playing as goalkeeper
-  strengthHint: StrengthHint // drives wprOverride at resolution time
+  strength: Strength       // drives wprOverride at resolution time
 }
 
 export interface NewPlayerEntry {
   type: 'new_player'       // runtime discriminant — not persisted to DB
   name: string
-  rating: number           // 1–3, kept for DB backwards compat — no longer drives scoring
   mentality: Mentality     // balanced | attacking | defensive | goalkeeper
-  strengthHint: StrengthHint // drives wprOverride at resolution time
+  strength: Strength       // drives wprOverride at resolution time
 }
 
 export interface LineupMetadata {

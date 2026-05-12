@@ -13,7 +13,7 @@ const RECOMPUTE_PLAYERS: Player[] = [
     winRate: 50, qualified: true, points: 17,
     recentForm: 'WWDLL',
     mentality: 'balanced',
-    rating: 2,
+    strength: 'average',
   },
 ]
 

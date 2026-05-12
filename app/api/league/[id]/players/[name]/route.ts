@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { parsePlayerPatch } from '@/lib/playerUtils'
+import { strengthToRating } from '@/lib/strength'
 
 /** PATCH — update a player's rating and/or mentality. Admin only. */
 export async function PATCH(
@@ -21,9 +22,18 @@ export async function PATCH(
   const patch = parsePlayerPatch(body)
   if (!patch) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
 
+  // Convert app-level strength back to DB int before writing
+  const dbPatch: { rating?: number; mentality?: string } = {}
+  if (patch.strength !== undefined) {
+    dbPatch.rating = patch.strength === null ? 0 : strengthToRating(patch.strength)
+  }
+  if (patch.mentality !== undefined) {
+    dbPatch.mentality = patch.mentality
+  }
+
   const { data, error } = await supabase
     .from('player_attributes')
-    .update(patch)
+    .update(dbPatch)
     .eq('game_id', id)
     .eq('name', playerName)
     .select('name, rating, mentality')

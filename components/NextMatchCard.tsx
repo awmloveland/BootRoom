@@ -5,7 +5,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
 import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, wprScore, leagueWprPercentiles, parseWeekDate, hintToWpr } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { Winner, Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality, StrengthHint } from '@/lib/types'
+import type { Winner, Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality, Strength } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
 import { X, Share2 } from 'lucide-react'
 import { WinnerBadge } from '@/components/WinnerBadge'
@@ -39,13 +39,6 @@ interface Props {
 
 type CardState = 'loading' | 'idle' | 'building' | 'lineup' | 'cancelled'
 
-function medianRating(players: Player[]): number {
-  if (players.length === 0) return 2
-  const sorted = [...players].map((p) => p.rating).sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
-}
-
 /**
  * Scans played weeks to find the most recent week date each player appeared in.
  * Returns a map of player name → date string ('DD MMM YYYY'), or undefined if never played.
@@ -73,7 +66,6 @@ function resolvePlayersForAutoPick(
   const lookup = new Map(allPlayers.map((p) => [p.name.toLowerCase(), p]))
   const guestLookup = new Map(guests.map((g) => [g.name.toLowerCase(), g]))
   const newPlayerLookup = new Map(newPlayers.map((p) => [p.name.toLowerCase(), p]))
-  const fallbackRating = medianRating(allPlayers)
   const percentiles = leagueWprPercentiles(allPlayers)
 
   return names.map((name) => {
@@ -89,9 +81,9 @@ function resolvePlayersForAutoPick(
         timesTeamA: 0, timesTeamB: 0,
         winRate: 0, qualified: false, points: 0,
         mentality: guest.goalkeeper ? 'goalkeeper' : 'balanced',
-        rating: 2,
+        strength: guest.strength,
         recentForm: '',
-        wprOverride: hintToWpr(guest.strengthHint, percentiles),
+        wprOverride: hintToWpr(guest.strength, percentiles),
       }
     }
 
@@ -104,9 +96,9 @@ function resolvePlayersForAutoPick(
         timesTeamA: 0, timesTeamB: 0,
         winRate: 0, qualified: false, points: 0,
         mentality: newPlayer.mentality,
-        rating: 2,
+        strength: newPlayer.strength,
         recentForm: '',
-        wprOverride: hintToWpr(newPlayer.strengthHint, percentiles),
+        wprOverride: hintToWpr(newPlayer.strength, percentiles),
       }
     }
 
@@ -117,7 +109,7 @@ function resolvePlayersForAutoPick(
       timesTeamA: 0, timesTeamB: 0,
       winRate: 0, qualified: false, points: 0,
       mentality: 'balanced' as const,
-      rating: fallbackRating,
+      strength: null,
       recentForm: '',
     }
   })
@@ -311,17 +303,17 @@ export function NextMatchCard({
                   type: 'guest' as const,
                   name: g.name,
                   associatedPlayer: g.associated_player,
-                  rating: g.rating,
                   goalkeeper: g.goalkeeper ?? false,
-                  strengthHint: (g.strength_hint ?? 'average') as StrengthHint,
+                  // Accept new `strength` key or legacy `strength_hint`; fall back to 'average'
+                  strength: (g.strength ?? g.strength_hint ?? 'average') as Strength,
                 })),
                 new_players: ((data.lineup_metadata as any).new_players ?? []).map((p: any) => ({
                   type: 'new_player' as const,
                   name: p.name,
-                  rating: p.rating,
                   // Legacy metadata may carry only `goalkeeper`; derive mentality from it.
                   mentality: (p.mentality as Mentality) ?? (p.goalkeeper ? 'goalkeeper' : 'balanced'),
-                  strengthHint: (p.strength_hint ?? 'average') as StrengthHint,
+                  // Accept new `strength` key or legacy `strength_hint`; fall back to 'average'
+                  strength: (p.strength ?? p.strength_hint ?? 'average') as Strength,
                 })),
               }
             : null,
@@ -370,17 +362,15 @@ export function NextMatchCard({
       guests: guestEntries.map((g) => ({
         name: g.name,
         associated_player: g.associatedPlayer,
-        rating: g.rating,
         goalkeeper: g.goalkeeper ?? false,
-        strength_hint: g.strengthHint,
+        strength: g.strength,
       })),
       new_players: newPlayerEntries.map((p) => ({
         name: p.name,
-        rating: p.rating,
         mentality: p.mentality,
         // DB metadata still accepts a `goalkeeper` key for back-compat with older readers.
         goalkeeper: p.mentality === 'goalkeeper',
-        strength_hint: p.strengthHint,
+        strength: p.strength,
       })),
     }
     setSaving(true)
@@ -494,11 +484,11 @@ export function NextMatchCard({
     if (metadata) {
       setGuestEntries(metadata.guests.map((g) => ({
         ...g,
-        strengthHint: g.strengthHint ?? 'average',
+        strength: g.strength ?? 'average',
       })))
       setNewPlayerEntries(metadata.new_players.map((p) => ({
         ...p,
-        strengthHint: p.strengthHint ?? 'average',
+        strength: p.strength ?? 'average',
       })))
     } else {
       setGuestEntries([])

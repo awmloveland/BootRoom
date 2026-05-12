@@ -3,9 +3,10 @@
 
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import type { Player, GuestEntry, NewPlayerEntry, Mentality, StrengthHint } from '@/lib/types'
+import type { Player, GuestEntry, NewPlayerEntry, Strength } from '@/lib/types'
 import { Toggle } from '@/components/ui/toggle'
-import { cn } from '@/lib/utils'
+import { StrengthPills } from '@/components/ui/StrengthPills'
+import { NewPlayerForm } from '@/components/NewPlayerForm'
 
 interface Props {
   players: Player[]           // attending players (used for lineup-membership warning check)
@@ -17,25 +18,13 @@ interface Props {
 
 type Step = 'choose' | 'guest' | 'new_player'
 
-const STRENGTH_OPTIONS: { value: StrengthHint; label: string }[] = [
-  { value: 'below', label: 'Below average' },
-  { value: 'average', label: 'Average' },
-  { value: 'above', label: 'Above average' },
-]
-
 export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAdd, onClose }: Props) {
   const [step, setStep] = useState<Step>('choose')
 
   // Guest sub-flow state
   const [associatedPlayer, setAssociatedPlayer] = useState('')
-  const [guestStrength, setGuestStrength] = useState<StrengthHint>('average')
+  const [guestStrength, setGuestStrength] = useState<Strength>('average')
   const [guestIsGoalkeeper, setGuestIsGoalkeeper] = useState(false)
-
-  // New player sub-flow state
-  const [newName, setNewName] = useState('')
-  const [newStrength, setNewStrength] = useState<StrengthHint>('average')
-  const [nameError, setNameError] = useState<string | null>(null)
-  const [newMentality, setNewMentality] = useState<Mentality>('balanced')
 
   const selectedPlayerInLineup = players.some((p) => p.name === associatedPlayer)
   const showWarning = associatedPlayer && !selectedPlayerInLineup
@@ -53,29 +42,8 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
       type: 'guest',
       name,
       associatedPlayer,
-      rating: 2,
       goalkeeper: guestIsGoalkeeper,
-      strengthHint: guestStrength,
-    })
-    onClose()
-  }
-
-  function handleAddNewPlayer() {
-    const trimmed = newName.trim()
-    if (!trimmed) return
-    const collision = allLeaguePlayers.some(
-      (p) => p.name.toLowerCase() === trimmed.toLowerCase()
-    )
-    if (collision) {
-      setNameError(`A player named "${trimmed}" already exists in this league.`)
-      return
-    }
-    onAdd({
-      type: 'new_player',
-      name: trimmed,
-      rating: 2,
-      mentality: newMentality,
-      strengthHint: newStrength,
+      strength: guestStrength,
     })
     onClose()
   }
@@ -174,24 +142,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
                   <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
                     Strength
                   </label>
-                  <div className="flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden text-[11px] font-semibold">
-                    {STRENGTH_OPTIONS.map(({ value, label }, i) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setGuestStrength(value)}
-                        className={cn(
-                          'flex-1 py-2 transition-colors',
-                          i < STRENGTH_OPTIONS.length - 1 && 'border-r',
-                          value === guestStrength
-                            ? 'bg-blue-950 text-blue-300 border-blue-800'
-                            : 'text-slate-500 border-slate-700 hover:text-slate-300'
-                        )}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+                  <StrengthPills value={guestStrength} onChange={setGuestStrength} />
                   <p className="text-[11px] text-slate-500 mt-1">
                     Defaults to Average — change only if you know this player.
                   </p>
@@ -232,107 +183,16 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
 
           {/* Step: new player */}
           {step === 'new_player' && (
-            <>
-              <div className="p-5 flex flex-col gap-4">
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-                    Player name
-                  </label>
-                  <input
-                    type="text"
-                    name="player-name"
-                    value={newName}
-                    onChange={(e) => { setNewName(e.target.value); setNameError(null) }}
-                    placeholder="Full name"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    autoFocus
-                  />
-                  {nameError && <p className="text-xs text-red-400 mt-1">{nameError}</p>}
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    They&apos;ll be added to the league roster permanently after confirming during result.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                    Strength
-                  </label>
-                  <div className="flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden text-[11px] font-semibold">
-                    {STRENGTH_OPTIONS.map(({ value, label }, i) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setNewStrength(value)}
-                        className={cn(
-                          'flex-1 py-2 transition-colors',
-                          i < STRENGTH_OPTIONS.length - 1 && 'border-r',
-                          value === newStrength
-                            ? 'bg-blue-950 text-blue-300 border-blue-800'
-                            : 'text-slate-500 border-slate-700 hover:text-slate-300'
-                        )}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Defaults to Average — change only if you know this player.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-                    Mentality
-                  </label>
-                  <div className="flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden text-[10px] font-semibold">
-                    {(
-                      [
-                        { value: 'goalkeeper', label: 'GK' },
-                        { value: 'defensive',  label: 'DEF' },
-                        { value: 'balanced',   label: 'BAL' },
-                        { value: 'attacking',  label: 'ATT' },
-                      ] as { value: Mentality; label: string }[]
-                    ).map(({ value, label }, i) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => { if (value !== newMentality) setNewMentality(value) }}
-                        className={cn(
-                          'flex-1 py-1.5 transition-colors',
-                          i < 3 && 'border-r',
-                          value === newMentality
-                            ? 'bg-blue-950 text-blue-300 border-blue-800'
-                            : 'text-slate-500 border-slate-700 hover:text-slate-300'
-                        )}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    GK = dedicated goalkeeper, plays in goal every game.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-2 justify-end px-5 pb-4">
-                <button
-                  type="button"
-                  onClick={() => { setStep('choose'); setNewStrength('average'); setNewMentality('balanced') }}
-                  className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500"
-                >
-                  Back
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddNewPlayer}
-                  disabled={!newName.trim()}
-                  className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold disabled:opacity-40"
-                >
-                  Add player
-                </button>
-              </div>
-            </>
+            <NewPlayerForm
+              existingNames={allLeaguePlayers.map((p) => p.name)}
+              showNameHelper
+              cancelLabel="Back"
+              onCancel={() => setStep('choose')}
+              onSubmit={({ name, strength, mentality }) => {
+                onAdd({ type: 'new_player', name, strength, mentality })
+                onClose()
+              }}
+            />
           )}
 
         </Dialog.Content>

@@ -5,6 +5,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import type { Week } from '@/lib/types'
+import { ratingToStrength } from '@/lib/strength'
 
 const USE_ACCESS_KEY = process.env.NEXT_PUBLIC_ACCESS_KEY_MODE === 'true'
 
@@ -67,7 +68,7 @@ export type PlayerStat = {
   // `mentality === 'goalkeeper'` is the single source of truth for keeper identity.
   // The DB column `goalkeeper` is collapsed into `mentality` at read time.
   mentality: string
-  rating: number
+  strength: import('@/lib/types').Strength | null
   recentForm: string
 }
 
@@ -88,7 +89,7 @@ export async function fetchPlayers(gameId: string): Promise<PlayerStat[]> {
       qualified: row.qualified,
       points: row.points,
       mentality: row.goalkeeper ? 'goalkeeper' : (row.mentality ?? 'balanced'),
-      rating: row.rating,
+      strength: ratingToStrength(typeof row.rating === 'number' ? row.rating : 0),
       recentForm: row.recentForm ?? '',
     }))
   }
@@ -107,7 +108,7 @@ export async function fetchPlayers(gameId: string): Promise<PlayerStat[]> {
     qualified: Boolean(row.qualified),
     points: Number(row.points),
     mentality: row.goalkeeper ? 'goalkeeper' : String(row.mentality ?? 'balanced'),
-    rating: Number(row.rating ?? 0),
+    strength: ratingToStrength(Number(row.rating ?? 0)),
     recentForm: String(row.recentForm ?? ''),
   }))
 }

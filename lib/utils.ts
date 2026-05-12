@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { LeagueDetails, Player, StrengthHint, Week, Winner, YearStats } from './types'
+import { LeagueDetails, Player, Strength, Week, Winner, YearStats } from './types'
+import { strengthToRating } from './strength'
 
 // --- Per-player score (wprScore) ---
 const WPR_PPG_WEIGHT = 0.60            // shrunk points-per-game contribution
@@ -131,8 +132,10 @@ export function wprScore(player: Player, referenceDate?: Date): number {
   )
   const formScore = maxFormScore > 0 ? (rawFormScore / maxFormScore) * 100 : 0
 
-  // Component 3: rating prior (1–3 → 0–100), fades as played increases
-  const normRating = player.rating > 0 ? ((player.rating - 1) / 2) * 100 : 50
+  // Component 3: strength prior (Strength → 0–100), fades as played increases
+  const normRating = player.strength === null
+    ? 50
+    : ((strengthToRating(player.strength) - 1) / 2) * 100
   const ratingWeight = Math.max(0, 1 - player.played / 10)
   const ratingScore = normRating * ratingWeight
 
@@ -293,7 +296,7 @@ export const HINT_UNKNOWN_MULTIPLIER = 0.85
 export const HINT_EXPLICIT_MULTIPLIER = 0.92
 
 export function hintToWpr(
-  hint: StrengthHint | undefined,
+  hint: Strength | null | undefined,
   percentiles: WprPercentiles,
 ): number {
   const avg = percentiles.p50 * HINT_UNKNOWN_MULTIPLIER

@@ -4,12 +4,13 @@ import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
 import { validateNameGuestInput } from '@/lib/guestName'
-import type { Mentality, StrengthHint } from '@/lib/types'
+import { StrengthPills } from '@/components/ui/StrengthPills'
+import type { Mentality, Strength } from '@/lib/types'
 
 interface Props {
   guestName: string
   existingPlayers: string[]
-  onSubmit: (entry: { newName: string; mentality: Mentality; strengthHint: StrengthHint }) => Promise<void>
+  onSubmit: (entry: { newName: string; mentality: Mentality; strength: Strength }) => Promise<void>
   onClose: () => void
 }
 
@@ -20,16 +21,10 @@ const MENTALITY_OPTIONS: { value: Mentality; label: string }[] = [
   { value: 'attacking', label: 'ATT' },
 ]
 
-const STRENGTH_OPTIONS: { value: StrengthHint; label: string }[] = [
-  { value: 'below', label: 'Below average' },
-  { value: 'average', label: 'Average' },
-  { value: 'above', label: 'Above average' },
-]
-
 export function NameGuestModal({ guestName, existingPlayers, onSubmit, onClose }: Props) {
   const [name, setName] = useState('')
   const [mentality, setMentality] = useState<Mentality>('balanced')
-  const [strengthHint, setStrengthHint] = useState<StrengthHint>('average')
+  const [strength, setStrength] = useState<Strength>('average')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -44,7 +39,7 @@ export function NameGuestModal({ guestName, existingPlayers, onSubmit, onClose }
     setError(null)
     setSubmitting(true)
     try {
-      await onSubmit({ newName: name.trim(), mentality, strengthHint })
+      await onSubmit({ newName: name.trim(), mentality, strength })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
@@ -109,30 +104,9 @@ export function NameGuestModal({ guestName, existingPlayers, onSubmit, onClose }
             </div>
 
             <div className="mt-3">
-              <p id="strength-label" className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Strength hint</p>
-              <div
-                role="radiogroup"
-                aria-labelledby="strength-label"
-                className="mt-1 flex overflow-hidden rounded border border-slate-700"
-              >
-                {STRENGTH_OPTIONS.map((opt, i) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={strengthHint === opt.value}
-                    onClick={() => setStrengthHint(opt.value)}
-                    className={cn(
-                      'flex-1 px-2 py-1.5 text-xs font-semibold',
-                      i < STRENGTH_OPTIONS.length - 1 && 'border-r border-slate-700',
-                      strengthHint === opt.value
-                        ? 'bg-blue-950 text-blue-300'
-                        : 'text-slate-500 hover:text-slate-300'
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Strength</p>
+              <div className="mt-1">
+                <StrengthPills value={strength} onChange={setStrength} />
               </div>
             </div>
 

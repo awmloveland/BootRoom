@@ -1,4 +1,4 @@
-import { isGuestName, strengthHintToRating, validateNameGuestInput } from '@/lib/guestName'
+import { isGuestName, validateNameGuestInput } from '@/lib/guestName'
 
 describe('isGuestName', () => {
   it('returns true for "Lloyd +1"', () => {
@@ -15,18 +15,6 @@ describe('isGuestName', () => {
   })
   it('returns false for "+1" alone', () => {
     expect(isGuestName('+1')).toBe(false)
-  })
-})
-
-describe('strengthHintToRating', () => {
-  it('maps below to 1', () => {
-    expect(strengthHintToRating('below')).toBe(1)
-  })
-  it('maps average to 2', () => {
-    expect(strengthHintToRating('average')).toBe(2)
-  })
-  it('maps above to 3', () => {
-    expect(strengthHintToRating('above')).toBe(3)
   })
 })
 
