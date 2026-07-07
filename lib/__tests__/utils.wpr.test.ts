@@ -219,7 +219,7 @@ describe('wprScore — experience penalty (played 1–3)', () => {
     // Form 'W': rawForm = 3*1 = 3, maxForm = 3*1 = 3, formScore = 100
     // Rating: normRating=50, ratingWeight=1-1/10=0.9, ratingScore=45
     // baseScore = 58.33*0.6 + 100*0.25 + 45*0.15 = 35 + 25 + 6.75 = 66.75
-    // Experience multiplier (played=1): 0.85 + 0.03*0 = 0.85
+    // Experience multiplier (played=1): 0.85 + 0.05*0 = 0.85
     // Rustiness multiplier: recentForm='W' has 1 real game (<2) → 0.88
     // Final: 66.75 * 0.85 * 0.88 ≈ 49.9
     const p1 = makePlayer({ played: 1, won: 1, drew: 0, lost: 0, points: 3, recentForm: 'W' })
