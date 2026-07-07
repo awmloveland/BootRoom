@@ -324,6 +324,19 @@ describe('computeQuarterlyTable', () => {
       expect(result.gamesLeft).toBe(10)
     })
 
+    // A scheduled week does NOT settle its date — it still counts as left
+    it('still counts game days whose week is only scheduled', () => {
+      // now = 7 Jan 2026 (Wednesday). 7 Jan played (settled), 14 Jan merely scheduled.
+      // Wednesdays left: 12 − 1 (7 Jan played) = 11; the scheduled 14 Jan still counts.
+      const weeks: Week[] = [
+        makeWeek({ week: 1, date: '07 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+        makeWeek({ week: 2, date: '14 Jan 2026', status: 'scheduled', teamA: [], teamB: [], winner: null }),
+      ]
+      const now = new Date(2026, 0, 7)
+      const result = computeQuarterlyTable(weeks, now, 3)
+      expect(result.gamesLeft).toBe(11)
+    })
+
     // Test 6: gameDay = 0 (Sunday boundary value)
     it('handles gameDay = 0 (Sunday) correctly', () => {
       // now = 1 Jan 2026 (Thursday). Cursor starts 2 Jan.
