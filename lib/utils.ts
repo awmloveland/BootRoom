@@ -93,8 +93,8 @@ export function formatMonthYear(date: string): string {
  *          so it only influences players with very few results.
  *
  * Two penalties are applied after the base score:
- *  - Experience penalty (×0.85–0.94): players with 1–4 games played are still
- *    learning the league. Multiplier ramps from 0.85 at 1 game to 0.94 at 4 games.
+ *  - Experience penalty (×0.85–0.95): players with 1–3 games played are still
+ *    learning the league. Multiplier ramps from 0.85 at 1 game to 0.95 at 3 games.
  *  - Rustiness penalty (×0.88): applied if either (a) the player has not played
  *    in more than 28 calendar days (requires `lastPlayedWeekDate` to be set), or
  *    (b) fewer than 2 of the last 5 `recentForm` slots are real games.
@@ -139,10 +139,10 @@ export function wprScore(player: Player, referenceDate?: Date): number {
 
   let score = ppgScore * WPR_PPG_WEIGHT + formScore * WPR_FORM_WEIGHT + ratingScore * WPR_RATING_WEIGHT
 
-  // Experience penalty: players with 1–4 games are still learning the league.
-  // Multiplier ramps from 0.85 (1 game) to 0.94 (4 games), then full weight at 5+.
-  if (player.played >= 1 && player.played < 5) {
-    score *= 0.85 + 0.03 * (player.played - 1)
+  // Experience penalty: players with 1–3 games are still learning the league.
+  // Multiplier ramps from 0.85 (1 game) to 0.95 (3 games), then full weight at 4+.
+  if (player.played >= 1 && player.played < 4) {
+    score *= 0.85 + 0.05 * (player.played - 1)
   }
 
   // Rustiness penalty: not recently active (calendar absence or intermittent attendance).
