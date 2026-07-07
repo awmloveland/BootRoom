@@ -366,24 +366,21 @@ describe('ewptScore — GK quality weighting', () => {
   })
 
   it('average GK (WPR 50) gives +1.5 modifier', () => {
-    // Post-1.2: avgWpr=50, top2Avg=50, gkModifier=1.5
-    // ewptScore = 50*0.90 + 50*0.10 + 1.5 = 45 + 5 + 1.5 = 51.5
+    // avgWpr=50, gkModifier=1.5 → ewptScore = 50 + 1.5 = 51.5
     const avgGkTeam = makeTeam(50)
     expect(ewptScore(avgGkTeam)).toBeCloseTo(51.5, 1)
   })
 
   it('exceptional GK (WPR 100) gives +2.5 modifier', () => {
-    // Post-1.2: avgWpr=(100+50*4)/5=60, top2Avg=(100+50)/2=75, gkModifier=2.5
-    // ewptScore = 60*0.90 + 75*0.10 + 2.5 = 54 + 7.5 + 2.5 = 64
+    // avgWpr=(100+50*4)/5=60, gkModifier=2.5 → ewptScore = 60 + 2.5 = 62.5
     const exceptionalGkTeam = makeTeam(100)
-    expect(ewptScore(exceptionalGkTeam)).toBeCloseTo(64, 1)
+    expect(ewptScore(exceptionalGkTeam)).toBeCloseTo(62.5, 1)
   })
 
   it('very weak GK (WPR 0) gives +0.5 modifier', () => {
-    // Post-1.2: avgWpr=(0+50*4)/5=40, top2Avg=(50+50)/2=50, gkModifier=0.5
-    // ewptScore = 40*0.90 + 50*0.10 + 0.5 = 36 + 5 + 0.5 = 41.5
+    // avgWpr=(0+50*4)/5=40, gkModifier=0.5 → ewptScore = 40 + 0.5 = 40.5
     const weakGkTeam = makeTeam(0)
-    expect(ewptScore(weakGkTeam)).toBeCloseTo(41.5, 1)
+    expect(ewptScore(weakGkTeam)).toBeCloseTo(40.5, 1)
   })
 
   it('two GKs gives -1 modifier', () => {
@@ -394,9 +391,8 @@ describe('ewptScore — GK quality weighting', () => {
       makePlayer({ name: 'P2', wprOverride: 50 }),
       makePlayer({ name: 'P3', wprOverride: 50 }),
     ]
-    // Post-1.2: avgWpr=(70+70+50+50+50)/5=58, top2Avg=(70+70)/2=70, gkModifier=-1
-    // ewptScore = 58*0.90 + 70*0.10 - 1 = 52.2 + 7 - 1 = 58.2
-    expect(ewptScore(twoGks)).toBeCloseTo(58.2, 1)
+    // avgWpr=(70+70+50+50+50)/5=58, gkModifier=-1 → ewptScore = 58 - 1 = 57
+    expect(ewptScore(twoGks)).toBeCloseTo(57, 1)
   })
 
   it('balanced squad outscores a team with one star and five weak teammates', () => {
@@ -452,7 +448,7 @@ describe('ewptScore — variety bonus excludes goalkeeper', () => {
     const mixed = teamWith(['goalkeeper', 'balanced', 'balanced', 'balanced', 'attacking'])
     const uniform = teamWith(['goalkeeper', 'balanced', 'balanced', 'balanced', 'balanced'])
     // Both have ≤2 outfielder mentalities → neither should get the variety bonus.
-    // They share avgWpr, avgForm, top2Avg, GK modifier, depth. So scores should match.
+    // They share avgWpr, GK modifier, and depth. So scores should match.
     expect(ewptScore(mixed)).toBeCloseTo(ewptScore(uniform), 1)
   })
 
