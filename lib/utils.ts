@@ -12,8 +12,6 @@ const RUSTINESS_DAYS = 28              // calendar threshold for rustiness
 const MIN_RECENT_GAMES = 2             // fewer played slots in recentForm → intermittent
 
 // --- Team score (ewptScore, post-1.2) ---
-const EWPT_AVG_WEIGHT = 0.90
-const EWPT_TOP2_WEIGHT = 0.10
 const GK_BASE_BONUS = 0.5              // minimum GK bonus when exactly one keeper present
 const GK_WPR_SCALE = 2.0               // added per unit of (gkWpr / 100)
 const NO_GK_PENALTY = -1.5
@@ -95,8 +93,8 @@ export function formatMonthYear(date: string): string {
  *          so it only influences players with very few results.
  *
  * Two penalties are applied after the base score:
- *  - Experience penalty (×0.85–0.94): players with 1–4 games played are still
- *    learning the league. Multiplier ramps from 0.85 at 1 game to 0.94 at 4 games.
+ *  - Experience penalty (×0.85–0.95): players with 1–3 games played are still
+ *    learning the league. Multiplier ramps from 0.85 at 1 game to 0.95 at 3 games.
  *  - Rustiness penalty (×0.88): applied if either (a) the player has not played
  *    in more than 28 calendar days (requires `lastPlayedWeekDate` to be set), or
  *    (b) fewer than 2 of the last 5 `recentForm` slots are real games.
@@ -141,10 +139,10 @@ export function wprScore(player: Player, referenceDate?: Date): number {
 
   let score = ppgScore * WPR_PPG_WEIGHT + formScore * WPR_FORM_WEIGHT + ratingScore * WPR_RATING_WEIGHT
 
-  // Experience penalty: players with 1–4 games are still learning the league.
-  // Multiplier ramps from 0.85 (1 game) to 0.94 (4 games), then full weight at 5+.
-  if (player.played >= 1 && player.played < 5) {
-    score *= 0.85 + 0.03 * (player.played - 1)
+  // Experience penalty: players with 1–3 games are still learning the league.
+  // Multiplier ramps from 0.85 (1 game) to 0.95 (3 games), then full weight at 4+.
+  if (player.played >= 1 && player.played < 4) {
+    score *= 0.85 + 0.05 * (player.played - 1)
   }
 
   // Rustiness penalty: not recently active (calendar absence or intermittent attendance).
@@ -171,8 +169,7 @@ export function wprScore(player: Player, referenceDate?: Date): number {
  *
  * Returns a single 0–100 score for a group of players representing a team.
  *
- *  - 90%: Average WPR — overall team quality (form is already baked in per-player)
- *  - 10%: Top-2 average WPR — standout players have modest impact
+ *  - Average WPR — overall team quality (form is already baked in per-player)
  *  - GK modifier: scaled by GK WPR — 0.5 + (wprScore(gk)/100)*2, range [+0.5,+2.5];
  *                 -1.5 for no GK, -1 for two (wasted slot)
  *  - Variety bonus: +2 if outfielders cover 3+ different mentalities
@@ -180,12 +177,8 @@ export function wprScore(player: Player, referenceDate?: Date): number {
  */
 export function ewptScore(players: Player[]): number {
   if (players.length === 0) return 0
-  const wprScores = players.map((p) => wprScore(p)).sort((a, b) => b - a)
+  const wprScores = players.map((p) => wprScore(p))
   const avgWpr = wprScores.reduce((sum, s) => sum + s, 0) / players.length
-  // Average of top 2 WPR scores — small bonus for having multiple strong players
-  const top2Avg = wprScores.length >= 2
-    ? (wprScores[0] + wprScores[1]) / 2
-    : wprScores[0]
   const gks = players.filter((p) => p.mentality === 'goalkeeper')
   const gkCount = gks.length
   let gkModifier: number
@@ -209,10 +202,7 @@ export function ewptScore(players: Player[]): number {
   )
   return Math.min(
     100,
-    Math.max(
-      0,
-      avgWpr * EWPT_AVG_WEIGHT + top2Avg * EWPT_TOP2_WEIGHT + gkModifier + varietyBonus + depthBonus,
-    ),
+    Math.max(0, avgWpr + gkModifier + varietyBonus + depthBonus),
   )
 }
 

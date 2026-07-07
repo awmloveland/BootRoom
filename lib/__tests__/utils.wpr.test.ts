@@ -211,12 +211,7 @@ describe('leagueWprPercentiles', () => {
   })
 })
 
-describe('wprScore — experience penalty (played 1–4)', () => {
-  // Players with >=2 real games in recentForm to avoid rustiness penalty stacking
-  function makeVeteran(): Player {
-    // played=10, recentForm='WWDLL' — no experience or rustiness penalty
-    return makePlayer()
-  }
+describe('wprScore — experience penalty (played 1–3)', () => {
 
   it('experience penalty is applied for played=1 (multiplier 0.85)', () => {
     // played=1, won=1, lost=0, drew=0, points=3, recentForm='W', rating=2
@@ -224,7 +219,7 @@ describe('wprScore — experience penalty (played 1–4)', () => {
     // Form 'W': rawForm = 3*1 = 3, maxForm = 3*1 = 3, formScore = 100
     // Rating: normRating=50, ratingWeight=1-1/10=0.9, ratingScore=45
     // baseScore = 58.33*0.6 + 100*0.25 + 45*0.15 = 35 + 25 + 6.75 = 66.75
-    // Experience multiplier (played=1): 0.85 + 0.03*0 = 0.85
+    // Experience multiplier (played=1): 0.85 + 0.05*0 = 0.85
     // Rustiness multiplier: recentForm='W' has 1 real game (<2) → 0.88
     // Final: 66.75 * 0.85 * 0.88 ≈ 49.9
     const p1 = makePlayer({ played: 1, won: 1, drew: 0, lost: 0, points: 3, recentForm: 'W' })
@@ -239,11 +234,11 @@ describe('wprScore — experience penalty (played 1–4)', () => {
     //             formScore = (5.55/7.65)*100 ≈ 72.55
     // Rating: normRating=50, ratingWeight=1-3/10=0.7, ratingScore=35
     // baseScore = 56.25*0.6 + 72.55*0.25 + 35*0.15 = 33.75 + 18.14 + 5.25 = 57.14
-    // Experience multiplier (played=3): 0.85 + 0.03*(3-1) = 0.91
+    // Experience multiplier (played=3, last penalised game): 0.85 + 0.05*(3-1) = 0.95
     // No rustiness (3 real games in recentForm)
-    // Final: 57.14 * 0.91 ≈ 52.0
+    // Final: 57.14 * 0.95 ≈ 54.3
     const player = makePlayer({ played: 3, won: 2, drew: 0, lost: 1, points: 6, recentForm: 'WWL' })
-    expect(wprScore(player)).toBeCloseTo(52.0, 0)
+    expect(wprScore(player)).toBeCloseTo(54.3, 0)
   })
 
   it('does NOT apply the penalty to wprOverride players (played=0 new player)', () => {
@@ -251,25 +246,22 @@ describe('wprScore — experience penalty (played 1–4)', () => {
     expect(wprScore(newPlayer)).toBe(60)
   })
 
-  it('does NOT apply the penalty at played=5 or above', () => {
-    // played=5 and played=10 differ only in underlying stats, not the multiplier
-    // verify played=10 (veteran) doesn't receive an unexpected penalty
-    const veteran = makeVeteran() // played=10
-    const fiveGames = makePlayer({ played: 5, won: 2, drew: 1, lost: 2, points: 7, recentForm: 'WWDLL' })
-    // Both should score in a similar range (no multiplier applied)
-    // The veteran scores higher only due to more data / better Bayesian estimate
-    // Score at played=5 should be in a healthy range (no penalty applied)
-    // A player with 2W 1D 2L record should score between 40 and 80
-    expect(wprScore(fiveGames)).toBeGreaterThan(40)
-    expect(wprScore(fiveGames)).toBeLessThan(80)
+  it('does NOT apply the penalty at played=4 or above', () => {
+    // played=4 is the first fully-trusted game under the shortened 3-game ramp.
+    // A player with 2W 1D 1L record should score between 40 and 80 (no penalty applied).
+    const fourGames = makePlayer({ played: 4, won: 2, drew: 1, lost: 1, points: 7, recentForm: 'WWDL' })
+    expect(wprScore(fourGames)).toBeGreaterThan(40)
+    expect(wprScore(fourGames)).toBeLessThan(80)
   })
 
-  it('penalty at played=2 is greater than at played=4 (monotonically decreasing)', () => {
-    // played=2: recentForm='WL' (2 real games — avoids rustiness), multiplier=0.88
-    // played=4: recentForm='WWLL' (4 real games — avoids rustiness), multiplier=0.94
-    const p2 = makePlayer({ played: 2, won: 1, drew: 0, lost: 1, points: 3, recentForm: 'WL' })
-    const p4 = makePlayer({ played: 4, won: 2, drew: 0, lost: 2, points: 6, recentForm: 'WWLL' })
-    expect(wprScore(p2)).toBeLessThan(wprScore(p4))
+  it('penalty ramp is strictly monotonic across played=1,2,3', () => {
+    // Same recentForm ('DD', 2 real games — avoids rustiness) and draw-only record
+    // for all three so only `played` (and its experience multiplier) differs.
+    const p1 = makePlayer({ played: 1, won: 0, drew: 1, lost: 0, points: 1, recentForm: 'DD' })
+    const p2 = makePlayer({ played: 2, won: 0, drew: 2, lost: 0, points: 2, recentForm: 'DD' })
+    const p3 = makePlayer({ played: 3, won: 0, drew: 3, lost: 0, points: 3, recentForm: 'DD' })
+    expect(wprScore(p1)).toBeLessThan(wprScore(p2))
+    expect(wprScore(p2)).toBeLessThan(wprScore(p3))
   })
 })
 
@@ -341,7 +333,7 @@ describe('wprScore — rustiness penalty', () => {
       lastPlayedWeekDate: '2026-03-01', // >28 days
     })
     const baseScore = wprScore({ ...rookieRusty, played: 5, points: 9, won: 3, lost: 2, lastPlayedWeekDate: undefined }, REF_DATE)
-    const expectedMultiplier = (0.85 + 0.03 * (2 - 1)) * 0.88 // experience × rustiness
+    const expectedMultiplier = (0.85 + 0.05 * (2 - 1)) * 0.88 // experience × rustiness
     // Rough check — both penalties applied
     expect(wprScore(rookieRusty, REF_DATE)).toBeLessThan(baseScore * 0.95)
   })
@@ -366,24 +358,21 @@ describe('ewptScore — GK quality weighting', () => {
   })
 
   it('average GK (WPR 50) gives +1.5 modifier', () => {
-    // Post-1.2: avgWpr=50, top2Avg=50, gkModifier=1.5
-    // ewptScore = 50*0.90 + 50*0.10 + 1.5 = 45 + 5 + 1.5 = 51.5
+    // avgWpr=50, gkModifier=1.5 → ewptScore = 50 + 1.5 = 51.5
     const avgGkTeam = makeTeam(50)
     expect(ewptScore(avgGkTeam)).toBeCloseTo(51.5, 1)
   })
 
   it('exceptional GK (WPR 100) gives +2.5 modifier', () => {
-    // Post-1.2: avgWpr=(100+50*4)/5=60, top2Avg=(100+50)/2=75, gkModifier=2.5
-    // ewptScore = 60*0.90 + 75*0.10 + 2.5 = 54 + 7.5 + 2.5 = 64
+    // avgWpr=(100+50*4)/5=60, gkModifier=2.5 → ewptScore = 60 + 2.5 = 62.5
     const exceptionalGkTeam = makeTeam(100)
-    expect(ewptScore(exceptionalGkTeam)).toBeCloseTo(64, 1)
+    expect(ewptScore(exceptionalGkTeam)).toBeCloseTo(62.5, 1)
   })
 
   it('very weak GK (WPR 0) gives +0.5 modifier', () => {
-    // Post-1.2: avgWpr=(0+50*4)/5=40, top2Avg=(50+50)/2=50, gkModifier=0.5
-    // ewptScore = 40*0.90 + 50*0.10 + 0.5 = 36 + 5 + 0.5 = 41.5
+    // avgWpr=(0+50*4)/5=40, gkModifier=0.5 → ewptScore = 40 + 0.5 = 40.5
     const weakGkTeam = makeTeam(0)
-    expect(ewptScore(weakGkTeam)).toBeCloseTo(41.5, 1)
+    expect(ewptScore(weakGkTeam)).toBeCloseTo(40.5, 1)
   })
 
   it('two GKs gives -1 modifier', () => {
@@ -394,9 +383,8 @@ describe('ewptScore — GK quality weighting', () => {
       makePlayer({ name: 'P2', wprOverride: 50 }),
       makePlayer({ name: 'P3', wprOverride: 50 }),
     ]
-    // Post-1.2: avgWpr=(70+70+50+50+50)/5=58, top2Avg=(70+70)/2=70, gkModifier=-1
-    // ewptScore = 58*0.90 + 70*0.10 - 1 = 52.2 + 7 - 1 = 58.2
-    expect(ewptScore(twoGks)).toBeCloseTo(58.2, 1)
+    // avgWpr=(70+70+50+50+50)/5=58, gkModifier=-1 → ewptScore = 58 - 1 = 57
+    expect(ewptScore(twoGks)).toBeCloseTo(57, 1)
   })
 
   it('balanced squad outscores a team with one star and five weak teammates', () => {
@@ -452,7 +440,7 @@ describe('ewptScore — variety bonus excludes goalkeeper', () => {
     const mixed = teamWith(['goalkeeper', 'balanced', 'balanced', 'balanced', 'attacking'])
     const uniform = teamWith(['goalkeeper', 'balanced', 'balanced', 'balanced', 'balanced'])
     // Both have ≤2 outfielder mentalities → neither should get the variety bonus.
-    // They share avgWpr, avgForm, top2Avg, GK modifier, depth. So scores should match.
+    // They share avgWpr, GK modifier, and depth. So scores should match.
     expect(ewptScore(mixed)).toBeCloseTo(ewptScore(uniform), 1)
   })
 
