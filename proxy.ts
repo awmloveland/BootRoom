@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 const SIGN_IN_PATH = '/sign-in'
 
 // Routes that require a valid Supabase session
-const AUTH_REQUIRED = ['/settings', '/welcome']
+const AUTH_REQUIRED = ['/settings']
 
 // Routes that require profiles.role = 'developer'
 const DEVELOPER_REQUIRED = ['/experiments']
