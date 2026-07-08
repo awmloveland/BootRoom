@@ -4,22 +4,32 @@ import type { Player, Week } from '@/lib/types'
 // ─── gamesLeftInQuarter ───────────────────────────────────────────────────────
 
 /**
- * Count occurrences of `gameDay` (0=Sun…6=Sat) from tomorrow to the last day
- * of the given quarter. `cursor` is normalized to midnight so the comparison
- * with `quarterEnd` (also midnight) is not skewed by time-of-day.
+ * Count game days (0=Sun…6=Sat) from today to the last day of the given quarter
+ * that are still to be played. A day stops counting once a week dated on it is
+ * settled — any status other than 'scheduled'. Dates are normalized to midnight
+ * so comparisons with `quarterEnd` (also midnight) are not skewed by time-of-day.
  */
-function gamesLeftInQuarter(q: number, year: number, gameDay: number, now: Date): number {
+function gamesLeftInQuarter(q: number, year: number, gameDay: number, now: Date, weeks: Week[]): number {
   // quarterEndMonthIdx: 0-indexed last month of quarter (Q1→2, Q2→5, Q3→8, Q4→11)
   // new Date(year, month+1, 0) = last day of `month`, constructed at local midnight
   const quarterEndMonthIdx = q * 3 - 1
   const quarterEnd = new Date(year, quarterEndMonthIdx + 1, 0)
 
+  const settledDates = new Set(
+    weeks
+      .filter(w => w.status !== 'scheduled')
+      .map(w => {
+        const d = parseWeekDate(w.date)
+        d.setHours(0, 0, 0, 0)
+        return d.getTime()
+      })
+  )
+
   let count = 0
   const cursor = new Date(now)
-  cursor.setDate(cursor.getDate() + 1) // start from tomorrow — today excluded
-  cursor.setHours(0, 0, 0, 0)          // normalize to midnight
+  cursor.setHours(0, 0, 0, 0)
   while (cursor <= quarterEnd) {
-    if (cursor.getDay() === gameDay) count++
+    if (cursor.getDay() === gameDay && !settledDates.has(cursor.getTime())) count++
     cursor.setDate(cursor.getDate() + 1)
   }
   return count
@@ -284,7 +294,7 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gam
   // gamesLeft is 0 during holdover (the displayed quarter is complete)
   const resolvedGameDay = gameDay ?? inferGameDay(weeks)
   const gamesLeft = !isHoldover && resolvedGameDay !== null
-    ? gamesLeftInQuarter(q, year, resolvedGameDay, now)
+    ? gamesLeftInQuarter(q, year, resolvedGameDay, now, weeks)
     : 0
 
   const gamesPlayed = displayWeeks.filter(w => w.status === 'played').length
@@ -350,8 +360,19 @@ export function computeAllQuarters(weeks: Week[], now: Date = new Date()): Honou
       }
 
       // Date range
+      // In-progress quarters show their full planned span: earliest recorded week
+      // (or first game day) through the last game day of the calendar quarter —
+      // not just the weeks recorded so far.
       let dateRange: { from: string; to: string }
-      if (qWeeks.length > 0) {
+      if (status === 'in_progress') {
+        const from = qWeeks.length > 0
+          ? new Date(Math.min(...qWeeks.map(w => parseWeekDate(w.date).getTime())))
+          : gameDay !== null
+            ? firstWeekdayOnOrAfter(gameDay, qStart)
+            : qStart
+        const to = gameDay !== null ? lastWeekdayOnOrBefore(gameDay, qEnd) : qEnd
+        dateRange = { from: formatDate(from), to: formatDate(to) }
+      } else if (qWeeks.length > 0) {
         const dates = qWeeks.map(w => parseWeekDate(w.date).getTime())
         dateRange = {
           from: formatDate(new Date(Math.min(...dates))),

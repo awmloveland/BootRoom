@@ -144,7 +144,7 @@ function QuarterlyTableWidget({ weeks, leagueDayIndex }: { weeks: Week[]; league
           )}
           {showGamesLeft && (
             <span className="text-[10px] font-semibold text-slate-400 bg-slate-800 border border-slate-700 rounded px-[5px] py-[1px]">
-              {gamesLeft} games left
+              {gamesLeft} {gamesLeft === 1 ? 'game' : 'games'} left
             </span>
           )}
         </div>
