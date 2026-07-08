@@ -624,6 +624,47 @@ describe('computeAllQuarters', () => {
     expect(q3.dateRange.to).toBe('30 Sep 2026')
   })
 
+  it('extends an in-progress quarter date range to the last game day of the quarter', () => {
+    // Played Wednesdays 7 + 14 Jan 2026. now = 15 Feb 2026 → Q1 2026 in progress.
+    // from = earliest recorded week (7 Jan). to = last Wednesday of Q1 = 25 Mar 2026,
+    // NOT the latest recorded week (14 Jan) — that was the bug.
+    const weeks = [
+      makeWeek({ week: 1, date: '07 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+      makeWeek({ week: 2, date: '14 Jan 2026', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamB' }),
+    ]
+    const now = new Date(2026, 1, 15)
+    const result = computeAllQuarters(weeks, now)
+    const q1 = result.find(y => y.year === 2026)!.quarters.find(q => q.q === 1)!
+    expect(q1.status).toBe('in_progress')
+    expect(q1.dateRange.from).toBe('07 Jan 2026')
+    expect(q1.dateRange.to).toBe('25 Mar 2026')
+  })
+
+  it('uses game-day bounds for an in-progress quarter with no recorded weeks', () => {
+    // Only history is Q4 2025 (Wednesday 17 Dec 2025) → gameDay = 3.
+    // now = 15 Feb 2026 → Q1 2026 in progress with zero weeks.
+    // from = first Wednesday of Q1 (7 Jan), to = last Wednesday of Q1 (25 Mar).
+    const weeks = [
+      makeWeek({ week: 1, date: '17 Dec 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    ]
+    const now = new Date(2026, 1, 15)
+    const result = computeAllQuarters(weeks, now)
+    const q1 = result.find(y => y.year === 2026)!.quarters.find(q => q.q === 1)!
+    expect(q1.status).toBe('in_progress')
+    expect(q1.dateRange.from).toBe('07 Jan 2026')
+    expect(q1.dateRange.to).toBe('25 Mar 2026')
+  })
+
+  it('falls back to calendar bounds for an in-progress quarter with no inferrable game day', () => {
+    // No weeks at all → gameDay null. now = 15 Feb 2026 → Q1 2026 in progress.
+    const now = new Date(2026, 1, 15)
+    const result = computeAllQuarters([], now)
+    const q1 = result.find(y => y.year === 2026)!.quarters.find(q => q.q === 1)!
+    expect(q1.status).toBe('in_progress')
+    expect(q1.dateRange.from).toBe('01 Jan 2026')
+    expect(q1.dateRange.to).toBe('31 Mar 2026')
+  })
+
   // ── Week ranges ────────────────────────────────────────────────────────────
 
   it('computes weekRange from min/max week numbers of weeks in the quarter', () => {

@@ -360,8 +360,19 @@ export function computeAllQuarters(weeks: Week[], now: Date = new Date()): Honou
       }
 
       // Date range
+      // In-progress quarters show their full planned span: earliest recorded week
+      // (or first game day) through the last game day of the calendar quarter —
+      // not just the weeks recorded so far.
       let dateRange: { from: string; to: string }
-      if (qWeeks.length > 0) {
+      if (status === 'in_progress') {
+        const from = qWeeks.length > 0
+          ? new Date(Math.min(...qWeeks.map(w => parseWeekDate(w.date).getTime())))
+          : gameDay !== null
+            ? firstWeekdayOnOrAfter(gameDay, qStart)
+            : qStart
+        const to = gameDay !== null ? lastWeekdayOnOrBefore(gameDay, qEnd) : qEnd
+        dateRange = { from: formatDate(from), to: formatDate(to) }
+      } else if (qWeeks.length > 0) {
         const dates = qWeeks.map(w => parseWeekDate(w.date).getTime())
         dateRange = {
           from: formatDate(new Date(Math.min(...dates))),
