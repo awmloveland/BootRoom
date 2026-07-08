@@ -928,7 +928,7 @@ export function buildQuarterShareText(params: {
   }
 
   parts.push('')
-  parts.push(`🔗 https://craft-football.com/${leagueSlug}`)
+  parts.push(`🔗 https://craft-football.com/${leagueSlug}/honours#q-${year}-${q}`)
 
   return parts.join('\n')
 }
