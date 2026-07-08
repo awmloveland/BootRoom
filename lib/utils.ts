@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { LeagueDetails, Player, Strength, Week, Winner, YearStats } from './types'
 import { strengthToRating } from './strength'
+import type { QuarterSummary } from './sidebar-stats'
 
 // --- Per-player score (wprScore) ---
 const WPR_PPG_WEIGHT = 0.60            // shrunk points-per-game contribution
@@ -846,6 +847,90 @@ export function buildResultShareText(params: {
   parts.push(`🔗 https://craft-football.com/${leagueSlug}`)
 
   return { shareText: parts.join('\n'), highlightsText }
+}
+
+export type ShareOutcome = 'shared' | 'copied' | 'failed'
+
+/**
+ * Shares text via the native share sheet on small screens, otherwise copies
+ * it to the clipboard. Mirrors the long-standing MatchCard behaviour:
+ * share-sheet dismissal (AbortError) returns 'failed' with no clipboard
+ * fallback — callers show no feedback; any other share failure falls back
+ * to the clipboard.
+ */
+export async function shareOrCopy(text: string): Promise<ShareOutcome> {
+  async function copy(): Promise<ShareOutcome> {
+    try {
+      await navigator.clipboard.writeText(text)
+      return 'copied'
+    } catch {
+      return 'failed'
+    }
+  }
+
+  if (navigator.share && window.innerWidth < 768) {
+    try {
+      await navigator.share({ text })
+      return 'shared'
+    } catch (err) {
+      if (err instanceof DOMException && err.name !== 'AbortError') {
+        return copy()
+      }
+      return 'failed'
+    }
+  }
+  return copy()
+}
+
+/**
+ * Builds the plain-text share message for a completed quarter on the
+ * Honours tab. Pure function — all data comes from the QuarterSummary.
+ */
+export function buildQuarterShareText(params: {
+  leagueName: string
+  leagueSlug: string
+  quarter: QuarterSummary
+}): string {
+  const { leagueName, leagueSlug, quarter } = params
+  const { q, year, seasonName, dateRange, entries = [], awards = [], gamesPlayed = 0 } = quarter
+
+  // dateRange strings are 'DD MMM YYYY'; the year already appears in the headline
+  const stripYear = (d: string) => d.split(' ').slice(0, 2).join(' ')
+  const gamesLabel = gamesPlayed === 1 ? '1 game' : `${gamesPlayed} games`
+
+  const parts: string[] = [
+    `🏁 That's a wrap on Q${q} ${year}!`,
+    `⚽ ${leagueName} — ${seasonName} quarter`,
+    `📅 ${stripYear(dateRange.from)} – ${stripYear(dateRange.to)} · ${gamesLabel}`,
+  ]
+
+  const champion = entries[0]?.name
+  if (champion) {
+    parts.push('')
+    parts.push(`👑 Your ${seasonName} champion: ${champion} 🎉`)
+  }
+
+  const honours = awards.filter(a => a.key !== 'champion')
+  if (honours.length > 0) {
+    parts.push('')
+    parts.push('🎖️ Quarter honours')
+    for (const a of honours) {
+      parts.push(`${a.icon} ${a.nickname} — ${a.player} (${a.stat})`)
+    }
+  }
+
+  if (entries.length > 0) {
+    parts.push('')
+    parts.push('📊 Final standings')
+    entries.slice(0, 10).forEach((e, i) => {
+      parts.push(`${i + 1}. ${e.name} — ${e.points}pts (P${e.played} W${e.won} D${e.drew} L${e.lost})`)
+    })
+  }
+
+  parts.push('')
+  parts.push(`🔗 https://craft-football.com/${leagueSlug}`)
+
+  return parts.join('\n')
 }
 
 const AVATAR_PALETTE: { bg: string; border: string; text: string }[] = [

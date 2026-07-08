@@ -130,6 +130,7 @@ export interface QuarterSummary {
   champion?: string
   entries?: QuarterlyEntry[]
   awards?: QuarterAward[]
+  gamesPlayed?: number                             // played-week count; set for completed quarters only
 }
 
 export interface HonoursYear {
@@ -400,11 +401,13 @@ export function computeAllQuarters(weeks: Week[], now: Date = new Date()): Honou
       let champion: string | undefined
       let entries: QuarterlyEntry[] | undefined
       let awards: QuarterAward[] | undefined
+      let gamesPlayed: number | undefined
       if (status === 'completed') {
         const playedWeeks = qWeeks.filter(w => w.status === 'played')
         entries  = aggregateWeeks(playedWeeks)
         champion = entries[0]?.name
         awards   = buildQuarterAwards(entries, playedWeeks)
+        gamesPlayed = playedWeeks.length
       }
 
       const yy = String(year).slice(-2)
@@ -419,6 +422,7 @@ export function computeAllQuarters(weeks: Week[], now: Date = new Date()): Honou
         champion,
         entries,
         awards,
+        gamesPlayed,
       })
     }
 
