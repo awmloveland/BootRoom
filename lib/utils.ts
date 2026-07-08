@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { LeagueDetails, Player, Strength, Week, Winner, YearStats } from './types'
 import { strengthToRating } from './strength'
+import type { QuarterSummary } from './sidebar-stats'
 
 // --- Per-player score (wprScore) ---
 const WPR_PPG_WEIGHT = 0.60            // shrunk points-per-game contribution
@@ -903,6 +904,57 @@ export async function shareOrCopy(text: string): Promise<ShareOutcome> {
     }
   }
   return copy()
+}
+
+/**
+ * Builds the plain-text share message for a completed quarter on the
+ * Honours tab. Pure function — all data comes from the QuarterSummary.
+ */
+export function buildQuarterShareText(params: {
+  leagueName: string
+  leagueSlug: string
+  quarter: QuarterSummary
+}): string {
+  const { leagueName, leagueSlug, quarter } = params
+  const { q, year, seasonName, dateRange, entries = [], awards = [], gamesPlayed = 0 } = quarter
+
+  // dateRange strings are 'DD MMM YYYY'; the year already appears in the headline
+  const stripYear = (d: string) => d.split(' ').slice(0, 2).join(' ')
+  const gamesLabel = gamesPlayed === 1 ? '1 game' : `${gamesPlayed} games`
+
+  const parts: string[] = [
+    `🏁 That's a wrap on Q${q} ${year}!`,
+    `⚽ ${leagueName} — ${seasonName} quarter`,
+    `📅 ${stripYear(dateRange.from)} – ${stripYear(dateRange.to)} · ${gamesLabel}`,
+  ]
+
+  const champion = entries[0]?.name
+  if (champion) {
+    parts.push('')
+    parts.push(`👑 Your ${seasonName} champion: ${champion} 🎉`)
+  }
+
+  const honours = awards.filter(a => a.key !== 'champion')
+  if (honours.length > 0) {
+    parts.push('')
+    parts.push('🎖️ Quarter honours')
+    for (const a of honours) {
+      parts.push(`${a.icon} ${a.nickname} — ${a.player} (${a.stat})`)
+    }
+  }
+
+  if (entries.length > 0) {
+    parts.push('')
+    parts.push('📊 Final standings')
+    entries.slice(0, 10).forEach((e, i) => {
+      parts.push(`${i + 1}. ${e.name} — ${e.points}pts (P${e.played} W${e.won} D${e.drew} L${e.lost})`)
+    })
+  }
+
+  parts.push('')
+  parts.push(`🔗 https://craft-football.com/${leagueSlug}`)
+
+  return parts.join('\n')
 }
 
 const AVATAR_PALETTE: { bg: string; border: string; text: string }[] = [
