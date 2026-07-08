@@ -154,12 +154,10 @@ function VerifyStep({
 function SignInForm({
   onSent,
   onSwitchMode,
-  redirect,
   signinOnly,
 }: {
   onSent: (email: string) => void
   onSwitchMode: () => void
-  redirect: string
   signinOnly?: boolean
 }) {
   const [email, setEmail] = useState('')
@@ -242,12 +240,10 @@ function SignUpForm({
   onSent,
   onSwitchMode,
   leagueName,
-  redirect,
 }: {
   onSent: (email: string) => void
   onSwitchMode: () => void
   leagueName?: string
-  redirect: string
 }) {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -450,13 +446,12 @@ export function AuthDialog({
               redirect={redirect}
             />
           ) : mode === 'signin' ? (
-            <SignInForm onSent={handleCodeSent} onSwitchMode={handleSwitchMode} redirect={redirect} signinOnly={signinOnly} />
+            <SignInForm onSent={handleCodeSent} onSwitchMode={handleSwitchMode} signinOnly={signinOnly} />
           ) : (
             <SignUpForm
               onSent={handleCodeSent}
               onSwitchMode={handleSwitchMode}
               leagueName={leagueName}
-              redirect={redirect}
             />
           )}
         </DialogContent>
