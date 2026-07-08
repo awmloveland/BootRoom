@@ -91,7 +91,11 @@ export default async function HonoursPage({ params }: Props) {
           {tier === 'public' || !isAuthenticated ? (
             <HonoursLoginPrompt leagueId={leagueId} leagueSlug={slug} leagueName={game.name} />
           ) : (
-            <HonoursSection data={computeAllQuarters(weeks, new Date())} />
+            <HonoursSection
+              data={computeAllQuarters(weeks, new Date())}
+              leagueName={game.name}
+              leagueSlug={slug}
+            />
           )}
         </div>
         <SidebarSticky>

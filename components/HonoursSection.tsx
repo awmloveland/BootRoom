@@ -3,11 +3,13 @@
 import { useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, buildQuarterShareText, shareOrCopy } from '@/lib/utils'
 import type { QuarterSummary, HonoursYear } from '@/lib/sidebar-stats'
 
 interface HonoursSectionProps {
   data: HonoursYear[]
+  leagueName: string
+  leagueSlug: string
 }
 
 const PAGE_SIZE = 10
@@ -72,11 +74,29 @@ function StatusPill({ status }: { status: QuarterSummary['status'] }) {
 
 // ── Quarter card body (completed only) ────────────────────────────────────────
 
-function CompletedCardBody({ quarter }: { quarter: QuarterSummary }) {
+function CompletedCardBody({
+  quarter,
+  leagueName,
+  leagueSlug,
+}: {
+  quarter: QuarterSummary
+  leagueName: string
+  leagueSlug: string
+}) {
   const [showAll, setShowAll] = useState(false)
+  const [copied, setCopied] = useState(false)
   const entries = quarter.entries ?? []
   const visibleEntries = showAll ? entries : entries.slice(0, PAGE_SIZE)
   const overflowCount = Math.max(0, entries.length - PAGE_SIZE)
+
+  async function handleShare() {
+    const text = buildQuarterShareText({ leagueName, leagueSlug, quarter })
+    const result = await shareOrCopy(text)
+    if (result === 'copied') {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
 
   return (
     <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
@@ -154,6 +174,16 @@ function CompletedCardBody({ quarter }: { quarter: QuarterSummary }) {
           </div>
         )}
       </div>
+
+      <div className="border-t border-slate-700 px-4 py-3">
+        <button
+          type="button"
+          onClick={handleShare}
+          className="w-full px-3 py-2 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold transition-colors"
+        >
+          {copied ? 'Copied — go and brag 📣' : 'Share the glory'}
+        </button>
+      </div>
     </Collapsible.Content>
   )
 }
@@ -164,10 +194,14 @@ function QuarterCard({
   quarter,
   isOpen,
   onToggle,
+  leagueName,
+  leagueSlug,
 }: {
   quarter: QuarterSummary
   isOpen: boolean
   onToggle: () => void
+  leagueName: string
+  leagueSlug: string
 }) {
   const { status, q, seasonName, champion } = quarter
   const subtitle = quarterSubtitle(quarter)
@@ -229,7 +263,7 @@ function QuarterCard({
             )} />
           </button>
         </Collapsible.Trigger>
-        <CompletedCardBody quarter={quarter} />
+        <CompletedCardBody quarter={quarter} leagueName={leagueName} leagueSlug={leagueSlug} />
       </div>
     </Collapsible.Root>
   )
@@ -237,7 +271,7 @@ function QuarterCard({
 
 // ── Section ───────────────────────────────────────────────────────────────────
 
-export function HonoursSection({ data }: HonoursSectionProps) {
+export function HonoursSection({ data, leagueName, leagueSlug }: HonoursSectionProps) {
   const [openKey, setOpenKey] = useState<string | null>(() => {
     for (const yearGroup of data) {
       for (const q of yearGroup.quarters) {
@@ -278,6 +312,8 @@ export function HonoursSection({ data }: HonoursSectionProps) {
                   quarter={quarter}
                   isOpen={openKey === key}
                   onToggle={() => setOpenKey(openKey === key ? null : key)}
+                  leagueName={leagueName}
+                  leagueSlug={leagueSlug}
                 />
               )
             })}
