@@ -879,8 +879,9 @@ export type ShareOutcome = 'shared' | 'copied' | 'failed'
 /**
  * Shares text via the native share sheet on small screens, otherwise copies
  * it to the clipboard. Mirrors the long-standing MatchCard behaviour:
- * share-sheet dismissal (AbortError) is treated as done; any other share
- * failure falls back to the clipboard.
+ * share-sheet dismissal (AbortError) returns 'failed' with no clipboard
+ * fallback — callers show no feedback; any other share failure falls back
+ * to the clipboard.
  */
 export async function shareOrCopy(text: string): Promise<ShareOutcome> {
   async function copy(): Promise<ShareOutcome> {
