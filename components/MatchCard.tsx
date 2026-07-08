@@ -7,7 +7,7 @@ import { Week } from '@/lib/types'
 import type { Player, ScheduledWeek } from '@/lib/types'
 import { WinnerBadge } from './WinnerBadge'
 import { TeamList } from './TeamList'
-import { cn, shouldShowMeta, isPastDeadline, buildResultShareText, buildDnfShareText } from '@/lib/utils'
+import { cn, shouldShowMeta, isPastDeadline, buildResultShareText, buildDnfShareText, shareOrCopy } from '@/lib/utils'
 import { ResultModal } from '@/components/ResultModal'
 import { EditWeekModal } from '@/components/EditWeekModal'
 
@@ -226,24 +226,9 @@ function DnfCard({
       teamBRating: week.team_b_rating ?? null,
       notes: week.notes ?? '',
     })
-    if (navigator.share && window.innerWidth < 768) {
-      try {
-        await navigator.share({ text: shareText })
-      } catch (err) {
-        if (err instanceof DOMException && err.name !== 'AbortError') {
-          try {
-            await navigator.clipboard.writeText(shareText)
-            setCopied(true)
-            setTimeout(() => setCopied(false), 2000)
-          } catch { /* clipboard unavailable */ }
-        }
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(shareText)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      } catch { /* clipboard unavailable */ }
+    if (await shareOrCopy(shareText) === 'copied') {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     }
   }
 
@@ -525,16 +510,9 @@ function PlayedCard({
         players: allPlayers,
         weeks,
       })
-      if (navigator.share && window.innerWidth < 768) {
-        try {
-          await navigator.share({ text: shareText })
-        } catch (err) {
-          if (err instanceof DOMException && err.name !== 'AbortError') {
-            try { await navigator.clipboard.writeText(shareText); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch { /* ignore */ }
-          }
-        }
-      } else {
-        try { await navigator.clipboard.writeText(shareText); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch { /* ignore */ }
+      if (await shareOrCopy(shareText) === 'copied') {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
       }
     } catch { /* ignore share errors */ }
   }
