@@ -623,31 +623,6 @@ export function getMostRecentExpectedGameDate(
   return formatWeekDate(candidate)
 }
 
-/**
- * Parses first and last name from Supabase Google OAuth user_metadata.
- * Priority: given_name/family_name fields → split full_name → split name → empty strings.
- */
-export function parseGoogleName(meta: Record<string, unknown>): { firstName: string; lastName: string } {
-  const givenName = typeof meta.given_name === 'string' ? meta.given_name : null
-  const familyName = typeof meta.family_name === 'string' ? meta.family_name : null
-
-  if (givenName !== null || familyName !== null) {
-    return { firstName: givenName ?? '', lastName: familyName ?? '' }
-  }
-
-  const fullStr = typeof meta.full_name === 'string'
-    ? meta.full_name
-    : typeof meta.name === 'string'
-      ? meta.name
-      : ''
-
-  const parts = fullStr.trim().split(/\s+/).filter(Boolean)
-  return {
-    firstName: parts[0] ?? '',
-    lastName: parts.slice(1).join(' '),
-  }
-}
-
 const MILESTONE_SET = new Set([10, 25])
 function isMilestone(n: number): boolean {
   if (MILESTONE_SET.has(n)) return true

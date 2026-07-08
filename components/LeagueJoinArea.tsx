@@ -82,7 +82,7 @@ export function LeagueJoinArea({ leagueId, leagueSlug, leagueName, joinStatus, i
   const showPending = joinStatus === 'pending'
   const showShare = isMemberStatus(joinStatus)
 
-  // Redirect destination after Google OAuth: return to this league page and auto-open join dialog
+  // Redirect destination after signup: return to this league page and auto-open join dialog
   const joinRedirect = `${pathname}?open_join=1`
 
   return (
@@ -141,7 +141,7 @@ export function LeagueJoinArea({ leagueId, leagueSlug, leagueName, joinStatus, i
         )}
       </div>
 
-      {/* Detect ?open_join=1 after Google OAuth signup and auto-open the join dialog */}
+      {/* Detect ?open_join=1 after signup and auto-open the join dialog */}
       <Suspense fallback={null}>
         <SearchParamsReader
           joinStatus={joinStatus}
