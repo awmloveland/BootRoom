@@ -873,6 +873,38 @@ export function buildResultShareText(params: {
   return { shareText: parts.join('\n'), highlightsText }
 }
 
+export type ShareOutcome = 'shared' | 'copied' | 'failed'
+
+/**
+ * Shares text via the native share sheet on small screens, otherwise copies
+ * it to the clipboard. Mirrors the long-standing MatchCard behaviour:
+ * share-sheet dismissal (AbortError) is treated as done; any other share
+ * failure falls back to the clipboard.
+ */
+export async function shareOrCopy(text: string): Promise<ShareOutcome> {
+  async function copy(): Promise<ShareOutcome> {
+    try {
+      await navigator.clipboard.writeText(text)
+      return 'copied'
+    } catch {
+      return 'failed'
+    }
+  }
+
+  if (navigator.share && window.innerWidth < 768) {
+    try {
+      await navigator.share({ text })
+      return 'shared'
+    } catch (err) {
+      if (err instanceof DOMException && err.name !== 'AbortError') {
+        return copy()
+      }
+      return 'failed'
+    }
+  }
+  return copy()
+}
+
 const AVATAR_PALETTE: { bg: string; border: string; text: string }[] = [
   { bg: '#1e1b4b', border: '#4f46e5', text: '#a5b4fc' }, // indigo
   { bg: '#1e3a5f', border: '#2563eb', text: '#93c5fd' }, // blue
