@@ -56,7 +56,7 @@ describe('buildQuarterShareText', () => {
       '2. Ali — 29pts (P12 W9 D2 L1)',
       '3. Steve — 24pts (P14 W7 D3 L4)',
       '',
-      '🔗 https://craft-football.com/the-boot-room',
+      '🔗 https://craft-football.com/the-boot-room/honours#q-2026-2',
     ].join('\n'))
   })
 
@@ -105,12 +105,12 @@ describe('buildQuarterShareText', () => {
     expect(text).not.toContain('1 games')
   })
 
-  it('links to the provided slug', () => {
+  it('links to the honours tab and the shared quarter anchor', () => {
     const text = buildQuarterShareText({
       leagueName: 'Sunday League',
       leagueSlug: 'sunday-league',
-      quarter: makeQuarter(),
+      quarter: makeQuarter({ year: 2025, q: 3 }),
     })
-    expect(text.endsWith('🔗 https://craft-football.com/sunday-league')).toBe(true)
+    expect(text.endsWith('🔗 https://craft-football.com/sunday-league/honours#q-2025-3')).toBe(true)
   })
 })

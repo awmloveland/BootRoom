@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown } from 'lucide-react'
 import { cn, buildQuarterShareText, shareOrCopy } from '@/lib/utils'
@@ -192,12 +192,14 @@ function CompletedCardBody({
 
 function QuarterCard({
   quarter,
+  anchorId,
   isOpen,
   onToggle,
   leagueName,
   leagueSlug,
 }: {
   quarter: QuarterSummary
+  anchorId: string
   isOpen: boolean
   onToggle: () => void
   leagueName: string
@@ -208,7 +210,7 @@ function QuarterCard({
 
   if (status === 'upcoming') {
     return (
-      <div className="rounded-lg border border-dashed border-slate-700 bg-slate-800 opacity-60">
+      <div id={anchorId} className="rounded-lg border border-dashed border-slate-700 bg-slate-800 opacity-60">
         <div className="w-full flex items-center gap-3 px-4 py-3">
           <QAvatar q={q} status={status} />
           <div className="flex-1 min-w-0">
@@ -223,7 +225,7 @@ function QuarterCard({
 
   if (status === 'in_progress') {
     return (
-      <div className="rounded-lg border border-blue-900 bg-slate-800">
+      <div id={anchorId} className="rounded-lg border border-blue-900 bg-slate-800">
         <div className="w-full flex items-center gap-3 px-4 py-3">
           <QAvatar q={q} status={status} />
           <div className="flex-1 min-w-0">
@@ -245,8 +247,8 @@ function QuarterCard({
   // Completed — collapsible
   return (
     <Collapsible.Root open={isOpen} onOpenChange={onToggle}>
-      <div className={cn(
-        'rounded-lg border bg-slate-800 transition-colors duration-150',
+      <div id={anchorId} className={cn(
+        'rounded-lg border bg-slate-800 transition-colors duration-150 scroll-mt-4',
         isOpen ? 'border-slate-600' : 'border-slate-700 hover:border-slate-500'
       )}>
         <Collapsible.Trigger asChild>
@@ -281,6 +283,23 @@ export function HonoursSection({ data, leagueName, leagueSlug }: HonoursSectionP
     return null
   })
 
+  // Deep-link: a shared quarter link (…/honours#q-<year>-<q>) opens that
+  // quarter card expanded and scrolls it into view on load.
+  useEffect(() => {
+    const match = window.location.hash.replace(/^#/, '').match(/^q-(\d+)-(\d+)$/)
+    if (!match) return
+    const key = `${match[1]}-${match[2]}`
+    const exists = data.some((yearGroup) =>
+      yearGroup.quarters.some((q) => `${q.year}-${q.q}` === key)
+    )
+    if (!exists) return
+    setOpenKey(key)
+    // Wait a frame so the card is rendered/expanded before scrolling to it.
+    requestAnimationFrame(() => {
+      document.getElementById(`q-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [data])
+
   if (data.length === 0) {
     return (
       <div className="py-16 text-center">
@@ -310,6 +329,7 @@ export function HonoursSection({ data, leagueName, leagueSlug }: HonoursSectionP
                 <QuarterCard
                   key={key}
                   quarter={quarter}
+                  anchorId={`q-${key}`}
                   isOpen={openKey === key}
                   onToggle={() => setOpenKey(openKey === key ? null : key)}
                   leagueName={leagueName}
