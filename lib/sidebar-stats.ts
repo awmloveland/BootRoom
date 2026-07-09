@@ -441,6 +441,40 @@ export function computeAllQuarters(weeks: Week[], now: Date = new Date()): Honou
   return result
 }
 
+/**
+ * Returns the quarter that transitioned to `completed` (with a champion) between
+ * two week sets, or null if none did. Used to decide whether recording a game
+ * clinched a quarter. If more than one newly completes, returns the most recent.
+ */
+export function findNewlyCompletedQuarter(
+  weeksBefore: Week[],
+  weeksAfter: Week[],
+  now: Date = new Date(),
+): QuarterSummary | null {
+  const completedKeys = (weeks: Week[]): Set<string> => {
+    const keys = new Set<string>()
+    for (const yr of computeAllQuarters(weeks, now)) {
+      for (const s of yr.quarters) {
+        if (s.status === 'completed' && s.champion) keys.add(`${s.year}-${s.q}`)
+      }
+    }
+    return keys
+  }
+
+  const before = completedKeys(weeksBefore)
+  const newly: QuarterSummary[] = []
+  for (const yr of computeAllQuarters(weeksAfter, now)) {
+    for (const s of yr.quarters) {
+      if (s.status === 'completed' && s.champion && !before.has(`${s.year}-${s.q}`)) {
+        newly.push(s)
+      }
+    }
+  }
+  if (newly.length === 0) return null
+  newly.sort((a, b) => b.year - a.year || b.q - a.q)
+  return newly[0]
+}
+
 // ─── computeTeamAB ────────────────────────────────────────────────────────────
 
 export interface TeamABResult {
