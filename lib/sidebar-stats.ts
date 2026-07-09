@@ -475,6 +475,27 @@ export function findNewlyCompletedQuarter(
   return newly[0]
 }
 
+/**
+ * Returns the freshly-finished quarter to celebrate on the Results tab, or null.
+ * Shows while the current calendar quarter has zero played weeks and the
+ * previous quarter is completed with a champion. Returns null the moment the
+ * new quarter records its first game (self-expiry).
+ */
+export function getCelebratedQuarter(weeks: Week[], now: Date = new Date()): QuarterSummary | null {
+  const { q, year } = quarterOf(now)
+  const currentPlayed = weeks.filter(w => weekInQuarter(w, q, year) && w.status === 'played').length
+  if (currentPlayed > 0) return null
+
+  const prevQ = q === 1 ? 4 : q - 1
+  const prevYear = q === 1 ? year - 1 : year
+  const summary = computeAllQuarters(weeks, now)
+    .find(y => y.year === prevYear)
+    ?.quarters.find(s => s.q === prevQ)
+
+  if (summary && summary.status === 'completed' && summary.champion) return summary
+  return null
+}
+
 // ─── computeTeamAB ────────────────────────────────────────────────────────────
 
 export interface TeamABResult {

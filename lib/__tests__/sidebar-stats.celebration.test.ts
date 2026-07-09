@@ -50,3 +50,32 @@ describe('findNewlyCompletedQuarter', () => {
     expect(findNewlyCompletedQuarter(before, after, now)).toBeNull()
   })
 })
+
+describe('getCelebratedQuarter', () => {
+  const now = new Date(2026, 6, 8) // Q3 2026
+
+  it('returns the previous quarter while the current quarter has no played games', () => {
+    const weeks: Week[] = [
+      makeWeek(1, '10 Apr 2026', 'played'),
+      makeWeek(2, '17 Apr 2026', 'played'),
+    ]
+    const result = getCelebratedQuarter(weeks, now)
+    expect(result).not.toBeNull()
+    expect(result!.q).toBe(2)
+    expect(result!.champion).toBeTruthy()
+  })
+
+  it('returns null once the current quarter has a played game', () => {
+    const weeks: Week[] = [
+      makeWeek(1, '10 Apr 2026', 'played'),
+      makeWeek(2, '17 Apr 2026', 'played'),
+      makeWeek(3, '3 Jul 2026', 'played'), // Q3 now has a played game
+    ]
+    expect(getCelebratedQuarter(weeks, now)).toBeNull()
+  })
+
+  it('returns null when the previous quarter has no champion (no played games)', () => {
+    const weeks: Week[] = [makeWeek(1, '17 Apr 2026', 'cancelled')]
+    expect(getCelebratedQuarter(weeks, now)).toBeNull()
+  })
+})
