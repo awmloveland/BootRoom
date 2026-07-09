@@ -18,6 +18,8 @@ import { MobileStatsFAB } from '@/components/MobileStatsFAB'
 import { SidebarSticky } from '@/components/SidebarSticky'
 import { BfcacheRefresh } from '@/components/BfcacheRefresh'
 import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
+import { getCelebratedQuarter } from '@/lib/sidebar-stats'
+import { QuarterCelebration } from '@/components/QuarterCelebration'
 import type { Week, ScheduledWeek, LeagueDetails, JoinRequestStatus } from '@/lib/types'
 
 interface Props {
@@ -139,6 +141,11 @@ export default async function LeagueResultsPage({ params }: Props) {
     }
   }
 
+  const celebratedQuarter = getCelebratedQuarter(weeks)
+  const canSeeCelebration =
+    isAdmin || isFeatureEnabled(features, 'quarter_celebration', tier)
+  const showCelebration = celebratedQuarter !== null && canSeeCelebration
+
   const goalkeepers = players.filter((p) => p.mentality === 'goalkeeper').map((p) => p.name)
 
   const playedCount = getSeasonPlayedWeekCount(weeks)
@@ -173,6 +180,14 @@ export default async function LeagueResultsPage({ params }: Props) {
               joinStatus={joinStatus}
               pendingRequestCount={pendingRequestCount}
             />
+            {showCelebration && (
+              <QuarterCelebration
+                quarter={celebratedQuarter!}
+                leagueName={game.name}
+                leagueSlug={slug}
+                variant="card"
+              />
+            )}
             {nextWeek && (
               <PublicMatchEntrySection
                 gameId={leagueId}
@@ -235,6 +250,16 @@ export default async function LeagueResultsPage({ params }: Props) {
             pendingRequestCount={pendingRequestCount}
           />
           {showClaimBanner && <ClaimOnboardingBanner leagueId={leagueId} />}
+          {showCelebration && (
+            <div className="mb-3">
+              <QuarterCelebration
+                quarter={celebratedQuarter!}
+                leagueName={game.name}
+                leagueSlug={slug}
+                variant="card"
+              />
+            </div>
+          )}
           <div className="flex flex-col gap-3">
             {canSeeMatchEntry ? (
               <ResultsSection

@@ -441,6 +441,61 @@ export function computeAllQuarters(weeks: Week[], now: Date = new Date()): Honou
   return result
 }
 
+/**
+ * Returns the quarter that transitioned to `completed` (with a champion) between
+ * two week sets, or null if none did. Used to decide whether recording a game
+ * clinched a quarter. If more than one newly completes, returns the most recent.
+ */
+export function findNewlyCompletedQuarter(
+  weeksBefore: Week[],
+  weeksAfter: Week[],
+  now: Date = new Date(),
+): QuarterSummary | null {
+  const completedKeys = (weeks: Week[]): Set<string> => {
+    const keys = new Set<string>()
+    for (const yr of computeAllQuarters(weeks, now)) {
+      for (const s of yr.quarters) {
+        if (s.status === 'completed' && s.champion) keys.add(`${s.year}-${s.q}`)
+      }
+    }
+    return keys
+  }
+
+  const before = completedKeys(weeksBefore)
+  const newly: QuarterSummary[] = []
+  for (const yr of computeAllQuarters(weeksAfter, now)) {
+    for (const s of yr.quarters) {
+      if (s.status === 'completed' && s.champion && !before.has(`${s.year}-${s.q}`)) {
+        newly.push(s)
+      }
+    }
+  }
+  if (newly.length === 0) return null
+  newly.sort((a, b) => b.year - a.year || b.q - a.q)
+  return newly[0]
+}
+
+/**
+ * Returns the freshly-finished quarter to celebrate on the Results tab, or null.
+ * Shows while the current calendar quarter has zero played weeks and the
+ * previous quarter is completed with a champion. Returns null the moment the
+ * new quarter records its first game (self-expiry).
+ */
+export function getCelebratedQuarter(weeks: Week[], now: Date = new Date()): QuarterSummary | null {
+  const { q, year } = quarterOf(now)
+  const currentPlayed = weeks.filter(w => weekInQuarter(w, q, year) && w.status === 'played').length
+  if (currentPlayed > 0) return null
+
+  const prevQ = q === 1 ? 4 : q - 1
+  const prevYear = q === 1 ? year - 1 : year
+  const summary = computeAllQuarters(weeks, now)
+    .find(y => y.year === prevYear)
+    ?.quarters.find(s => s.q === prevQ)
+
+  if (summary && summary.status === 'completed' && summary.champion) return summary
+  return null
+}
+
 // ─── computeTeamAB ────────────────────────────────────────────────────────────
 
 export interface TeamABResult {
