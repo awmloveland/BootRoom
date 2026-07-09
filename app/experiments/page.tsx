@@ -7,10 +7,11 @@ import { cn } from '@/lib/utils'
 import type { FeatureKey } from '@/lib/types'
 
 const FEATURE_LABELS: Record<FeatureKey, string> = {
-  match_history:     'Match History',
-  match_entry:       'Match Entry',
-  player_stats:      'Player Stats',
-  player_comparison: 'Player Comparison',
+  match_history:       'Match History',
+  match_entry:         'Match Entry',
+  player_stats:        'Player Stats',
+  player_comparison:   'Player Comparison',
+  quarter_celebration: 'Quarter Celebration',
 }
 
 interface Experiment {

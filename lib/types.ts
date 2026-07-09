@@ -91,7 +91,8 @@ export type FeatureKey =
   | 'match_history'
   | 'match_entry'
   | 'player_stats'
-  | 'player_comparison';
+  | 'player_comparison'
+  | 'quarter_celebration';
 
 export interface FeatureConfig {
   max_players?: number | null;
