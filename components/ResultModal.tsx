@@ -6,6 +6,9 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { cn, buildResultShareText, buildDnfShareText, buildResultHeadline, resolveTeamRatingForResult } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality, Week, Strength } from '@/lib/types'
+import { findNewlyCompletedQuarter } from '@/lib/sidebar-stats'
+import type { QuarterSummary } from '@/lib/sidebar-stats'
+import { QuarterCelebration } from '@/components/QuarterCelebration'
 import { strengthToRating } from '@/lib/strength'
 import { StrengthPills } from '@/components/ui/StrengthPills'
 import { Toggle } from '@/components/ui/toggle'
@@ -24,7 +27,7 @@ interface Props {
   onClose: () => void
 }
 
-type ResultStep = 'winner' | 'review' | 'confirm' | 'share'
+type ResultStep = 'winner' | 'review' | 'confirm' | 'share' | 'celebrate'
 
 interface GuestReviewState {
   name: string
@@ -91,6 +94,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
     | { dnf: true; shareText: string }
   const [shareData, setShareData] = useState<ShareData | null>(null)
   const [shareCopied, setShareCopied] = useState(false)
+  const [celebrateQuarter, setCelebrateQuarter] = useState<QuarterSummary | null>(null)
 
   const [guestStates, setGuestStates] = useState<GuestReviewState[]>(
     guests.map((g) => ({
@@ -167,6 +171,18 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
       setTimeout(() => setShareCopied(false), 2000)
     } catch {
       // clipboard unavailable — nothing to do
+    }
+  }
+
+  // After a successful save, celebrate if this game clinched a quarter;
+  // otherwise fall through to the normal per-game share step.
+  function routeAfterSave(weeksAfter: Week[]) {
+    const clinched = findNewlyCompletedQuarter(weeks, weeksAfter, new Date())
+    if (clinched) {
+      setCelebrateQuarter(clinched)
+      setStep('celebrate')
+    } else {
+      setStep('share')
     }
   }
 
@@ -362,7 +378,10 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
       }
 
       setShareData({ dnf: false, winner, goalDifference, shareText, highlightsText })
-      setStep('share')
+      const weeksAfter = weeks.some(w => w.id === scheduledWeek.id)
+        ? weeks.map(w => (w.id === scheduledWeek.id ? syntheticWeek : w))
+        : [...weeks, syntheticWeek]
+      routeAfterSave(weeksAfter)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save result')
     } finally {
@@ -371,7 +390,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   }
 
   return (
-    <Dialog.Root open onOpenChange={(open) => { if (!open) { if (step === 'share') onSaved(); else onClose() } }}>
+    <Dialog.Root open onOpenChange={(open) => { if (!open) { if (step === 'share' || step === 'celebrate') onSaved(); else onClose() } }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/70 z-[999]" />
         <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-sm rounded-xl bg-slate-800 border border-slate-700 shadow-xl focus:outline-none overflow-hidden">
@@ -392,7 +411,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                 {scheduledWeek.date}
               </Dialog.Description>
             </div>
-            {step === 'share' && (
+            {(step === 'share' || step === 'celebrate') && (
               <Dialog.Close asChild>
                 <button
                   type="button"
@@ -732,6 +751,29 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                   type="button"
                   onClick={onSaved}
                   className="px-4 py-2.5 rounded-lg border border-slate-600 text-slate-300 text-sm hover:border-slate-500 transition-colors"
+                >
+                  Done
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── Step: celebrate ── */}
+          {step === 'celebrate' && celebrateQuarter && (
+            <>
+              <div className="p-4">
+                <QuarterCelebration
+                  quarter={celebrateQuarter}
+                  leagueName={leagueName}
+                  leagueSlug={leagueSlug}
+                  variant="modal"
+                />
+              </div>
+              <div className="px-5 pb-5 pt-1">
+                <button
+                  type="button"
+                  onClick={onSaved}
+                  className="w-full px-4 py-2.5 rounded-lg border border-slate-600 text-slate-300 text-sm hover:border-slate-500 transition-colors"
                 >
                   Done
                 </button>
