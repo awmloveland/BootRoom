@@ -1,3 +1,5 @@
+import { cn } from '@/lib/utils'
+
 const BETA_STATS = [
   { value: '60+', label: 'PLAYERS TRACKED', accent: true },
   { value: '400+', label: 'MATCHES RECORDED', accent: false },
@@ -17,7 +19,7 @@ export function BetaStats() {
         <div className="flex flex-wrap items-end gap-8 sm:gap-11">
           {BETA_STATS.map((stat) => (
             <div key={stat.label}>
-              <p className={`font-plex text-4xl sm:text-[52px] font-bold leading-[.9] tracking-[-.04em] ${stat.accent ? 'text-[#38bdf8]' : 'text-[#f4f9ff]'}`}>
+              <p className={cn('font-plex text-4xl sm:text-[52px] font-bold leading-[.9] tracking-[-.04em]', stat.accent ? 'text-[#38bdf8]' : 'text-[#f4f9ff]')}>
                 {stat.value}
               </p>
               <p className="mt-2.5 font-plex text-[9px] font-semibold tracking-[.18em] text-[#6f88a8]">{stat.label}</p>

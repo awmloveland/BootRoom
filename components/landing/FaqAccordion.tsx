@@ -52,6 +52,7 @@ export function FaqAccordion() {
               <button
                 type="button"
                 onClick={() => setOpenIndex(open ? -1 : i)}
+                aria-expanded={open}
                 className="w-full flex items-start gap-4 sm:gap-[22px] py-5 bg-transparent border-none cursor-pointer text-left"
               >
                 <span className={cn('font-plex text-[10px] font-bold tracking-[.14em] pt-[5px]', open ? 'text-[#38bdf8]' : 'text-[#2f4a70]')}>
