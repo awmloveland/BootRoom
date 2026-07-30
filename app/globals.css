@@ -50,6 +50,22 @@
     from { height: var(--radix-accordion-content-height); }
     to { height: 0; }
   }
+
+  --font-grotesk: var(--font-space-grotesk), var(--font-inter), system-ui, sans-serif;
+  --font-plex: var(--font-plex-mono), ui-monospace, monospace;
+  --font-inter-body: var(--font-inter), system-ui, sans-serif;
+
+  --animate-cf-tick: cf-tick 34s linear infinite;
+  --animate-cf-pulse: cf-pulse 2.4s ease-in-out infinite;
+
+  @keyframes cf-tick {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes cf-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
 }
 
 /* Tailwind plugins */
