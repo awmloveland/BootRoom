@@ -57,7 +57,7 @@ function TeamColumn({
         <span className={cn('text-sm font-bold tracking-[.02em]', labelClass)}>{label}</span>
         <span
           className={cn(
-            'font-plex text-base font-bold transition-opacity duration-[400ms] delay-[400ms]',
+            'font-plex text-base font-bold transition-opacity duration-[400ms] delay-[400ms] motion-reduce:transition-none',
             labelClass,
             dealt ? 'opacity-100' : 'opacity-0'
           )}
@@ -70,7 +70,7 @@ function TeamColumn({
           <div
             key={name}
             className={cn(
-              'font-inter-body text-[13px] font-semibold px-3 py-[9px] rounded border-l-2 transition-[opacity,transform] duration-[450ms] ease-[cubic-bezier(.2,.7,.3,1)]',
+              'font-inter-body text-[13px] font-semibold px-3 py-[9px] rounded border-l-2 transition-[opacity,transform] duration-[450ms] ease-[cubic-bezier(.2,.7,.3,1)] motion-reduce:transition-none',
               chipClass,
               dealt ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-[0.97]'
             )}
@@ -131,7 +131,7 @@ export function LineupLabDemo() {
               </span>
               <span
                 className={cn(
-                  'font-plex text-[10px] font-bold tracking-[.14em] px-[11px] py-[5px] rounded bg-[rgba(190,242,100,.14)] border border-[rgba(190,242,100,.4)] text-[#bef264] transition-opacity duration-[400ms] delay-500',
+                  'font-plex text-[10px] font-bold tracking-[.14em] px-[11px] py-[5px] rounded bg-[rgba(190,242,100,.14)] border border-[rgba(190,242,100,.4)] text-[#bef264] transition-opacity duration-[400ms] delay-500 motion-reduce:transition-none',
                   dealt ? 'opacity-100' : 'opacity-0'
                 )}
               >
