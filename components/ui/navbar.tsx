@@ -132,6 +132,7 @@ export function Navbar({
   const [profileRole, setProfileRole] = useState<string | null>(null)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [authResolved, setAuthResolved] = useState(false)
 
   const router = useRouter()
 
@@ -172,7 +173,11 @@ export function Navbar({
   useEffect(() => {
     if (pathname === '/sign-in') return
     let cancelled = false
-    fetchUserData().then((result) => { if (!cancelled) applyUserData(result) })
+    fetchUserData().then((result) => {
+      if (cancelled) return
+      applyUserData(result)
+      setAuthResolved(true)
+    })
     return () => { cancelled = true }
   }, [pathname, fetchUserData, applyUserData])
 
@@ -228,6 +233,10 @@ export function Navbar({
     if (item.title === 'Settings') return isSettingsPage
     return false
   }
+
+  // The landing page at / ships its own header; hide the app navbar for
+  // signed-out visitors (and while auth state is still resolving) there.
+  if (pathname === '/' && (!authResolved || !user)) return null
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-700 bg-slate-900">

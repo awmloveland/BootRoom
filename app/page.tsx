@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
+import { LandingPage } from '@/components/landing/LandingPage'
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const MONTH_IDX: Record<string, number> = Object.fromEntries(MONTH_SHORT.map((m, i) => [m, i]))
@@ -169,58 +170,6 @@ export default async function HomePage() {
     )
   }
 
-  // Unauthenticated: show public league directory
-  const service = createServiceClient()
-
-  const [experimentsRes, publicLeaguesRes] = await Promise.all([
-    service.from('feature_experiments').select('feature').eq('available', true),
-    service.from('league_features').select('game_id, feature, games(id, name, slug)').eq('public_enabled', true),
-  ])
-
-  const globallyAvailable = experimentsRes.error
-    ? null
-    : new Set((experimentsRes.data ?? []).map((e) => e.feature))
-  const publicLeagues = (publicLeaguesRes.data ?? []).filter(
-    (row) => globallyAvailable === null || globallyAvailable.has(row.feature)
-  )
-
-  const seen = new Set<string>()
-  const directory = (publicLeagues ?? [])
-    .filter((row) => {
-      const game = (row.games as unknown as { id: string } | null)
-      const id = game?.id
-      if (!id || seen.has(id)) return false
-      seen.add(id)
-      return true
-    })
-    .map((row) => {
-      const game = (row.games as unknown as { id: string; name: string; slug: string } | null)
-      return {
-        id: game?.id ?? '',
-        slug: game?.slug ?? '',
-        name: game?.name ?? '',
-      }
-    })
-
-  return (
-    <main className="max-w-xl mx-auto px-4 sm:px-6 py-8">
-      <h1 className="text-xl font-semibold text-slate-100 mb-6">Leagues</h1>
-      {directory.length === 0 ? (
-        <p className="text-slate-400 text-sm">No public leagues yet.</p>
-      ) : (
-        <div className="space-y-2">
-          {directory.map((league) => (
-            <Link
-              key={league.id}
-              href={`/${league.slug}/results`}
-              className="flex items-center justify-between p-4 rounded-lg bg-slate-800 border border-slate-700 hover:border-slate-600 transition-colors"
-            >
-              <p className="text-sm font-medium text-slate-100">{league.name}</p>
-              <ChevronRight className="w-4 h-4 text-slate-500 shrink-0 ml-4" />
-            </Link>
-          ))}
-        </div>
-      )}
-    </main>
-  )
+  // Unauthenticated: marketing landing page
+  return <LandingPage />
 }
