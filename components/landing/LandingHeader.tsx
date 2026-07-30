@@ -20,11 +20,11 @@ export function LandingHeader() {
     <header className="sticky top-0 z-50 bg-[rgba(6,11,20,.94)] backdrop-blur-[10px] border-b border-[#101d31]">
       <div className="h-9 bg-[#0b1728] border-b border-[#17263c] flex items-center overflow-hidden">
         <span className="inline-flex items-center gap-[7px] flex-none px-[18px] h-full border-r border-[#17263c] font-plex text-[10px] font-bold tracking-[.18em] text-[#bef264]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#bef264] animate-cf-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#bef264] animate-cf-pulse motion-reduce:animate-none" />
           LATEST
         </span>
         <div className="flex-1 overflow-hidden">
-          <div className="flex w-max animate-cf-tick font-plex text-[11px] tracking-[.1em] text-[#8ba4c4]">
+          <div className="flex w-max animate-cf-tick motion-reduce:animate-none font-plex text-[11px] tracking-[.1em] text-[#8ba4c4]">
             {[0, 1].map((copy) => (
               <span key={copy} aria-hidden={copy === 1} className="flex">
                 {TICKER_ITEMS.map((item) => (

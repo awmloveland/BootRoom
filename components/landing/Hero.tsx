@@ -13,6 +13,7 @@ export function Hero() {
   return (
     <section className="relative overflow-hidden bg-[#060b14]">
       <div
+        aria-hidden="true"
         className="absolute inset-0 pointer-events-none bg-[radial-gradient(#16283f_1.4px,transparent_1.4px)] bg-[length:24px_24px] [mask-image:linear-gradient(180deg,#000_0%,rgba(0,0,0,.45)_55%,transparent_92%)]"
       />
       <div className="relative max-w-[1200px] mx-auto px-5 sm:px-11 pt-14 lg:pt-[72px] pb-16 lg:pb-[84px] grid lg:grid-cols-[1.02fr_.98fr] gap-[52px] items-center">
