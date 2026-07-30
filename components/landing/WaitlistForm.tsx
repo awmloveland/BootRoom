@@ -75,6 +75,7 @@ export function WaitlistForm() {
           placeholder="Your name"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          maxLength={100}
           className={inputClass}
         />
         <input
@@ -86,6 +87,7 @@ export function WaitlistForm() {
             setEmail(e.target.value)
             setEmailError(false)
           }}
+          maxLength={254}
           className={cn(inputClass, emailError && 'border-[#e2686f]')}
         />
       </div>
@@ -94,6 +96,7 @@ export function WaitlistForm() {
         placeholder="City"
         value={city}
         onChange={(e) => setCity(e.target.value)}
+        maxLength={100}
         className={cn(inputClass, 'mt-2.5')}
       />
       <input
