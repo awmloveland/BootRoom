@@ -41,6 +41,27 @@ describe('parseWaitlistBody', () => {
     expect(parseWaitlistBody({ ...valid, format: undefined })).toBeNull()
   })
 
+  it('rejects names longer than 100 characters', () => {
+    expect(parseWaitlistBody({ ...valid, name: 'a'.repeat(101) })).toBeNull()
+  })
+
+  it('accepts a name of exactly 100 characters', () => {
+    expect(parseWaitlistBody({ ...valid, name: 'a'.repeat(100) })).toEqual({
+      ...valid,
+      name: 'a'.repeat(100),
+    })
+  })
+
+  it('rejects emails longer than 254 characters', () => {
+    const longEmail = `${'a'.repeat(250)}@b.co` // 255 chars total
+    expect(longEmail.length).toBe(255)
+    expect(parseWaitlistBody({ ...valid, email: longEmail })).toBeNull()
+  })
+
+  it('rejects cities longer than 100 characters', () => {
+    expect(parseWaitlistBody({ ...valid, city: 'a'.repeat(101) })).toBeNull()
+  })
+
   it('rejects non-object bodies', () => {
     expect(parseWaitlistBody(null)).toBeNull()
     expect(parseWaitlistBody('hello')).toBeNull()
