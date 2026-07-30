@@ -137,22 +137,26 @@ export function Navbar({
   const router = useRouter()
 
   const fetchUserData = useCallback(async () => {
-    const res = await fetch('/api/auth/me', { credentials: 'include' })
-    const data = await res.json().catch(() => ({}))
-    let role: string | null = null
-    if (data?.user?.id) {
-      const supabase = createClient()
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .maybeSingle()
-      role = profile?.role ?? null
+    try {
+      const res = await fetch('/api/auth/me', { credentials: 'include' })
+      const data = await res.json().catch(() => ({}))
+      let role: string | null = null
+      if (data?.user?.id) {
+        const supabase = createClient()
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .maybeSingle()
+        role = profile?.role ?? null
+      }
+      const first = data?.profile?.first_name ?? ''
+      const last = data?.profile?.last_name ?? ''
+      const derivedName = `${first} ${last}`.trim() || data?.user?.email || null
+      return { user: data?.user ?? null, displayName: derivedName, role }
+    } catch {
+      return { user: null, displayName: null, role: null }
     }
-    const first = data?.profile?.first_name ?? ''
-    const last = data?.profile?.last_name ?? ''
-    const derivedName = `${first} ${last}`.trim() || data?.user?.email || null
-    return { user: data?.user ?? null, displayName: derivedName, role }
   }, [])
 
   const applyUserData = useCallback((result: { user: { id?: string; email?: string } | null; displayName: string | null; role: string | null }) => {
