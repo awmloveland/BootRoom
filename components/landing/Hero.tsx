@@ -166,7 +166,7 @@ export function Hero() {
               Log in
             </LoginLink>
           </div>
-          <div className="flex flex-wrap items-end gap-5 sm:gap-[34px] mt-11 pt-[26px] border-t border-[#17263c]">
+          <div className="flex flex-wrap items-end gap-5 sm:gap-[34px] lg:gap-5 min-[1200px]:gap-[34px] mt-11 pt-[26px] border-t border-[#17263c]">
             {HERO_STATS.map((stat, i) => (
               <div key={stat.label} className="contents">
                 {i > 0 && <div className="w-px h-[38px] bg-[#17263c]" />}
