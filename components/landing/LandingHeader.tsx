@@ -25,8 +25,10 @@ export function LandingHeader() {
         </span>
         <div className="flex-1 overflow-hidden">
           <div className="flex w-max animate-cf-tick motion-reduce:animate-none font-plex text-[11px] tracking-[.1em] text-[#8ba4c4]">
-            {[0, 1].map((copy) => (
-              <span key={copy} aria-hidden={copy === 1} className="flex">
+            {/* Even number of copies keeps the -50% loop seamless; four keeps one half
+                of the strip wider than the viewport on ultrawide screens. */}
+            {[0, 1, 2, 3].map((copy) => (
+              <span key={copy} aria-hidden={copy > 0} className="flex">
                 {TICKER_ITEMS.map((item) => (
                   <span key={item.text} className={item.highlight ? 'px-[26px] text-[#38bdf8]' : 'px-[26px]'}>
                     {item.text}
