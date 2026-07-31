@@ -22,6 +22,24 @@ export function Hero() {
           <p className="mt-4 text-2xl lg:text-[34px] leading-none font-bold tracking-[-.03em] text-[#38bdf8]">
             For your weekly game.
           </p>
+          {/* Compact score strip for small screens; the full match card is desktop-only */}
+          <div className="lg:hidden mt-6 border border-[#1b2c46] bg-[#0a1421] rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,.6)]">
+            <div className="flex items-center justify-between px-4 py-3 bg-[#0c1728] border-b border-[#1b2c46]">
+              <span className="font-plex text-[9px] font-semibold tracking-[.14em] text-[#7f97b5]">WEEK 14 · 25 MAR 2026 · 7-A-SIDE</span>
+              <span className="font-plex text-[9px] font-bold tracking-[.14em] text-[#bef264]">FULL TIME</span>
+            </div>
+            <div className="px-[18px] pt-5 pb-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3.5">
+              <p className="text-[13px] font-bold tracking-[.02em] text-[#7dd3fc]">TEAM A</p>
+              <p className="font-plex text-[44px] font-bold leading-[.9] tracking-[-.04em] text-[#f4f9ff] tabular-nums whitespace-nowrap">
+                6<span className="text-[#2f4a70]">-</span>4
+              </p>
+              <p className="text-right text-[13px] font-bold tracking-[.02em] text-[#c4b5fd]">TEAM B</p>
+            </div>
+            <div className="flex items-center justify-between px-4 py-2.5 border-t border-[#1b2c46] bg-[#0c1728] font-plex text-[8.5px] font-semibold tracking-[.12em] text-[#7f97b5]">
+              <span>LINEUP LAB · Δ 0.024 BALANCED</span>
+              <span className="text-[#bef264]">MARGIN +2</span>
+            </div>
+          </div>
           <p className="mt-6 max-w-[470px] font-inter-body text-base leading-relaxed text-[#8ba4c4] text-pretty">
             The group chat has opinions. The table has facts. Craft Football records every match
             your group plays and turns it into results history, player records, honours boards and
@@ -36,7 +54,7 @@ export function Hero() {
             </a>
           </div>
         </div>
-        <div className="relative pb-[76px]">
+        <div className="relative hidden lg:block pb-[76px]">
           <div className="border border-[#1b2c46] bg-[#0a1421] rounded-[14px] overflow-hidden shadow-[0_34px_80px_rgba(0,0,0,.6)]">
             <div className="flex items-center justify-between px-5 py-3.5 bg-[#0c1728] border-b border-[#1b2c46]">
               <span className="font-plex text-[10px] font-semibold tracking-[.16em] text-[#7f97b5]">WEEK 14 · 25 MAR 2026 · 7-A-SIDE</span>
