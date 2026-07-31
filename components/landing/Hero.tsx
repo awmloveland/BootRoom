@@ -22,7 +22,8 @@ const BAR_A: Record<string, string> = { W: 'bg-[#38bdf8]', D: 'bg-[#3d5578]', L:
 const BAR_B: Record<string, string> = { W: 'bg-[#a78bfa]', D: 'bg-[#4b4275]', L: 'bg-[#e2686f]' }
 
 const HERO_STATS = [
-  { value: '150+', label: 'MATCHES RECORDED' },
+  { value: '100+', label: 'MATCHES RECORDED' },
+  { value: '60+', label: 'PLAYERS TRACKED' },
   { value: '2025', label: 'KEEPING SCORE SINCE' },
 ]
 

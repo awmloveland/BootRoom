@@ -1,7 +1,8 @@
 import { cn } from '@/lib/utils'
 
 const BETA_STATS = [
-  { value: '150+', label: 'MATCHES RECORDED', accent: true },
+  { value: '60+', label: 'PLAYERS TRACKED', accent: true },
+  { value: '100+', label: 'MATCHES RECORDED', accent: false },
   { value: '2025', label: 'KEEPING SCORE SINCE', accent: false },
 ]
 
