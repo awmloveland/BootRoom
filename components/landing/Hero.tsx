@@ -138,13 +138,13 @@ export function Hero() {
         aria-hidden="true"
         className="absolute inset-0 pointer-events-none bg-[radial-gradient(#16283f_1.4px,transparent_1.4px)] bg-[length:24px_24px] [mask-image:linear-gradient(180deg,#000_0%,rgba(0,0,0,.45)_55%,transparent_92%)]"
       />
-      <div className="relative max-w-[1200px] mx-auto px-5 sm:px-11 pt-10 sm:pt-14 lg:pt-[72px] pb-[52px] sm:pb-[68px] lg:pb-[84px] grid lg:grid-cols-[1.02fr_.98fr] gap-[30px] sm:gap-10 lg:gap-[52px] lg:items-center">
+      <div className="relative max-w-[1200px] mx-auto px-5 sm:px-11 pt-10 sm:pt-14 lg:pt-[72px] pb-[52px] sm:pb-[68px] lg:pb-[84px] grid lg:grid-cols-[1.02fr_.98fr] gap-[30px] sm:gap-10 min-[1200px]:gap-[52px] lg:items-center">
         <div>
           <span className="inline-flex items-center gap-[9px] font-plex text-[10px] font-bold tracking-[.2em] text-[#bef264]">
             <span className="w-[22px] h-0.5 bg-[#bef264]" />
             PRIVATE BETA · 5, 6 &amp; 7-A-SIDE
           </span>
-          <h1 className="mt-5 text-[42px] sm:text-[60px] lg:text-[82px] leading-[.94] font-bold tracking-[-.035em] text-[#f4f9ff]">
+          <h1 className="mt-5 text-[34px] min-[421px]:text-[42px] sm:text-[60px] lg:text-[68px] min-[1200px]:text-[82px] leading-[.94] font-bold tracking-[-.035em] text-[#f4f9ff]">
             Results, stats <br className="hidden lg:inline" />and fair teams.
           </h1>
           <p className="mt-4 text-2xl sm:text-[30px] lg:text-[34px] leading-none font-bold tracking-[-.03em] text-[#38bdf8]">
