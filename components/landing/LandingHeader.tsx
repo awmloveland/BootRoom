@@ -44,12 +44,12 @@ export function LandingHeader() {
           <img src="/logo.png" alt="Craft Football" className="w-[34px] h-[34px] block" />
           <span className="text-lg font-bold tracking-[-.02em]">Craft Football</span>
         </div>
-        <nav className="flex items-center gap-4 md:gap-8">
+        <nav className="flex items-center gap-3 lg:gap-8">
           {NAV_LINKS.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="hidden md:block font-plex text-[11px] font-semibold tracking-[.16em] text-[#8ba4c4] hover:text-[#eaf2ff]"
+              className="hidden lg:block font-plex text-[11px] font-semibold tracking-[.16em] text-[#8ba4c4] hover:text-[#eaf2ff]"
             >
               {link.label}
             </a>

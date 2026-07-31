@@ -21,7 +21,7 @@ export function LandingFooter() {
             PRIVATE INVITE-ONLY BETA · BUILT FOR 5, 6 &amp; 7-A-SIDE
           </p>
         </div>
-        <div className="flex gap-14">
+        <div className="flex flex-wrap gap-y-5 gap-x-[clamp(28px,5vw,56px)]">
           <div className="flex flex-col gap-[9px]">
             <p className="mb-[3px] font-plex text-[9px] font-semibold tracking-[.18em] text-[#4f688a]">PRODUCT</p>
             {PRODUCT_LINKS.map((link) => (

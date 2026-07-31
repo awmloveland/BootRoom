@@ -43,9 +43,15 @@ const FORM: Record<string, string> = {
   'Harry Patel': 'WLWDL',
 }
 
-const BAR_CLASS: Record<string, string> = {
+const BAR_CLASS_A: Record<string, string> = {
   W: 'bg-[#38bdf8]',
   D: 'bg-[#3d5578]',
+  L: 'bg-[#e2686f]',
+}
+
+const BAR_CLASS_B: Record<string, string> = {
+  W: 'bg-[#a78bfa]',
+  D: 'bg-[#4b4275]',
   L: 'bg-[#e2686f]',
 }
 
@@ -57,6 +63,7 @@ function TeamColumn({
   dealt,
   baseDelay,
   chipClass,
+  barClass,
 }: {
   label: string
   labelClass: string
@@ -65,6 +72,7 @@ function TeamColumn({
   dealt: boolean
   baseDelay: number
   chipClass: string
+  barClass: Record<string, string>
 }) {
   return (
     <div>
@@ -94,7 +102,7 @@ function TeamColumn({
             <span className="truncate">{name}</span>
             <span className="flex gap-[3px] shrink-0">
               {(FORM[name.replace(' 🧤', '')] ?? '').split('').map((ch, j) => (
-                <span key={j} className={cn('w-2 h-[5px] rounded-[1px]', BAR_CLASS[ch])} />
+                <span key={j} className={cn('w-[11px] h-1.5 rounded-[2px]', barClass[ch])} />
               ))}
             </span>
           </div>
@@ -132,7 +140,7 @@ export function LineupLabDemo() {
       className="mt-16 lg:mt-[88px] py-16 lg:py-[88px] px-5 sm:px-11 bg-[#0a1421] border-y border-[#17263c]"
     >
       <div className="max-w-[1112px] mx-auto grid lg:grid-cols-[1.15fr_.85fr] gap-10 lg:gap-14 items-center">
-        <div className="relative border border-[#1b2c46] bg-[#060b14] rounded-[14px] px-4 sm:px-[26px] pt-[26px] pb-[22px] overflow-hidden order-2 lg:order-1">
+        <div className="relative border border-[#1b2c46] bg-[#060b14] rounded-[14px] px-[18px] pt-5 pb-[18px] sm:px-[26px] sm:pt-[26px] sm:pb-[22px] overflow-hidden order-2 lg:order-1">
           <svg
             viewBox="0 0 600 340"
             preserveAspectRatio="none"
@@ -147,7 +155,7 @@ export function LineupLabDemo() {
           <div className="relative">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-plex text-[10px] font-semibold tracking-[.16em] text-[#7f97b5]">
-                TONIGHT&apos;S DRAW · 5-A-SIDE · 10 IN
+                TONIGHT&apos;S DRAW · 5-A-SIDE · 10 IN · LAST 5
               </span>
               <span
                 className={cn(
@@ -167,6 +175,7 @@ export function LineupLabDemo() {
                 dealt={dealt}
                 baseDelay={0.05}
                 chipClass="bg-[rgba(8,47,73,.55)] border-[#38bdf8] text-[#dff1ff]"
+                barClass={BAR_CLASS_A}
               />
               <TeamColumn
                 label="TEAM B"
@@ -176,6 +185,7 @@ export function LineupLabDemo() {
                 dealt={dealt}
                 baseDelay={0.11}
                 chipClass="bg-[rgba(46,16,101,.45)] border-[#a78bfa] text-[#efeaff]"
+                barClass={BAR_CLASS_B}
               />
             </div>
             <div className="flex justify-center mt-5">
@@ -213,6 +223,11 @@ export function LineupLabDemo() {
             Lineup Lab weighs every player&apos;s record, win rate, recent form and time in goal,
             then splits tonight&apos;s group into two sides so even it is spooky.
           </p>
+          <div className="flex flex-col gap-2.5 mt-6">
+            <p className="font-inter-body text-sm text-[#cfe0f4]">Rated on the record, not on reputation</p>
+            <p className="font-inter-body text-sm text-[#cfe0f4]">Keepers spread before anything else</p>
+            <p className="font-inter-body text-sm text-[#cfe0f4]">Reshuffle until the group stops moaning</p>
+          </div>
         </div>
       </div>
     </section>

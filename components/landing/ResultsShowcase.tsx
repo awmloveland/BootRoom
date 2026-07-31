@@ -47,11 +47,11 @@ export function ResultsShowcase() {
             <div
               key={row.week}
               className={cn(
-                'grid grid-cols-[110px_1fr_auto] sm:grid-cols-[150px_1fr_auto] items-center gap-3 sm:gap-[18px] px-4 sm:px-6 py-[18px] bg-[#060b14]',
+                'grid grid-cols-[1fr_auto] sm:grid-cols-[150px_1fr_auto] items-center gap-x-3 gap-y-1.5 sm:gap-[18px] px-4 sm:px-6 py-[18px] bg-[#060b14]',
                 row.cancelled && 'opacity-60'
               )}
             >
-              <span className="font-plex text-[11px] tracking-[.14em] text-[#6f88a8]">{row.week}</span>
+              <span className="col-span-full sm:col-auto font-plex text-[11px] tracking-[.14em] text-[#6f88a8]">{row.week}</span>
               {row.score ? (
                 <span className="font-plex text-[26px] font-bold tracking-[-.02em] text-[#f4f9ff] tabular-nums whitespace-nowrap">
                   {row.score[0]}<span className="text-[#2f4a70]">-</span>{row.score[1]}

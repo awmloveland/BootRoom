@@ -33,7 +33,7 @@ export function HowItWorks() {
       <div className="grid md:grid-cols-3 gap-8 mt-11">
         {STEPS.map((step) => (
           <div key={step.num} className="border-t border-[#17263c] pt-[22px]">
-            <p className={cn('font-plex text-[64px] font-bold leading-[.9] tracking-[-.05em] text-transparent', step.strokeClass)}>
+            <p className={cn('font-plex text-[48px] sm:text-[56px] lg:text-[64px] font-bold leading-[.9] tracking-[-.05em] text-transparent', step.strokeClass)}>
               {step.num}
             </p>
             <p className="mt-[18px] text-[22px] font-bold tracking-[-.02em] text-[#f4f9ff]">{step.title}</p>

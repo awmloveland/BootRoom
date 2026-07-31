@@ -13,10 +13,10 @@ export function HonoursShowcase() {
           </p>
         </div>
         <div className="grid sm:grid-cols-2 gap-3.5">
-          <div className="sm:col-span-2 border border-[#1b2c46] bg-[#0f2033] rounded-xl px-[26px] py-6 flex items-center justify-between">
+          <div className="sm:col-span-2 border border-[#1b2c46] bg-[#0f2033] rounded-xl px-[26px] py-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="font-plex text-[9px] font-bold tracking-[.2em] text-[#bef264]">Q1 2026 CHAMPION</p>
-              <p className="mt-2.5 text-[32px] font-bold tracking-[-.03em] text-[#f4f9ff]">Sam Okafor</p>
+              <p className="mt-2.5 text-[clamp(24px,3.4vw,32px)] font-bold tracking-[-.03em] text-[#f4f9ff]">Sam Okafor</p>
               <p className="mt-1.5 font-plex text-[11px] tracking-[.12em] text-[#7f97b5]">71% WIN RATE · 24 CAPS</p>
             </div>
             <span className="inline-flex items-center justify-center w-[66px] h-[66px] rounded-full bg-[rgba(190,242,100,.12)] border border-[rgba(190,242,100,.4)] text-[#bef264] shrink-0">

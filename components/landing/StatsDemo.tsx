@@ -77,16 +77,16 @@ export function StatsDemo() {
           </div>
         </div>
         <div className="flex flex-col gap-px bg-[#17263c] border border-[#17263c] rounded-xl overflow-hidden">
-          <div className="grid grid-cols-[44px_1fr_86px_64px] sm:grid-cols-[44px_1fr_130px_96px] items-center gap-3.5 px-4 sm:px-[22px] py-3 bg-[#0c1728] font-plex text-[9px] font-semibold tracking-[.18em] text-[#6f88a8]">
+          <div className="grid grid-cols-[32px_1fr_66px] sm:grid-cols-[44px_1fr_130px_96px] items-center gap-3.5 px-4 sm:px-[22px] py-3 bg-[#0c1728] font-plex text-[9px] font-semibold tracking-[.18em] text-[#6f88a8]">
             <span>#</span>
             <span>PLAYER</span>
-            <span>LAST 5</span>
+            <span className="hidden sm:block">LAST 5</span>
             <span className="text-right">WIN %</span>
           </div>
           {sorted.map((player, i) => (
             <div
               key={player.name}
-              className="grid grid-cols-[44px_1fr_86px_64px] sm:grid-cols-[44px_1fr_130px_96px] items-center gap-3.5 px-4 sm:px-[22px] py-4 bg-[#0a1421]"
+              className="grid grid-cols-[32px_1fr_66px] sm:grid-cols-[44px_1fr_130px_96px] items-center gap-3.5 px-4 sm:px-[22px] py-4 bg-[#0a1421]"
             >
               <span className={cn('font-plex text-[22px] font-bold', i === 0 ? 'text-[#38bdf8]' : 'text-[#3d5578]')}>
                 {i + 1}
@@ -97,9 +97,9 @@ export function StatsDemo() {
                   {player.played} CAPS · {player.role}
                 </span>
               </span>
-              <span className="flex gap-1">
+              <span className="hidden sm:flex gap-1">
                 {player.form.split('').map((ch, j) => (
-                  <span key={j} className={cn('w-3 sm:w-[18px] h-2 rounded-sm', BAR_CLASS[ch])} />
+                  <span key={j} className={cn('w-[18px] h-2 rounded-sm', BAR_CLASS[ch])} />
                 ))}
               </span>
               <span
