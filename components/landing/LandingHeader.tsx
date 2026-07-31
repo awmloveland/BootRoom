@@ -4,9 +4,9 @@ const TICKER_ITEMS: { text: string; highlight?: boolean }[] = [
   { text: 'WK14 · TEAM A 6-4 TEAM B' },
   { text: 'S. OKAFOR CROWNED Q1 CHAMPION', highlight: true },
   { text: 'WK13 · TEAM B 5-3 TEAM A' },
-  { text: 'E. KNIGHT · 3 WINS ON THE SPIN', highlight: true },
+  { text: 'S. MARSH · 3 WINS ON THE SPIN', highlight: true },
   { text: 'WK12 · DRAWN 4-4' },
-  { text: 'W. LOVELAND · 42ND CAP' },
+  { text: 'M. REID · 42ND CAP' },
 ]
 
 const NAV_LINKS = [

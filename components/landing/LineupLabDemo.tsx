@@ -13,26 +13,41 @@ interface Lineup {
 
 const LINEUPS: Lineup[] = [
   {
-    a: ['Will Loveland 🧤', 'Alex Miller', 'Rav Singh', 'Ellie Knight', 'Sam Okafor'],
-    b: ['Jordan Taylor 🧤', 'Ben Carter', 'Ollie Wright', 'Priya Nair', 'Dan Foster'],
+    a: ['Marcus Reid 🧤', 'Callum Shaw', 'Rav Singh', 'Sofia Marsh', 'Sam Okafor'],
+    b: ['Jordan Taylor 🧤', 'Dylan Carter', 'Nathan Wright', 'Priya Nair', 'Leon Brooks'],
     ra: '4.012',
     rb: '3.988',
     delta: '0.024',
   },
   {
-    a: ['Jordan Taylor 🧤', 'Ellie Knight', 'Sam Okafor', 'Harry Patel', 'Dan Foster'],
-    b: ['Will Loveland 🧤', 'Alex Miller', 'Rav Singh', 'Priya Nair', 'Ben Carter'],
+    a: ['Jordan Taylor 🧤', 'Sofia Marsh', 'Sam Okafor', 'Harry Patel', 'Leon Brooks'],
+    b: ['Marcus Reid 🧤', 'Callum Shaw', 'Rav Singh', 'Priya Nair', 'Dylan Carter'],
     ra: '3.941',
     rb: '3.966',
     delta: '0.025',
   },
 ]
 
-const BULLETS = [
-  'Rated on the record, not on reputation',
-  'Keepers spread before anything else',
-  'Reshuffle until the group stops moaning',
-]
+/** Last-5 form per player, consistent with the stats demo where players overlap. */
+const FORM: Record<string, string> = {
+  'Marcus Reid': 'WWDWL',
+  'Callum Shaw': 'WLWWW',
+  'Rav Singh': 'WWWDL',
+  'Sofia Marsh': 'WDWWW',
+  'Sam Okafor': 'WWWWL',
+  'Jordan Taylor': 'LWDWW',
+  'Dylan Carter': 'WLLWD',
+  'Nathan Wright': 'DWLWW',
+  'Priya Nair': 'WWLDW',
+  'Leon Brooks': 'LDWWL',
+  'Harry Patel': 'WLWDL',
+}
+
+const BAR_CLASS: Record<string, string> = {
+  W: 'bg-[#38bdf8]',
+  D: 'bg-[#3d5578]',
+  L: 'bg-[#e2686f]',
+}
 
 function TeamColumn({
   label,
@@ -70,13 +85,18 @@ function TeamColumn({
           <div
             key={name}
             className={cn(
-              'font-inter-body text-[13px] font-semibold px-3 py-[9px] rounded border-l-2 transition-[opacity,transform] duration-[450ms] ease-[cubic-bezier(.2,.7,.3,1)] motion-reduce:transition-none',
+              'flex items-center justify-between gap-3 font-inter-body text-[13px] font-semibold px-3 py-[9px] rounded border-l-2 transition-[opacity,transform] duration-[450ms] ease-[cubic-bezier(.2,.7,.3,1)] motion-reduce:transition-none',
               chipClass,
               dealt ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-[0.97]'
             )}
             style={{ transitionDelay: dealt ? `${(baseDelay + i * 0.06).toFixed(2)}s` : '0s' }}
           >
-            {name}
+            <span className="truncate">{name}</span>
+            <span className="flex gap-[3px] shrink-0">
+              {(FORM[name.replace(' 🧤', '')] ?? '').split('').map((ch, j) => (
+                <span key={j} className={cn('w-2 h-[5px] rounded-[1px]', BAR_CLASS[ch])} />
+              ))}
+            </span>
           </div>
         ))}
       </div>
@@ -193,11 +213,6 @@ export function LineupLabDemo() {
             Lineup Lab weighs every player&apos;s record, win rate, recent form and time in goal,
             then splits tonight&apos;s group into two sides so even it is spooky.
           </p>
-          <div className="flex flex-col gap-2.5 mt-6">
-            {BULLETS.map((line) => (
-              <p key={line} className="font-inter-body text-sm text-[#cfe0f4]">{line}</p>
-            ))}
-          </div>
         </div>
       </div>
     </section>

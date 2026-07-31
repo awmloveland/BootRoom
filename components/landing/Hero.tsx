@@ -1,11 +1,5 @@
-const TEAM_A = ['Will Loveland 🧤', 'Alex Miller', 'Rav Singh', 'Sam Okafor']
-const TEAM_B = ['Jordan Taylor 🧤', 'Ben Carter', 'Ollie Wright', 'Priya Nair']
-
-const HERO_STATS = [
-  { value: '400+', label: 'MATCHES RECORDED' },
-  { value: '60+', label: 'PLAYERS TRACKED' },
-  { value: '2022', label: 'KEEPING SCORE SINCE' },
-]
+const TEAM_A = ['Marcus Reid 🧤', 'Callum Shaw', 'Rav Singh', 'Sam Okafor']
+const TEAM_B = ['Jordan Taylor 🧤', 'Dylan Carter', 'Nathan Wright', 'Priya Nair']
 
 const FORM_BARS = ['#38bdf8', '#38bdf8', '#3d5578', '#38bdf8', '#e2686f']
 
@@ -40,17 +34,6 @@ export function Hero() {
             >
               Register your interest
             </a>
-          </div>
-          <div className="flex items-end gap-6 sm:gap-[34px] mt-11 pt-[26px] border-t border-[#17263c]">
-            {HERO_STATS.map((stat, i) => (
-              <span key={stat.label} className="flex items-end gap-6 sm:gap-[34px]">
-                {i > 0 && <span className="w-px h-[38px] bg-[#17263c]" />}
-                <span>
-                  <p className="font-plex text-[34px] font-bold tracking-[-.03em] text-[#f4f9ff] leading-none">{stat.value}</p>
-                  <p className="mt-1.5 font-plex text-[9px] font-semibold tracking-[.18em] text-[#6f88a8]">{stat.label}</p>
-                </span>
-              </span>
-            ))}
           </div>
         </div>
         <div className="relative pb-[76px]">
@@ -90,7 +73,7 @@ export function Hero() {
           <div className="absolute left-0 sm:-left-[30px] bottom-0 box-border w-[290px] -rotate-2 border border-[#1b2c46] bg-[#101d31] rounded-[10px] px-4 py-3.5 shadow-[0_22px_50px_rgba(0,0,0,.6)]">
             <div className="flex items-start justify-between">
               <div>
-                <p className="font-inter-body text-[13px] font-bold text-[#f4f9ff]">Will Loveland</p>
+                <p className="font-inter-body text-[13px] font-bold text-[#f4f9ff]">Marcus Reid</p>
                 <p className="mt-[3px] font-plex text-[9px] tracking-[.14em] text-[#6f88a8]">42 CAPS · KEEPER</p>
               </div>
               <p className="font-plex text-2xl font-bold leading-none tracking-[-.03em] text-[#38bdf8]">

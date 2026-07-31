@@ -32,14 +32,14 @@ export function HonoursShowcase() {
           </div>
           <div className="border border-[#1b2c46] bg-[#0a1421] rounded-xl px-[22px] py-5">
             <p className="font-plex text-[9px] font-bold tracking-[.2em] text-[#6f88a8]">MOST APPEARANCES</p>
-            <p className="mt-2.5 text-xl font-bold tracking-[-.02em] text-[#f4f9ff]">Will Loveland</p>
+            <p className="mt-2.5 text-xl font-bold tracking-[-.02em] text-[#f4f9ff]">Marcus Reid</p>
             <p className="mt-2 font-plex text-[26px] font-bold text-[#38bdf8] leading-none">
               42<span className="text-xs text-[#6f88a8] tracking-[.14em]"> GAMES</span>
             </p>
           </div>
           <div className="border border-[#1b2c46] bg-[#0a1421] rounded-xl px-[22px] py-5">
             <p className="font-plex text-[9px] font-bold tracking-[.2em] text-[#6f88a8]">IN FORM</p>
-            <p className="mt-2.5 text-xl font-bold tracking-[-.02em] text-[#f4f9ff]">Ellie Knight</p>
+            <p className="mt-2.5 text-xl font-bold tracking-[-.02em] text-[#f4f9ff]">Sofia Marsh</p>
             <p className="mt-2 font-plex text-[26px] font-bold text-[#bef264] leading-none">
               3<span className="text-xs text-[#6f88a8] tracking-[.14em]"> ON THE SPIN</span>
             </p>

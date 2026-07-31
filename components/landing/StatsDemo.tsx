@@ -12,10 +12,10 @@ interface DemoPlayer {
 }
 
 const PLAYERS: DemoPlayer[] = [
-  { name: 'Will Loveland', played: 42, role: 'KEEPER', form: 'WWDWL', winRate: 66.7 },
+  { name: 'Marcus Reid', played: 42, role: 'KEEPER', form: 'WWDWL', winRate: 66.7 },
   { name: 'Rav Singh', played: 36, role: 'DEFENSIVE', form: 'WWWDL', winRate: 58.3 },
-  { name: 'Alex Miller', played: 38, role: 'BALANCED', form: 'WLWWW', winRate: 57.9 },
-  { name: 'Ellie Knight', played: 34, role: 'ATTACKING', form: 'WDWWW', winRate: 55.9 },
+  { name: 'Callum Shaw', played: 38, role: 'BALANCED', form: 'WLWWW', winRate: 57.9 },
+  { name: 'Sofia Marsh', played: 34, role: 'ATTACKING', form: 'WDWWW', winRate: 55.9 },
 ]
 
 type SortKey = 'winRate' | 'played' | 'form' | 'az'
