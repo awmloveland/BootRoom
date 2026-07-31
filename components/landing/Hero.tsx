@@ -22,9 +22,9 @@ const BAR_A: Record<string, string> = { W: 'bg-[#38bdf8]', D: 'bg-[#3d5578]', L:
 const BAR_B: Record<string, string> = { W: 'bg-[#a78bfa]', D: 'bg-[#4b4275]', L: 'bg-[#e2686f]' }
 
 const HERO_STATS = [
-  { value: '100+', label: 'MATCHES RECORDED' },
-  { value: '60+', label: 'PLAYERS TRACKED' },
-  { value: '2025', label: 'KEEPING SCORE SINCE' },
+  { value: '100+', line1: 'MATCHES', line2: 'RECORDED' },
+  { value: '60+', line1: 'PLAYERS', line2: 'TRACKED' },
+  { value: '2025', line1: 'KEEPING', line2: 'SCORE SINCE' },
 ]
 
 const QUARTER_BARS = [
@@ -168,13 +168,16 @@ export function Hero() {
           </div>
           <div className="grid grid-cols-3 items-end gap-3 sm:flex sm:flex-wrap sm:gap-[34px] lg:gap-5 min-[1200px]:gap-[34px] mt-11 pt-[26px] border-t border-[#17263c]">
             {HERO_STATS.map((stat, i) => (
-              <div key={stat.label} className="contents">
+              <div key={stat.value} className="contents">
                 {i > 0 && <div className="hidden sm:block w-px h-[38px] bg-[#17263c]" />}
                 <div>
                   <p className="font-plex text-[26px] sm:text-[34px] font-bold tracking-[-.03em] text-[#f4f9ff] leading-none">
                     {stat.value}
                   </p>
-                  <p className="mt-1.5 font-plex text-[9px] font-semibold tracking-[.18em] text-[#6f88a8]">{stat.label}</p>
+                  <p className="mt-1.5 font-plex text-[9px] font-semibold tracking-[.18em] leading-[1.5] text-[#6f88a8]">
+                    {stat.line1}
+                    <br className="sm:hidden" /> {stat.line2}
+                  </p>
                 </div>
               </div>
             ))}

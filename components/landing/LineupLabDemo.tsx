@@ -155,7 +155,7 @@ export function LineupLabDemo() {
           <div className="relative">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-plex text-[10px] font-semibold tracking-[.16em] text-[#7f97b5]">
-                TONIGHT&apos;S DRAW · 5-A-SIDE · 10 IN · LAST 5
+                TONIGHT&apos;S DRAW · 5-A-SIDE
               </span>
               <span
                 className={cn(
@@ -223,11 +223,6 @@ export function LineupLabDemo() {
             Lineup Lab weighs every player&apos;s record, win rate, recent form and time in goal,
             then splits tonight&apos;s group into two sides so even it is spooky.
           </p>
-          <div className="flex flex-col gap-2.5 mt-6">
-            <p className="font-inter-body text-sm text-[#cfe0f4]">Rated on the record, not on reputation</p>
-            <p className="font-inter-body text-sm text-[#cfe0f4]">Keepers spread before anything else</p>
-            <p className="font-inter-body text-sm text-[#cfe0f4]">Reshuffle until the group stops moaning</p>
-          </div>
         </div>
       </div>
     </section>
