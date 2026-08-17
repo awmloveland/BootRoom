@@ -132,26 +132,31 @@ export function Navbar({
   const [profileRole, setProfileRole] = useState<string | null>(null)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [authResolved, setAuthResolved] = useState(false)
 
   const router = useRouter()
 
   const fetchUserData = useCallback(async () => {
-    const res = await fetch('/api/auth/me', { credentials: 'include' })
-    const data = await res.json().catch(() => ({}))
-    let role: string | null = null
-    if (data?.user?.id) {
-      const supabase = createClient()
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .maybeSingle()
-      role = profile?.role ?? null
+    try {
+      const res = await fetch('/api/auth/me', { credentials: 'include' })
+      const data = await res.json().catch(() => ({}))
+      let role: string | null = null
+      if (data?.user?.id) {
+        const supabase = createClient()
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .maybeSingle()
+        role = profile?.role ?? null
+      }
+      const first = data?.profile?.first_name ?? ''
+      const last = data?.profile?.last_name ?? ''
+      const derivedName = `${first} ${last}`.trim() || data?.user?.email || null
+      return { user: data?.user ?? null, displayName: derivedName, role }
+    } catch {
+      return { user: null, displayName: null, role: null }
     }
-    const first = data?.profile?.first_name ?? ''
-    const last = data?.profile?.last_name ?? ''
-    const derivedName = `${first} ${last}`.trim() || data?.user?.email || null
-    return { user: data?.user ?? null, displayName: derivedName, role }
   }, [])
 
   const applyUserData = useCallback((result: { user: { id?: string; email?: string } | null; displayName: string | null; role: string | null }) => {
@@ -172,7 +177,11 @@ export function Navbar({
   useEffect(() => {
     if (pathname === '/sign-in') return
     let cancelled = false
-    fetchUserData().then((result) => { if (!cancelled) applyUserData(result) })
+    fetchUserData().then((result) => {
+      if (cancelled) return
+      applyUserData(result)
+      setAuthResolved(true)
+    })
     return () => { cancelled = true }
   }, [pathname, fetchUserData, applyUserData])
 
@@ -228,6 +237,10 @@ export function Navbar({
     if (item.title === 'Settings') return isSettingsPage
     return false
   }
+
+  // The landing page at / ships its own header; hide the app navbar for
+  // signed-out visitors (and while auth state is still resolving) there.
+  if (pathname === '/' && (!authResolved || !user)) return null
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-700 bg-slate-900">
