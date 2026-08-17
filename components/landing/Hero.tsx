@@ -206,7 +206,7 @@ export function Hero() {
           <div
             ref={railRef}
             onScroll={handleRailScroll}
-            className="relative flex lg:block items-stretch gap-3.5 lg:gap-0 overflow-x-auto lg:overflow-visible scrollbar-hide snap-x snap-proximity pb-[26px] lg:pt-20 lg:pb-[84px]"
+            className="relative flex lg:block items-stretch gap-3.5 lg:gap-0 overflow-x-auto lg:overflow-visible scrollbar-hide snap-x snap-proximity -mx-5 px-5 scroll-px-5 sm:-mx-11 sm:px-11 sm:scroll-px-11 lg:mx-0 lg:px-0 lg:scroll-px-0 pb-[26px] lg:pt-20 lg:pb-[84px]"
           >
             {/* Champion badge — floats bottom-right on desktop, second rail card on mobile */}
             <div className={cn(badgeClass, 'order-2 lg:order-none lg:left-[268px] lg:top-[448px] lg:rotate-2 z-[2]')}>
@@ -256,7 +256,7 @@ export function Hero() {
               </div>
             </div>
             {/* Match card — the centrepiece; first rail card on mobile */}
-            <div className="order-1 lg:order-none flex-none lg:flex-initial snap-start w-[min(390px,90vw)] sm:w-[min(486px,84vw)] lg:w-auto flex flex-col border border-[#1b2c46] bg-[#0a1421] rounded-[14px] overflow-hidden shadow-[0_34px_80px_rgba(0,0,0,.6)]">
+            <div className="order-1 lg:order-none flex-none lg:flex-initial snap-start w-[min(370px,85vw)] sm:w-[min(486px,84vw)] lg:w-auto flex flex-col border border-[#1b2c46] bg-[#0a1421] rounded-[14px] overflow-hidden shadow-[0_34px_80px_rgba(0,0,0,.6)]">
               <div className="flex items-center justify-between px-5 py-3.5 bg-[#0c1728] border-b border-[#1b2c46]">
                 <span className="font-plex text-[10px] font-semibold tracking-[.16em] text-[#7f97b5]">WEEK 14 · 25 MAR 2026 · 7-A-SIDE</span>
                 <span className="font-plex text-[10px] font-bold tracking-[.16em] text-[#bef264]">FULL TIME</span>

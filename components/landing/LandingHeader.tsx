@@ -40,9 +40,9 @@ export function LandingHeader() {
         </div>
       </div>
       <div className="max-w-[1200px] mx-auto h-[74px] px-5 sm:px-11 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Craft Football" className="w-[34px] h-[34px] block" />
-          <span className="text-lg font-bold tracking-[-.02em]">Craft Football</span>
+        <div className="flex items-center gap-3 shrink-0">
+          <img src="/logo.png" alt="Craft Football" className="w-[34px] h-[34px] block shrink-0" />
+          <span className="text-lg font-bold tracking-[-.02em] whitespace-nowrap">Craft Football</span>
         </div>
         <nav className="flex items-center gap-3 lg:gap-8">
           {NAV_LINKS.map((link) => (
@@ -54,17 +54,15 @@ export function LandingHeader() {
               {link.label}
             </a>
           ))}
-          <span className="flex items-center gap-2.5">
-            <a
-              href="#waitlist"
-              className="inline-flex items-center h-10 px-4 sm:px-5 bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] rounded text-[13px] font-bold transition-colors"
-            >
-              Register interest
-            </a>
-            <LoginLink className="inline-flex items-center h-10 px-4 sm:px-[18px] border border-[#223a5c] hover:border-[#38bdf8] rounded text-[#cfe0f4] hover:text-white text-[13px] font-bold transition-colors cursor-pointer">
-              Log in
-            </LoginLink>
-          </span>
+          <a
+            href="#waitlist"
+            className="hidden sm:inline-flex items-center h-10 px-5 bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] rounded text-[13px] font-bold whitespace-nowrap transition-colors"
+          >
+            Register interest
+          </a>
+          <LoginLink className="inline-flex items-center h-10 px-4 sm:px-[18px] border border-[#223a5c] hover:border-[#38bdf8] rounded text-[#cfe0f4] hover:text-white text-[13px] font-bold whitespace-nowrap transition-colors cursor-pointer">
+            Log in
+          </LoginLink>
         </nav>
       </div>
     </header>
