@@ -337,7 +337,7 @@ export function computeAllQuarters(weeks: Week[], now: Date = new Date()): Honou
       const qStart = new Date(year, (q - 1) * 3, 1)     // e.g. Q1 → Jan 1
       const qEnd   = new Date(year, q * 3, 0)             // e.g. Q1 → Mar 31
 
-      // Determine status purely from calendar position
+      // Initial status from calendar position (refined below for the current quarter)
       let status: QuarterStatus
       if (now < qStart) {
         status = 'upcoming'
@@ -352,6 +352,19 @@ export function computeAllQuarters(weeks: Week[], now: Date = new Date()): Honou
 
       // Get all weeks in this quarter
       const qWeeks = weeks.filter(w => weekInQuarter(w, q, year))
+
+      // The current quarter is over as soon as every game day in it has a
+      // state: no scheduled/unrecorded weeks, no game days left before quarter
+      // end, and at least one game actually played. Mirrors the sidebar's
+      // "games left" count so the board completes on the final result, not on
+      // the calendar rollover.
+      if (status === 'in_progress' && gameDay !== null) {
+        const allSettled = !qWeeks.some(w => w.status === 'unrecorded' || w.status === 'scheduled')
+        const hasPlayed  = qWeeks.some(w => w.status === 'played')
+        if (allSettled && hasPlayed && gamesLeftInQuarter(q, year, gameDay, now, weeks) === 0) {
+          status = 'completed'
+        }
+      }
 
       // Completed quarters must have all weeks settled and at least one played
       if (status === 'completed') {
