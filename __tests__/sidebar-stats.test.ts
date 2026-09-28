@@ -759,6 +759,63 @@ describe('computeAllQuarters', () => {
     expect(q1.champion).toBeUndefined()
     expect(q1.entries).toBeUndefined()
   })
+
+  it('promotes the current calendar quarter to completed once every game day in it is settled', () => {
+    // Thursday league. now = Mon 28 Sep 2026 (Q3) — the last Thursday of Q3
+    // (24 Sep) is already played, so no game days remain to be settled.
+    const now = new Date(2026, 8, 28)
+    const weeks = [
+      makeWeek({ week: 1, date: '10 Sep 2026' }),
+      makeWeek({ week: 2, date: '17 Sep 2026' }),
+      makeWeek({ week: 3, date: '24 Sep 2026' }),
+    ]
+    const q3 = computeAllQuarters(weeks, now).find(y => y.year === 2026)!.quarters.find(q => q.q === 3)!
+    expect(q3.status).toBe('completed')
+    expect(q3.champion).toBe('Alice')
+    expect(q3.gamesPlayed).toBe(3)
+  })
+
+  it('keeps the current quarter in_progress while a game day in it still has no state', () => {
+    // Wednesday league. now = Mon 28 Sep 2026 — Wed 30 Sep is still to come.
+    const now = new Date(2026, 8, 28)
+    const weeks = [
+      makeWeek({ week: 1, date: '16 Sep 2026' }),
+      makeWeek({ week: 2, date: '23 Sep 2026' }),
+    ]
+    const q3 = computeAllQuarters(weeks, now).find(y => y.year === 2026)!.quarters.find(q => q.q === 3)!
+    expect(q3.status).toBe('in_progress')
+    expect(q3.champion).toBeUndefined()
+  })
+
+  it('completes the current quarter as soon as its final game day is given a state (even cancelled)', () => {
+    const now = new Date(2026, 8, 28)
+    const weeks = [
+      makeWeek({ week: 1, date: '16 Sep 2026' }),
+      makeWeek({ week: 2, date: '23 Sep 2026' }),
+      makeWeek({ week: 3, date: '30 Sep 2026', status: 'cancelled', winner: null }),
+    ]
+    const q3 = computeAllQuarters(weeks, now).find(y => y.year === 2026)!.quarters.find(q => q.q === 3)!
+    expect(q3.status).toBe('completed')
+    expect(q3.gamesPlayed).toBe(2)
+  })
+
+  it('keeps the current quarter in_progress while a scheduled week is awaiting its result', () => {
+    // Thursday league, all game days accounted for, but the last one is only scheduled.
+    const now = new Date(2026, 8, 28)
+    const weeks = [
+      makeWeek({ week: 1, date: '17 Sep 2026' }),
+      makeWeek({ week: 2, date: '24 Sep 2026', status: 'scheduled', winner: null }),
+    ]
+    const q3 = computeAllQuarters(weeks, now).find(y => y.year === 2026)!.quarters.find(q => q.q === 3)!
+    expect(q3.status).toBe('in_progress')
+  })
+
+  it('does not complete the current quarter when it has no played weeks', () => {
+    const now = new Date(2026, 8, 28)
+    const weeks = [makeWeek({ week: 1, date: '24 Sep 2026', status: 'cancelled', winner: null })]
+    const q3 = computeAllQuarters(weeks, now).find(y => y.year === 2026)!.quarters.find(q => q.q === 3)!
+    expect(q3.status).toBe('in_progress')
+  })
 })
 
 // ─── YourStatsWidget player lookup ────────────────────────────────────────────
