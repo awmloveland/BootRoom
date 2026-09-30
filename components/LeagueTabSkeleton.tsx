@@ -15,15 +15,22 @@ function Block({ className }: { className?: string }) {
 }
 
 /**
- * Instant placeholder for the four league tab pages. Mirrors the real page
- * structure (header, info bar, tab nav, content cards, desktop sidebar) so
- * nothing shifts when the real content streams in. The tab nav is real text
- * with the active tab underlined, so a click visibly "lands" before any data
- * arrives.
+ * Placeholder for the four league tab pages. Mirrors the real page structure
+ * (header, info bar, tab nav, content cards, desktop sidebar) so nothing
+ * shifts when the real content streams in. The tab nav is real text with the
+ * active tab underlined, so a click visibly "lands" before any data arrives.
+ *
+ * The skeleton starts invisible and fades in after a short delay via
+ * `@starting-style` (Tailwind's `starting:` variant). Fast navigations swap
+ * straight to content with no skeleton flash; slow ones still get the
+ * placeholder. Browsers without `@starting-style` show it immediately.
  */
 export function LeagueTabSkeleton({ tab }: { tab: LeagueTab }) {
   return (
-    <main className="px-4 sm:px-6 pt-4 pb-8" aria-busy="true">
+    <main
+      className="px-4 sm:px-6 pt-4 pb-8 opacity-100 starting:opacity-0 transition-opacity duration-300 delay-200"
+      aria-busy="true"
+    >
       <div className="flex justify-center gap-6 items-start">
         <div className="w-full max-w-xl shrink-0">
           {/* Header: title + subtitle on the left, join/share button on the right */}

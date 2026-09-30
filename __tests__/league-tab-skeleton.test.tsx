@@ -19,6 +19,12 @@ describe('LeagueTabSkeleton', () => {
     expect(current[0]).toHaveTextContent('Honours')
   })
 
+  it('starts invisible and fades in after a delay, so fast loads never flash it', () => {
+    render(<LeagueTabSkeleton tab="results" />)
+    const main = screen.getByRole('main')
+    expect(main).toHaveClass('starting:opacity-0', 'opacity-100', 'transition-opacity', 'delay-200')
+  })
+
   it('announces itself as busy to assistive tech', () => {
     render(<LeagueTabSkeleton tab="players" />)
     expect(screen.getByRole('main')).toHaveAttribute('aria-busy', 'true')
