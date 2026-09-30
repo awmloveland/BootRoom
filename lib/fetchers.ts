@@ -201,6 +201,20 @@ export async function getJoinRequestStatus(
   return data.status as JoinRequestStatus
 }
 
+// The join/share button state for the current visitor, resolved entirely from
+// the request's cached auth state so pages can run it in their parallel batch.
+//   null      → signed out (page shows Join → AuthDialog)
+//   'member'  → has a league role (page shows Share)
+//   otherwise → the visitor's join request status
+export const getMyJoinRequestStatus = cache(async (
+  leagueId: string
+): Promise<JoinRequestStatus | 'member' | null> => {
+  const { user, userRole, isAuthenticated } = await getAuthAndRole(leagueId)
+  if (!isAuthenticated || !user) return null
+  if (userRole !== null) return 'member'
+  return getJoinRequestStatus(leagueId, user.id)
+})
+
 // ── Pending join requests ─────────────────────────────────────────────────────
 
 // Fetches all pending join requests for a league. Returns [] if the caller
@@ -260,8 +274,9 @@ export const getMyClaimInfo = cache(async (leagueId: string): Promise<{
   playerName: string | null
 }> => {
   try {
-    const user = await getUser()
-    if (!user) return { status: 'none', playerName: null }
+    // Claims only exist for members. Non-members (public tier) skip the query.
+    const { user, userRole } = await getAuthAndRole(leagueId)
+    if (!user || userRole === null) return { status: 'none', playerName: null }
     const authSupabase = await getAuthClient()
     const { data } = await authSupabase
       .from('player_claims')

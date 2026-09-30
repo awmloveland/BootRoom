@@ -5,7 +5,7 @@ jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 jest.mock('@/lib/supabase/service', () => ({ createServiceClient: jest.fn() }))
 
 // Import after the mocks are registered.
-import { getUser, getAuthAndRole, getPendingBadgeCount } from '@/lib/fetchers'
+import { getUser, getAuthAndRole, getPendingBadgeCount, getMyJoinRequestStatus, getMyClaimInfo } from '@/lib/fetchers'
 
 const LEAGUE = '11111111-1111-1111-1111-111111111111'
 const USER = { id: 'user-1', email: 'a@b.c' }
@@ -94,5 +94,68 @@ describe('getPendingBadgeCount', () => {
       return Promise.resolve({ data: null, error: { message: 'unknown rpc' } })
     })
     await expect(getPendingBadgeCount(LEAGUE)).resolves.toBe(3)
+  })
+})
+
+describe('getMyJoinRequestStatus', () => {
+  it('returns null when signed out', async () => {
+    mockAuth(null)
+    await expect(getMyJoinRequestStatus(LEAGUE)).resolves.toBeNull()
+  })
+
+  it("returns 'member' for anyone with a league role", async () => {
+    mockAuth(USER)
+    ;(createServiceClient as jest.Mock).mockReturnValue({
+      from: jest.fn(() => queryReturning({ role: 'member' })),
+    })
+    await expect(getMyJoinRequestStatus(LEAGUE)).resolves.toBe('member')
+  })
+
+  it('returns the join request status for a signed-in non-member', async () => {
+    mockAuth(USER)
+    const from = jest.fn((table: string) =>
+      table === 'game_members'
+        ? queryReturning(null)
+        : queryReturning({ status: 'pending' })
+    )
+    ;(createServiceClient as jest.Mock).mockReturnValue({ from })
+    await expect(getMyJoinRequestStatus(LEAGUE)).resolves.toBe('pending')
+    expect(from).toHaveBeenCalledWith('game_join_requests')
+  })
+
+  it("returns 'none' for a signed-in non-member with no request", async () => {
+    mockAuth(USER)
+    ;(createServiceClient as jest.Mock).mockReturnValue({
+      from: jest.fn(() => queryReturning(null)),
+    })
+    await expect(getMyJoinRequestStatus(LEAGUE)).resolves.toBe('none')
+  })
+})
+
+describe('getMyClaimInfo', () => {
+  it('short-circuits for a signed-in non-member without querying player_claims', async () => {
+    ;(createServiceClient as jest.Mock).mockReturnValue({
+      from: jest.fn(() => queryReturning(null)),
+    })
+    const authFrom = jest.fn()
+    ;(createClient as jest.Mock).mockResolvedValue({
+      auth: { getUser: jest.fn().mockResolvedValue({ data: { user: USER }, error: null }) },
+      from: authFrom,
+      rpc: jest.fn(),
+    })
+    await expect(getMyClaimInfo(LEAGUE)).resolves.toEqual({ status: 'none', playerName: null })
+    expect(authFrom).not.toHaveBeenCalled()
+  })
+
+  it('returns the approved player name for a member', async () => {
+    ;(createServiceClient as jest.Mock).mockReturnValue({
+      from: jest.fn(() => queryReturning({ role: 'member' })),
+    })
+    ;(createClient as jest.Mock).mockResolvedValue({
+      auth: { getUser: jest.fn().mockResolvedValue({ data: { user: USER }, error: null }) },
+      from: jest.fn(() => queryReturning({ status: 'approved', admin_override_name: null, player_name: 'Dev' })),
+      rpc: jest.fn(),
+    })
+    await expect(getMyClaimInfo(LEAGUE)).resolves.toEqual({ status: 'approved', playerName: 'Dev' })
   })
 })
