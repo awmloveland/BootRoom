@@ -557,6 +557,19 @@ export function getSeasonPlayedWeekCount(weeks: Week[]): number {
   return prevYearWeeks.length > 0 ? Math.max(...prevYearWeeks.map((w) => w.week)) : 0
 }
 
+/**
+ * Season (year) the "X of 52 weeks" header count refers to — the current year,
+ * or the previous year while the current year has no played/cancelled weeks.
+ * Mirrors the fallback in getSeasonPlayedWeekCount.
+ */
+export function getHeaderSeason(weeks: Week[]): string {
+  const relevant = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled' || w.status === 'dnf')
+  const currentYear = String(new Date().getFullYear())
+  if (relevant.some((w) => w.season === currentYear)) return currentYear
+  const prevYear = String(new Date().getFullYear() - 1)
+  return relevant.some((w) => w.season === prevYear) ? prevYear : currentYear
+}
+
 /** Returns the array of non-empty line-1 fact strings for the info bar. */
 export function buildLeagueInfoFacts(details: LeagueDetails): string[] {
   const facts: string[] = []

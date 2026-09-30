@@ -177,30 +177,59 @@ export interface LeagueMember {
 
 ## Colour palette — dark-mode first
 
-The app uses Tailwind's `slate` scale as its base. Never use light backgrounds.
+The app shares the landing page's look: a deep navy base with sky, violet and
+lime accents. Colours are written as Tailwind arbitrary hex values
+(`bg-[#0a1421]`), matching `components/landing/`. Never use light backgrounds.
 
-| Role | Tailwind token |
+| Role | Value |
 |---|---|
-| Page background | `bg-slate-900` |
-| Card background | `bg-slate-800` |
-| Card border (default) | `border-slate-700` |
-| Card border (open) | `border-slate-600` |
-| Subtitle bar | `bg-slate-800/50` |
-| Primary text | `text-slate-100` |
-| Secondary text | `text-slate-400` |
-| Muted text | `text-slate-500` / `text-slate-600` |
+| Page background | `#060b14` |
+| Card background | `#0a1421` |
+| Card header band / input background | `#0c1728` |
+| Card border (default) | `#1b2c46` |
+| Card border (open) | `#2c4a72` |
+| Hairline divider | `#17263c` |
+| Button / control border | `#223a5c` |
+| Primary text | `#f4f9ff` |
+| Secondary text | `#8ba4c4` |
+| Muted text | `#6f88a8` / `#4f688a` |
+| Primary accent (CTAs, Team A, wins) | `#38bdf8` (hover `#7dd3fc`, text on it `#05101d`) |
+| Team B accent | `#a78bfa` (text `#c4b5fd`) |
+| Champion / positive status | `#bef264` |
+| Destructive / losses | `#e2686f` |
+
+Cards are `rounded-xl` with `shadow-[0_18px_44px_rgba(0,0,0,.42)]` when open or
+featured; buttons and inputs use `rounded` (4px).
+
+### Typography
+
+Three font utilities are defined in `app/globals.css`:
+
+| Utility | Font | Used for |
+|---|---|---|
+| `font-grotesk` (body default) | Space Grotesk | Headings, card titles, buttons |
+| `font-plex` | IBM Plex Mono | Uppercase labels, badges, meta lines, numbers |
+| `font-inter-body` | Inter | Player names, body copy, inputs |
+
+Labels are written in normal case in JSX and uppercased with the `uppercase`
+class, so tests and screen readers keep the original text.
 
 ### Winner badge colours
 
 | Result | Background | Text | Border |
 |---|---|---|---|
-| Team A | `bg-blue-900` | `text-blue-300` | `border-blue-700` |
-| Team B | `bg-violet-900` | `text-violet-300` | `border-violet-700` |
-| Draw | `bg-slate-700` | `text-slate-300` | `border-slate-600` |
-| Cancelled | `bg-red-950` | `text-red-400` | `border-red-900` |
+| Team A | `bg-[#38bdf8]/12` | `text-[#7dd3fc]` | `border-[#38bdf8]/40` |
+| Team B | `bg-[#a78bfa]/12` | `text-[#c4b5fd]` | `border-[#a78bfa]/40` |
+| Draw | transparent | `text-[#8ba4c4]` | `border-[#223a5c]` |
+| Cancelled | `bg-[#e2686f]/12` | `text-[#e2686f]` | `border-[#e2686f]/40` |
 
-**Do not use green, yellow, or orange** for any badge or status indicator —
-these colours carry strong pass/warning/error connotations in UI.
+**Do not use green, yellow, or orange** for result badges. Lime (`#bef264`) is
+reserved for champion treatments and positive status (e.g. a linked player).
+
+### Copy
+
+All copy in British English. Never use em dashes in UI copy; use commas,
+colons, full stops, or the `·` dot separator.
 
 ---
 

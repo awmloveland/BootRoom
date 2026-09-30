@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog'
 
 const JOIN_CLAIM_FOOTER =
-  "Can't find your name? You may have played before records began — mention it in your note above and the admin will sort it out."
+  "Can't find your name? You may have played before records began. Mention it in your note above and the admin will sort it out."
 
 interface JoinRequestDialogProps {
   leagueId: string
@@ -79,7 +79,7 @@ export function JoinRequestDialog({
       }
 
       if (res.status === 422) {
-        setError("Your profile isn't set up yet — try signing out and back in.")
+        setError("Your profile isn't set up yet. Try signing out and back in.")
         return
       }
 
@@ -104,7 +104,7 @@ export function JoinRequestDialog({
           <>
             <DialogHeader>
               <div className="flex items-center gap-3 mb-1">
-                <CheckCircle2 className="h-6 w-6 text-sky-400 shrink-0" />
+                <CheckCircle2 className="h-6 w-6 text-[#38bdf8] shrink-0" />
                 <DialogTitle>Request sent!</DialogTitle>
               </div>
               <DialogDescription>
@@ -115,7 +115,7 @@ export function JoinRequestDialog({
               <Button
                 type="button"
                 onClick={handleDone}
-                className="w-full py-2 px-4 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium transition-colors"
+                className="w-full py-2 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] font-bold transition-colors"
               >
                 Done
               </Button>
@@ -133,7 +133,7 @@ export function JoinRequestDialog({
               <div>
                 <label
                   htmlFor="join-request-message"
-                  className="block text-sm text-slate-400 mb-1"
+                  className="block text-sm text-[#8ba4c4] mb-1"
                 >
                   Add a note (optional)
                 </label>
@@ -146,19 +146,19 @@ export function JoinRequestDialog({
                   maxLength={500}
                   className={cn(
                     'w-full px-4 py-2 rounded-lg resize-none',
-                    'bg-slate-800 border border-slate-700',
-                    'text-slate-100 placeholder:text-slate-500',
-                    'focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent',
+                    'bg-[#0a1421] border border-[#1b2c46]',
+                    'text-[#f4f9ff] placeholder:text-[#4f688a]',
+                    'focus:outline-none focus:ring-0 focus:border-[#38bdf8]',
                   )}
                 />
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-[#6f88a8]">
                   Visible to the admin when reviewing your request.
                 </p>
               </div>
 
               {/* Claim step */}
-              <div className="border-t border-slate-700 pt-4">
-                <p className="text-sm text-slate-300 font-medium mb-3">
+              <div className="border-t border-[#1b2c46] pt-4">
+                <p className="text-sm text-[#cfe0f4] font-medium mb-3">
                   Have you played in this league before?
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -171,17 +171,17 @@ export function JoinRequestDialog({
                     className={cn(
                       'rounded-lg border px-3 py-2.5 text-left transition-colors',
                       claimChoice === 'yes'
-                        ? 'border-sky-600 bg-sky-900/20'
-                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                        ? 'border-[#38bdf8]/50 bg-[#38bdf8]/8'
+                        : 'border-[#1b2c46] bg-[#0c1728] hover:border-[#223a5c]'
                     )}
                   >
                     <p className={cn(
                       'text-sm font-medium',
-                      claimChoice === 'yes' ? 'text-sky-300' : 'text-slate-200'
+                      claimChoice === 'yes' ? 'text-[#7dd3fc]' : 'text-[#dff1ff]'
                     )}>
                       Yes
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5">Link my player profile</p>
+                    <p className="text-xs text-[#8ba4c4] mt-0.5">Link my player profile</p>
                   </button>
                   <button
                     type="button"
@@ -192,36 +192,36 @@ export function JoinRequestDialog({
                     className={cn(
                       'rounded-lg border px-3 py-2.5 text-left transition-colors',
                       claimChoice === 'no'
-                        ? 'border-slate-500 bg-slate-700/50'
-                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                        ? 'border-[#2c4a72] bg-[#101d31]'
+                        : 'border-[#1b2c46] bg-[#0c1728] hover:border-[#223a5c]'
                     )}
                   >
                     <p className={cn(
                       'text-sm font-medium',
-                      claimChoice === 'no' ? 'text-slate-200' : 'text-slate-200'
+                      claimChoice === 'no' ? 'text-[#dff1ff]' : 'text-[#dff1ff]'
                     )}>
                       No
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5">I&apos;m new to this league</p>
+                    <p className="text-xs text-[#8ba4c4] mt-0.5">I&apos;m new to this league</p>
                   </button>
                 </div>
 
                 {claimChoice === 'yes' && (
                   <div className="mt-3">
                     {selectedPlayer ? (
-                      <div className="flex items-center justify-between rounded-lg border border-sky-700 bg-sky-900/20 px-3 py-2">
-                        <span className="text-sm text-sky-300">{selectedPlayer}</span>
+                      <div className="flex items-center justify-between rounded-lg border border-[#38bdf8]/50 bg-[#38bdf8]/8 px-3 py-2">
+                        <span className="text-sm text-[#7dd3fc]">{selectedPlayer}</span>
                         <button
                           type="button"
                           onClick={() => setSelectedPlayer(null)}
-                          className="text-xs text-slate-400 hover:text-slate-200 transition-colors ml-2"
+                          className="text-xs text-[#8ba4c4] hover:text-[#dff1ff] transition-colors ml-2"
                         >
                           Change
                         </button>
                       </div>
                     ) : (
                       <>
-                        <p className="text-xs text-slate-400 mb-2">
+                        <p className="text-xs text-[#8ba4c4] mb-2">
                           Select your name to link your match history to your account.
                         </p>
                         <PlayerClaimPicker
@@ -241,13 +241,13 @@ export function JoinRequestDialog({
               </div>
 
               {error && (
-                <p role="alert" className="text-sm text-red-400">{error}</p>
+                <p role="alert" className="text-sm text-[#e2686f]">{error}</p>
               )}
 
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2 px-4 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium transition-colors"
+                className="w-full py-2 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] font-bold transition-colors"
               >
                 {loading ? 'Sending\u2026' : 'Send request'}
               </Button>

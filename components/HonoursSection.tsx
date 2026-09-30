@@ -37,10 +37,10 @@ function quarterSubtitle(quarter: QuarterSummary): string {
 function QAvatar({ q, status }: { q: number; status: QuarterSummary['status'] }) {
   return (
     <div className={cn(
-      'w-11 h-11 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0',
-      status === 'completed' && 'bg-slate-800 border-2 border-slate-700 text-slate-400',
-      status === 'in_progress' && 'bg-blue-900 border-2 border-blue-700 text-blue-300',
-      status === 'upcoming' && 'border-2 border-dashed border-slate-600 text-slate-600',
+      'w-[42px] h-[42px] rounded-full border flex items-center justify-center font-plex text-xs font-bold shrink-0',
+      status === 'completed' && 'bg-[#0c1728] border-[#223a5c] text-[#8ba4c4]',
+      status === 'in_progress' && 'bg-[#38bdf8]/12 border-[#38bdf8]/50 text-[#7dd3fc]',
+      status === 'upcoming' && 'bg-[#0c1728] border-dashed border-[#223a5c] text-[#4f688a]',
     )}>
       Q{q}
     </div>
@@ -50,23 +50,24 @@ function QAvatar({ q, status }: { q: number; status: QuarterSummary['status'] })
 // ── Status pill ───────────────────────────────────────────────────────────────
 
 function StatusPill({ status }: { status: QuarterSummary['status'] }) {
+  const base = 'inline-flex items-center gap-1.5 font-plex text-[9px] font-bold uppercase tracking-[.14em] rounded border px-2.5 py-[5px] whitespace-nowrap shrink-0'
   if (status === 'completed') {
     return (
-      <span className="flex items-center gap-1.5 text-xs font-semibold rounded-full px-3 py-1 bg-slate-700/50 text-slate-300 border border-slate-600 shrink-0">
+      <span className={cn(base, 'border-[#223a5c] text-[#8ba4c4]')}>
         Completed
       </span>
     )
   }
   if (status === 'in_progress') {
     return (
-      <span className="flex items-center gap-1.5 text-xs font-semibold rounded-full px-3 py-1 bg-blue-900/50 text-blue-300 border border-blue-700 shrink-0">
-        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+      <span className={cn(base, 'bg-[#38bdf8]/12 border-[#38bdf8]/40 text-[#7dd3fc]')}>
+        <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shrink-0 animate-cf-pulse motion-reduce:animate-none" />
         In progress
       </span>
     )
   }
   return (
-    <span className="flex items-center gap-1.5 text-xs font-semibold rounded-full px-3 py-1 text-slate-600 border border-dashed border-slate-600 shrink-0">
+    <span className={cn(base, 'border-dashed border-[#223a5c] text-[#4f688a]')}>
       Upcoming
     </span>
   )
@@ -101,62 +102,59 @@ function CompletedCardBody({
   return (
     <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
       {quarter.awards && quarter.awards.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto border-t border-slate-700 px-3 py-2.5 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto border-t border-[#1b2c46] px-3.5 py-3 scrollbar-hide">
           {quarter.awards.map(award => (
             <div
               key={award.key}
-              className="flex-shrink-0 flex flex-col gap-0.5 bg-slate-700/50 border border-slate-600 rounded-lg px-2.5 py-2 min-w-[108px]"
+              className="flex-shrink-0 flex flex-col gap-1 min-w-[124px] rounded-lg border border-[#1b2c46] bg-[#0c1728] px-3 py-2.5"
             >
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs">{award.icon}</span>
-                <span className="text-[10px] font-bold tracking-wide uppercase text-indigo-400">
-                  {award.nickname}
-                </span>
-              </div>
-              <span className="text-xs font-semibold text-slate-100">{award.player}</span>
-              <span className="text-[10px] text-slate-500">{award.stat}</span>
+              <span className="font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#a78bfa]">
+                {award.nickname}
+              </span>
+              <span className="font-inter-body text-xs font-bold text-[#f4f9ff]">{award.player}</span>
+              <span className="font-plex text-[9px] uppercase tracking-[.08em] text-[#6f88a8]">{award.stat}</span>
             </div>
           ))}
         </div>
       )}
 
-      <div className="border-t border-slate-700 px-4 py-3">
-        <div className="flex items-center gap-1 pb-2 mb-1 border-b border-slate-700/40">
-          <span className="flex-1 text-[10px] font-semibold uppercase text-slate-500">Player</span>
-          <span className="w-[22px] text-center text-[10px] font-semibold uppercase text-slate-700">P</span>
-          <span className="w-[18px] text-center text-[10px] font-semibold uppercase text-slate-700">W</span>
-          <span className="w-[18px] text-center text-[10px] font-semibold uppercase text-slate-700">D</span>
-          <span className="w-[18px] text-center text-[10px] font-semibold uppercase text-slate-700">L</span>
-          <span className="w-[28px] text-right text-[10px] font-semibold uppercase text-slate-500">Pts</span>
+      <div className="border-t border-[#1b2c46] px-4 py-3">
+        <div className="flex items-center gap-1 pb-2 mb-1 border-b border-[#17263c] font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#4f688a]">
+          <span className="flex-1">Player</span>
+          <span className="w-6 text-center">P</span>
+          <span className="w-5 text-center">W</span>
+          <span className="w-5 text-center">D</span>
+          <span className="w-5 text-center">L</span>
+          <span className="w-[30px] text-right text-[#6f88a8]">Pts</span>
         </div>
-        <div className="flex flex-col gap-[2px]">
+        <div className="flex flex-col gap-0.5">
           {visibleEntries.map((e, i) => (
             <div
               key={e.name}
               className={cn(
-                'flex items-center gap-1 py-[3px]',
-                i === 0 ? '-mx-4 px-4 bg-sky-400/[0.06]' : '-mx-1 px-1'
+                'flex items-center gap-1 p-1 -mx-1 rounded',
+                i === 0 && 'bg-[#38bdf8]/7'
               )}
             >
               <span className={cn(
-                'text-[11px] w-[14px] text-left shrink-0',
-                i === 0 ? 'font-bold text-sky-400' : 'text-slate-600'
+                'font-plex text-[10px] font-bold w-4 text-left shrink-0',
+                i === 0 ? 'text-[#38bdf8]' : 'text-[#4f688a]'
               )}>
                 {i + 1}
               </span>
               <span className={cn(
-                'text-[13px] flex-1 truncate',
-                i === 0 ? 'font-semibold text-slate-100' : 'text-slate-400'
+                'font-inter-body text-[13px] flex-1 truncate',
+                i === 0 ? 'font-bold text-[#f4f9ff]' : 'font-medium text-[#8ba4c4]'
               )}>
                 {e.name}
               </span>
-              <span className="text-xs text-slate-400 w-[22px] text-center shrink-0">{e.played}</span>
-              <span className="text-xs text-slate-400 w-[18px] text-center shrink-0">{e.won}</span>
-              <span className="text-xs text-slate-400 w-[18px] text-center shrink-0">{e.drew}</span>
-              <span className="text-xs text-slate-400 w-[18px] text-center shrink-0">{e.lost}</span>
+              <span className="font-plex text-[11px] text-[#6f88a8] w-6 text-center shrink-0">{e.played}</span>
+              <span className="font-plex text-[11px] text-[#6f88a8] w-5 text-center shrink-0">{e.won}</span>
+              <span className="font-plex text-[11px] text-[#6f88a8] w-5 text-center shrink-0">{e.drew}</span>
+              <span className="font-plex text-[11px] text-[#6f88a8] w-5 text-center shrink-0">{e.lost}</span>
               <span className={cn(
-                'text-sm font-bold w-[28px] text-right shrink-0',
-                i === 0 ? 'text-sky-300' : 'text-slate-200'
+                'font-plex text-[13px] font-bold w-[30px] text-right shrink-0',
+                i === 0 ? 'text-[#38bdf8]' : 'text-[#dff1ff]'
               )}>
                 {e.points}
               </span>
@@ -167,7 +165,7 @@ function CompletedCardBody({
           <div className="mt-3 flex justify-center">
             <button
               onClick={(e) => { e.stopPropagation(); setShowAll(v => !v) }}
-              className="text-xs font-medium text-slate-500 hover:text-slate-300 border border-slate-700 hover:border-slate-600 rounded px-3 py-1 transition-colors"
+              className="h-7 px-3 rounded border border-[#223a5c] font-plex text-[9.5px] font-bold uppercase tracking-[.12em] text-[#8ba4c4] hover:border-[#38bdf8] hover:text-white transition-colors"
             >
               {showAll ? 'See Less' : `See All (${entries.length})`}
             </button>
@@ -175,13 +173,13 @@ function CompletedCardBody({
         )}
       </div>
 
-      <div className="border-t border-slate-700 px-4 py-3">
+      <div className="border-t border-[#1b2c46] px-4 py-3.5">
         <button
           type="button"
           onClick={handleShare}
-          className="w-full px-3 py-2 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold transition-colors"
+          className="w-full h-[38px] rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-[13px] font-bold transition-colors"
         >
-          {copied ? 'Copied — go and brag 📣' : 'Share the glory'}
+          {copied ? 'Copied. Go and brag' : 'Share the glory'}
         </button>
       </div>
     </Collapsible.Content>
@@ -210,12 +208,12 @@ function QuarterCard({
 
   if (status === 'upcoming') {
     return (
-      <div id={anchorId} className="rounded-lg border border-dashed border-slate-700 bg-slate-800 opacity-60">
+      <div id={anchorId} className="rounded-xl border border-dashed border-[#1b2c46] bg-[#060b14] opacity-55">
         <div className="w-full flex items-center gap-3 px-4 py-3">
           <QAvatar q={q} status={status} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-slate-500 leading-snug">{seasonName} quarter</p>
-            <p className="text-xs text-slate-600 mt-0.5">{subtitle}</p>
+            <p className="text-sm font-bold tracking-[-.01em] text-[#8ba4c4]">{seasonName} quarter</p>
+            <p className="mt-[3px] font-plex text-[9px] uppercase tracking-[.12em] text-[#6f88a8] truncate">{subtitle}</p>
           </div>
           <StatusPill status={status} />
         </div>
@@ -225,18 +223,18 @@ function QuarterCard({
 
   if (status === 'in_progress') {
     return (
-      <div id={anchorId} className="rounded-lg border border-blue-900 bg-slate-800">
+      <div id={anchorId} className="rounded-xl border border-[#38bdf8]/35 bg-[#0a1421] shadow-[0_18px_44px_rgba(0,0,0,.42)]">
         <div className="w-full flex items-center gap-3 px-4 py-3">
           <QAvatar q={q} status={status} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-slate-100 leading-snug">{seasonName} quarter</p>
-            <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
+            <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">{seasonName} quarter</p>
+            <p className="mt-[3px] font-plex text-[9px] uppercase tracking-[.12em] text-[#6f88a8] truncate">{subtitle}</p>
           </div>
           <StatusPill status={status} />
         </div>
-        <div className="border-t border-dashed border-blue-900 px-4 py-2.5 flex items-center gap-3">
-          <div className="w-[3px] h-7 rounded bg-blue-700 opacity-50 shrink-0" />
-          <p className="text-xs text-slate-500 leading-relaxed">
+        <div className="border-t border-dashed border-[#223a5c] px-4 py-2.5 flex items-center gap-3">
+          <div className="w-[3px] h-[26px] rounded-sm bg-[#38bdf8] opacity-50 shrink-0" />
+          <p className="font-inter-body text-xs leading-normal text-[#6f88a8]">
             Final standings will appear here once all games are recorded
           </p>
         </div>
@@ -248,19 +246,21 @@ function QuarterCard({
   return (
     <Collapsible.Root open={isOpen} onOpenChange={onToggle}>
       <div id={anchorId} className={cn(
-        'rounded-lg border bg-slate-800 transition-colors duration-150 scroll-mt-4',
-        isOpen ? 'border-slate-600' : 'border-slate-700 hover:border-slate-500'
+        'rounded-xl border bg-[#0a1421] transition-colors duration-150 scroll-mt-4',
+        isOpen
+          ? 'border-[#2c4a72] shadow-[0_18px_44px_rgba(0,0,0,.42)]'
+          : 'border-[#1b2c46] hover:border-[#2c4a72]'
       )}>
         <Collapsible.Trigger asChild>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer">
+          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38bdf8] cursor-pointer">
             <QAvatar q={q} status={status} />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-100 leading-snug">{seasonName} quarter</p>
-              <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
+              <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">{seasonName} quarter</p>
+              <p className="mt-[3px] font-plex text-[9px] uppercase tracking-[.12em] text-[#6f88a8] truncate">{subtitle}</p>
             </div>
             <StatusPill status={status} />
             <ChevronDown className={cn(
-              'h-4 w-4 text-slate-400 shrink-0 transition-transform duration-200',
+              'h-[15px] w-[15px] text-[#6f88a8] shrink-0 transition-transform duration-200',
               isOpen && 'rotate-180'
             )} />
           </button>
@@ -303,7 +303,7 @@ export function HonoursSection({ data, leagueName, leagueSlug }: HonoursSectionP
   if (data.length === 0) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm text-slate-500">No quarters to display yet.</p>
+        <p className="font-inter-body text-[13px] text-[#6f88a8]">No quarters to display yet.</p>
       </div>
     )
   }
@@ -311,13 +311,13 @@ export function HonoursSection({ data, leagueName, leagueSlug }: HonoursSectionP
   return (
     <div className="flex flex-col">
       {data.map((yearGroup) => (
-        <div key={yearGroup.year} className="first:mt-0 mt-6">
+        <div key={yearGroup.year} className="first:mt-0 mt-[26px]">
           {/* Year header */}
-          <div className="flex items-baseline justify-between px-1 mb-3">
-            <span className="text-[16px] font-bold text-slate-100">
+          <div className="flex items-baseline justify-between px-1 mb-2.5">
+            <span className="text-[17px] font-bold tracking-[-.02em] text-[#f4f9ff]">
               {yearGroup.year} Season
             </span>
-            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+            <span className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8]">
               {yearGroup.completedCount} of 4 complete
             </span>
           </div>

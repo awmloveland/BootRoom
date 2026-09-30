@@ -53,25 +53,25 @@ export default function ExperimentsPage() {
 
   return (
     <main className="max-w-md mx-auto px-4 sm:px-6 py-8">
-      <h1 className="text-xl font-semibold text-slate-100 mb-2">Experiments</h1>
-      <p className="text-sm text-slate-400 mb-6">
+      <h1 className="text-xl font-semibold text-[#f4f9ff] mb-2">Experiments</h1>
+      <p className="text-sm text-[#8ba4c4] mb-6">
         Global feature availability. Turning a feature off removes it from all leagues immediately.
       </p>
 
       {loading ? (
-        <p className="text-slate-400 text-sm">Loading…</p>
+        <p className="text-[#8ba4c4] text-sm">Loading…</p>
       ) : (
         <div className="space-y-2">
           {experiments.map((exp) => (
             <div
               key={exp.feature}
-              className="flex items-center justify-between p-4 rounded-lg bg-slate-800 border border-slate-700"
+              className="flex items-center justify-between p-4 rounded-xl bg-[#0a1421] border border-[#1b2c46]"
             >
               <div>
-                <p className="text-sm font-medium text-slate-200">
+                <p className="text-sm font-medium text-[#dff1ff]">
                   {FEATURE_LABELS[exp.feature] ?? exp.feature}
                 </p>
-                <p className="text-xs text-slate-500 mt-0.5">Ship to all leagues</p>
+                <p className="text-xs text-[#6f88a8] mt-0.5">Ship to all leagues</p>
               </div>
               <button
                 onClick={() => toggle(exp.feature, exp.available)}
@@ -79,15 +79,15 @@ export default function ExperimentsPage() {
                 className={cn(
                   'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent',
                   'transition-colors duration-200 disabled:opacity-50',
-                  exp.available ? 'bg-sky-600' : 'bg-slate-600',
+                  exp.available ? 'bg-[#38bdf8]' : 'bg-[#223a5c]',
                 )}
                 role="switch"
                 aria-checked={exp.available}
               >
                 <span
                   className={cn(
-                    'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200',
-                    exp.available ? 'translate-x-4' : 'translate-x-0',
+                    'pointer-events-none inline-block h-4 w-4 transform rounded-full transition-transform duration-200',
+                    exp.available ? 'translate-x-4 bg-[#05101d]' : 'translate-x-0 bg-[#8ba4c4]',
                   )}
                 />
               </button>

@@ -20,13 +20,13 @@ export function LeagueInfoBar({ details, leagueSlug, isAdmin }: LeagueInfoBarPro
   // Admin empty-state prompt
   if (!filled && isAdmin) {
     return (
-      <div className="border border-dashed border-slate-700 rounded-lg px-4 py-3 flex items-center justify-between gap-4">
-        <p className="text-sm text-slate-500">
-          Add your league details — location, schedule, and a short bio.
+      <div className="border border-dashed border-[#223a5c] rounded-xl px-4 py-3 flex items-center justify-between gap-4">
+        <p className="font-inter-body text-xs leading-[1.55] text-[#6f88a8]">
+          Add your league details: location, schedule and a short bio.
         </p>
         <Link
           href={`/${leagueSlug}/settings?tab=details`}
-          className="text-sm text-slate-400 hover:text-slate-200 underline underline-offset-2 whitespace-nowrap transition-colors"
+          className="font-plex text-[9.5px] font-bold uppercase tracking-[.14em] text-[#8ba4c4] hover:text-[#f4f9ff] whitespace-nowrap transition-colors"
         >
           Add details
         </Link>
@@ -52,11 +52,11 @@ export function LeagueInfoBar({ details, leagueSlug, isAdmin }: LeagueInfoBarPro
     ? `${formatDay(d.day)} @ ${formatTime(d.kickoff_time)}`
     : d.day ? formatDay(d.day) : d.kickoff_time ? formatTime(d.kickoff_time) : null
 
-  const pillClass = 'inline-flex items-center gap-1.5 text-xs text-slate-400 bg-slate-800 border border-slate-800 rounded px-2 py-0.5'
+  const pillClass = 'inline-flex items-center gap-1.5 h-6 px-[9px] rounded border border-[#1b2c46] bg-[#0c1728] font-plex text-[9.5px] uppercase tracking-[.12em] text-[#8ba4c4]'
   const iconClass = 'size-[11px] shrink-0'  // shrink-0 prevents flex compression on narrow screens
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       <div className="flex flex-wrap gap-1.5">
         {d.location && (
           <span className={pillClass}>
@@ -78,7 +78,7 @@ export function LeagueInfoBar({ details, leagueSlug, isAdmin }: LeagueInfoBarPro
         )}
       </div>
       {d.bio && (
-        <p className="text-xs text-slate-500 leading-relaxed">{d.bio}</p>
+        <p className="font-inter-body text-xs leading-[1.55] text-[#6f88a8]">{d.bio}</p>
       )}
     </div>
   )

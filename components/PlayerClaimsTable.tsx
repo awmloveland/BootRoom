@@ -61,15 +61,15 @@ export function PlayerClaimsTable({ leagueId, initialClaims, onChanged }: Player
   if (claims.length === 0) return null
 
   return (
-    <div className="rounded-lg border border-slate-700 bg-slate-800 overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-700 bg-slate-800/50">
-        <p className="text-sm font-medium text-slate-200">
+    <div className="rounded-xl border border-[#1b2c46] bg-[#0a1421] overflow-hidden">
+      <div className="px-4 py-3 border-b border-[#1b2c46] bg-[#0c1728]">
+        <p className="text-sm font-medium text-[#dff1ff]">
           Player identity claims{' '}
-          <span className="text-slate-500 font-normal">({claims.length})</span>
+          <span className="text-[#6f88a8] font-normal">({claims.length})</span>
         </p>
       </div>
 
-      <ul className="divide-y divide-slate-700/40">
+      <ul className="divide-y divide-[#1b2c46]">
         {claims.map((claim) => {
           const isExpanded = expandedId === claim.id
           const isBusy = processing === claim.id
@@ -80,13 +80,13 @@ export function PlayerClaimsTable({ leagueId, initialClaims, onChanged }: Player
               <div className="px-4 py-3 flex items-start gap-4">
                 {/* Member info + claim chip */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-100 truncate">{displayName}</p>
+                  <p className="text-sm text-[#f4f9ff] truncate">{displayName}</p>
                   {claim.display_name && (
-                    <p className="text-xs text-slate-500 truncate">{claim.email}</p>
+                    <p className="text-xs text-[#6f88a8] truncate">{claim.email}</p>
                   )}
                   <div className="mt-1.5">
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs border bg-amber-900/40 text-amber-300 border-amber-700/50">
-                      <span className="size-1.5 rounded-full bg-amber-400 shrink-0" />
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs border border-[#223a5c] text-[#cfe0f4]">
+                      <span className="size-1.5 rounded-full bg-[#f5c04a] shrink-0" />
                       Claims: {claim.player_name}
                     </span>
                   </div>
@@ -98,7 +98,7 @@ export function PlayerClaimsTable({ leagueId, initialClaims, onChanged }: Player
                     type="button"
                     disabled={isBusy}
                     onClick={() => handleReview(claim.id, 'rejected')}
-                    className="text-xs font-medium text-slate-500 hover:text-red-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="text-xs font-medium text-[#6f88a8] hover:text-[#e2686f] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     Reject
                   </button>
@@ -107,7 +107,7 @@ export function PlayerClaimsTable({ leagueId, initialClaims, onChanged }: Player
                     disabled={isBusy}
                     onClick={() => toggleExpand(claim.id)}
                     className={cn(
-                      'flex items-center gap-0.5 text-xs font-medium text-sky-400 hover:text-sky-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
+                      'flex items-center gap-0.5 text-xs font-medium text-[#38bdf8] hover:text-[#7dd3fc] disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
                     )}
                   >
                     Link to different player
@@ -122,7 +122,7 @@ export function PlayerClaimsTable({ leagueId, initialClaims, onChanged }: Player
                     type="button"
                     disabled={isBusy}
                     onClick={() => handleReview(claim.id, 'approved')}
-                    className="text-xs font-medium text-emerald-400 hover:text-emerald-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="text-xs font-medium text-[#bef264] hover:text-[#bef264] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     {isBusy && !isExpanded ? '…' : 'Approve'}
                   </button>
@@ -148,7 +148,7 @@ export function PlayerClaimsTable({ leagueId, initialClaims, onChanged }: Player
       </ul>
 
       {error && (
-        <p className="px-4 py-2 text-xs text-red-400 border-t border-slate-700">{error}</p>
+        <p className="px-4 py-2 text-xs text-[#e2686f] border-t border-[#1b2c46]">{error}</p>
       )}
     </div>
   )

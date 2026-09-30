@@ -22,8 +22,8 @@ type State =
 
 function InviteCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-4">
+    <div className="min-h-screen bg-[#060b14] flex items-center justify-center px-4">
+      <div className="w-full max-w-sm bg-[#0a1421] border border-[#1b2c46] rounded-xl p-6 space-y-4">
         {children}
       </div>
     </div>
@@ -33,13 +33,13 @@ function InviteCard({ children }: { children: React.ReactNode }) {
 function InvalidInviteCard() {
   return (
     <InviteCard>
-      <h1 className="text-lg font-semibold text-slate-100">This invite link is no longer valid</h1>
-      <p className="text-sm text-slate-400">
+      <h1 className="text-lg font-semibold text-[#f4f9ff]">This invite link is no longer valid</h1>
+      <p className="text-sm text-[#8ba4c4]">
         It may have expired or been revoked. Ask the league admin for a fresh link.
       </p>
       <a
         href="/"
-        className="inline-block w-full text-center py-2 px-4 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium transition-colors"
+        className="inline-block w-full text-center py-2 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] font-bold transition-colors"
       >
         Back to home
       </a>
@@ -64,16 +64,16 @@ function MismatchCard({ token, targetEmail, currentEmail }: {
 
   return (
     <InviteCard>
-      <h1 className="text-lg font-semibold text-slate-100">This invite is for a different email</h1>
-      <p className="text-sm text-slate-400">
-        It was sent to <span className="text-slate-200">{targetEmail}</span> but you&apos;re signed in as{' '}
-        <span className="text-slate-200">{currentEmail}</span>.
+      <h1 className="text-lg font-semibold text-[#f4f9ff]">This invite is for a different email</h1>
+      <p className="text-sm text-[#8ba4c4]">
+        It was sent to <span className="text-[#dff1ff]">{targetEmail}</span> but you&apos;re signed in as{' '}
+        <span className="text-[#dff1ff]">{currentEmail}</span>.
       </p>
       <button
         type="button"
         disabled={signingOut}
         onClick={handleSignOut}
-        className="w-full py-2 px-4 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="w-full py-2 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {signingOut ? 'Signing out…' : 'Sign out and try again'}
       </button>
@@ -84,11 +84,11 @@ function MismatchCard({ token, targetEmail, currentEmail }: {
 function GenericErrorCard({ message }: { message: string }) {
   return (
     <InviteCard>
-      <h1 className="text-lg font-semibold text-slate-100">Couldn&apos;t accept this invite</h1>
-      <p className="text-sm text-slate-400">{message}</p>
+      <h1 className="text-lg font-semibold text-[#f4f9ff]">Couldn&apos;t accept this invite</h1>
+      <p className="text-sm text-[#8ba4c4]">{message}</p>
       <a
         href="/"
-        className="inline-block w-full text-center py-2 px-4 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium transition-colors"
+        className="inline-block w-full text-center py-2 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] font-bold transition-colors"
       >
         Back to home
       </a>
@@ -169,13 +169,13 @@ function InviteFlow() {
   }, [token])
 
   if (state.kind === 'loading') {
-    return <InviteCard><p className="text-slate-400 text-sm">Loading invite…</p></InviteCard>
+    return <InviteCard><p className="text-[#8ba4c4] text-sm">Loading invite…</p></InviteCard>
   }
   if (state.kind === 'invalid') {
     return <InvalidInviteCard />
   }
   if (state.kind === 'joining') {
-    return <InviteCard><p className="text-slate-400 text-sm">Joining {state.preview.league_name}…</p></InviteCard>
+    return <InviteCard><p className="text-[#8ba4c4] text-sm">Joining {state.preview.league_name}…</p></InviteCard>
   }
   if (state.kind === 'mismatch') {
     return (
@@ -194,11 +194,11 @@ function InviteFlow() {
   return (
     <>
       <InviteCard>
-        <h1 className="text-lg font-semibold text-slate-100">
+        <h1 className="text-lg font-semibold text-[#f4f9ff]">
           You&apos;ve been invited to join {state.preview.league_name}
         </h1>
-        <p className="text-sm text-slate-400">
-          Sign in or create an account to join as a <span className="text-slate-200">{state.preview.role}</span>.
+        <p className="text-sm text-[#8ba4c4]">
+          Sign in or create an account to join as a <span className="text-[#dff1ff]">{state.preview.role}</span>.
         </p>
       </InviteCard>
       <AuthDialog
@@ -215,7 +215,7 @@ function InviteFlow() {
 export default function InvitePage() {
   return (
     <Suspense fallback={
-      <InviteCard><p className="text-slate-400 text-sm">Loading…</p></InviteCard>
+      <InviteCard><p className="text-[#8ba4c4] text-sm">Loading…</p></InviteCard>
     }>
       <InviteFlow />
     </Suspense>

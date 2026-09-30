@@ -46,19 +46,19 @@ interface NewPlayerReviewState {
 
 function Stepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
-    <div className="flex items-center border border-slate-700 rounded-md overflow-hidden">
+    <div className="flex items-center border border-[#223a5c] rounded overflow-hidden">
       <button
         type="button"
         onClick={() => onChange(Math.max(1, value - 1))}
         disabled={value <= 1}
         className={cn(
-          'w-8 h-8 flex items-center justify-center bg-slate-800 text-slate-400 hover:text-slate-100 text-lg leading-none select-none',
+          'w-8 h-8 flex items-center justify-center bg-[#0a1421] text-[#8ba4c4] hover:text-white text-base leading-none select-none transition-colors',
           value <= 1 && 'opacity-40 cursor-not-allowed'
         )}
       >
         −
       </button>
-      <span className="w-9 h-8 flex items-center justify-center bg-slate-900 text-slate-100 font-bold text-sm border-x border-slate-700">
+      <span className="w-[38px] h-8 flex items-center justify-center bg-[#060b14] font-plex text-sm font-bold text-[#f4f9ff] border-x border-[#223a5c]">
         {value}
       </span>
       <button
@@ -66,7 +66,7 @@ function Stepper({ value, onChange }: { value: number; onChange: (v: number) => 
         onClick={() => onChange(Math.min(20, value + 1))}
         disabled={value >= 20}
         className={cn(
-          'w-8 h-8 flex items-center justify-center bg-slate-800 text-slate-400 hover:text-slate-100 text-lg leading-none select-none',
+          'w-8 h-8 flex items-center justify-center bg-[#0a1421] text-[#8ba4c4] hover:text-white text-base leading-none select-none transition-colors',
           value >= 20 && 'opacity-40 cursor-not-allowed'
         )}
       >
@@ -392,22 +392,22 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   return (
     <Dialog.Root open onOpenChange={(open) => { if (!open) { if (step === 'share' || step === 'celebrate') onSaved(); else onClose() } }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/70 z-[999]" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-sm rounded-xl bg-slate-800 border border-slate-700 shadow-xl focus:outline-none overflow-hidden">
+        <Dialog.Overlay className="fixed inset-0 bg-[#030710]/80 z-[999]" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-[calc(100%-32px)] sm:max-w-sm rounded-[14px] bg-[#0a1421] border border-[#1b2c46] shadow-[0_34px_80px_rgba(0,0,0,.65)] focus:outline-none overflow-hidden">
 
           {/* Header */}
-          <div className="px-5 pt-4 pb-3 border-b border-slate-700 flex items-start justify-between gap-3">
+          <div className="px-5 pt-4 pb-3.5 border-b border-[#1b2c46] bg-[#0c1728] flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <Dialog.Title className="text-base font-semibold text-slate-100">
+              <Dialog.Title className="text-base font-bold tracking-[-.02em] text-[#f4f9ff]">
                 {step === 'share' && shareData
-                  ? `Week ${scheduledWeek.week} — ${buildResultHeadline(
+                  ? `Week ${scheduledWeek.week} · ${buildResultHeadline(
                       shareData.dnf ? null : shareData.winner,
                       shareData.dnf ? 0 : shareData.goalDifference,
                       shareData.dnf
                     )}`
-                  : `Result — Week ${scheduledWeek.week}`}
+                  : `Result · Week ${scheduledWeek.week}`}
               </Dialog.Title>
-              <Dialog.Description className="text-xs text-slate-400 mt-0.5">
+              <Dialog.Description className="mt-1 font-plex text-[9.5px] uppercase tracking-[.14em] text-[#7f97b5]">
                 {scheduledWeek.date}
               </Dialog.Description>
             </div>
@@ -416,9 +416,9 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                 <button
                   type="button"
                   aria-label="Close"
-                  className="text-slate-500 hover:text-slate-300 p-1 rounded transition-colors flex-shrink-0"
+                  className="text-[#8ba4c4] hover:text-white p-1 rounded transition-colors flex-shrink-0"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4" strokeWidth={2.2} />
                 </button>
               </Dialog.Close>
             )}
@@ -427,9 +427,9 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           {/* ── Step: winner ── */}
           {step === 'winner' && (
             <>
-              <div className="p-5">
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Who won?</p>
-                <div className="flex gap-2 mb-4">
+              <div className="px-5 py-[18px]">
+                <p className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-2.5">Who won?</p>
+                <div className="flex gap-1.5 mb-3.5">
                   {(['teamA', 'draw', 'teamB'] as const).map((opt) => (
                     <button
                       key={opt}
@@ -440,16 +440,16 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                         if (opt !== 'draw') setGoalDifference(1)
                       }}
                       className={cn(
-                        'flex-1 py-2 rounded border text-sm font-medium transition-colors',
+                        'flex-1 h-[38px] rounded border text-xs font-bold transition-colors',
                         opt === 'teamA' && (winner === 'teamA' && !isDnf
-                          ? 'bg-blue-900 border-blue-700 text-blue-300'
-                          : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-blue-700 hover:text-blue-300'),
+                          ? 'bg-[rgba(8,47,73,.6)] border-[#38bdf8]/50 text-[#7dd3fc]'
+                          : 'bg-[#0c1728] border-[#223a5c] text-[#8ba4c4] hover:border-[#38bdf8]/50 hover:text-[#7dd3fc]'),
                         opt === 'draw' && (winner === 'draw' && !isDnf
-                          ? 'bg-slate-700 border-slate-600 text-slate-300'
-                          : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-300'),
+                          ? 'bg-[#1b2c46] border-[#2c4a72] text-[#cfe0f4]'
+                          : 'bg-[#0c1728] border-[#223a5c] text-[#8ba4c4] hover:border-[#2c4a72] hover:text-[#cfe0f4]'),
                         opt === 'teamB' && (winner === 'teamB' && !isDnf
-                          ? 'bg-violet-900 border-violet-700 text-violet-300'
-                          : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-violet-700 hover:text-violet-300'),
+                          ? 'bg-[rgba(46,16,101,.5)] border-[#a78bfa]/50 text-[#c4b5fd]'
+                          : 'bg-[#0c1728] border-[#223a5c] text-[#8ba4c4] hover:border-[#a78bfa]/50 hover:text-[#c4b5fd]'),
                       )}
                     >
                       {opt === 'teamA' ? 'Team A' : opt === 'draw' ? 'Draw' : 'Team B'}
@@ -459,10 +459,10 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                     type="button"
                     onClick={() => { setWinner(null); setIsDnf(true) }}
                     className={cn(
-                      'flex-1 py-2 rounded border text-sm font-medium transition-colors',
+                      'flex-1 h-[38px] rounded border text-xs font-bold transition-colors',
                       isDnf
-                        ? 'bg-zinc-800 border-zinc-600 text-zinc-300'
-                        : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-zinc-600 hover:text-zinc-300',
+                        ? 'bg-[#1b2c46] border-[#2c4a72] text-[#cfe0f4]'
+                        : 'bg-[#0c1728] border-[#223a5c] text-[#8ba4c4] hover:border-[#2c4a72] hover:text-[#cfe0f4]',
                     )}
                   >
                     DNF
@@ -470,10 +470,10 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                 </div>
 
                 {!isDnf && winner && winner !== 'draw' && (
-                  <div className="flex items-center justify-between bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 mb-4">
+                  <div className="flex items-center justify-between gap-3 bg-[#0c1728] border border-[#1b2c46] rounded-md px-3 py-2.5 mb-3.5">
                     <div>
-                      <p className="text-xs font-semibold text-slate-100">Margin of Victory</p>
-                      <p className="text-[10px] text-slate-500 mt-px">
+                      <p className="font-inter-body text-xs font-bold text-[#f4f9ff]">Margin of victory</p>
+                      <p className="mt-[3px] font-plex text-[8.5px] uppercase tracking-[.12em] text-[#6f88a8]">
                         Goals {winner === 'teamA' ? 'Team A' : 'Team B'} won by
                       </p>
                     </div>
@@ -487,13 +487,13 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
                   placeholder="Optional notes (e.g. +3 goals, injuries…)"
-                  className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-slate-100 text-xs placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-500 resize-none"
+                  className="block w-full px-3 py-2.5 rounded bg-[#0c1728] border border-[#1b2c46] font-inter-body text-xs text-[#f4f9ff] placeholder:text-[#4f688a] focus:outline-none focus:ring-0 focus:border-[#38bdf8] resize-none"
                 />
-                {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
+                {error && <p className="font-inter-body text-xs text-[#e2686f] mt-3">{error}</p>}
               </div>
 
-              <div className="flex gap-2 justify-end px-5 pb-4">
-                <button type="button" onClick={onClose} className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500">
+              <div className="flex gap-2 justify-end px-5 pb-[18px]">
+                <button type="button" onClick={onClose} className="h-9 px-3.5 rounded border border-[#223a5c] text-[#cfe0f4] text-[13px] font-semibold hover:border-[#38bdf8] hover:text-white transition-colors">
                   Cancel
                 </button>
                 {hasReviewStep ? (
@@ -501,7 +501,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                     type="button"
                     onClick={() => setStep('review')}
                     disabled={(!winner && !isDnf) || (!!winner && winner !== 'draw' && (goalDifference < 1 || goalDifference > 20))}
-                    className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold disabled:opacity-40"
+                    className="h-9 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-[13px] font-bold transition-colors disabled:opacity-40"
                   >
                     Next
                   </button>
@@ -510,7 +510,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                     type="button"
                     onClick={handleSave}
                     disabled={saving || (!winner && !isDnf) || (!!winner && winner !== 'draw' && (goalDifference < 1 || goalDifference > 20))}
-                    className="px-4 py-2 rounded bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold disabled:opacity-50"
+                    className="h-9 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-[13px] font-bold transition-colors disabled:opacity-50"
                   >
                     {saving ? 'Saving…' : 'Confirm Result'}
                   </button>
@@ -522,21 +522,21 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           {/* ── Step: review ── */}
           {step === 'review' && (
             <>
-              <div className="p-5 flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
-                <p className="text-xs text-slate-400 -mb-2">How did they actually play?</p>
+              <div className="px-5 py-[18px] flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
+                <p className="font-inter-body text-xs text-[#8ba4c4] -mb-2">How did they actually play?</p>
 
                 {newPlayerStates.map((p, i) => (
-                  <div key={p.name} className="bg-slate-900 border border-slate-700 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-2.5">
-                      <span className="text-sm font-semibold text-slate-100">{p.name}</span>
-                      <span className="text-[10px] font-semibold bg-blue-950 border border-blue-800 text-blue-300 rounded-full px-2 py-0.5">New player</span>
+                  <div key={p.name} className="bg-[#0c1728] border border-[#1b2c46] rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-inter-body text-[13px] font-bold text-[#f4f9ff]">{p.name}</span>
+                      <span className="font-plex text-[8.5px] font-bold uppercase tracking-[.14em] bg-[#38bdf8]/8 border border-[#38bdf8]/35 text-[#7dd3fc] rounded-[3px] px-1.5 py-[3px]">New player</span>
                     </div>
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Strength</p>
+                    <p className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-2">Strength</p>
                     <StrengthPills value={p.strength} onChange={(v) => updateNewPlayerStrength(i, v)} />
 
-                    <div className="mt-3 pt-3 border-t border-slate-800">
-                      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Mentality</p>
-                      <div className="flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden text-[10px] font-semibold">
+                    <div className="mt-3 pt-3 border-t border-[#1b2c46]">
+                      <p className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-2">Mentality</p>
+                      <div className="flex border border-[#223a5c] rounded overflow-hidden font-plex text-[9px] font-bold tracking-[.14em]">
                         {(
                           [
                             { value: 'goalkeeper', label: 'GK' },
@@ -550,11 +550,11 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                             type="button"
                             onClick={() => { if (value !== p.mentality) updateNewPlayerMentality(i, value) }}
                             className={cn(
-                              'flex-1 py-1.5 transition-colors',
+                              'flex-1 h-8 transition-colors border-[#223a5c]',
                               idx < 3 && 'border-r',
                               value === p.mentality
-                                ? 'bg-blue-950 text-blue-300 border-blue-800'
-                                : 'text-slate-500 border-slate-700 hover:text-slate-300'
+                                ? 'bg-[rgba(8,47,73,.6)] text-[#7dd3fc]'
+                                : 'text-[#8ba4c4] hover:text-white'
                             )}
                           >
                             {label}
@@ -566,20 +566,20 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                 ))}
 
                 {guestStates.map((g, i) => (
-                  <div key={g.name} className="bg-slate-900 border border-slate-700 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-2.5">
-                      <span className="text-sm font-semibold text-slate-100">{g.name}</span>
-                      <span className="text-[10px] font-semibold bg-slate-800 border border-slate-600 text-slate-400 rounded-full px-2 py-0.5">Guest</span>
+                  <div key={g.name} className="bg-[#0c1728] border border-[#1b2c46] rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-inter-body text-[13px] font-bold text-[#f4f9ff]">{g.name}</span>
+                      <span className="font-plex text-[8.5px] font-bold uppercase tracking-[.14em] border border-[#223a5c] text-[#8ba4c4] rounded-[3px] px-1.5 py-[3px]">Guest</span>
                     </div>
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Strength</p>
+                    <p className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-2">Strength</p>
                     <StrengthPills value={g.strength} onChange={(v) => updateGuestStrength(i, v)} />
 
-                    <div className="mt-3 pt-3 border-t border-slate-800">
+                    <div className="mt-3 pt-3 border-t border-[#1b2c46]">
                       {/* Goalkeeper toggle */}
                       <div className="flex items-center justify-between gap-3 mb-3">
                         <div>
-                          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Dedicated goalkeeper</p>
-                          <p className="text-[11px] text-slate-400 leading-relaxed mt-px">Plays in goal all game, every game.</p>
+                          <p className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8]">Dedicated goalkeeper</p>
+                          <p className="font-inter-body text-[11px] text-[#8ba4c4] leading-relaxed mt-1">Plays in goal all game, every game.</p>
                         </div>
                         <Toggle enabled={g.goalkeeper} onChange={(v) => updateGuestGoalkeeper(i, v)} />
                       </div>
@@ -588,18 +588,17 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                         <div
                           onClick={() => updateGuestRoster(i, !g.addToRoster)}
                           className={cn(
-                            'w-8 rounded-full relative transition-colors cursor-pointer flex-shrink-0',
-                            g.addToRoster ? 'bg-blue-600' : 'bg-slate-600'
+                            'w-8 h-[18px] rounded-full relative transition-colors cursor-pointer flex-shrink-0',
+                            g.addToRoster ? 'bg-[#38bdf8]' : 'bg-[#223a5c]'
                           )}
-                          style={{ height: '18px' }}
                         >
                           <div className={cn(
-                            'absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full shadow transition-all',
-                            g.addToRoster ? 'left-[18px]' : 'left-0.5'
+                            'absolute top-0.5 w-3.5 h-3.5 rounded-full transition-all',
+                            g.addToRoster ? 'left-[18px] bg-[#05101d]' : 'left-0.5 bg-[#8ba4c4]'
                           )} />
                         </div>
-                        <span className="text-xs text-slate-300">
-                          <span className="font-semibold">Add to the roster</span> — they&apos;re joining the league
+                        <span className="font-inter-body text-xs text-[#cfe0f4]">
+                          <span className="font-semibold">Add to the roster</span>: they&apos;re joining the league
                         </span>
                       </label>
                       {g.addToRoster && (
@@ -611,9 +610,9 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                             onChange={(e) => updateGuestRosterName(i, e.target.value)}
                             placeholder="Enter their name…"
                             autoFocus
-                            className="w-full bg-slate-800 border border-blue-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-full h-9 bg-[#060b14] border border-[#38bdf8] rounded px-3 font-inter-body text-xs text-[#f4f9ff] placeholder:text-[#4f688a] focus:outline-none focus:ring-0 focus:border-[#38bdf8]"
                           />
-                          {g.nameError && <p className="text-xs text-red-400 mt-1">{g.nameError}</p>}
+                          {g.nameError && <p className="font-inter-body text-xs text-[#e2686f] mt-1">{g.nameError}</p>}
                         </div>
                       )}
                     </div>
@@ -621,14 +620,14 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                 ))}
               </div>
 
-              <div className="flex gap-2 justify-end px-5 pb-4 border-t border-slate-700 pt-3">
-                <button type="button" onClick={() => setStep('winner')} className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500">
+              <div className="flex gap-2 justify-end px-5 py-3.5 border-t border-[#1b2c46] bg-[#0c1728]">
+                <button type="button" onClick={() => setStep('winner')} className="h-9 px-3.5 rounded border border-[#223a5c] text-[#cfe0f4] text-[13px] font-semibold hover:border-[#38bdf8] hover:text-white transition-colors">
                   Back
                 </button>
                 <button
                   type="button"
                   onClick={() => { if (validateReview()) setStep('confirm') }}
-                  className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold"
+                  className="h-9 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-[13px] font-bold transition-colors"
                 >
                   Next
                 </button>
@@ -639,57 +638,57 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           {/* ── Step: confirm ── */}
           {step === 'confirm' && (
             <>
-              <div className="p-5 flex flex-col gap-2">
-                <div className="flex justify-between items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
-                  <span className="text-slate-400">Result</span>
+              <div className="px-5 py-[18px] flex flex-col gap-2">
+                <div className="flex justify-between items-center gap-3 bg-[#0c1728] border border-[#1b2c46] rounded-lg px-3 py-2.5">
+                  <span className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8]">Result</span>
                   <span className={cn(
-                    'font-semibold',
-                    isDnf ? 'text-zinc-300'
-                      : winner === 'teamA' ? 'text-blue-300'
-                      : winner === 'teamB' ? 'text-violet-300'
-                      : 'text-slate-300'
+                    'text-xs font-bold',
+                    isDnf ? 'text-[#cfe0f4]'
+                      : winner === 'teamA' ? 'text-[#7dd3fc]'
+                      : winner === 'teamB' ? 'text-[#c4b5fd]'
+                      : 'text-[#cfe0f4]'
                   )}>
                     {isDnf ? 'DNF' : winner === 'teamA' ? 'Team A' : winner === 'teamB' ? 'Team B' : 'Draw'}
                   </span>
                 </div>
 
                 {winner && winner !== 'draw' && (
-                  <div className="flex justify-between items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
-                    <span className="text-slate-400">Margin</span>
-                    <span className="font-semibold text-slate-300">+{goalDifference} goals</span>
+                  <div className="flex justify-between items-center gap-3 bg-[#0c1728] border border-[#1b2c46] rounded-lg px-3 py-2.5">
+                    <span className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8]">Margin</span>
+                    <span className="font-plex text-[9.5px] font-bold uppercase tracking-[.14em] text-[#bef264]">+{goalDifference} goals</span>
                   </div>
                 )}
 
                 {newPlayerStates.map((p) => (
-                  <div key={p.name} className="flex justify-between items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
-                    <span className="text-slate-300 font-medium">{p.name}</span>
-                    <span className="text-slate-500 text-xs">Added to roster · {p.strength}</span>
+                  <div key={p.name} className="flex justify-between items-center gap-3 bg-[#0c1728] border border-[#1b2c46] rounded-lg px-3 py-2.5">
+                    <span className="font-inter-body text-xs font-semibold text-[#f4f9ff]">{p.name}</span>
+                    <span className="font-plex text-[9px] uppercase tracking-[.12em] text-[#6f88a8]">Added to roster · {p.strength}</span>
                   </div>
                 ))}
 
                 {guestStates.map((g) => (
-                  <div key={g.name} className="flex justify-between items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
-                    <span className="text-slate-300 font-medium">
+                  <div key={g.name} className="flex justify-between items-center gap-3 bg-[#0c1728] border border-[#1b2c46] rounded-lg px-3 py-2.5">
+                    <span className="font-inter-body text-xs font-semibold text-[#f4f9ff]">
                       {g.addToRoster ? `${g.name} → ${g.rosterName.trim()}` : g.name}
                     </span>
-                    <span className="text-slate-500 text-xs">
+                    <span className="font-plex text-[9px] uppercase tracking-[.12em] text-[#6f88a8]">
                       {g.addToRoster ? `Added to roster · ${g.strength}` : 'Guest only'}
                     </span>
                   </div>
                 ))}
 
-                {error && <p className="text-sm text-red-400 mt-1">{error}</p>}
+                {error && <p className="font-inter-body text-xs text-[#e2686f] mt-1">{error}</p>}
               </div>
 
-              <div className="flex gap-2 justify-end px-5 pb-4 border-t border-slate-700 pt-3">
-                <button type="button" onClick={() => setStep('review')} className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500">
+              <div className="flex gap-2 justify-end px-5 py-3.5 border-t border-[#1b2c46] bg-[#0c1728]">
+                <button type="button" onClick={() => setStep('review')} className="h-9 px-3.5 rounded border border-[#223a5c] text-[#cfe0f4] text-[13px] font-semibold hover:border-[#38bdf8] hover:text-white transition-colors">
                   Back
                 </button>
                 <button
                   type="button"
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-4 py-2 rounded bg-green-700 hover:bg-green-600 text-white text-sm font-semibold disabled:opacity-50"
+                  className="h-9 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-[13px] font-bold transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Saving…' : 'Save result'}
                 </button>
@@ -700,30 +699,30 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           {/* ── Step: share ── */}
           {step === 'share' && shareData && (
             <>
-              <div className="p-5 flex flex-col gap-2 max-h-[70vh] overflow-y-auto">
+              <div className="px-5 py-[18px] flex flex-col gap-2 max-h-[70vh] overflow-y-auto">
                 {/* Team A */}
-                <div className="bg-slate-900 border border-blue-900/50 rounded-lg p-3">
-                  <p className="text-[10px] font-semibold text-blue-400 uppercase tracking-wide mb-2">🔵 Team A</p>
-                  <p className="text-xs text-slate-300 leading-relaxed">{scheduledWeek.teamA.join(', ')}</p>
+                <div className="bg-[#0c1728] border border-[#38bdf8]/30 rounded-lg p-3">
+                  <p className="font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#7dd3fc] mb-2">Team A</p>
+                  <p className="font-inter-body text-xs text-[#cfe0f4] leading-relaxed">{scheduledWeek.teamA.join(', ')}</p>
                 </div>
 
                 {/* Team B */}
-                <div className="bg-slate-900 border border-violet-900/50 rounded-lg p-3">
-                  <p className="text-[10px] font-semibold text-violet-400 uppercase tracking-wide mb-2">🟣 Team B</p>
-                  <p className="text-xs text-slate-300 leading-relaxed">{scheduledWeek.teamB.join(', ')}</p>
+                <div className="bg-[#0c1728] border border-[#a78bfa]/30 rounded-lg p-3">
+                  <p className="font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#c4b5fd] mb-2">Team B</p>
+                  <p className="font-inter-body text-xs text-[#cfe0f4] leading-relaxed">{scheduledWeek.teamB.join(', ')}</p>
                 </div>
 
                 {/* Highlights — non-DNF only, when text non-empty */}
                 {!shareData.dnf && shareData.highlightsText.trim().length > 0 && (
-                  <div className="bg-slate-900 border border-slate-700 rounded-lg p-3">
-                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Highlights</p>
+                  <div className="bg-[#0c1728] border border-[#1b2c46] rounded-lg p-3">
+                    <p className="font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#6f88a8] mb-2">Highlights</p>
                     <div className="flex flex-col gap-1.5">
                       {shareData.highlightsText
                         .split('\n')
                         .map((l) => l.trim())
                         .filter(Boolean)
                         .map((line) => (
-                          <p key={line} className="text-xs text-slate-300">{line}</p>
+                          <p key={line} className="font-inter-body text-xs text-[#cfe0f4]">{line}</p>
                         ))}
                     </div>
                   </div>
@@ -731,26 +730,26 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
 
                 {/* Notes — both result types, when present */}
                 {notes.trim().length > 0 && (
-                  <div className="bg-slate-900 border border-slate-700 rounded-lg p-3">
-                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Notes</p>
-                    <p className="text-xs text-slate-300 italic leading-relaxed">{notes.trim()}</p>
+                  <div className="bg-[#0c1728] border border-[#1b2c46] rounded-lg p-3">
+                    <p className="font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#6f88a8] mb-2">Notes</p>
+                    <p className="font-inter-body text-xs text-[#8ba4c4] italic leading-relaxed">{notes.trim()}</p>
                   </div>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-2 px-5 pb-5 pt-1">
+              <div className="grid grid-cols-2 gap-2 px-5 pb-[18px]">
                 <button
                   type="button"
                   onClick={handleShareClick}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors"
+                  className="flex items-center justify-center gap-2 h-[38px] px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-[13px] font-bold transition-colors"
                 >
-                  <Share2 className="h-4 w-4" />
+                  <Share2 className="size-[15px]" />
                   {shareCopied ? 'Result copied!' : 'Share Result'}
                 </button>
                 <button
                   type="button"
                   onClick={onSaved}
-                  className="px-4 py-2.5 rounded-lg border border-slate-600 text-slate-300 text-sm hover:border-slate-500 transition-colors"
+                  className="h-[38px] px-4 rounded border border-[#223a5c] text-[#cfe0f4] text-[13px] font-semibold hover:border-[#38bdf8] hover:text-white transition-colors"
                 >
                   Done
                 </button>
@@ -761,7 +760,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           {/* ── Step: celebrate ── */}
           {step === 'celebrate' && celebrateQuarter && (
             <>
-              <div className="p-4">
+              <div>
                 <QuarterCelebration
                   quarter={celebrateQuarter}
                   leagueName={leagueName}
@@ -769,11 +768,11 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                   variant="modal"
                 />
               </div>
-              <div className="px-5 pb-5 pt-1">
+              <div className="px-4 pb-[18px]">
                 <button
                   type="button"
                   onClick={onSaved}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-600 text-slate-300 text-sm hover:border-slate-500 transition-colors"
+                  className="w-full h-[38px] px-4 rounded border border-[#223a5c] text-[#cfe0f4] text-[13px] font-semibold hover:border-[#38bdf8] hover:text-white transition-colors"
                 >
                   Done
                 </button>

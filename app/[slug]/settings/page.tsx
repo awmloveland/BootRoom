@@ -220,7 +220,7 @@ export default function LeagueSettingsPage() {
   if (loading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
-        <p className="text-slate-400">Loading…</p>
+        <p className="font-inter-body text-[13px] text-[#6f88a8]">Loading…</p>
       </div>
     )
   }
@@ -233,24 +233,24 @@ export default function LeagueSettingsPage() {
   ]
 
   return (
-    <main className="max-w-xl mx-auto px-4 sm:px-6 py-8">
+    <main className="max-w-[624px] mx-auto px-4 sm:px-6 pt-7 pb-14">
       <Suspense fallback={null}>
         <TabInitialiser onTab={setSection} />
       </Suspense>
-      <div className="mb-6">
+      <div>
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors mb-3"
+          className="inline-flex items-center gap-[7px] font-plex text-[9.5px] font-bold uppercase tracking-[.16em] text-[#8ba4c4] hover:text-[#f4f9ff] transition-colors"
         >
-          <ArrowLeft className="size-4" />
+          <ArrowLeft className="size-[13px]" strokeWidth={2.2} />
           Back
         </button>
-        <h1 className="text-xl font-semibold text-slate-100">Settings</h1>
-        <p className="text-sm text-slate-500 mt-0.5">{leagueName}</p>
+        <h1 className="mt-3.5 text-[26px] sm:text-[30px] leading-none font-bold tracking-[-.035em] text-[#f4f9ff]">Settings</h1>
+        <p className="mt-2 font-plex text-[10px] uppercase tracking-[.14em] text-[#6f88a8]">{leagueName}</p>
       </div>
 
       {/* Section tabs */}
-      <div className="flex gap-1 mb-6 overflow-x-auto border-b border-slate-700 -mx-4 px-4 sm:mx-0 sm:px-0 touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex gap-1 mt-[22px] mb-6 overflow-x-auto border-b border-[#17263c] -mx-4 px-4 sm:mx-0 sm:px-0 touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {NAV.map(({ id, label, Icon }) => (
           <button
             key={id}
@@ -260,13 +260,13 @@ export default function LeagueSettingsPage() {
               e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
             }}
             className={cn(
-              'flex shrink-0 items-center gap-1.5 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px',
+              'flex shrink-0 items-center gap-2 px-3 pb-[11px] font-plex text-[10.5px] font-bold uppercase tracking-[.14em] whitespace-nowrap transition-colors border-b-2 -mb-px',
               section === id
-                ? 'border-sky-500 text-sky-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-[#38bdf8] text-[#f4f9ff]'
+                : 'border-transparent text-[#8ba4c4] hover:text-[#f4f9ff]'
             )}
           >
-            <Icon className="size-4" />
+            <Icon className="size-[13px]" />
             {label}
           </button>
         ))}
@@ -276,7 +276,7 @@ export default function LeagueSettingsPage() {
       {section === 'details' && (
         <div>
           {detailsLoading ? (
-            <p className="text-slate-400 text-sm">Loading…</p>
+            <p className="font-inter-body text-[13px] text-[#6f88a8]">Loading…</p>
           ) : (
             <LeagueDetailsForm
               leagueId={leagueId}
@@ -295,46 +295,44 @@ export default function LeagueSettingsPage() {
         <div className="space-y-6">
 
           {/* Invite Links card */}
-          <div className="rounded-lg bg-slate-800 border border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700/60">
-              <p className="text-sm font-medium text-slate-200">Invite Links</p>
+          <div className="rounded-xl bg-[#0a1421] border border-[#1b2c46] overflow-hidden shadow-[0_18px_44px_rgba(0,0,0,.42)]">
+            <div className="px-[18px] py-3 bg-[#0c1728] border-b border-[#1b2c46]">
+              <p className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#8ba4c4]">Invite Links</p>
             </div>
-            <div className="divide-y divide-slate-700/40">
+            <div className="divide-y divide-[#17263c]">
               {inviteError && (
-                <div className="px-4 py-2 text-xs text-red-400">{inviteError}</div>
+                <div className="px-[18px] py-2 font-inter-body text-xs text-[#e2686f]">{inviteError}</div>
               )}
               {(
                 [
-                  { role: 'member', label: 'Member link', sub: 'accepted user joins as member', link: memberLink, expiry: memberExpiry },
-                  { role: 'admin',  label: 'Admin link',  sub: 'accepted user joins as admin',  link: adminLink,  expiry: adminExpiry },
+                  { role: 'member', label: 'Member link', sub: 'Joins as member', link: memberLink, expiry: memberExpiry },
+                  { role: 'admin',  label: 'Admin link',  sub: 'Joins as admin',  link: adminLink,  expiry: adminExpiry },
                 ] as const
               ).map(({ role, label, sub, link, expiry }) => (
-                <div key={role} className="flex items-center justify-between gap-3 px-4 py-3">
-                  <div className="min-w-0 flex-1">
-                    <span className="text-sm text-slate-300">{label}</span>
-                    <span className="text-xs text-slate-500 ml-2">{sub}</span>
-                    {expiry && (
-                      <span className="text-xs text-slate-500 ml-2">· {formatExpiry(expiry)}</span>
-                    )}
-                    {!link && !expiry && loadingRole === role && (
-                      <span className="text-xs text-slate-500 ml-2">Generating…</span>
-                    )}
+                <div key={role} className="flex flex-wrap items-center justify-between gap-x-3.5 gap-y-2 px-[18px] py-[13px]">
+                  <div className="min-w-0">
+                    <p className="font-inter-body text-[13px] font-semibold text-[#f4f9ff]">{label}</p>
+                    <p className="mt-[3px] font-plex text-[9px] uppercase tracking-[.12em] text-[#6f88a8]">
+                      {sub}
+                      {expiry && <span> · {formatExpiry(expiry)}</span>}
+                      {!link && !expiry && loadingRole === role && <span> · Generating…</span>}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => link && copyLink(link, role)}
                       disabled={!link || loadingRole === role}
-                      className="flex items-center gap-1 text-xs font-medium text-sky-400 hover:text-sky-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded border border-[#38bdf8]/40 bg-[#38bdf8]/10 font-plex text-[9.5px] font-bold uppercase tracking-[.12em] text-[#7dd3fc] hover:bg-[#38bdf8]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
-                      {copiedRole === role ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                      {copiedRole === role ? <Check className="size-3" /> : <Copy className="size-3" />}
                       {copiedRole === role ? 'Copied' : 'Copy'}
                     </button>
                     <button
                       onClick={() => fetchInviteLink(role)}
                       disabled={loadingRole === role}
-                      className="flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded border border-[#223a5c] font-plex text-[9.5px] font-bold uppercase tracking-[.12em] text-[#8ba4c4] hover:border-[#38bdf8] hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
-                      <RefreshCw className={cn('size-3.5', loadingRole === role && 'animate-spin')} />
+                      <RefreshCw className={cn('size-3', loadingRole === role && 'animate-spin')} />
                       Regenerate
                     </button>
                   </div>
@@ -345,7 +343,7 @@ export default function LeagueSettingsPage() {
 
           {/* Pending join requests */}
           {pendingLoading ? (
-            <p className="text-slate-400 text-sm">Loading requests…</p>
+            <p className="font-inter-body text-[13px] text-[#6f88a8]">Loading requests…</p>
           ) : pendingRequests.length > 0 ? (
             <PendingRequestsTable
               leagueId={leagueId}
@@ -353,7 +351,7 @@ export default function LeagueSettingsPage() {
               pendingClaims={pendingClaims}
             />
           ) : (
-            <p className="text-sm text-slate-500">No pending requests.</p>
+            <p className="font-inter-body text-[13px] text-[#6f88a8]">No pending requests.</p>
           )}
 
           {/* Player identity claims — only those not attached to a pending join request */}
@@ -373,9 +371,9 @@ export default function LeagueSettingsPage() {
 
           {/* Member list */}
           <div>
-            <p className="text-xs text-slate-500 uppercase tracking-wide mb-3">League Members</p>
+            <p className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-3">League Members</p>
             {membersLoading ? (
-              <p className="text-slate-400 text-sm">Loading members…</p>
+              <p className="font-inter-body text-[13px] text-[#6f88a8]">Loading members…</p>
             ) : (
               <AdminMemberTable
                 leagueId={leagueId}
@@ -391,7 +389,7 @@ export default function LeagueSettingsPage() {
       {section === 'features' && (
         <div>
           {featuresLoading ? (
-            <p className="text-slate-400 text-sm">Loading…</p>
+            <p className="font-inter-body text-[13px] text-[#6f88a8]">Loading…</p>
           ) : (
             <FeaturePanel
               leagueId={leagueId}
@@ -406,7 +404,7 @@ export default function LeagueSettingsPage() {
       {section === 'players' && (
         <div>
           {playersLoading ? (
-            <p className="text-slate-400 text-sm">Loading…</p>
+            <p className="font-inter-body text-[13px] text-[#6f88a8]">Loading…</p>
           ) : (
             <PlayerRosterPanel
               leagueId={leagueId}

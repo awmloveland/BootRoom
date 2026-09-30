@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { FlaskConical, Trash2 } from 'lucide-react'
 import { cn, ewptScore, winProbability, winCopy } from '@/lib/utils'
 import { autoPick } from '@/lib/autoPick'
 import { FormDots } from '@/components/FormDots'
@@ -85,142 +85,157 @@ export function LineupLab({ allPlayers }: Props) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
 
       {/* Intro card */}
-      <div className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 flex gap-3 items-start">
-        <span className="text-lg leading-none mt-0.5">⚽</span>
+      <div className="rounded-xl border border-[#1b2c46] bg-[#0a1421] px-[18px] py-3.5 flex gap-3.5 items-start shadow-[0_18px_44px_rgba(0,0,0,.42)]">
+        <span
+          aria-hidden
+          className="inline-flex size-[34px] shrink-0 items-center justify-center rounded-full border border-[#a78bfa]/40 bg-[#a78bfa]/12 text-[#a78bfa]"
+        >
+          <FlaskConical className="size-4" strokeWidth={1.8} />
+        </span>
         <div>
-          <p className="text-sm font-semibold text-slate-100">The Lineup Lab</p>
-          <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+          <p className="text-[15px] font-bold tracking-[-.02em] text-[#f4f9ff]">The Lineup Lab</p>
+          <p className="mt-[5px] font-inter-body text-xs leading-[1.55] text-[#8ba4c4]">
             Pick players, drag them around, see how the teams balance out. Nothing here affects the actual match.
           </p>
         </div>
       </div>
 
       {/* Lineups header + actions */}
-      <div className="flex items-center justify-between">
-        <p className="text-base font-semibold text-slate-100">Lineups</p>
+      <div className="flex items-center justify-between gap-2.5">
+        <p className="text-base font-bold tracking-[-.02em] text-[#f4f9ff]">Lineups</p>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={handleAutoBalance}
             disabled={totalSelected < 2}
-            className="inline-flex items-center justify-center h-8 px-3 rounded-md bg-slate-800 border border-slate-700 text-sm text-slate-300 hover:border-slate-600 hover:text-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center justify-center h-[30px] px-3 rounded border border-[#223a5c] text-xs font-bold text-[#cfe0f4] hover:border-[#38bdf8] hover:text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#223a5c] disabled:hover:text-[#cfe0f4] transition-colors"
           >
-            <span className="sm:hidden">Auto-balance</span>
-            <span className="hidden sm:inline">Auto-Balance Teams</span>
+            Auto-Balance Teams
           </button>
           <button
             type="button"
             onClick={handleClearAll}
             disabled={totalSelected === 0}
-            className="inline-flex items-center justify-center h-8 px-3 rounded-md bg-red-950 border border-red-900 text-sm text-red-400 hover:border-red-700 hover:text-red-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center justify-center gap-1.5 h-[30px] px-3 rounded border border-[#e2686f]/40 text-xs font-bold text-[#e2686f] hover:bg-[#e2686f]/10 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
           >
-            <Trash2 size={15} className="sm:hidden" />
-            <span className="hidden sm:inline">Clear all</span>
+            <Trash2 size={13} />
+            Clear all
           </button>
         </div>
       </div>
 
-      {/* Teams grid */}
-      <>
-        <div className="grid grid-cols-2 gap-3">
-            {(['A', 'B'] as const).map((team) => {
-              const players = team === 'A' ? teamA : teamB
-              const score = ewptScore(players)
-              return (
-                <div key={team}>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-semibold text-slate-100">Team {team}</p>
-                    <span className={cn(
-                      'px-1.5 py-0.5 rounded text-xs font-semibold tabular-nums',
-                      team === 'A'
-                        ? 'bg-sky-900/60 border border-sky-700 text-sky-300'
-                        : 'bg-violet-900/60 border border-violet-700 text-violet-300'
-                    )}>
-                      {players.length >= MIN_PLAYERS ? score.toFixed(3) : '—'}
-                    </span>
-                  </div>
-                  <div className="space-y-1 min-h-[32px]">
-                    {players.length === 0 ? (
-                      <div className={cn(
-                        'rounded border border-dashed px-2.5 py-4 text-center text-xs',
-                        team === 'A' ? 'border-sky-900/40 text-sky-800' : 'border-violet-900/40 text-violet-800'
-                      )}>
-                        No players yet
-                      </div>
-                    ) : (
-                      players.map((p, i) => {
-                        const isOver = dragOver?.team === team && dragOver?.index === i
-                        return (
-                          <div
-                            key={p.name}
-                            draggable
-                            onDragStart={() => { dragSource.current = { team, index: i } }}
-                            onDragOver={(e) => { e.preventDefault(); setDragOver({ team, index: i }) }}
-                            onDragLeave={() => setDragOver(null)}
-                            onDrop={() => handleSwap(team, i)}
-                            onDragEnd={() => { dragSource.current = null; setDragOver(null) }}
-                            className={cn(
-                              'flex items-center justify-between px-2.5 py-1.5 rounded border cursor-grab active:cursor-grabbing transition-colors select-none',
-                              team === 'A'
-                                ? isOver ? 'bg-sky-800/60 border-sky-600' : 'bg-sky-950/40 border-sky-900/60'
-                                : isOver ? 'bg-violet-800/60 border-violet-600' : 'bg-violet-950/40 border-violet-900/60'
-                            )}
-                          >
-                            <span className={cn('text-xs font-medium', team === 'A' ? 'text-sky-100' : 'text-violet-100')}>
-                              {p.name}{p.mentality === 'goalkeeper' ? ' 🧤' : ''}
-                            </span>
-                            {p.recentForm && <FormDots form={p.recentForm} />}
-                          </div>
-                        )
-                      })
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+      {/* Pitch: teams grid + balance bar */}
+      <div className="relative overflow-hidden rounded-[14px] border border-[#1b2c46] bg-[#060b14] p-[18px]">
+        {/* Pitch markings — decorative */}
+        <svg
+          aria-hidden
+          viewBox="0 0 600 340"
+          preserveAspectRatio="none"
+          className="absolute inset-0 h-full w-full fill-none stroke-[#132339] stroke-2"
+        >
+          <line x1="300" y1="0" x2="300" y2="340" />
+          <circle cx="300" cy="170" r="78" />
+        </svg>
 
-          {/* Balance bar — only when both teams have at least MIN_PLAYERS players */}
-          {teamA.length >= MIN_PLAYERS && teamB.length >= MIN_PLAYERS && (() => {
-            const scoreA = ewptScore(teamA)
-            const scoreB = ewptScore(teamB)
-            const winProbA = winProbability(scoreA, scoreB)
-            const winProbB = 1 - winProbA
-            const copy = winCopy(winProbA)
-            const isEven = copy.team === 'even'
+        <div className="relative grid grid-cols-2 gap-4">
+          {(['A', 'B'] as const).map((team) => {
+            const players = team === 'A' ? teamA : teamB
+            const score = ewptScore(players)
             return (
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2.5">
-                  <span className={cn('text-[15px] font-bold tabular-nums min-w-[34px]', isEven ? 'text-slate-400' : 'text-sky-300')}>
-                    {Math.round(winProbA * 100)}%
-                  </span>
-                  <div className="flex-1 h-1.5 rounded-full overflow-hidden flex">
-                    <div className="bg-sky-600 transition-all" style={{ width: `${winProbA * 100}%` }} />
-                    <div className="bg-violet-600 flex-1" />
-                  </div>
-                  <span className={cn('text-[15px] font-bold tabular-nums min-w-[34px] text-right', isEven ? 'text-slate-400' : 'text-violet-300')}>
-                    {Math.round(winProbB * 100)}%
+              <div key={team}>
+                <div className={cn(
+                  'flex items-baseline justify-between gap-2 pb-2 border-b border-[#1b2c46]',
+                  team === 'A' ? 'text-[#7dd3fc]' : 'text-[#c4b5fd]'
+                )}>
+                  <p className="text-[13px] font-bold uppercase tracking-[.04em]">Team {team}</p>
+                  <span className="font-plex text-[15px] font-bold tabular-nums">
+                    {players.length >= MIN_PLAYERS ? score.toFixed(3) : '—'}
                   </span>
                 </div>
-                <p className={cn('text-xs font-medium text-center', copy.team === 'A' ? 'text-sky-400' : copy.team === 'B' ? 'text-violet-400' : 'text-slate-400')}>
-                  {copy.text}
-                </p>
+                <div className="flex flex-col gap-[5px] mt-2.5 min-h-9">
+                  {players.length === 0 ? (
+                    <div className={cn(
+                      'rounded border border-dashed px-2.5 py-4 text-center font-plex text-[9px] uppercase tracking-[.14em]',
+                      team === 'A' ? 'border-[#38bdf8]/30 text-[#2f5c85]' : 'border-[#a78bfa]/30 text-[#5b4a8a]'
+                    )}>
+                      No players yet
+                    </div>
+                  ) : (
+                    players.map((p, i) => {
+                      const isOver = dragOver?.team === team && dragOver?.index === i
+                      return (
+                        <div
+                          key={p.name}
+                          draggable
+                          onDragStart={() => { dragSource.current = { team, index: i } }}
+                          onDragOver={(e) => { e.preventDefault(); setDragOver({ team, index: i }) }}
+                          onDragLeave={() => setDragOver(null)}
+                          onDrop={() => handleSwap(team, i)}
+                          onDragEnd={() => { dragSource.current = null; setDragOver(null) }}
+                          className={cn(
+                            'flex items-center justify-between gap-2 px-2.5 py-[7px] rounded border-l-2 cursor-grab active:cursor-grabbing transition-colors select-none',
+                            team === 'A'
+                              ? cn('border-[#38bdf8] text-[#dff1ff]', isOver ? 'bg-[rgba(8,47,73,.95)]' : 'bg-[rgba(8,47,73,.55)]')
+                              : cn('border-[#a78bfa] text-[#efeaff]', isOver ? 'bg-[rgba(46,16,101,.85)]' : 'bg-[rgba(46,16,101,.45)]')
+                          )}
+                        >
+                          <span className="font-inter-body text-xs font-semibold whitespace-nowrap">
+                            {p.name}{p.mentality === 'goalkeeper' ? ' 🧤' : ''}
+                          </span>
+                          {p.recentForm && <FormDots form={p.recentForm} team={team} className="gap-1 text-[10px]" />}
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
               </div>
             )
-          })()}
-      </>
+          })}
+        </div>
+
+        {/* Balance bar — only when both teams have at least MIN_PLAYERS players */}
+        {teamA.length >= MIN_PLAYERS && teamB.length >= MIN_PLAYERS && (() => {
+          const scoreA = ewptScore(teamA)
+          const scoreB = ewptScore(teamB)
+          const winProbA = winProbability(scoreA, scoreB)
+          const winProbB = 1 - winProbA
+          const copy = winCopy(winProbA)
+          const isEven = copy.team === 'even'
+          return (
+            <div className="relative mt-[18px] pt-3.5 border-t border-[#1b2c46]">
+              <div className="flex items-center gap-3">
+                <span className={cn('font-plex text-[15px] font-bold tabular-nums min-w-10', isEven ? 'text-[#8ba4c4]' : 'text-[#7dd3fc]')}>
+                  {Math.round(winProbA * 100)}%
+                </span>
+                <div className="flex-1 h-1.5 rounded-[3px] overflow-hidden flex bg-[#a78bfa]">
+                  <div className="bg-[#38bdf8] transition-all duration-300" style={{ width: `${winProbA * 100}%` }} />
+                </div>
+                <span className={cn('font-plex text-[15px] font-bold tabular-nums min-w-10 text-right', isEven ? 'text-[#8ba4c4]' : 'text-[#c4b5fd]')}>
+                  {Math.round(winProbB * 100)}%
+                </span>
+              </div>
+              <p className={cn(
+                'mt-2 text-center font-plex text-[9.5px] font-bold uppercase tracking-[.16em]',
+                copy.team === 'A' ? 'text-[#38bdf8]' : copy.team === 'B' ? 'text-[#a78bfa]' : 'text-[#8ba4c4]'
+              )}>
+                {copy.text}
+              </p>
+            </div>
+          )
+        })()}
+      </div>
 
       {/* Divider */}
-      <hr className="border-slate-800" />
+      <div className="h-px bg-[#17263c]" />
 
       {/* Player pool */}
       <div>
-        <div className="flex items-baseline justify-between mb-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">All Players</p>
-          <p className="text-xs text-slate-600">Tap to pick · colours show team</p>
+        <div className="flex items-baseline justify-between mb-3">
+          <p className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8]">All Players</p>
+          <p className="font-plex text-[9px] uppercase tracking-[.12em] text-[#4f688a]">Tap to pick · colours show team</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {sortedPlayers.map((player) => {
@@ -232,12 +247,12 @@ export function LineupLab({ allPlayers }: Props) {
                 type="button"
                 onClick={() => handleChipClick(player)}
                 className={cn(
-                  'px-3 py-1 rounded-full text-xs border transition-colors',
+                  'h-[30px] px-3 rounded border font-inter-body text-xs font-semibold transition-colors',
                   inA
-                    ? 'bg-sky-950/60 border-sky-800 text-sky-300 hover:border-sky-600'
+                    ? 'bg-[rgba(8,47,73,.55)] border-[#38bdf8]/50 text-[#7dd3fc]'
                     : inB
-                      ? 'bg-violet-950/60 border-violet-800 text-violet-300 hover:border-violet-600'
-                      : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500 hover:text-slate-100'
+                      ? 'bg-[rgba(46,16,101,.45)] border-[#a78bfa]/50 text-[#c4b5fd]'
+                      : 'bg-[#0a1421] border-[#1b2c46] text-[#cfe0f4] hover:border-[#2c4a72]'
                 )}
               >
                 {player.name}{player.mentality === 'goalkeeper' ? ' 🧤' : ''}

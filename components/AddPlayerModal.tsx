@@ -3,6 +3,7 @@
 
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
+import { Sparkles, User, X } from 'lucide-react'
 import type { Player, GuestEntry, NewPlayerEntry, Strength } from '@/lib/types'
 import { Toggle } from '@/components/ui/toggle'
 import { StrengthPills } from '@/components/ui/StrengthPills'
@@ -51,21 +52,22 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
   return (
     <Dialog.Root open onOpenChange={(open) => { if (!open) onClose() }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/70 z-[999]" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-sm rounded-xl bg-slate-800 border border-slate-700 shadow-xl focus:outline-none">
+        <Dialog.Overlay className="fixed inset-0 bg-[#030710]/80 z-[999]" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-[calc(100%-32px)] sm:max-w-sm rounded-[14px] bg-[#0a1421] border border-[#1b2c46] shadow-[0_34px_80px_rgba(0,0,0,.65)] focus:outline-none">
 
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
-            <Dialog.Title className="text-base font-semibold text-slate-100">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#1b2c46]">
+            <Dialog.Title className="text-base font-bold tracking-[-.02em] text-[#f4f9ff]">
               {step === 'choose' && 'Add Player'}
               {step === 'guest' && 'Add Guest'}
               {step === 'new_player' && 'Add New Player'}
             </Dialog.Title>
             <Dialog.Close
               onClick={onClose}
-              className="text-slate-500 hover:text-slate-300 text-lg leading-none"
+              aria-label="Close"
+              className="inline-flex size-7 items-center justify-center rounded text-[#8ba4c4] hover:text-[#f4f9ff] transition-colors"
             >
-              ✕
+              <X className="size-4" aria-hidden />
             </Dialog.Close>
           </div>
 
@@ -73,25 +75,29 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
           {step === 'choose' && (
             <>
               <div className="p-5">
-                <p className="text-xs text-slate-400 mb-3">Who are you adding?</p>
+                <p className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-3">Who are you adding?</p>
                 <div className="flex gap-3">
                   <button
                     type="button"
                     onClick={() => setStep('guest')}
-                    className="flex-1 flex flex-col items-center gap-1.5 bg-slate-900 border border-slate-600 hover:border-blue-500 rounded-lg p-4 transition-colors"
+                    className="flex-1 flex flex-col items-center gap-2 bg-[#0c1728] border border-[#223a5c] hover:border-[#38bdf8] rounded-lg p-4 transition-colors"
                   >
-                    <span className="text-2xl">👤</span>
-                    <span className="text-sm font-semibold text-slate-100">Guest</span>
-                    <span className="text-[11px] text-slate-500 text-center leading-tight">A +1 for an existing player</span>
+                    <span className="flex size-9 items-center justify-center rounded-full border border-[#223a5c] bg-[#0a1421] text-[#8ba4c4]">
+                      <User className="size-4" aria-hidden />
+                    </span>
+                    <span className="text-sm font-bold tracking-[-.02em] text-[#f4f9ff]">Guest</span>
+                    <span className="font-inter-body text-[11px] text-[#6f88a8] text-center leading-tight">A +1 for an existing player</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setStep('new_player')}
-                    className="flex-1 flex flex-col items-center gap-1.5 bg-slate-900 border border-slate-600 hover:border-blue-500 rounded-lg p-4 transition-colors"
+                    className="flex-1 flex flex-col items-center gap-2 bg-[#0c1728] border border-[#223a5c] hover:border-[#38bdf8] rounded-lg p-4 transition-colors"
                   >
-                    <span className="text-2xl">✨</span>
-                    <span className="text-sm font-semibold text-slate-100">New player</span>
-                    <span className="text-[11px] text-slate-500 text-center leading-tight">Add them to the roster</span>
+                    <span className="flex size-9 items-center justify-center rounded-full border border-[#bef264]/40 bg-[#bef264]/12 text-[#bef264]">
+                      <Sparkles className="size-4" aria-hidden />
+                    </span>
+                    <span className="text-sm font-bold tracking-[-.02em] text-[#f4f9ff]">New player</span>
+                    <span className="font-inter-body text-[11px] text-[#6f88a8] text-center leading-tight">Add them to the roster</span>
                   </button>
                 </div>
               </div>
@@ -99,7 +105,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500"
+                  className="h-9 px-3.5 rounded border border-[#223a5c] text-[#cfe0f4] text-[13px] font-semibold hover:border-[#38bdf8] hover:text-white transition-colors"
                 >
                   Cancel
                 </button>
@@ -112,14 +118,14 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
             <>
               <div className="p-5 flex flex-col gap-4">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                  <label className="block font-plex text-[9px] font-bold text-[#6f88a8] uppercase tracking-[.18em] mb-1.5">
                     Plays with
                   </label>
                   <select
                     name="plays-with"
                     value={associatedPlayer}
                     onChange={(e) => setAssociatedPlayer(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full h-9 bg-[#0c1728] border border-[#1b2c46] rounded px-3 font-inter-body text-[13px] text-[#f4f9ff] focus:outline-none focus:ring-0 focus:border-[#38bdf8]"
                   >
                     <option value="">Select a player…</option>
                     {allLeaguePlayers.map((p) => (
@@ -127,33 +133,33 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
                     ))}
                   </select>
                   {associatedPlayer && (
-                    <p className="text-[11px] text-slate-500 mt-1">
-                      Will appear as <span className="text-slate-300 font-medium">{deriveGuestName(associatedPlayer)}</span> and placed on the same team as {associatedPlayer}.
+                    <p className="font-inter-body text-[11px] text-[#6f88a8] mt-1">
+                      Will appear as <span className="text-[#cfe0f4] font-medium">{deriveGuestName(associatedPlayer)}</span> and placed on the same team as {associatedPlayer}.
                     </p>
                   )}
                   {showWarning && (
-                    <div className="mt-2 flex gap-2 bg-amber-950 border border-amber-800 rounded p-2 text-[11px] text-amber-400 leading-relaxed">
-                      ⚠ {associatedPlayer} isn&apos;t attending this game. Add them to the lineup first, or the guest will be distributed freely by Auto-Pick.
+                    <div className="mt-2 rounded border border-[#e2686f]/40 bg-[#e2686f]/10 px-3 py-2 font-inter-body text-xs text-[#e2686f] leading-relaxed">
+                      {associatedPlayer} isn&apos;t attending this game. Add them to the lineup first, or the guest will be distributed freely by Auto-Pick.
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                  <label className="block font-plex text-[9px] font-bold text-[#6f88a8] uppercase tracking-[.18em] mb-1.5">
                     Strength
                   </label>
                   <StrengthPills value={guestStrength} onChange={setGuestStrength} />
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Defaults to Average — change only if you know this player.
+                  <p className="font-inter-body text-[11px] text-[#6f88a8] mt-1">
+                    Defaults to Average. Change only if you know this player.
                   </p>
                 </div>
 
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                    <label className="block font-plex text-[9px] font-bold text-[#6f88a8] uppercase tracking-[.18em]">
                       Dedicated goalkeeper
                     </label>
-                    <p className="text-[11px] text-slate-400 leading-relaxed mt-px">
+                    <p className="font-inter-body text-[11px] text-[#8ba4c4] leading-relaxed mt-1">
                       Plays in goal all game, every game.
                     </p>
                   </div>
@@ -165,7 +171,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
                 <button
                   type="button"
                   onClick={() => { setStep('choose'); setGuestStrength('average'); setGuestIsGoalkeeper(false) }}
-                  className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500"
+                  className="h-9 px-3.5 rounded border border-[#223a5c] text-[#cfe0f4] text-[13px] font-semibold hover:border-[#38bdf8] hover:text-white transition-colors"
                 >
                   Back
                 </button>
@@ -173,7 +179,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
                   type="button"
                   onClick={handleAddGuest}
                   disabled={!associatedPlayer}
-                  className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold disabled:opacity-40"
+                  className="h-9 px-3.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-[13px] font-bold disabled:opacity-50 transition-colors"
                 >
                   Add guest
                 </button>

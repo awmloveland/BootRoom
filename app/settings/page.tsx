@@ -187,7 +187,7 @@ export default function AccountSettingsPage() {
 
   if (loading) return (
     <div className="min-h-[50vh] flex items-center justify-center">
-      <p className="text-slate-400">Loading…</p>
+      <p className="text-[#8ba4c4]">Loading…</p>
     </div>
   )
 
@@ -196,45 +196,45 @@ export default function AccountSettingsPage() {
       <div className="mb-6">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors mb-3"
+          className="flex items-center gap-1.5 text-sm text-[#8ba4c4] hover:text-[#dff1ff] transition-colors mb-3"
         >
           <ArrowLeft className="size-4" />
           Back
         </button>
-        <h1 className="text-xl font-semibold text-slate-100">Account</h1>
+        <h1 className="text-xl font-semibold text-[#f4f9ff]">Account</h1>
       </div>
 
       {/* ── Account info card (read-only) ──────────────────────────────── */}
-      <div className="rounded-lg bg-slate-800 border border-slate-700 overflow-hidden mb-4">
-        <div className="px-4 py-3 border-b border-slate-700/60">
-          <p className="text-sm font-medium text-slate-200">Account info</p>
+      <div className="rounded-xl bg-[#0a1421] border border-[#1b2c46] overflow-hidden mb-4">
+        <div className="px-4 py-3 border-b border-[#1b2c46]">
+          <p className="text-sm font-medium text-[#dff1ff]">Account info</p>
         </div>
-        <div className="divide-y divide-slate-700/40">
+        <div className="divide-y divide-[#1b2c46]">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between mb-1">
-              <p className="text-xs text-slate-500">Email</p>
-              <p className="text-sm text-slate-300">{email}</p>
+              <p className="text-xs text-[#6f88a8]">Email</p>
+              <p className="text-sm text-[#cfe0f4]">{email}</p>
             </div>
-            <p className="text-xs text-slate-600">To change your email, contact your league admin.</p>
+            <p className="text-xs text-[#4f688a]">To change your email, contact your league admin.</p>
           </div>
           {createdAt && (
             <div className="px-4 py-3 flex items-center justify-between">
-              <p className="text-xs text-slate-500">Member since</p>
-              <p className="text-sm text-slate-300">{formatDate(createdAt)}</p>
+              <p className="text-xs text-[#6f88a8]">Member since</p>
+              <p className="text-sm text-[#cfe0f4]">{formatDate(createdAt)}</p>
             </div>
           )}
         </div>
       </div>
 
       {/* ── Profile card (editable) ─────────────────────────────────────── */}
-      <div className="rounded-lg bg-slate-800 border border-slate-700 overflow-hidden mb-6">
-        <div className="px-4 py-3 border-b border-slate-700/60">
-          <p className="text-sm font-medium text-slate-200">Profile</p>
+      <div className="rounded-xl bg-[#0a1421] border border-[#1b2c46] overflow-hidden mb-6">
+        <div className="px-4 py-3 border-b border-[#1b2c46]">
+          <p className="text-sm font-medium text-[#dff1ff]">Profile</p>
         </div>
         <form onSubmit={saveProfile} className="p-4 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="firstName" className="block text-xs text-slate-400 mb-1.5">
+              <label htmlFor="firstName" className="block text-xs text-[#8ba4c4] mb-1.5">
                 First name
               </label>
               <input
@@ -243,11 +243,11 @@ export default function AccountSettingsPage() {
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 placeholder="Alex"
-                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                className="w-full px-3 py-2 rounded bg-[#0c1728] border border-[#1b2c46] text-[#f4f9ff] text-sm focus:outline-none focus:ring-0 focus:border-[#38bdf8]"
               />
             </div>
             <div>
-              <label htmlFor="lastName" className="block text-xs text-slate-400 mb-1.5">
+              <label htmlFor="lastName" className="block text-xs text-[#8ba4c4] mb-1.5">
                 Last name
               </label>
               <input
@@ -256,18 +256,18 @@ export default function AccountSettingsPage() {
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 placeholder="Smith"
-                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                className="w-full px-3 py-2 rounded bg-[#0c1728] border border-[#1b2c46] text-[#f4f9ff] text-sm focus:outline-none focus:ring-0 focus:border-[#38bdf8]"
               />
             </div>
           </div>
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-[#e2686f]">{error}</p>}
           <div className="flex justify-end pt-1">
             <button
               type="submit"
               disabled={saving}
               className={cn(
                 'px-4 py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-50',
-                saved ? 'bg-slate-700 text-sky-300' : 'bg-sky-600 hover:bg-sky-500 text-white'
+                saved ? 'bg-[#1b2c46] text-[#7dd3fc]' : 'bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d]'
               )}
             >
               {saving ? 'Saving…' : saved ? 'Saved' : 'Save changes'}
@@ -279,7 +279,7 @@ export default function AccountSettingsPage() {
       {/* ── League identity section ──────────────────────────────────────── */}
       {leagues.length > 0 && (
         <>
-          <h2 className="text-xl font-semibold text-slate-100 mb-4">Linked Leagues</h2>
+          <h2 className="text-xl font-semibold text-[#f4f9ff] mb-4">Linked Leagues</h2>
           <div className="space-y-3 mb-12">
             {leagues.map((league) => {
               const claim = claims[league.id]
@@ -292,39 +292,39 @@ export default function AccountSettingsPage() {
               return (
                 <div
                   key={league.id}
-                  className="rounded-lg bg-slate-800 border border-slate-700 overflow-hidden"
+                  className="rounded-xl bg-[#0a1421] border border-[#1b2c46] overflow-hidden"
                 >
                   <div className="flex items-center justify-between gap-3 px-4 py-3">
                     <div>
-                      <p className="text-sm font-medium text-slate-100 mb-1">{league.name}</p>
+                      <p className="text-sm font-medium text-[#f4f9ff] mb-1">{league.name}</p>
                       {status === null && (
                         <div className="flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0" />
-                          <span className="text-xs text-slate-400">No player profile linked</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#2c4a72] shrink-0" />
+                          <span className="text-xs text-[#8ba4c4]">No player profile linked</span>
                         </div>
                       )}
                       {status === 'pending' && (
                         <div className="flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                          <span className="text-xs text-slate-400">
-                            Pending — claimed as{' '}
-                            <span className="text-slate-300">{claim.player_name}</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#f5c04a] shrink-0" />
+                          <span className="text-xs text-[#8ba4c4]">
+                            Pending, claimed as{' '}
+                            <span className="text-[#cfe0f4]">{claim.player_name}</span>
                           </span>
                         </div>
                       )}
                       {status === 'approved' && (
                         <div className="flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
-                          <span className="text-xs text-slate-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#bef264] shrink-0" />
+                          <span className="text-xs text-[#8ba4c4]">
                             Linked as{' '}
-                            <span className="text-slate-300">{effectiveName}</span>
+                            <span className="text-[#cfe0f4]">{effectiveName}</span>
                           </span>
                         </div>
                       )}
                       {status === 'rejected' && (
                         <div className="flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-                          <span className="text-xs text-slate-400">Claim not approved</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#e2686f] shrink-0" />
+                          <span className="text-xs text-[#8ba4c4]">Claim not approved</span>
                         </div>
                       )}
                     </div>
@@ -332,7 +332,7 @@ export default function AccountSettingsPage() {
                       <button
                         type="button"
                         onClick={() => setExpandedLeague(league.id)}
-                        className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium transition-colors shrink-0"
+                        className="px-3 py-1.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-xs font-bold transition-colors shrink-0"
                       >
                         Claim profile
                       </button>
@@ -341,7 +341,7 @@ export default function AccountSettingsPage() {
                       <button
                         type="button"
                         onClick={() => setExpandedLeague(null)}
-                        className="px-3 py-1.5 rounded-lg border border-slate-600 text-slate-400 text-xs hover:border-slate-500 transition-colors shrink-0"
+                        className="px-3 py-1.5 rounded-lg border border-[#223a5c] text-[#8ba4c4] text-xs hover:border-[#2c4a72] transition-colors shrink-0"
                       >
                         Cancel
                       </button>
@@ -351,7 +351,7 @@ export default function AccountSettingsPage() {
                         type="button"
                         disabled={isCancelling}
                         onClick={() => handleCancelClaim(league.id)}
-                        className="px-3 py-1.5 rounded-lg border border-red-900/60 text-red-400 text-xs hover:border-red-800 disabled:opacity-50 transition-colors shrink-0"
+                        className="px-3 py-1.5 rounded-lg border border-[#e2686f]/40 text-[#e2686f] text-xs hover:border-[#e2686f]/40 disabled:opacity-50 transition-colors shrink-0"
                       >
                         {isCancelling ? 'Cancelling…' : 'Cancel claim'}
                       </button>
@@ -360,7 +360,7 @@ export default function AccountSettingsPage() {
                   {(isExpanded || (status === 'rejected' && !dismissedRejected.has(league.id))) && (
                     <>
                       {claimErrors[league.id] && (
-                        <p className="px-4 pb-2 text-xs text-red-400">{claimErrors[league.id]}</p>
+                        <p className="px-4 pb-2 text-xs text-[#e2686f]">{claimErrors[league.id]}</p>
                       )}
                       <PlayerClaimPicker
                         leagueId={league.id}
@@ -384,12 +384,12 @@ export default function AccountSettingsPage() {
       )}
 
       {/* ── Danger zone ──────────────────────────────────────────────────── */}
-      <h2 className="text-xl font-semibold text-slate-100 mb-4">Danger zone</h2>
-      <div className="rounded-lg bg-slate-800 border border-slate-700 overflow-hidden mb-8">
+      <h2 className="text-xl font-semibold text-[#f4f9ff] mb-4">Danger zone</h2>
+      <div className="rounded-xl bg-[#0a1421] border border-[#1b2c46] overflow-hidden mb-8">
         <div className="px-4 py-4 flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-slate-300">Delete account</p>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-sm text-[#cfe0f4]">Delete account</p>
+            <p className="text-xs text-[#6f88a8] mt-0.5">
               Permanently removes your account and all associated data. This cannot be undone.
             </p>
           </div>
@@ -397,7 +397,7 @@ export default function AccountSettingsPage() {
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="px-3 py-1.5 rounded-lg border border-red-900/60 text-red-400 text-xs font-medium hover:bg-red-950/40 transition-colors shrink-0"
+              className="px-3 py-1.5 rounded-lg border border-[#e2686f]/40 text-[#e2686f] text-xs font-medium hover:bg-[#e2686f]/20 transition-colors shrink-0"
             >
               Delete account
             </button>
@@ -407,7 +407,7 @@ export default function AccountSettingsPage() {
                 type="button"
                 onClick={() => setConfirmDelete(false)}
                 disabled={deleting}
-                className="px-3 py-1.5 rounded-lg border border-slate-600 text-slate-400 text-xs hover:border-slate-500 disabled:opacity-50 transition-colors"
+                className="px-3 py-1.5 rounded-lg border border-[#223a5c] text-[#8ba4c4] text-xs hover:border-[#2c4a72] disabled:opacity-50 transition-colors"
               >
                 Cancel
               </button>
@@ -415,7 +415,7 @@ export default function AccountSettingsPage() {
                 type="button"
                 onClick={handleDeleteAccount}
                 disabled={deleting}
-                className="px-3 py-1.5 rounded-lg bg-red-900/60 hover:bg-red-900/80 text-red-300 text-xs font-medium disabled:opacity-50 transition-colors"
+                className="px-3 py-1.5 rounded-lg bg-[#e2686f]/10 hover:bg-[#e2686f]/20 text-[#e2686f] text-xs font-medium disabled:opacity-50 transition-colors"
               >
                 {deleting ? 'Deleting…' : 'Yes, delete'}
               </button>

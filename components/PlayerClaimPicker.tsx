@@ -51,35 +51,35 @@ export default function PlayerClaimPicker({
     : players
 
   return (
-    <div className="border-t border-slate-700 p-4 bg-slate-900/40">
+    <div className="border-t border-[#1b2c46] p-4 bg-[#0c1728]">
       <input
         type="text"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search player names…"
-        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm placeholder:text-slate-500 outline-none focus:border-slate-500 mb-3"
+        className="w-full px-3 py-2 rounded-xl bg-[#0a1421] border border-[#1b2c46] text-[#f4f9ff] text-sm placeholder:text-[#4f688a] outline-none focus:border-[#2c4a72] mb-3"
       />
 
       {loading ? (
-        <p className="text-sm text-slate-500 mb-3">Loading…</p>
+        <p className="text-sm text-[#6f88a8] mb-3">Loading…</p>
       ) : loadError ? (
-        <p className="text-sm text-red-400 mb-3">Failed to load player names.</p>
+        <p className="text-sm text-[#e2686f] mb-3">Failed to load player names.</p>
       ) : filtered.length === 0 ? (
-        <p className="text-sm text-slate-500 mb-3">
+        <p className="text-sm text-[#6f88a8] mb-3">
           {search ? 'No players match that search.' : 'No unclaimed players found.'}
         </p>
       ) : (
-        <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-700 mb-3">
+        <div className="max-h-40 overflow-y-auto rounded-lg border border-[#1b2c46] mb-3">
           {filtered.map((name) => (
             <button
               key={name}
               type="button"
               onClick={() => selectionOnly ? onClaim(name) : setSelected(name)}
               className={cn(
-                'w-full text-left px-3 py-2 text-sm border-b border-slate-800 last:border-0 transition-colors',
+                'w-full text-left px-3 py-2 text-sm border-b border-[#17263c] last:border-0 transition-colors',
                 selected === name
-                  ? 'bg-sky-900/40 text-sky-300'
-                  : 'text-slate-300 hover:bg-slate-800'
+                  ? 'bg-[#38bdf8]/8 text-[#7dd3fc]'
+                  : 'text-[#cfe0f4] hover:bg-[#0a1421]'
               )}
             >
               {name}
@@ -94,7 +94,7 @@ export default function PlayerClaimPicker({
             type="button"
             disabled={!selected || submitting}
             onClick={() => selected && onClaim(selected)}
-            className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? 'Submitting…' : 'Submit claim'}
           </button>
@@ -102,13 +102,13 @@ export default function PlayerClaimPicker({
         <button
           type="button"
           onClick={onCancel}
-          className="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400 text-sm hover:border-slate-600 transition-colors"
+          className="px-3 py-1.5 rounded-lg border border-[#1b2c46] text-[#8ba4c4] text-sm hover:border-[#223a5c] transition-colors"
         >
           Cancel
         </button>
       </div>
 
-      <p className="text-xs text-slate-500 leading-relaxed">{footerText}</p>
+      <p className="text-xs text-[#6f88a8] leading-relaxed">{footerText}</p>
     </div>
   )
 }
