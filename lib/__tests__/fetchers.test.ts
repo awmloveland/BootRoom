@@ -5,7 +5,7 @@ jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 jest.mock('@/lib/supabase/service', () => ({ createServiceClient: jest.fn() }))
 
 // Import after the mocks are registered.
-import { getUser, getAuthAndRole } from '@/lib/fetchers'
+import { getUser, getAuthAndRole, getPendingBadgeCount } from '@/lib/fetchers'
 
 const LEAGUE = '11111111-1111-1111-1111-111111111111'
 const USER = { id: 'user-1', email: 'a@b.c' }
@@ -64,5 +64,35 @@ describe('getAuthAndRole', () => {
       userRole: null,
       isAuthenticated: false,
     })
+  })
+})
+
+describe('getPendingBadgeCount', () => {
+  it('returns 0 for a plain member without calling either admin RPC', async () => {
+    const { rpc } = mockAuth(USER)
+    ;(createServiceClient as jest.Mock).mockReturnValue({
+      from: jest.fn(() => queryReturning({ role: 'member' })),
+    })
+    await expect(getPendingBadgeCount(LEAGUE)).resolves.toBe(0)
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('returns 0 for a signed-out visitor without calling either admin RPC', async () => {
+    const { rpc } = mockAuth(null)
+    await expect(getPendingBadgeCount(LEAGUE)).resolves.toBe(0)
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('sums pending join requests and pending claims for an admin', async () => {
+    const { rpc } = mockAuth(USER)
+    ;(createServiceClient as jest.Mock).mockReturnValue({
+      from: jest.fn(() => queryReturning({ role: 'admin' })),
+    })
+    rpc.mockImplementation((name: string) => {
+      if (name === 'get_join_requests') return Promise.resolve({ data: [{}, {}], error: null })
+      if (name === 'get_player_claims') return Promise.resolve({ data: [{ status: 'pending' }, { status: 'approved' }], error: null })
+      return Promise.resolve({ data: null, error: { message: 'unknown rpc' } })
+    })
+    await expect(getPendingBadgeCount(LEAGUE)).resolves.toBe(3)
   })
 })

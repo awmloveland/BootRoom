@@ -241,7 +241,11 @@ export const getPendingClaimCount = cache(async (leagueId: string): Promise<numb
 })
 
 // Combined badge count for the admin settings gear: pending join requests + pending claims.
+// Only admins can see the gear, and both RPCs deny non-admins anyway, so skip
+// the two round trips unless the cached role says admin or creator.
 export const getPendingBadgeCount = cache(async (leagueId: string): Promise<number> => {
+  const { userRole } = await getAuthAndRole(leagueId)
+  if (userRole !== 'admin' && userRole !== 'creator') return 0
   const [joinCount, claimCount] = await Promise.all([
     getPendingJoinCount(leagueId),
     getPendingClaimCount(leagueId),
