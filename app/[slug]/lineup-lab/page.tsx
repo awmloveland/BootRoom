@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { notFound } from 'next/navigation'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount } from '@/lib/fetchers'
+import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyJoinRequestStatus, getPendingBadgeCount } from '@/lib/fetchers'
 import { getSeasonPlayedWeekCount } from '@/lib/utils'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { LineupLab } from '@/components/LineupLab'
@@ -11,7 +11,7 @@ import { LineupLabLoginPrompt } from '@/components/LineupLabLoginPrompt'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import { MobileStatsFAB } from '@/components/MobileStatsFAB'
 import { SidebarSticky } from '@/components/SidebarSticky'
-import type { LeagueDetails, JoinRequestStatus } from '@/lib/types'
+import type { LeagueDetails } from '@/lib/types'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -23,25 +23,23 @@ export default async function LineupLabPage({ params }: Props) {
   if (!game) notFound()
   const leagueId = game.id
 
-  // getAuthAndRole and getFeatures are cache hits from the layout.
-  // getPlayerStats and getWeeks run fresh — both start in parallel.
-  const [{ user, userRole, isAuthenticated }, features, players, weeks, pendingRequestCount] = await Promise.all([
+  // Everything below is independent given leagueId, so it runs in one batch.
+  // getAuthAndRole and getFeatures are already in flight from the layout.
+  const [
+    { userRole, isAuthenticated },
+    ,
+    players,
+    weeks,
+    pendingRequestCount,
+    joinStatus,
+  ] = await Promise.all([
     getAuthAndRole(leagueId),
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
     getPendingBadgeCount(leagueId),
+    getMyJoinRequestStatus(leagueId),
   ])
-
-  // Resolve joinStatus for the Join/Share button
-  let joinStatus: JoinRequestStatus | 'member' | 'not-member' | null = null
-  if (!isAuthenticated) {
-    joinStatus = null
-  } else if (userRole !== null) {
-    joinStatus = 'member'
-  } else {
-    joinStatus = await getJoinRequestStatus(leagueId, user!.id)
-  }
 
   const tier = resolveVisibilityTier(userRole)
   const isAdmin = tier === 'admin'

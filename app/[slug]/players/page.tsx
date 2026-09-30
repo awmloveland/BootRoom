@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 import { notFound } from 'next/navigation'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
-import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
+import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { getSeasonPlayedWeekCount } from '@/lib/utils'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
@@ -13,7 +13,7 @@ import { StatsSidebar } from '@/components/StatsSidebar'
 import { MobileStatsFAB } from '@/components/MobileStatsFAB'
 import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
 import { SidebarSticky } from '@/components/SidebarSticky'
-import type { LeagueDetails, JoinRequestStatus } from '@/lib/types'
+import type { LeagueDetails } from '@/lib/types'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -25,25 +25,25 @@ export default async function LeaguePlayersPage({ params }: Props) {
   if (!game) notFound()
   const leagueId = game.id
 
-  // getAuthAndRole and getFeatures are cache hits from the layout.
-  // getPlayerStats and getWeeks run fresh — both start in parallel.
-  const [{ user, userRole, isAuthenticated }, features, players, weeks, pendingRequestCount] = await Promise.all([
+  // Everything below is independent given leagueId, so it runs in one batch.
+  // getAuthAndRole and getFeatures are already in flight from the layout.
+  const [
+    { userRole },
+    features,
+    players,
+    weeks,
+    pendingRequestCount,
+    joinStatus,
+    claim,
+  ] = await Promise.all([
     getAuthAndRole(leagueId),
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
-    getPendingBadgeCount(leagueId),  // returns 0 for non-admins
+    getPendingBadgeCount(leagueId),
+    getMyJoinRequestStatus(leagueId),
+    getMyClaimInfo(leagueId),
   ])
-
-  // Resolve joinStatus for the Join/Share button
-  let joinStatus: JoinRequestStatus | 'member' | 'not-member' | null = null
-  if (!isAuthenticated) {
-    joinStatus = null
-  } else if (userRole !== null) {
-    joinStatus = 'member'
-  } else {
-    joinStatus = await getJoinRequestStatus(leagueId, user!.id)
-  }
 
   const tier = resolveVisibilityTier(userRole)
   const isAdmin = tier === 'admin'
@@ -52,14 +52,9 @@ export default async function LeaguePlayersPage({ params }: Props) {
     return <LeaguePrivateState leagueName={game.name} />
   }
 
-  // Show onboarding banner for non-admin members with no claim.
-  let linkedPlayerName: string | null = null
-  let showClaimBanner = false
-  if (tier !== 'public') {
-    const { status, playerName } = await getMyClaimInfo(leagueId)
-    linkedPlayerName = playerName
-    if (tier === 'member') showClaimBanner = status === 'none'
-  }
+  // Onboarding banner for members with no claim; linked name for the sidebar.
+  const linkedPlayerName = claim.playerName
+  const showClaimBanner = tier === 'member' && claim.status === 'none'
 
   const playedWeeks = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled')
   const playedCount = getSeasonPlayedWeekCount(weeks)
