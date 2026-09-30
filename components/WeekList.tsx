@@ -6,6 +6,8 @@ import { MatchCard } from '@/components/MatchCard'
 import { MonthDivider } from '@/components/MonthDivider'
 import { YearDivider } from '@/components/YearDivider'
 import { NameGuestModal } from '@/components/NameGuestModal'
+import { QuarterCelebration } from '@/components/QuarterCelebration'
+import { startsCelebratedQuarter, type ResultsCelebration } from '@/lib/sidebar-stats'
 import { getMonthKey, formatMonthYear, sortWeeks } from '@/lib/utils'
 import type { Mentality, Player, Strength, Week } from '@/lib/types'
 
@@ -20,6 +22,7 @@ interface Props {
   allPlayers?: Player[]
   onResultSaved?: () => void
   leagueName?: string
+  celebration?: ResultsCelebration | null   // champion card, rendered above the first result of that quarter
 }
 
 interface NameGuestTarget {
@@ -38,6 +41,7 @@ export function WeekList({
   allPlayers = [],
   onResultSaved = () => {},
   leagueName,
+  celebration = null,
 }: Props) {
   const router = useRouter()
   const recentEligible = sortWeeks(weeks.filter((w) => w.status === 'played' || w.status === 'dnf'))
@@ -93,7 +97,7 @@ export function WeekList({
   const existingPlayers = allPlayers.map((p) => p.name)
 
   if (weeks.length === 0) {
-    return <p className="text-slate-400 text-sm">No results yet.</p>
+    return <p className="text-[#8ba4c4] text-sm">No results yet.</p>
   }
 
   return (
@@ -104,6 +108,14 @@ export function WeekList({
           index > 0 && getMonthKey(week.date) !== getMonthKey(weeks[index - 1].date)
         return (
           <Fragment key={week.id ?? `${week.season}-${week.week}`}>
+            {celebration && startsCelebratedQuarter(weeks, index, celebration.quarter) && (
+              <QuarterCelebration
+                quarter={celebration.quarter}
+                leagueName={celebration.leagueName}
+                leagueSlug={celebration.leagueSlug}
+                variant="card"
+              />
+            )}
             {yearChanged && <YearDivider year={week.season} />}
             {monthChanged && !yearChanged && <MonthDivider label={formatMonthYear(week.date)} />}
             <MatchCard

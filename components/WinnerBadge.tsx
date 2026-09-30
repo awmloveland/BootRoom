@@ -8,23 +8,23 @@ interface WinnerBadgeProps {
 }
 
 const BADGE_CLASSES: Record<NonNullable<Winner>, string> = {
-  teamA: 'bg-sky-900/60 text-sky-300 border border-sky-700',
-  teamB: 'bg-violet-900/60 text-violet-300 border border-violet-700',
-  draw: 'bg-slate-700 text-slate-300 border border-slate-600',
+  teamA: 'bg-[#38bdf8]/12 text-[#7dd3fc] border-[#38bdf8]/40',
+  teamB: 'bg-[#a78bfa]/12 text-[#c4b5fd] border-[#a78bfa]/40',
+  draw: 'bg-transparent text-[#8ba4c4] border-[#223a5c]',
 }
 
 const BADGE_LABELS: Record<NonNullable<Winner>, string> = {
   teamA: 'Team A Won',
   teamB: 'Team B Won',
-  draw: 'Match Drawn',
+  draw: 'Drawn',
 }
 
 export function WinnerBadge({ winner, cancelled = false, dnf = false }: WinnerBadgeProps) {
-  const base = 'text-xs font-semibold rounded-full px-2.5 py-0.5 whitespace-nowrap'
+  const base = 'font-plex text-[9px] font-bold uppercase tracking-[.14em] rounded border px-2.5 py-[5px] whitespace-nowrap'
 
   if (cancelled) {
     return (
-      <span className={cn(base, 'bg-red-950 text-red-400 border border-red-900')}>
+      <span className={cn(base, 'bg-[#e2686f]/12 text-[#e2686f] border-[#e2686f]/40')}>
         Cancelled
       </span>
     )
@@ -32,7 +32,7 @@ export function WinnerBadge({ winner, cancelled = false, dnf = false }: WinnerBa
 
   if (dnf) {
     return (
-      <span className={cn(base, 'bg-zinc-800 text-zinc-300 border border-zinc-600')}>
+      <span className={cn(base, 'bg-[#1b2c46] text-[#cfe0f4] border-[#2c4a72]')}>
         DNF
       </span>
     )

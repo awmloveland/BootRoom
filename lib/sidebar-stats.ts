@@ -164,7 +164,7 @@ function lastWeekdayOnOrBefore(weekday: number, before: Date): Date {
   return d
 }
 
-function weekInQuarter(week: Week, q: number, year: number): boolean {
+export function weekInQuarter(week: Week, q: number, year: number): boolean {
   const d = parseWeekDate(week.date)
   const wq = quarterOf(d)
   return wq.q === q && wq.year === year
@@ -489,24 +489,36 @@ export function findNewlyCompletedQuarter(
 }
 
 /**
- * Returns the freshly-finished quarter to celebrate on the Results tab, or null.
- * Shows while the current calendar quarter has zero played weeks and the
- * previous quarter is completed with a champion. Returns null the moment the
- * new quarter records its first game (self-expiry).
+ * Returns the most recently completed quarter with a champion, or null.
+ *
+ * The Results tab renders the celebration card inside the match list, just
+ * above the first result of this quarter, so it sits below the next match and
+ * slides down the page as new results come in. Older quarters live on the
+ * Honours tab only.
  */
 export function getCelebratedQuarter(weeks: Week[], now: Date = new Date()): QuarterSummary | null {
-  const { q, year } = quarterOf(now)
-  const currentPlayed = weeks.filter(w => weekInQuarter(w, q, year) && w.status === 'played').length
-  if (currentPlayed > 0) return null
+  const completed = computeAllQuarters(weeks, now)
+    .flatMap(y => y.quarters)
+    .filter(s => s.status === 'completed' && Boolean(s.champion))
+    .sort((a, b) => b.year - a.year || b.q - a.q)
+  return completed[0] ?? null
+}
 
-  const prevQ = q === 1 ? 4 : q - 1
-  const prevYear = q === 1 ? year - 1 : year
-  const summary = computeAllQuarters(weeks, now)
-    .find(y => y.year === prevYear)
-    ?.quarters.find(s => s.q === prevQ)
+/** Everything the results lists need to render the celebration card. */
+export interface ResultsCelebration {
+  quarter: QuarterSummary
+  leagueName: string
+  leagueSlug: string
+}
 
-  if (summary && summary.status === 'completed' && summary.champion) return summary
-  return null
+/**
+ * True when `weeks[index]` is the first listed week of the celebrated quarter,
+ * i.e. where the results lists should render the celebration card.
+ * Lists are newest-first, so this is the slot directly below the next quarter's games.
+ */
+export function startsCelebratedQuarter(weeks: Week[], index: number, quarter: QuarterSummary): boolean {
+  const inQuarter = (w: Week) => weekInQuarter(w, quarter.q, quarter.year)
+  return inQuarter(weeks[index]) && (index === 0 || !inQuarter(weeks[index - 1]))
 }
 
 // ─── computeTeamAB ────────────────────────────────────────────────────────────

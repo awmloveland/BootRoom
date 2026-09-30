@@ -36,7 +36,7 @@ interface AuthDialogProps {
 }
 
 const inputClass =
-  'w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent'
+  'w-full px-4 py-2 rounded-xl bg-[#0a1421] border border-[#1b2c46] text-[#f4f9ff] placeholder:text-[#4f688a] focus:outline-none focus:ring-0 focus:border-[#38bdf8]'
 
 function VerifyStep({
   email,
@@ -90,18 +90,18 @@ function VerifyStep({
     if (error) {
       setMessage({ type: 'error', text: error.message })
     } else {
-      setMessage({ type: 'success', text: 'Code resent — check your email.' })
+      setMessage({ type: 'success', text: 'Code resent. Check your email.' })
     }
     setResending(false)
   }
 
   return (
     <form onSubmit={handleVerify} className="space-y-4 mt-4">
-      <p className="text-sm text-slate-400">
-        We sent a 6-digit code to <span className="text-slate-200">{email}</span>
+      <p className="text-sm text-[#8ba4c4]">
+        We sent a 6-digit code to <span className="text-[#dff1ff]">{email}</span>
       </p>
       <div>
-        <label htmlFor="otp-code" className="block text-sm text-slate-400 mb-1">
+        <label htmlFor="otp-code" className="block text-sm text-[#8ba4c4] mb-1">
           Code
         </label>
         <input
@@ -118,14 +118,14 @@ function VerifyStep({
         />
       </div>
       {message && (
-        <p className={cn('text-sm', message.type === 'success' ? 'text-sky-400' : 'text-red-400')}>
+        <p className={cn('text-sm', message.type === 'success' ? 'text-[#38bdf8]' : 'text-[#e2686f]')}>
           {message.text}
         </p>
       )}
       <button
         type="submit"
         disabled={loading || code.length !== 6}
-        className="w-full py-2 px-4 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="w-full py-2 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {loading ? 'Verifying…' : 'Verify'}
       </button>
@@ -134,15 +134,15 @@ function VerifyStep({
           type="button"
           onClick={handleResend}
           disabled={resending}
-          className="text-sky-400 hover:text-sky-300 disabled:opacity-50"
+          className="text-[#38bdf8] hover:text-[#7dd3fc] disabled:opacity-50"
         >
           {resending ? 'Sending…' : 'Resend code'}
         </button>
-        <span className="text-slate-600">&middot;</span>
+        <span className="text-[#4f688a]">&middot;</span>
         <button
           type="button"
           onClick={onBack}
-          className="text-slate-400 hover:text-slate-300"
+          className="text-[#8ba4c4] hover:text-[#cfe0f4]"
         >
           ← Back
         </button>
@@ -191,7 +191,7 @@ function SignInForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4 mt-4">
       <div>
-        <label htmlFor="signin-email" className="block text-sm text-slate-400 mb-1">
+        <label htmlFor="signin-email" className="block text-sm text-[#8ba4c4] mb-1">
           Email
         </label>
         <input
@@ -204,29 +204,29 @@ function SignInForm({
           placeholder="you@example.com"
         />
       </div>
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-[#e2686f]">{error}</p>}
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-2 px-4 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="w-full py-2 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {loading ? 'Sending…' : 'Send code'}
       </button>
       {signinOnly ? (
-        <p className="text-xs text-slate-500 text-center">
+        <p className="text-xs text-[#6f88a8] text-center">
           Don&apos;t have an account? Ask your admin for an invite or hit &apos;Join League&apos; to request access.
         </p>
       ) : (
         <>
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-slate-700" />
-            <span className="text-xs text-slate-500">or</span>
-            <div className="flex-1 h-px bg-slate-700" />
+            <div className="flex-1 h-px bg-[#1b2c46]" />
+            <span className="text-xs text-[#6f88a8]">or</span>
+            <div className="flex-1 h-px bg-[#1b2c46]" />
           </div>
           <button
             type="button"
             onClick={onSwitchMode}
-            className="w-full py-2 px-4 rounded-lg bg-slate-700 border border-slate-600 text-slate-200 font-medium hover:bg-slate-600 transition-colors"
+            className="w-full py-2 px-4 rounded-lg bg-[#1b2c46] border border-[#223a5c] text-[#dff1ff] font-medium hover:bg-[#223a5c] transition-colors"
           >
             Create account
           </button>
@@ -281,7 +281,7 @@ function SignUpForm({
     <form onSubmit={handleSubmit} className="space-y-4 mt-4">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label htmlFor="signup-first" className="block text-sm text-slate-400 mb-1">
+          <label htmlFor="signup-first" className="block text-sm text-[#8ba4c4] mb-1">
             First name
           </label>
           <input
@@ -295,7 +295,7 @@ function SignUpForm({
           />
         </div>
         <div>
-          <label htmlFor="signup-last" className="block text-sm text-slate-400 mb-1">
+          <label htmlFor="signup-last" className="block text-sm text-[#8ba4c4] mb-1">
             Last name
           </label>
           <input
@@ -310,7 +310,7 @@ function SignUpForm({
         </div>
       </div>
       <div>
-        <label htmlFor="signup-email" className="block text-sm text-slate-400 mb-1">
+        <label htmlFor="signup-email" className="block text-sm text-[#8ba4c4] mb-1">
           Email
         </label>
         <input
@@ -324,21 +324,21 @@ function SignUpForm({
         />
       </div>
       {leagueName && (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-[#6f88a8]">
           You&apos;ll be able to request access to {leagueName} after creating your account.
         </p>
       )}
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-[#e2686f]">{error}</p>}
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-2 px-4 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="w-full py-2 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {loading ? 'Sending…' : 'Send code'}
       </button>
-      <p className="text-xs text-slate-500 text-center pt-1">
+      <p className="text-xs text-[#6f88a8] text-center pt-1">
         Already have an account?{' '}
-        <button type="button" onClick={onSwitchMode} className="text-slate-400 hover:text-slate-200 underline">
+        <button type="button" onClick={onSwitchMode} className="text-[#8ba4c4] hover:text-[#dff1ff] underline">
           Sign in
         </button>
       </p>
@@ -424,7 +424,7 @@ export function AuthDialog({
         trigger ? (
           trigger(() => openAs('signin'))
         ) : (
-          <Button size={size} onClick={() => openAs('signin')}>
+          <Button size={size} variant="outline" onClick={() => openAs('signin')}>
             Log in
           </Button>
         )

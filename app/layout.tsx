@@ -24,16 +24,21 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0f172a',
+  themeColor: '#060b14',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
-      className={`dark bg-slate-900 scroll-smooth [scroll-padding-top:118px] ${spaceGrotesk.variable} ${plexMono.variable} ${inter.variable}`}
+      className={`dark bg-[#060b14] scroll-smooth [scroll-padding-top:118px] ${spaceGrotesk.variable} ${plexMono.variable} ${inter.variable}`}
     >
-      <body className={`${inter.className} bg-slate-900 text-slate-100 antialiased min-h-screen`}>
+      <body className="relative isolate font-grotesk bg-[#060b14] text-[#eaf2ff] antialiased min-h-screen">
+        {/* Dot field — decorative, fades out down the page; sits behind all content */}
+        <div
+          aria-hidden
+          className="absolute inset-x-0 top-0 -z-10 h-[520px] pointer-events-none bg-[radial-gradient(#16283f_1.4px,transparent_1.4px)] bg-[length:24px_24px] [mask-image:linear-gradient(180deg,#000_0%,rgba(0,0,0,.4)_55%,transparent_100%)]"
+        />
         <Navbar />
         {children}
       </body>

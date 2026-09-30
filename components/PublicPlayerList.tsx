@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Search, ArrowUp, ArrowDown } from 'lucide-react'
+import { Search, ArrowUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PlayerCard } from '@/components/PlayerCard'
 import type { Player, SortKey, Week } from '@/lib/types'
@@ -73,28 +73,28 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true, 
   return (
     <div className="flex flex-col gap-3">
       {/* Toolbar card */}
-      <div className="bg-slate-800 border border-slate-700 rounded-xl p-3">
+      <div className="bg-[#0a1421] border border-[#1b2c46] rounded-xl p-3 shadow-[0_18px_44px_rgba(0,0,0,.42)]">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-[13px] w-[13px] text-[#6f88a8] pointer-events-none" />
           <input
             type="search"
             placeholder="Search players…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-slate-900 border border-slate-600 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 w-full"
+            className="h-[38px] w-full rounded border border-[#1b2c46] bg-[#0c1728] pl-[34px] pr-3 py-0 font-inter-body text-[13px] text-[#f4f9ff] placeholder:text-[#4f688a] focus:outline-none focus:ring-0 focus:border-[#38bdf8]"
             aria-label="Search players"
           />
         </div>
 
         {/* Divider */}
-        <div className="border-t border-slate-700 -mx-3 my-3" />
+        <div className="h-px bg-[#17263c] -mx-3 my-3" />
 
         {/* Sort */}
-        <div role="group" aria-label="Sort by" className="flex items-center gap-0.5">
-          <div className="relative flex-1 overflow-hidden min-w-0 after:absolute after:right-0 after:top-0 after:bottom-0 after:w-4 after:bg-gradient-to-r after:from-transparent after:to-slate-800 after:pointer-events-none">
+        <div role="group" aria-label="Sort by" className="flex items-center gap-2">
+          <div className="relative flex-1 overflow-hidden min-w-0 after:absolute after:right-0 after:top-0 after:bottom-0 after:w-4 after:bg-gradient-to-r after:from-transparent after:to-[#0a1421] after:pointer-events-none">
             <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <span aria-hidden="true" className="text-[10px] text-slate-500 uppercase tracking-widest shrink-0">
+              <span aria-hidden="true" className="font-plex text-[9px] font-bold text-[#4f688a] uppercase tracking-[.18em] shrink-0 mr-1">
                 Sort
               </span>
               {SORT_OPTIONS.map((opt) => (
@@ -108,10 +108,10 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true, 
                     setSortAsc(DEFAULT_ASC[opt.value])
                   }}
                   className={cn(
-                    'rounded-full text-xs px-2.5 py-1 transition-colors shrink-0',
+                    'h-7 px-[11px] rounded border font-plex text-[9.5px] font-bold uppercase tracking-[.12em] whitespace-nowrap transition-colors shrink-0',
                     sortBy === opt.value
-                      ? 'bg-sky-500 border border-sky-500 text-white hover:bg-sky-400'
-                      : 'border border-slate-700 text-slate-400 hover:border-slate-500',
+                      ? 'bg-[#38bdf8] border-[#38bdf8] text-[#05101d]'
+                      : 'border-[#1b2c46] text-[#8ba4c4] hover:border-[#2c4a72]',
                   )}
                 >
                   {opt.label}
@@ -123,12 +123,12 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true, 
             type="button"
             aria-label="Toggle sort direction"
             onClick={() => setSortAsc((a) => !a)}
-            className="shrink-0 text-xs text-slate-400 bg-slate-900 border border-slate-700 rounded-md px-2 py-1 flex items-center gap-1 hover:border-slate-500 transition-colors"
+            className="shrink-0 inline-flex items-center gap-1.5 h-7 px-2.5 rounded border border-[#1b2c46] bg-[#0c1728] font-plex text-[9.5px] font-bold uppercase tracking-[.1em] text-[#8ba4c4] hover:border-[#38bdf8] transition-colors"
           >
-            {sortAsc
-              ? <ArrowUp className="h-3.5 w-3.5" />
-              : <ArrowDown className="h-3.5 w-3.5" />
-            }
+            <ArrowUp
+              className={cn('h-3 w-3 transition-transform duration-200', !sortAsc && 'rotate-180')}
+              strokeWidth={2.2}
+            />
             {DIRECTION_LABELS[sortBy][sortAsc ? 0 : 1]}
           </button>
         </div>
@@ -136,7 +136,7 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true, 
 
       {/* Player cards */}
       {displayed.length === 0 ? (
-        <p className="text-slate-500 text-sm py-4 text-center">
+        <p className="font-inter-body text-[13px] text-[#6f88a8] py-4 text-center">
           {searchQuery.trim() ? 'No players match your search' : 'No players'}
         </p>
       ) : (

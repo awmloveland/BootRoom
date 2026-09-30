@@ -18,25 +18,25 @@ export function HonoursLoginPrompt({ leagueId, leagueSlug, leagueName }: Honours
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-      <div className="w-14 h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
-        <Lock size={22} className="text-slate-500" />
+      <div className="w-14 h-14 rounded-full bg-[#0a1421] border border-[#1b2c46] flex items-center justify-center">
+        <Lock size={22} className="text-[#6f88a8]" />
       </div>
       <div className="flex flex-col items-center gap-1">
-        <p className="text-slate-100 font-semibold text-base">Sign in to view Honours</p>
-        <p className="text-slate-500 text-sm max-w-xs">
+        <p className="text-[#f4f9ff] font-semibold text-base">Sign in to view Honours</p>
+        <p className="text-[#6f88a8] text-sm max-w-xs">
           See quarterly champions and standings for your league.
         </p>
       </div>
       <div className="flex items-center gap-3">
         <button
           onClick={() => setSignInOpen(true)}
-          className="bg-slate-700 border border-slate-600 hover:bg-slate-600 text-slate-100 text-sm font-medium px-5 py-2 rounded-md transition-colors"
+          className="bg-[#1b2c46] border border-[#223a5c] hover:bg-[#223a5c] text-[#f4f9ff] text-sm font-medium px-5 py-2 rounded-md transition-colors"
         >
           Log in
         </button>
         <button
           onClick={() => setSignUpOpen(true)}
-          className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-5 py-2 rounded-md transition-colors"
+          className="bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-sm font-bold px-5 py-2 rounded transition-colors"
         >
           Join league
         </button>

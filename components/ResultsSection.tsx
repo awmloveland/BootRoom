@@ -6,6 +6,7 @@ import { sortWeeks } from '@/lib/utils'
 import { NextMatchCard } from '@/components/NextMatchCard'
 import { WeekList } from '@/components/WeekList'
 import type { Player, ScheduledWeek, Week } from '@/lib/types'
+import type { ResultsCelebration } from '@/lib/sidebar-stats'
 
 interface Props {
   gameId: string
@@ -19,6 +20,7 @@ interface Props {
   leagueDayIndex?: number
   isAdmin?: boolean
   leagueName?: string
+  celebration?: ResultsCelebration | null
 }
 
 export function ResultsSection({
@@ -33,6 +35,7 @@ export function ResultsSection({
   leagueDayIndex,
   isAdmin = false,
   leagueName,
+  celebration = null,
 }: Props) {
   const router = useRouter()
 
@@ -73,6 +76,7 @@ export function ResultsSection({
           allPlayers={allPlayers}
           onResultSaved={() => router.refresh()}
           leagueName={leagueName}
+          celebration={celebration}
         />
       )}
     </div>

@@ -50,18 +50,18 @@ export function NameGuestModal({ guestName, existingPlayers, onSubmit, onClose }
   return (
     <Dialog.Root open onOpenChange={(open) => { if (!open) onClose() }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/70 z-[999]" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-sm rounded-xl bg-slate-800 border border-slate-700 shadow-xl focus:outline-none">
+        <Dialog.Overlay className="fixed inset-0 bg-[#030710]/80 z-[999]" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-[calc(100%-32px)] sm:max-w-sm rounded-[14px] bg-[#0a1421] border border-[#1b2c46] shadow-[0_34px_80px_rgba(0,0,0,.65)] focus:outline-none">
           <form onSubmit={handleSubmit} className="p-4">
-            <Dialog.Title className="text-sm font-semibold text-slate-100">
+            <Dialog.Title className="text-sm font-semibold text-[#f4f9ff]">
               Name {guestName}
             </Dialog.Title>
-            <Dialog.Description className="mt-1 text-xs text-slate-400">
+            <Dialog.Description className="mt-1 text-xs text-[#8ba4c4]">
               Replace this guest entry with a real player for this match.
             </Dialog.Description>
 
             <div className="mt-4">
-              <label htmlFor="name-guest-name" className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              <label htmlFor="name-guest-name" className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8]">
                 Name
               </label>
               <input
@@ -70,17 +70,17 @@ export function NameGuestModal({ guestName, existingPlayers, onSubmit, onClose }
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoComplete="off"
-                className="mt-1 w-full rounded border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-sm text-slate-100 focus:border-blue-700 focus:outline-none"
+                className="mt-1 w-full rounded border border-[#1b2c46] bg-[#0c1728] px-2.5 py-1.5 text-sm text-[#f4f9ff] focus:border-[#38bdf8] focus:outline-none"
                 autoFocus
               />
             </div>
 
             <div className="mt-3">
-              <p id="mentality-label" className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Mentality</p>
+              <p id="mentality-label" className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8]">Mentality</p>
               <div
                 role="radiogroup"
                 aria-labelledby="mentality-label"
-                className="mt-1 flex overflow-hidden rounded border border-slate-700"
+                className="mt-1.5 flex overflow-hidden rounded border border-[#223a5c] font-plex text-[9px] font-bold uppercase tracking-[.12em]"
               >
                 {MENTALITY_OPTIONS.map((opt, i) => (
                   <button
@@ -90,11 +90,11 @@ export function NameGuestModal({ guestName, existingPlayers, onSubmit, onClose }
                     aria-checked={mentality === opt.value}
                     onClick={() => setMentality(opt.value)}
                     className={cn(
-                      'flex-1 px-2 py-1.5 text-xs font-semibold',
-                      i < MENTALITY_OPTIONS.length - 1 && 'border-r border-slate-700',
+                      'flex-1 h-8 px-2 transition-colors',
+                      i < MENTALITY_OPTIONS.length - 1 && 'border-r border-[#223a5c]',
                       mentality === opt.value
-                        ? 'bg-blue-950 text-blue-300'
-                        : 'text-slate-500 hover:text-slate-300'
+                        ? 'bg-[rgba(8,47,73,.6)] text-[#7dd3fc]'
+                        : 'text-[#8ba4c4] hover:text-white'
                     )}
                   >
                     {opt.label}
@@ -104,20 +104,20 @@ export function NameGuestModal({ guestName, existingPlayers, onSubmit, onClose }
             </div>
 
             <div className="mt-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Strength</p>
+              <p className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8]">Strength</p>
               <div className="mt-1">
                 <StrengthPills value={strength} onChange={setStrength} />
               </div>
             </div>
 
-            {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
+            {error && <p className="mt-3 text-xs text-[#e2686f]">{error}</p>}
 
             <div className="mt-4 flex justify-end gap-2">
               <Dialog.Close asChild>
                 <button
                   type="button"
                   disabled={submitting}
-                  className="rounded border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-700 disabled:opacity-50"
+                  className="rounded border border-[#1b2c46] px-3 py-1.5 text-xs font-semibold text-[#cfe0f4] hover:bg-[#1b2c46] disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -125,7 +125,7 @@ export function NameGuestModal({ guestName, existingPlayers, onSubmit, onClose }
               <button
                 type="submit"
                 disabled={submitting}
-                className="rounded bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 disabled:opacity-50"
+                className="rounded bg-[#38bdf8] px-3 py-1.5 text-xs font-bold text-[#05101d] hover:bg-[#7dd3fc] disabled:opacity-50"
               >
                 Add player
               </button>

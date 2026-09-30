@@ -39,25 +39,25 @@ export default function MemberLinkPicker({ leagueId, onLink, onCancel, submittin
     : members
 
   return (
-    <div className="border-t border-slate-700 p-4 bg-slate-900/40">
+    <div className="border-t border-[#1b2c46] p-4 bg-[#0c1728]">
       <input
         type="text"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search members…"
-        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm placeholder:text-slate-500 outline-none focus:border-slate-500 mb-3"
+        className="w-full px-3 py-2 rounded-xl bg-[#0a1421] border border-[#1b2c46] text-[#f4f9ff] text-sm placeholder:text-[#4f688a] outline-none focus:border-[#2c4a72] mb-3"
       />
 
       {loading ? (
-        <p className="text-sm text-slate-500 mb-3">Loading…</p>
+        <p className="text-sm text-[#6f88a8] mb-3">Loading…</p>
       ) : loadError ? (
-        <p className="text-sm text-red-400 mb-3">Failed to load members.</p>
+        <p className="text-sm text-[#e2686f] mb-3">Failed to load members.</p>
       ) : filtered.length === 0 ? (
-        <p className="text-sm text-slate-500 mb-3">
+        <p className="text-sm text-[#6f88a8] mb-3">
           {search ? 'No members match that search.' : 'All members are already linked to a player.'}
         </p>
       ) : (
-        <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-700 mb-3">
+        <div className="max-h-40 overflow-y-auto rounded-lg border border-[#1b2c46] mb-3">
           {filtered.map((m) => {
             const label = m.display_name || m.email
             return (
@@ -67,8 +67,8 @@ export default function MemberLinkPicker({ leagueId, onLink, onCancel, submittin
                 disabled={submitting}
                 onClick={() => onLink(m.user_id, label)}
                 className={cn(
-                  'w-full text-left px-3 py-2 text-sm border-b border-slate-800 last:border-0 transition-colors',
-                  'text-slate-300 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed'
+                  'w-full text-left px-3 py-2 text-sm border-b border-[#17263c] last:border-0 transition-colors',
+                  'text-[#cfe0f4] hover:bg-[#0a1421] disabled:opacity-50 disabled:cursor-not-allowed'
                 )}
               >
                 {label}
@@ -83,13 +83,13 @@ export default function MemberLinkPicker({ leagueId, onLink, onCancel, submittin
           type="button"
           onClick={onCancel}
           disabled={submitting}
-          className="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400 text-sm hover:border-slate-600 transition-colors disabled:opacity-50"
+          className="px-3 py-1.5 rounded-lg border border-[#1b2c46] text-[#8ba4c4] text-sm hover:border-[#223a5c] transition-colors disabled:opacity-50"
         >
           Cancel
         </button>
       </div>
 
-      <p className="text-xs text-slate-500 leading-relaxed">
+      <p className="text-xs text-[#6f88a8] leading-relaxed">
         Only members without a linked player are shown.
       </p>
     </div>

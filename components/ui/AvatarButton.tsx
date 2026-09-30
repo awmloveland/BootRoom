@@ -1,7 +1,7 @@
 'use client'
 
 import { forwardRef } from 'react'
-import { cn, getInitials, getAvatarColor } from '@/lib/utils'
+import { cn, getInitials } from '@/lib/utils'
 
 interface AvatarButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   name: string
@@ -10,7 +10,6 @@ interface AvatarButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement
 export const AvatarButton = forwardRef<HTMLButtonElement, AvatarButtonProps>(
   ({ name, className, ...props }, ref) => {
     const initials = getInitials(name)
-    const color = getAvatarColor(name)
 
     return (
       <button
@@ -18,17 +17,12 @@ export const AvatarButton = forwardRef<HTMLButtonElement, AvatarButtonProps>(
         type="button"
         aria-label={name ? `Account menu for ${name}` : 'Account menu'}
         className={cn(
-          'w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold tracking-wide',
-          'transition-shadow hover:ring-2 hover:ring-slate-500',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 shrink-0',
+          'w-[34px] h-[34px] rounded-full flex items-center justify-center shrink-0',
+          'border border-[#223a5c] bg-[#0c1728] text-[#7dd3fc] font-plex text-[11px] font-bold tracking-[.06em]',
+          'transition-colors hover:border-[#38bdf8]',
+          'focus-visible:outline-none focus-visible:border-[#38bdf8]',
           className
         )}
-        // Dynamic hex colours from AVATAR_PALETTE cannot be expressed as static Tailwind classes — inline style is intentional
-        style={{
-          background: color.bg,
-          border: `1px solid ${color.border}`,
-          color: color.text,
-        }}
         {...props}
       >
         {initials}

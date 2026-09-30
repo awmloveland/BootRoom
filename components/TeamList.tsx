@@ -16,34 +16,32 @@ export function TeamList({ label, players, team, rating, goalkeepers, onNameGues
 
   return (
     <div>
-      {/* Team heading + score chip */}
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-semibold text-slate-100">{label}</p>
+      {/* Team heading + rating */}
+      <div className={cn(
+        'flex items-baseline justify-between gap-2 pb-2 border-b border-[#1b2c46]',
+        isA ? 'text-[#7dd3fc]' : 'text-[#c4b5fd]'
+      )}>
+        <p className="text-xs font-bold uppercase tracking-[.04em]">{label}</p>
         {rating != null && (
-          <span className={cn(
-            'px-1.5 py-0.5 rounded text-xs font-semibold tabular-nums border',
-            isA
-              ? 'bg-sky-900/60 border-sky-700 text-sky-300'
-              : 'bg-violet-900/60 border-violet-700 text-violet-300'
-          )}>
+          <span className="font-plex text-sm font-bold tabular-nums">
             {rating.toFixed(3)}
           </span>
         )}
       </div>
 
       {/* Player rows */}
-      <ul className="space-y-1">
+      <ul className="flex flex-col gap-[5px] mt-2">
         {players.map((player) => {
           const showNameGuest = !!onNameGuest && isGuestName(player)
           return (
             <li
               key={player}
               className={cn(
-                'text-xs font-medium px-2.5 py-1.5 rounded border flex items-center justify-between gap-2',
-                showNameGuest && 'border-dashed',
+                'font-inter-body text-xs font-semibold px-2.5 py-[7px] rounded border-l-2 flex items-center justify-between gap-2',
+                showNameGuest && 'outline-dashed outline-1 -outline-offset-1',
                 isA
-                  ? 'bg-sky-950/40 border-sky-900/60 text-sky-100'
-                  : 'bg-violet-950/40 border-violet-900/60 text-violet-100'
+                  ? 'bg-[rgba(8,47,73,.55)] border-[#38bdf8] text-[#dff1ff] outline-[#38bdf8]/30'
+                  : 'bg-[rgba(46,16,101,.45)] border-[#a78bfa] text-[#efeaff] outline-[#a78bfa]/30'
               )}
             >
               <span>{player}{goalkeepers?.includes(player) ? ' 🧤' : ''}</span>
@@ -54,14 +52,14 @@ export function TeamList({ label, players, team, rating, goalkeepers, onNameGues
                   aria-label={`Add player: ${player}`}
                   className={cn(
                     'shrink-0 inline-flex items-center gap-1 whitespace-nowrap',
-                    'text-[11px] font-semibold px-1 py-0.5 rounded',
-                    'hover:underline focus-visible:outline-none focus-visible:ring-2',
+                    'font-plex text-[9px] font-bold uppercase tracking-[.12em] px-1 py-0.5 rounded',
+                    'hover:text-white focus-visible:outline-none focus-visible:ring-2',
                     isA
-                      ? 'text-sky-400 hover:text-sky-300 focus-visible:ring-sky-400'
-                      : 'text-violet-400 hover:text-violet-300 focus-visible:ring-violet-400'
+                      ? 'text-[#7dd3fc] focus-visible:ring-[#38bdf8]'
+                      : 'text-[#c4b5fd] focus-visible:ring-[#a78bfa]'
                   )}
                 >
-                  <Plus className="h-3.5 w-3.5" />
+                  <Plus className="h-3 w-3" />
                   Add Player
                 </button>
               )}

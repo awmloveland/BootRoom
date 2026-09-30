@@ -30,13 +30,13 @@ export function ClaimOnboardingBanner({ leagueId }: ClaimOnboardingBannerProps) 
   if (!visible) return null
 
   return (
-    <div className="rounded-lg border border-sky-700 bg-sky-900/30 px-4 py-3 mb-4">
+    <div className="rounded-lg border border-[#38bdf8]/50 bg-[#38bdf8]/8 px-4 py-3 mb-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-sky-200">
+          <p className="text-sm font-medium text-[#dff1ff]">
             Have you played in this league before?
           </p>
-          <p className="mt-0.5 text-xs text-sky-300/70">
+          <p className="mt-0.5 text-xs text-[#7dd3fc]/70">
             Link your account to your player profile to see your stats and match history.
           </p>
         </div>
@@ -44,7 +44,7 @@ export function ClaimOnboardingBanner({ leagueId }: ClaimOnboardingBannerProps) 
           type="button"
           onClick={dismiss}
           aria-label="Dismiss"
-          className="text-sky-400/60 hover:text-sky-300 transition-colors shrink-0 mt-0.5"
+          className="text-[#38bdf8]/60 hover:text-[#7dd3fc] transition-colors shrink-0 mt-0.5"
         >
           <X className="size-4" />
         </button>
@@ -52,14 +52,14 @@ export function ClaimOnboardingBanner({ leagueId }: ClaimOnboardingBannerProps) 
       <div className="mt-2.5 flex items-center gap-3">
         <Link
           href="/settings"
-          className="text-xs font-medium text-sky-300 hover:text-sky-200 transition-colors"
+          className="text-xs font-medium text-[#7dd3fc] hover:text-[#dff1ff] transition-colors"
         >
           Claim my profile →
         </Link>
         <button
           type="button"
           onClick={dismiss}
-          className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+          className="text-xs text-[#6f88a8] hover:text-[#cfe0f4] transition-colors"
         >
           Dismiss
         </button>

@@ -1,4 +1,4 @@
-import { deriveSeason, getNextWeekNumber, computeYearStats, sortWeeks, getSeasonPlayedWeekCount } from '@/lib/utils'
+import { deriveSeason, getNextWeekNumber, computeYearStats, sortWeeks, getSeasonPlayedWeekCount, getHeaderSeason } from '@/lib/utils'
 import type { Week } from '@/lib/types'
 
 function makeWeek(overrides: Partial<Week>): Week {
@@ -219,5 +219,30 @@ describe('getSeasonPlayedWeekCount', () => {
 
   it('returns 0 when no relevant weeks exist at all', () => {
     expect(getSeasonPlayedWeekCount([])).toBe(0)
+  })
+})
+
+describe('getHeaderSeason', () => {
+  const currentYear = String(new Date().getFullYear())
+  const prevYear = String(new Date().getFullYear() - 1)
+
+  it('returns the current year when it has played weeks', () => {
+    const weeks = [
+      makeWeek({ season: prevYear, week: 50, status: 'played' }),
+      makeWeek({ season: currentYear, week: 2, status: 'played' }),
+    ]
+    expect(getHeaderSeason(weeks)).toBe(currentYear)
+  })
+
+  it('falls back to the previous year when the current year has no results yet', () => {
+    const weeks = [
+      makeWeek({ season: prevYear, week: 50, status: 'played' }),
+      makeWeek({ season: currentYear, week: 1, status: 'scheduled' }),
+    ]
+    expect(getHeaderSeason(weeks)).toBe(prevYear)
+  })
+
+  it('returns the current year when there are no weeks at all', () => {
+    expect(getHeaderSeason([])).toBe(currentYear)
   })
 })

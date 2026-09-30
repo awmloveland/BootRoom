@@ -55,6 +55,43 @@
   --font-plex: var(--font-plex-mono), ui-monospace, monospace;
   --font-inter-body: var(--font-inter), system-ui, sans-serif;
 
+  /* Craft Football design tokens (design_handoff_app_restyle/README.md).
+     Components write these as arbitrary hex values (bg-[#0a1421]) to match
+     components/landing/; the named tokens are the source of truth. */
+  --color-cf-bg: #060b14;
+  --color-cf-surface: #0a1421;
+  --color-cf-surface-2: #0c1728;
+  --color-cf-surface-3: #101d31;
+  --color-cf-border: #1b2c46;
+  --color-cf-border-soft: #17263c;
+  --color-cf-border-strong: #223a5c;
+  --color-cf-border-active: #2c4a72;
+  --color-cf-nav-border: #101d31;
+  --color-cf-text: #f4f9ff;
+  --color-cf-text-2: #dff1ff;
+  --color-cf-text-3: #cfe0f4;
+  --color-cf-text-muted: #8ba4c4;
+  --color-cf-text-faint: #6f88a8;
+  --color-cf-text-ghost: #4f688a;
+  --color-cf-text-dim: #2f4a70;
+  --color-cf-sky: #38bdf8;
+  --color-cf-sky-light: #7dd3fc;
+  --color-cf-sky-ink: #05101d;
+  --color-cf-violet: #a78bfa;
+  --color-cf-violet-light: #c4b5fd;
+  --color-cf-lime: #bef264;
+  --color-cf-lime-ink: #0d1a05;
+  --color-cf-red: #e2686f;
+  --color-cf-amber: #f5c04a;
+  --color-cf-draw: #3d5578;
+  --color-cf-team-a: rgba(8, 47, 73, .55);
+  --color-cf-team-b: rgba(46, 16, 101, .45);
+
+  --shadow-cf-card: 0 18px 44px rgba(0, 0, 0, .42);
+  --shadow-cf-dialog: 0 34px 80px rgba(0, 0, 0, .65);
+  --shadow-cf-dropdown: 0 22px 50px rgba(0, 0, 0, .6);
+  --shadow-cf-fab: 0 12px 30px rgba(56, 189, 248, .3);
+
   --animate-cf-tick: cf-tick 34s linear infinite;
   --animate-cf-pulse: cf-pulse 2.4s ease-in-out infinite;
 
@@ -75,25 +112,26 @@
 /* CSS variable values — these do not change from v3 */
 @layer base {
   :root {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    /* Craft Football navy palette: #060b14 page, #0a1421 card, #1b2c46 border, #38bdf8 accent */
+    --background: 218.6 53.8% 5.1%;
+    --foreground: 212.7 100% 97.8%;
+    --card: 213.9 53.5% 8.4%;
+    --card-foreground: 212.7 100% 97.8%;
+    --popover: 213.9 53.5% 8.4%;
+    --popover-foreground: 212.7 100% 97.8%;
+    --primary: 198.4 93.2% 59.6%;
+    --primary-foreground: 212.5 70.6% 6.7%;
+    --secondary: 216.4 50.8% 12.7%;
+    --secondary-foreground: 212.7 100% 97.8%;
+    --muted: 216.4 50.8% 12.7%;
+    --muted-foreground: 213.7 32.6% 65.7%;
+    --accent: 216.4 50.8% 12.7%;
+    --accent-foreground: 212.7 100% 97.8%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 216.3 44.3% 19%;
+    --input: 216.3 44.3% 19%;
+    --ring: 198.4 93.2% 59.6%;
     --radius: 0.5rem;
   }
 }
