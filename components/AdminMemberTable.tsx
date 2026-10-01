@@ -13,12 +13,6 @@ interface AdminMemberTableProps {
   onChanged: () => void
 }
 
-const ROLE_BADGE: Record<GameRole, string> = {
-  creator: 'bg-amber-900/50 text-amber-300 border-amber-700',
-  admin:   'bg-sky-900/50 text-sky-300 border-sky-700',
-  member:  'bg-slate-700 text-slate-300 border-slate-600',
-}
-
 const ROLE_LABEL: Record<GameRole, string> = {
   creator: 'Creator',
   admin:   'Admin',
@@ -101,9 +95,9 @@ export function AdminMemberTable({ leagueId, members, onChanged }: AdminMemberTa
 
   return (
     <>
-      <div className="space-y-2">
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        <div className="rounded-lg border border-slate-700 overflow-hidden">
+      <div>
+        {error && <p className="mb-2 font-inter-body text-xs text-[#e2686f]">{error}</p>}
+        <div className="rounded-xl border border-[#1b2c46] bg-[#0a1421] overflow-hidden shadow-[0_18px_44px_rgba(0,0,0,.42)]">
           {members.map((member, i) => {
             const isLocked = member.role === 'creator'
             const linkedName = member.linked_player_name
@@ -111,56 +105,53 @@ export function AdminMemberTable({ leagueId, members, onChanged }: AdminMemberTa
             return (
               <div
                 key={member.user_id}
-                className={cn(i > 0 && 'border-t border-slate-700/60')}
+                className={cn(i > 0 && 'border-t border-[#17263c]')}
               >
-                <div className="flex items-center justify-between px-4 py-3 gap-3">
+                <div className="flex flex-wrap items-center justify-between px-[18px] py-3 gap-x-3 gap-y-2">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-200 truncate">
+                    <p className="font-inter-body text-[13px] font-semibold text-[#f4f9ff] truncate">
                       {member.display_name || member.email}
                     </p>
                     {member.display_name && (
-                      <p className="text-xs text-slate-500 truncate">{member.email}</p>
+                      <p className="mt-0.5 font-plex text-[9.5px] tracking-[.06em] text-[#6f88a8] truncate">{member.email}</p>
                     )}
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
                     {/* Player identity badge / link button */}
                     {linkedName ? (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs border bg-emerald-900/40 text-emerald-300 border-emerald-700/50">
-                        <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" />
-                        Linked: {linkedName}
+                      <span className="inline-flex items-center gap-1.5 h-6 px-2 rounded border border-[#bef264]/35 bg-[#bef264]/8 font-plex text-[8.5px] font-bold tracking-[.12em] text-[#bef264] whitespace-nowrap">
+                        <span className="size-[5px] rounded-full bg-[#bef264] shrink-0" />
+                        <span className="uppercase">Linked</span> · {linkedName}
                       </span>
                     ) : (
                       <button
                         type="button"
                         onClick={() => setLinkingUserId(isLinking ? null : member.user_id)}
-                        className="text-xs text-slate-500 border border-dashed border-slate-600 px-2 py-0.5 rounded hover:border-slate-400 hover:text-slate-300 transition-colors"
+                        className="h-6 px-2 rounded border border-dashed border-[#223a5c] font-plex text-[8.5px] font-bold uppercase tracking-[.12em] text-[#6f88a8] hover:border-[#38bdf8] hover:text-white transition-colors"
                       >
                         + Link player
                       </button>
                     )}
 
                     {isLocked && (
-                      <span className={cn(
-                        'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border',
-                        ROLE_BADGE[member.role]
-                      )}>
+                      <span className="inline-flex items-center h-6 px-2 rounded border border-[#bef264]/35 font-plex text-[8.5px] font-bold uppercase tracking-[.14em] text-[#bef264]">
                         {ROLE_LABEL[member.role]}
                       </span>
                     )}
                     {!isLocked && (
                       <>
-                        <div className="flex rounded-md border border-slate-600 overflow-hidden text-xs">
+                        <div className="inline-flex rounded border border-[#223a5c] overflow-hidden divide-x divide-[#223a5c]">
                           {(['member', 'admin'] as const).map((r) => (
                             <button
                               key={r}
                               onClick={() => member.role !== r && setRole(member.user_id, r)}
                               disabled={!!busy || member.role === r}
                               className={cn(
-                                'px-2.5 py-1 font-medium transition-colors capitalize',
+                                'h-6 px-[9px] font-plex text-[8.5px] font-bold uppercase tracking-[.14em] transition-colors',
                                 member.role === r
-                                  ? 'bg-sky-600 text-white cursor-default'
-                                  : 'bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                                  ? 'bg-[#38bdf8] text-[#05101d] cursor-default'
+                                  : 'bg-transparent text-[#8ba4c4] hover:text-white'
                               )}
                             >
                               {busy === `role-${member.user_id}` && member.role !== r ? '…' : r.charAt(0).toUpperCase() + r.slice(1)}
@@ -170,9 +161,10 @@ export function AdminMemberTable({ leagueId, members, onChanged }: AdminMemberTa
                         <button
                           onClick={() => setConfirmRemove(member)}
                           disabled={!!busy}
-                          className="ml-2 text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
+                          aria-label="Remove member"
+                          className="ml-1 inline-flex size-6 items-center justify-center text-[#e2686f] hover:text-[#f09aa0] disabled:opacity-50 transition-colors"
                         >
-                          <Trash2 className="size-3.5" />
+                          <Trash2 className="size-[13px]" />
                         </button>
                       </>
                     )}
@@ -190,7 +182,7 @@ export function AdminMemberTable({ leagueId, members, onChanged }: AdminMemberTa
                       onCancel={() => { setLinkingUserId(null); setAssignError(null) }}
                     />
                     {assignError && (
-                      <p className="px-4 pb-3 text-xs text-red-400">{assignError}</p>
+                      <p className="px-[18px] pb-3 font-inter-body text-xs text-[#e2686f]">{assignError}</p>
                     )}
                   </>
                 )}
@@ -198,7 +190,7 @@ export function AdminMemberTable({ leagueId, members, onChanged }: AdminMemberTa
             )
           })}
         </div>
-        <p className="text-xs text-slate-600">
+        <p className="mt-2.5 font-plex text-[9px] uppercase tracking-[.14em] text-[#4f688a]">
           {members.length} member{members.length !== 1 ? 's' : ''} total
         </p>
       </div>
@@ -209,19 +201,19 @@ export function AdminMemberTable({ leagueId, members, onChanged }: AdminMemberTa
         onOpenChange={(open) => { if (!open) setConfirmRemove(null) }}
       >
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/70 z-[999]" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-sm rounded-xl bg-slate-800 border border-slate-700 p-6 shadow-xl focus:outline-none">
-            <Dialog.Title className="text-lg font-semibold text-slate-100 mb-3">
+          <Dialog.Overlay className="fixed inset-0 bg-[#030710]/80 z-[999]" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-[calc(100%-32px)] sm:max-w-sm rounded-[14px] bg-[#0a1421] border border-[#1b2c46] p-5 shadow-[0_34px_80px_rgba(0,0,0,.65)] focus:outline-none">
+            <Dialog.Title className="text-base font-bold tracking-[-.02em] text-[#f4f9ff] mb-2.5">
               Remove member?
             </Dialog.Title>
-            <Dialog.Description className="text-sm text-slate-300 leading-relaxed mb-6">
-              <span className="text-slate-100 font-medium">{confirmName}</span> will lose access to this league immediately.
+            <Dialog.Description className="font-inter-body text-[13px] leading-[1.55] text-[#8ba4c4] mb-5">
+              <span className="text-[#f4f9ff] font-semibold">{confirmName}</span> will lose access to this league immediately.
             </Dialog.Description>
             <div className="flex gap-2 justify-end">
               <Dialog.Close asChild>
                 <button
                   type="button"
-                  className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500 transition-colors"
+                  className="h-9 px-3.5 rounded border border-[#223a5c] text-[#cfe0f4] text-[13px] font-semibold hover:border-[#38bdf8] hover:text-white transition-colors"
                 >
                   Cancel
                 </button>
@@ -229,7 +221,7 @@ export function AdminMemberTable({ leagueId, members, onChanged }: AdminMemberTa
               <button
                 type="button"
                 onClick={confirmAndRemove}
-                className="px-4 py-2 rounded bg-red-900 hover:bg-red-800 border border-red-700 text-red-200 text-sm font-medium transition-colors"
+                className="h-9 px-4 rounded border border-[#e2686f]/40 text-[#e2686f] text-[13px] font-bold hover:bg-[#e2686f]/10 transition-colors"
               >
                 Remove
               </button>

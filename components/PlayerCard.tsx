@@ -26,31 +26,33 @@ const MENTALITY_LABEL: Record<string, string> = {
   attacking:  'ATT',
 }
 
-const HEADER_METRIC: Record<SortKey, (p: Player) => React.ReactNode> = {
-  name:       (p) => `${p.played} games`,
-  played:     (p) => `${p.played} games`,
-  won:        (p) => (
-    <>
-      <span className="font-semibold text-slate-100">{p.won}</span>
-      <span className="text-xs text-slate-400"> wins</span>
-    </>
-  ),
-  winRate:    (p) => (
-    <>
-      <span className="font-semibold text-slate-100">{p.winRate.toFixed(1)}%</span>
-      <span className="text-xs text-slate-400"> win rate</span>
-    </>
-  ),
-  recentForm: (p) =>
-    p.recentForm ? <FormDots form={p.recentForm} /> : `${p.played} games`,
+/** Number + label shown on the right of the collapsed row, e.g. "42 GAMES". */
+function MetricText({ value, label }: { value: React.ReactNode; label: string }) {
+  return (
+    <span className="font-plex text-[10px] uppercase tracking-[.1em] text-[#8ba4c4]">
+      <span className="text-[13px] font-bold text-[#f4f9ff]">{value}</span> {label}
+    </span>
+  )
 }
 
-const FORM_CIRCLE: Record<string, { bg: string; text: string; underline: string; extra?: string }> = {
-  W:   { bg: 'bg-sky-500',     text: 'text-slate-900', underline: 'bg-sky-400'   },
-  D:   { bg: 'bg-slate-700',   text: 'text-slate-400', underline: 'bg-slate-400' },
-  L:   { bg: 'bg-red-950',     text: 'text-red-300',   underline: 'bg-red-400'   },
-  '-': { bg: 'bg-transparent', text: 'text-slate-600', underline: 'bg-slate-600', extra: 'border border-dashed border-slate-600' },
+const HEADER_METRIC: Record<SortKey, (p: Player) => React.ReactNode> = {
+  name:       (p) => <MetricText value={p.played} label="games" />,
+  played:     (p) => <MetricText value={p.played} label="games" />,
+  won:        (p) => <MetricText value={p.won} label="wins" />,
+  winRate:    (p) => <MetricText value={`${p.winRate.toFixed(1)}%`} label="win rate" />,
+  recentForm: (p) =>
+    p.recentForm ? <FormDots form={p.recentForm} /> : <MetricText value={p.played} label="games" />,
 }
+
+const FORM_CIRCLE: Record<string, { circle: string; underline: string }> = {
+  W:   { circle: 'bg-[#38bdf8] border-[#38bdf8] text-[#05101d]',         underline: 'bg-[#38bdf8]' },
+  D:   { circle: 'bg-[#22405f] border-[#22405f] text-[#8ba4c4]',         underline: 'bg-[#22405f]' },
+  L:   { circle: 'bg-[#e2686f]/18 border-[#e2686f]/40 text-[#e2686f]',   underline: 'bg-[#e2686f]/40' },
+  '-': { circle: 'bg-transparent border-dashed border-[#223a5c] text-[#4f688a]', underline: 'bg-[#223a5c]' },
+}
+
+const STAT_LABEL_CLASS = 'font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8]'
+const STAT_VALUE_CLASS = 'font-plex text-[30px] font-bold leading-none tracking-[-.03em]'
 
 export function PlayerCard({
   player,
@@ -106,8 +108,8 @@ export function PlayerCard({
   }, [isOpen])
 
   const borderClass = isOpen
-    ? 'border-slate-600'
-    : 'border-slate-700 hover:border-slate-500'
+    ? 'border-[#2c4a72] shadow-[0_18px_44px_rgba(0,0,0,.42)]'
+    : 'border-[#1b2c46] hover:border-[#2c4a72]'
 
   // recentForm is stored newest-first; pad to 5 chars, then reverse so oldest is leftmost, newest is rightmost
   const raw = displayPlayer.recentForm ?? ''
@@ -116,31 +118,31 @@ export function PlayerCard({
 
   // Define bar segments; filter out zeros to avoid gap-px artefacts
   const resultSegments = [
-    { count: displayPlayer.won,  barClass: 'bg-sky-500',   numClass: 'text-sky-400',   label: 'Won'   },
-    { count: displayPlayer.drew, barClass: 'bg-slate-600', numClass: 'text-slate-500', label: 'Drawn' },
-    { count: displayPlayer.lost, barClass: 'bg-red-500',   numClass: 'text-red-400',   label: 'Lost'  },
+    { count: displayPlayer.won,  barClass: 'bg-[#38bdf8]', numClass: 'text-[#38bdf8]', label: 'Won'   },
+    { count: displayPlayer.drew, barClass: 'bg-[#3d5578]', numClass: 'text-[#8ba4c4]', label: 'Drawn' },
+    { count: displayPlayer.lost, barClass: 'bg-[#e2686f]', numClass: 'text-[#e2686f]', label: 'Lost'  },
   ].filter(s => s.count > 0)
 
   const splitSegments = [
-    { count: displayPlayer.timesTeamA, barClass: 'bg-blue-700',   numClass: 'text-blue-300',   label: 'Team A', align: 'text-left'  },
-    { count: displayPlayer.timesTeamB, barClass: 'bg-violet-700', numClass: 'text-violet-300', label: 'Team B', align: 'text-right' },
+    { count: displayPlayer.timesTeamA, barClass: 'bg-[#38bdf8]', numClass: 'text-[#7dd3fc]', label: 'Team A', align: 'text-left'  },
+    { count: displayPlayer.timesTeamB, barClass: 'bg-[#a78bfa]', numClass: 'text-[#c4b5fd]', label: 'Team B', align: 'text-right' },
   ]
 
   return (
     <Collapsible.Root open={isOpen} onOpenChange={onToggle}>
-      <div className={cn('rounded-lg border bg-slate-800 transition-colors duration-150', borderClass)}>
+      <div className={cn('rounded-xl border bg-[#0a1421] transition-colors duration-150', borderClass)}>
         <div
           role="button"
           tabIndex={0}
-          className="w-full flex items-center justify-between px-4 py-3 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer"
+          className="w-full flex items-center justify-between gap-3 px-[18px] py-3 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38bdf8] cursor-pointer"
           aria-expanded={isOpen}
           aria-controls={contentId}
           onClick={onToggle}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div className="flex items-center min-w-0">
-              <span className="text-sm font-semibold text-slate-100 shrink-0">{player.name}</span>
+              <span className="font-inter-body text-sm font-bold text-[#f4f9ff] whitespace-nowrap shrink-0">{player.name}</span>
               {showYearToggle && (
                 <div className="relative inline-flex items-center" ref={dropdownRef}>
                   {/* Animated container — overflow-hidden clips only the trigger text */}
@@ -150,19 +152,19 @@ export function PlayerCard({
                       isOpen ? 'max-w-[140px] opacity-100 ml-1.5' : 'max-w-0 opacity-0 ml-0',
                     )}
                   >
-                    <span className="text-slate-500 mr-1 text-sm font-normal">-</span>
+                    <span className="text-[#4f688a] mr-1.5 text-sm font-normal">·</span>
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation()
                         setDropdownOpen((o) => !o)
                       }}
-                      className="text-sm font-semibold text-sky-400 hover:text-sky-300 inline-flex items-center gap-0.5 focus:outline-none cursor-pointer"
+                      className="font-plex text-[9.5px] font-bold uppercase tracking-[.12em] text-[#38bdf8] hover:text-[#7dd3fc] inline-flex items-center gap-1 focus:outline-none cursor-pointer"
                     >
                       {selectedYear ?? 'All Time'}
                       <ChevronDown
                         className={cn(
-                          'h-3 w-3 text-sky-400 transition-transform duration-150',
+                          'h-3 w-3 transition-transform duration-150',
                           dropdownOpen && 'rotate-180',
                         )}
                       />
@@ -170,13 +172,13 @@ export function PlayerCard({
                   </span>
                   {/* Dropdown outside overflow-hidden so it isn't clipped */}
                   {dropdownOpen && (
-                    <div className="absolute left-0 top-full mt-1 z-20 bg-slate-950 border border-slate-700 rounded-lg overflow-hidden shadow-lg min-w-[100px]">
+                    <div className="absolute left-0 top-full mt-1.5 z-20 bg-[#0c1728] border border-[#223a5c] rounded overflow-hidden shadow-[0_18px_44px_rgba(0,0,0,.42)] min-w-[110px]">
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setSelectedYear(null); setDropdownOpen(false) }}
                         className={cn(
-                          'w-full text-left px-3 py-2 text-sm hover:bg-slate-800 transition-colors',
-                          selectedYear === null ? 'text-sky-400' : 'text-slate-400',
+                          'w-full text-left px-3 py-2 font-plex text-[9.5px] font-bold uppercase tracking-[.12em] hover:bg-[#101d31] transition-colors',
+                          selectedYear === null ? 'text-[#38bdf8]' : 'text-[#8ba4c4]',
                         )}
                       >
                         All Time
@@ -187,8 +189,8 @@ export function PlayerCard({
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setSelectedYear(year); setDropdownOpen(false) }}
                           className={cn(
-                            'w-full text-left px-3 py-2 text-sm hover:bg-slate-800 transition-colors',
-                            selectedYear === year ? 'text-sky-400' : 'text-slate-400',
+                            'w-full text-left px-3 py-2 font-plex text-[9.5px] font-bold uppercase tracking-[.12em] hover:bg-[#101d31] transition-colors',
+                            selectedYear === year ? 'text-[#38bdf8]' : 'text-[#8ba4c4]',
                           )}
                         >
                           {year}
@@ -200,18 +202,16 @@ export function PlayerCard({
               )}
             </div>
             {showMentality && (
-              <span className="text-[10px] font-medium text-slate-500 bg-slate-700/60 px-1.5 py-0.5 rounded">
+              <span className="font-plex text-[8.5px] font-bold tracking-[.16em] text-[#6f88a8] bg-[#0c1728] border border-[#1b2c46] px-1.5 py-[3px] rounded-[3px]">
                 {MENTALITY_LABEL[player.mentality] ?? player.mentality}
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 flex items-center gap-1">
-              {HEADER_METRIC[sortBy](player)}
-            </span>
+          <div className="flex items-center gap-3 shrink-0">
+            {HEADER_METRIC[sortBy](player)}
             <ChevronDown
               className={cn(
-                'h-4 w-4 text-slate-400 transition-transform duration-200 flex-shrink-0',
+                'h-[15px] w-[15px] text-[#6f88a8] transition-transform duration-200 flex-shrink-0',
                 isOpen && 'rotate-180',
               )}
               aria-hidden="true"
@@ -223,49 +223,45 @@ export function PlayerCard({
           id={contentId}
           className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up"
         >
-          <div className="border-t border-slate-700 p-4 flex flex-col gap-4">
+          <div className="border-t border-[#1b2c46] px-[18px] py-4 flex flex-col gap-4">
 
             {/* ── Section 1: Win Rate · Played · Last 5 ── */}
-            <div className="flex justify-between items-start">
+            <div className="flex flex-wrap justify-between items-start gap-x-5 gap-y-3.5">
               {/* Win Rate */}
               <div>
-                <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-0.5">Win Rate</p>
-                <p className="text-2xl font-extrabold text-sky-400 leading-none">
-                  {displayPlayer.winRate.toFixed(1)}%
+                <p className={cn(STAT_LABEL_CLASS, 'mb-1.5')}>Win Rate</p>
+                <p className={cn(STAT_VALUE_CLASS, 'text-[#38bdf8]')}>
+                  {displayPlayer.winRate.toFixed(1)}<span className="text-sm">%</span>
                 </p>
               </div>
 
               {/* Played + Last 5 */}
-              <div className="flex items-start gap-5">
+              <div className="flex items-start gap-[22px]">
                 {/* Played */}
                 <div className="text-right">
-                  <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-0.5">Played</p>
-                  <p className="text-2xl font-extrabold text-slate-100 leading-none">{displayPlayer.played}</p>
+                  <p className={cn(STAT_LABEL_CLASS, 'mb-1.5')}>Played</p>
+                  <p className={cn(STAT_VALUE_CLASS, 'text-[#f4f9ff]')}>{displayPlayer.played}</p>
                 </div>
 
                 {/* Last 5 form circles */}
                 <div>
-                  <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-1.5">Last 5</p>
+                  <p className={cn(STAT_LABEL_CLASS, 'mb-2')}>Last 5</p>
                   <div className="flex gap-1">
                     {formChars.map((char, i) => {
                       const style = FORM_CIRCLE[char] ?? FORM_CIRCLE['-']
                       const isMostRecent = i === lastIndex
                       return (
-                        <div key={i} className="flex flex-col items-center gap-0.5">
+                        <div key={i} className="flex flex-col items-center gap-[3px]">
                           <span
                             className={cn(
-                              'w-[22px] h-[22px] rounded-full flex items-center justify-center',
-                              'text-[9px] font-bold font-mono',
-                              style.bg,
-                              style.text,
-                              style.extra,
+                              'w-[22px] h-[22px] rounded-full border flex items-center justify-center',
+                              'font-plex text-[9px] font-bold',
+                              style.circle,
                             )}
                           >
                             {char === '-' ? '' : char}
                           </span>
-                          {isMostRecent && (
-                            <span className={cn('w-3 h-0.5 rounded-full', style.underline)} />
-                          )}
+                          <span className={cn('w-3 h-0.5 rounded-[1px]', isMostRecent ? style.underline : 'bg-transparent')} />
                         </div>
                       )
                     })}
@@ -275,26 +271,26 @@ export function PlayerCard({
             </div>
 
             {/* ── Section 2: Results bar ── */}
-            <div className="border-t border-slate-700 pt-4">
-              <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-2">Results</p>
+            <div className="border-t border-[#1b2c46] pt-3.5">
+              <p className={cn(STAT_LABEL_CLASS, 'mb-2')}>Results</p>
               {/* Numbers above bar */}
-              <div className="flex mb-1 gap-px">
+              <div className="flex mb-1 gap-0.5">
                 {resultSegments.map(s => (
-                  <div key={s.label} className={cn('text-left text-[11px] font-bold', s.numClass)} style={{ flex: s.count }}>
+                  <div key={s.label} className={cn('text-left font-plex text-[11px] font-bold', s.numClass)} style={{ flex: s.count }}>
                     {s.count}
                   </div>
                 ))}
               </div>
               {/* Bar */}
-              <div className="flex h-2 rounded overflow-hidden gap-px">
+              <div className="flex h-2 rounded-sm overflow-hidden gap-0.5">
                 {resultSegments.map(s => (
                   <div key={s.label} className={s.barClass} style={{ flex: s.count }} />
                 ))}
               </div>
               {/* Labels below bar */}
-              <div className="flex mt-1 gap-px">
+              <div className="flex mt-[5px] gap-0.5">
                 {resultSegments.map(s => (
-                  <div key={s.label} className="text-left text-[9px] text-slate-500 uppercase tracking-wide" style={{ flex: s.count }}>
+                  <div key={s.label} className="text-left font-plex text-[8.5px] text-[#6f88a8] uppercase tracking-[.14em]" style={{ flex: s.count }}>
                     {s.label}
                   </div>
                 ))}
@@ -302,26 +298,26 @@ export function PlayerCard({
             </div>
 
             {/* ── Section 3: Team Split bar ── */}
-            <div className="border-t border-slate-700 pt-4">
-              <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-2">Team Split</p>
+            <div className="border-t border-[#1b2c46] pt-3.5">
+              <p className={cn(STAT_LABEL_CLASS, 'mb-2')}>Team Split</p>
               {/* Numbers above bar — always 50/50 so zero-count side doesn't collapse */}
               <div className="flex mb-1">
                 {splitSegments.map(s => (
-                  <div key={s.label} className={cn(s.align, 'text-[11px] font-bold flex-1', s.numClass)}>
+                  <div key={s.label} className={cn(s.align, 'font-plex text-[11px] font-bold flex-1', s.numClass)}>
                     {s.count}
                   </div>
                 ))}
               </div>
               {/* Bar — proportional to actual counts */}
-              <div className="flex h-2 rounded overflow-hidden gap-px">
+              <div className="flex h-2 rounded-sm overflow-hidden gap-0.5">
                 {splitSegments.map(s => (
                   <div key={s.label} className={s.barClass} style={{ flex: s.count || 1 }} />
                 ))}
               </div>
               {/* Labels below bar — always 50/50 to match numbers row */}
-              <div className="flex mt-1">
+              <div className="flex mt-[5px]">
                 {splitSegments.map(s => (
-                  <div key={s.label} className={cn(s.align, 'text-[9px] text-slate-500 uppercase tracking-wide flex-1')}>
+                  <div key={s.label} className={cn(s.align, 'font-plex text-[8.5px] text-[#6f88a8] uppercase tracking-[.14em] flex-1')}>
                     {s.label}
                   </div>
                 ))}

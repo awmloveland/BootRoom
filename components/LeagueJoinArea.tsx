@@ -91,10 +91,9 @@ export function LeagueJoinArea({ leagueId, leagueSlug, leagueName, joinStatus, i
         {showJoin && (
           <Button
             size="xs"
-            className="h-7 bg-sky-600 text-white hover:bg-sky-500"
             onClick={handleJoinClick}
           >
-            <UserPlus className="mr-1.5 size-3.5" />
+            <UserPlus className="mr-[7px] size-[13px]" />
             Join League
           </Button>
         )}
@@ -103,7 +102,7 @@ export function LeagueJoinArea({ leagueId, leagueSlug, leagueName, joinStatus, i
             size="xs"
             variant="ghost"
             disabled
-            className="h-7 cursor-default text-slate-400"
+            className="cursor-default text-[#8ba4c4]"
           >
             Request pending
           </Button>
@@ -111,11 +110,10 @@ export function LeagueJoinArea({ leagueId, leagueSlug, leagueName, joinStatus, i
         {showShare && (
           <Button
             size="xs"
-            variant="ghost"
-            className="h-7 border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-300"
+            variant="outline"
             onClick={handleShareClick}
           >
-            <LinkIcon className="mr-1.5 size-3.5" />
+            <LinkIcon className="mr-[7px] size-[13px]" />
             Share
           </Button>
         )}
@@ -124,17 +122,17 @@ export function LeagueJoinArea({ leagueId, leagueSlug, leagueName, joinStatus, i
             <Button
               asChild
               size="xs"
-              variant="ghost"
-              className="w-7 p-0 border border-slate-700 text-slate-500 hover:bg-slate-800 hover:text-slate-400"
+              variant="outline"
+              className="w-8 p-0 text-[#8ba4c4]"
             >
               <Link href={`/${leagueSlug}/settings`} aria-label="League settings">
-                <SlidersHorizontal className="size-4" />
+                <SlidersHorizontal className="size-3.5" />
               </Link>
             </Button>
             {pendingRequestCount > 0 && (
               <span
                 aria-label={`${pendingRequestCount} pending request${pendingRequestCount === 1 ? '' : 's'}`}
-                className="pointer-events-none absolute right-0.5 top-0.5 size-2 rounded-full bg-red-500 ring-1 ring-slate-900"
+                className="pointer-events-none absolute right-[3px] top-[3px] size-[7px] rounded-full bg-[#e2686f] ring-2 ring-[#060b14]"
               />
             )}
           </div>
@@ -169,8 +167,8 @@ export function LeagueJoinArea({ leagueId, leagueSlug, leagueName, joinStatus, i
       />
 
       {showToast && (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm text-slate-100 shadow-lg">
-          <span className="size-2 rounded-full bg-sky-500" />
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-2 rounded border border-[#223a5c] bg-[#0c1728] px-4 py-2.5 font-plex text-[10px] font-bold uppercase tracking-[.14em] text-[#f4f9ff] shadow-[0_18px_44px_rgba(0,0,0,.42)]">
+          <span className="size-1.5 rounded-full bg-[#38bdf8]" />
           Link copied
         </div>
       )}

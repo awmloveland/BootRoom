@@ -571,37 +571,37 @@ export function NextMatchCard({
 
   return (
     <>
-      <div className="rounded-lg border border-slate-600 bg-slate-800">
+      <div className="rounded-xl border border-[#223a5c] bg-[#0a1421] overflow-hidden shadow-[0_18px_44px_rgba(0,0,0,.42)]">
 
         {/* ── IDLE ── */}
         {cardState === 'idle' && (
           canEdit ? (
-            <div className="flex items-center justify-between gap-4 px-4 py-3">
+            <div className="flex items-center justify-between gap-4 px-[18px] py-3">
               <div>
-                <p className="text-sm font-bold text-slate-100">Week {nextWeekNum}</p>
-                <p className="text-xs text-slate-400">{nextDate}</p>
+                <p className="text-[15px] font-bold tracking-[-.02em] text-[#f4f9ff]">Week {nextWeekNum}</p>
+                <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#7f97b5]">{nextDate}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => { onBuildStart?.(); setCardState('building') }}
-                  className="px-3 py-1.5 rounded bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold"
+                  className="h-8 px-3.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-xs font-bold whitespace-nowrap transition-colors"
                 >
                   Build Teams
                 </button>
                 <button
                   type="button"
                   onClick={() => { setError(null); setShowCancelModal(true) }}
-                  className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
+                  className="h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
                 >
                   Cancel
                 </button>
               </div>
             </div>
           ) : (
-            <div className="px-4 py-3">
-              <p className="text-sm font-bold text-slate-100">Week {nextWeekNum}</p>
-              <p className="text-xs text-slate-400">{nextDate}</p>
+            <div className="px-[18px] py-3">
+              <p className="text-[15px] font-bold tracking-[-.02em] text-[#f4f9ff]">Week {nextWeekNum}</p>
+              <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#7f97b5]">{nextDate}</p>
             </div>
           )
         )}
@@ -611,22 +611,22 @@ export function NextMatchCard({
           canEdit ? (
             <>
               {/* Header — matches idle style */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+              <div className="flex items-center justify-between gap-3 px-[18px] py-3 bg-[#0c1728] border-b border-[#1b2c46]">
                 <div>
-                  <p className="text-sm font-bold text-slate-100">Week {displayWeek}</p>
-                  <p className="text-xs text-slate-400">{displayDate}</p>
+                  <p className="text-[15px] font-bold tracking-[-.02em] text-[#f4f9ff]">Week {displayWeek}</p>
+                  <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#7f97b5]">{displayDate}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   {squadNames.length > 0 && (() => {
                     const n = squadNames.length
                     if (n < 10) return (
-                      <span className="text-xs text-red-400">{10 - n} more needed (min 10)</span>
+                      <span className="font-plex text-[9.5px] font-bold uppercase tracking-[.12em] text-[#e2686f]">{10 - n} more needed (min 10)</span>
                     )
                     if (n % 2 !== 0) return (
-                      <span className="text-xs text-red-400">Select an even number</span>
+                      <span className="font-plex text-[9.5px] font-bold uppercase tracking-[.12em] text-[#e2686f]">Select an even number</span>
                     )
                     return (
-                      <span className="text-xs text-slate-400">{format} · {n} players</span>
+                      <span className="font-plex text-[9.5px] font-bold uppercase tracking-[.12em] text-[#8ba4c4]">{format} · {n} players</span>
                     )
                   })()}
                   <button
@@ -639,7 +639,7 @@ export function NextMatchCard({
                       setNewPlayerEntries([])
                       setCardState(scheduledWeek ? 'lineup' : 'idle')
                     }}
-                    className="p-1 rounded text-slate-500 hover:text-slate-300 hover:bg-slate-700 transition-colors"
+                    className="p-1 rounded text-[#8ba4c4] hover:text-white transition-colors"
                     aria-label="Close team builder"
                   >
                     <X size={15} />
@@ -648,14 +648,14 @@ export function NextMatchCard({
               </div>
 
               {/* Body */}
-              <div className="px-4 py-3 space-y-4">
+              <div className="px-[18px] py-4 space-y-4">
 
                 {/* Player selection — hidden once auto-pick has run */}
                 {!isAutoPickMode && (
                   <>
                     <div>
-                      <p className="text-xs text-slate-400 mb-2">Select attending players</p>
-                      <div className="flex flex-wrap gap-1.5">
+                      <p className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-3">Select attending players</p>
+                      <div className="flex flex-wrap gap-2">
                         {sortedPlayers.map((player) => {
                           const active = selectedSet.has(player.name)
                           return (
@@ -664,10 +664,10 @@ export function NextMatchCard({
                               type="button"
                               onClick={() => togglePlayer(player.name)}
                               className={cn(
-                                'px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
+                                'h-[30px] px-3 rounded border font-inter-body text-xs font-semibold transition-colors',
                                 active
-                                  ? 'bg-sky-900/60 border border-sky-700 text-sky-100'
-                                  : 'bg-slate-900/60 border border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                                  ? 'bg-[rgba(8,47,73,.55)] border-[#38bdf8]/50 text-[#7dd3fc]'
+                                  : 'bg-[#0a1421] border-[#1b2c46] text-[#cfe0f4] hover:border-[#2c4a72]'
                               )}
                             >
                               {player.name}
@@ -679,7 +679,7 @@ export function NextMatchCard({
                         {guestEntries.map((g) => (
                           <span
                             key={g.name}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-sky-900/60 border border-sky-700 text-sky-100"
+                            className="inline-flex items-center gap-1.5 h-[30px] px-3 rounded border font-inter-body text-xs font-semibold bg-[rgba(8,47,73,.55)] border-[#38bdf8]/50 text-[#7dd3fc]"
                           >
                             {g.name}
                             <button
@@ -688,7 +688,7 @@ export function NextMatchCard({
                                 setGuestEntries((prev) => prev.filter((e) => e.name !== g.name))
                                 clearSplit()
                               }}
-                              className="text-sky-400 hover:text-sky-200 ml-0.5"
+                              className="text-[#38bdf8] hover:text-white"
                             >
                               <X size={10} />
                             </button>
@@ -699,7 +699,7 @@ export function NextMatchCard({
                         {newPlayerEntries.map((p) => (
                           <span
                             key={p.name}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-sky-900/60 border border-sky-700 text-sky-100"
+                            className="inline-flex items-center gap-1.5 h-[30px] px-3 rounded border font-inter-body text-xs font-semibold bg-[rgba(8,47,73,.55)] border-[#38bdf8]/50 text-[#7dd3fc]"
                           >
                             {p.name}
                             <button
@@ -708,7 +708,7 @@ export function NextMatchCard({
                                 setNewPlayerEntries((prev) => prev.filter((e) => e.name !== p.name))
                                 clearSplit()
                               }}
-                              className="text-sky-400 hover:text-sky-200 ml-0.5"
+                              className="text-[#38bdf8] hover:text-white"
                             >
                               <X size={10} />
                             </button>
@@ -720,7 +720,7 @@ export function NextMatchCard({
                           <button
                             type="button"
                             onClick={() => setShowAddPlayerModal(true)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border border-dashed border-slate-600 text-slate-500 hover:border-blue-500 hover:text-blue-400 transition-colors"
+                            className="inline-flex items-center gap-1 h-[30px] px-3 rounded border border-dashed border-[#223a5c] font-inter-body text-xs font-semibold text-[#6f88a8] hover:border-[#38bdf8] hover:text-white transition-colors"
                           >
                             + Add guest or new player
                           </button>
@@ -736,18 +736,16 @@ export function NextMatchCard({
                   const liveScoreB = ewptScore(localTeamB)
                   const renderTeam = (team: 'A' | 'B', players: Player[], score: number) => (
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-semibold text-slate-100">{team === 'A' ? 'Team A' : 'Team B'}</p>
-                        <span className={cn(
-                          'px-1.5 py-0.5 rounded text-xs font-semibold tabular-nums',
-                          team === 'A'
-                            ? 'bg-sky-900/60 border border-sky-700 text-sky-300'
-                            : 'bg-violet-900/60 border border-violet-700 text-violet-300'
-                        )}>
+                      <div className={cn(
+                        'flex items-baseline justify-between gap-2 pb-2 border-b border-[#1b2c46]',
+                        team === 'A' ? 'text-[#7dd3fc]' : 'text-[#c4b5fd]'
+                      )}>
+                        <p className="text-xs font-bold uppercase tracking-[.04em]">{team === 'A' ? 'Team A' : 'Team B'}</p>
+                        <span className="font-plex text-sm font-bold tabular-nums">
                           {score.toFixed(3)}
                         </span>
                       </div>
-                      <div className="space-y-1">
+                      <div className="flex flex-col gap-[5px] mt-2">
                         {players.map((p, i) => {
                           const isOver = dragOver?.team === team && dragOver?.index === i
                           return (
@@ -760,16 +758,16 @@ export function NextMatchCard({
                               onDrop={() => handleSwap(team, i)}
                               onDragEnd={() => { dragSource.current = null; setDragOver(null) }}
                               className={cn(
-                                'flex items-center justify-between px-2.5 py-1.5 rounded border cursor-grab active:cursor-grabbing transition-colors select-none',
+                                'flex items-center justify-between gap-2 px-2.5 py-[7px] rounded border-l-2 cursor-grab active:cursor-grabbing transition-colors select-none',
                                 team === 'A'
-                                  ? isOver ? 'bg-sky-800/60 border-sky-600' : 'bg-sky-950/40 border-sky-900/60'
-                                  : isOver ? 'bg-violet-800/60 border-violet-600' : 'bg-violet-950/40 border-violet-900/60'
+                                  ? cn('border-[#38bdf8] text-[#dff1ff]', isOver ? 'bg-[rgba(8,47,73,.95)]' : 'bg-[rgba(8,47,73,.55)]')
+                                  : cn('border-[#a78bfa] text-[#efeaff]', isOver ? 'bg-[rgba(46,16,101,.85)]' : 'bg-[rgba(46,16,101,.45)]')
                               )}
                             >
-                              <span className={cn('text-xs font-medium', team === 'A' ? 'text-sky-100' : 'text-violet-100')}>
+                              <span className="font-inter-body text-xs font-semibold">
                                 {p.name}{p.mentality === 'goalkeeper' ? ' 🧤' : ''}
                               </span>
-                              {p.recentForm && <FormDots form={p.recentForm} />}
+                              {p.recentForm && <FormDots form={p.recentForm} team={team} className="gap-1 text-[10px]" />}
                             </div>
                           )
                         })}
@@ -777,8 +775,8 @@ export function NextMatchCard({
                     </div>
                   )
                   return (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="grid grid-cols-2 gap-4">
                         {renderTeam('A', localTeamA, liveScoreA)}
                         {renderTeam('B', localTeamB, liveScoreB)}
                       </div>
@@ -788,31 +786,30 @@ export function NextMatchCard({
                         const copy = winCopy(winProbA)
                         const isEven = copy.team === 'even'
                         return (
-                          <div className="space-y-1.5">
-                            <div className="flex items-center gap-2.5">
+                          <div className="mt-[18px] pt-3.5 border-t border-[#1b2c46]">
+                            <div className="flex items-center gap-3">
                               <span className={cn(
-                                'text-[15px] font-bold tabular-nums min-w-[34px]',
-                                isEven ? 'text-slate-400' : 'text-sky-300'
+                                'font-plex text-[15px] font-bold tabular-nums min-w-10',
+                                isEven ? 'text-[#8ba4c4]' : 'text-[#7dd3fc]'
                               )}>
                                 {Math.round(winProbA * 100)}%
                               </span>
-                              <div className="flex-1 h-1.5 rounded-full overflow-hidden flex">
+                              <div className="flex-1 h-1.5 rounded-[3px] overflow-hidden flex bg-[#a78bfa]">
                                 <div
-                                  className="bg-sky-600 transition-all"
+                                  className="bg-[#38bdf8] transition-all duration-300"
                                   style={{ width: `${winProbA * 100}%` }}
                                 />
-                                <div className="bg-violet-600 flex-1" />
                               </div>
                               <span className={cn(
-                                'text-[15px] font-bold tabular-nums min-w-[34px] text-right',
-                                isEven ? 'text-slate-400' : 'text-violet-300'
+                                'font-plex text-[15px] font-bold tabular-nums min-w-10 text-right',
+                                isEven ? 'text-[#8ba4c4]' : 'text-[#c4b5fd]'
                               )}>
                                 {Math.round(winProbB * 100)}%
                               </span>
                             </div>
                             <p className={cn(
-                              'text-xs font-medium text-center',
-                              copy.team === 'A' ? 'text-sky-400' : copy.team === 'B' ? 'text-violet-400' : 'text-slate-400'
+                              'mt-2 text-center font-plex text-[9.5px] font-bold uppercase tracking-[.16em]',
+                              copy.team === 'A' ? 'text-[#38bdf8]' : copy.team === 'B' ? 'text-[#a78bfa]' : 'text-[#8ba4c4]'
                             )}>
                               {copy.text}
                             </p>
@@ -823,16 +820,16 @@ export function NextMatchCard({
                   )
                 })()}
 
-                {error && <p className="text-xs text-red-400">{error}</p>}
+                {error && <p className="font-inter-body text-xs text-[#e2686f]">{error}</p>}
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between px-4 py-3 border-t border-slate-700">
+              <div className="flex flex-wrap items-center justify-between gap-2 px-[18px] py-3 border-t border-[#1b2c46] bg-[#0c1728]">
                 {isAutoPickMode ? (
                   <button
                     type="button"
                     onClick={() => clearSplit()}
-                    className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
+                    className="h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
                   >
                     Back
                   </button>
@@ -840,7 +837,7 @@ export function NextMatchCard({
                   <button
                     type="button"
                     onClick={() => setCardState(scheduledWeek ? 'lineup' : 'idle')}
-                    className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
+                    className="h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
                   >
                     Cancel
                   </button>
@@ -855,7 +852,7 @@ export function NextMatchCard({
                           setLocalTeamB(autoPickResult.suggestions[suggestionIndex].teamB)
                           setIsManuallyEdited(false)
                         }}
-                        className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
+                        className="h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
                       >
                         Auto Balance Teams
                       </button>
@@ -868,7 +865,7 @@ export function NextMatchCard({
                           setLocalTeamA(autoPickResult.suggestions[next].teamA)
                           setLocalTeamB(autoPickResult.suggestions[next].teamB)
                         }}
-                        className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
+                        className="h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
                       >
                         Shuffle teams ({suggestionIndex + 1}/{autoPickResult.suggestions.length})
                       </button>
@@ -878,7 +875,7 @@ export function NextMatchCard({
                     type="button"
                     onClick={isAutoPickMode ? handleSaveLineup : handleAutoPick}
                     disabled={saving || squadNames.length < 10 || squadNames.length % 2 !== 0}
-                    className="px-3 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold disabled:opacity-40"
+                    className="h-8 px-3.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-xs font-bold whitespace-nowrap transition-colors disabled:opacity-40"
                   >
                     {saving ? 'Saving…' : isAutoPickMode ? 'Confirm Lineup' : 'Build Lineup'}
                   </button>
@@ -886,30 +883,29 @@ export function NextMatchCard({
               </div>
             </>
           ) : (
-            <div className="px-4 py-3">
-              <p className="text-sm text-slate-500">Lineup not yet set.</p>
+            <div className="px-[18px] py-3">
+              <p className="font-inter-body text-xs text-[#6f88a8]">Lineup not yet set.</p>
             </div>
           )
         )}
 
         {/* ── LINEUP header ── */}
         {cardState === 'lineup' && scheduledWeek && (
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+          <div className="flex items-center justify-between gap-3 px-[18px] py-3 bg-[#0c1728] border-b border-[#1b2c46]">
             <div>
-              <p className="text-sm font-bold text-slate-100">Week {displayWeek}</p>
-              <p className="text-xs text-slate-400">
+              <p className="text-[15px] font-bold tracking-[-.02em] text-[#f4f9ff]">Week {displayWeek}</p>
+              <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#7f97b5]">
                 {displayDate}
-                {scheduledWeek.format && (
-                  <span className="ml-2">{scheduledWeek.format}</span>
-                )}
+                {scheduledWeek.format && <span> · {scheduledWeek.format}</span>}
               </p>
             </div>
             {isPastDeadline(scheduledWeek.date) ? (
-              <span className="px-2 py-0.5 rounded text-[10px] font-semibold tracking-widest uppercase bg-slate-700/60 border border-slate-500 text-slate-300">
+              <span className="px-2.5 py-[5px] rounded border border-[#223a5c] font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#8ba4c4] whitespace-nowrap">
                 Awaiting Result
               </span>
             ) : (
-              <span className="px-2 py-0.5 rounded text-[10px] font-semibold tracking-widest uppercase bg-sky-900/40 border border-sky-700/60 text-sky-400">
+              <span className="inline-flex items-center gap-[7px] px-2.5 py-[5px] rounded border border-[#38bdf8]/40 bg-[#38bdf8]/12 font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#7dd3fc] whitespace-nowrap">
+                <span className="size-1.5 rounded-full bg-[#38bdf8] animate-cf-pulse motion-reduce:animate-none" />
                 Upcoming
               </span>
             )}
@@ -918,11 +914,11 @@ export function NextMatchCard({
 
         {/* ── CANCELLED ── */}
         {cardState === 'cancelled' && scheduledWeek && (
-          <div className="flex items-center justify-between gap-4 px-4 py-3">
+          <div className="flex items-center justify-between gap-4 px-[18px] py-3">
             <div className="flex items-center gap-3">
               <div>
-                <p className="text-sm font-bold text-slate-100">Week {scheduledWeek.week}</p>
-                <p className="text-xs text-slate-400">{scheduledWeek.date}</p>
+                <p className="text-[15px] font-bold tracking-[-.02em] text-[#f4f9ff]">Week {scheduledWeek.week}</p>
+                <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#7f97b5]">{scheduledWeek.date}</p>
               </div>
               <WinnerBadge winner={null} cancelled />
             </div>
@@ -931,7 +927,7 @@ export function NextMatchCard({
                 type="button"
                 onClick={handleReactivate}
                 disabled={saving}
-                className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium disabled:opacity-50"
+                className="h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors disabled:opacity-50"
               >
                 Reactivate
               </button>
@@ -941,7 +937,7 @@ export function NextMatchCard({
 
         {/* ── LINEUP body ── */}
         {cardState === 'lineup' && scheduledWeek && (
-          <div className="px-4 py-3">
+          <div className="px-[18px] py-4">
             <div className="grid grid-cols-2 gap-4">
               <TeamList
                 label="Team A"
@@ -963,12 +959,12 @@ export function NextMatchCard({
 
         {/* ── LINEUP footer ── */}
         {cardState === 'lineup' && scheduledWeek && scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-700">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-[18px] py-3 border-t border-[#1b2c46] bg-[#0c1728]">
             {canEdit ? (
               <button
                 type="button"
                 onClick={() => setShowCancelModal(true)}
-                className="px-3 py-1.5 rounded bg-red-900 hover:bg-red-800 text-red-200 text-sm font-medium"
+                className="h-8 px-3 rounded border border-[#e2686f]/40 text-[#e2686f] text-xs font-bold whitespace-nowrap hover:bg-[#e2686f]/10 transition-colors"
               >
                 Cancel Game
               </button>
@@ -981,7 +977,7 @@ export function NextMatchCard({
                   <button
                     type="button"
                     onClick={handleEditLineup}
-                    className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium"
+                    className="h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
                   >
                     <span className="sm:hidden">Edit</span>
                     <span className="hidden sm:inline">Edit Lineups</span>
@@ -989,7 +985,7 @@ export function NextMatchCard({
                   <button
                     type="button"
                     onClick={() => { setError(null); setShowResultModal(true) }}
-                    className="px-3 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold"
+                    className="h-8 px-3.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-xs font-bold whitespace-nowrap transition-colors"
                   >
                     <span className="sm:hidden">Result</span>
                     <span className="hidden sm:inline">Result Game</span>
@@ -999,9 +995,10 @@ export function NextMatchCard({
               <button
                 type="button"
                 onClick={handleShare}
-                className="px-3 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium"
+                aria-label="Share"
+                className="inline-flex items-center h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
               >
-                <Share2 className="w-5 h-5 sm:hidden" aria-hidden="true" />
+                <Share2 className="size-[15px] sm:hidden" aria-hidden="true" />
                 <span className="hidden sm:inline">{copied ? 'Copied!' : 'Share'}</span>
               </button>
             </div>
@@ -1015,20 +1012,20 @@ export function NextMatchCard({
         onOpenChange={(open) => { setShowCancelModal(open); if (!open) setError(null) }}
       >
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/70 z-[999]" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-sm rounded-xl bg-slate-800 border border-slate-700 p-6 shadow-xl focus:outline-none">
-            <Dialog.Title className="text-lg font-semibold text-slate-100 mb-3">
+          <Dialog.Overlay className="fixed inset-0 bg-[#030710]/80 z-[999]" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-[calc(100%-32px)] sm:max-w-sm rounded-[14px] bg-[#0a1421] border border-[#1b2c46] p-5 shadow-[0_34px_80px_rgba(0,0,0,.65)] focus:outline-none">
+            <Dialog.Title className="text-base font-bold tracking-[-.02em] text-[#f4f9ff] mb-2.5">
               Cancel Week {displayWeek}?
             </Dialog.Title>
-            <Dialog.Description className="text-sm text-slate-300 leading-relaxed mb-6">
+            <Dialog.Description className="font-inter-body text-[13px] leading-[1.55] text-[#8ba4c4] mb-5">
               This will mark the game as cancelled. You can reactivate it before {displayDate} at 8 pm if plans change.
             </Dialog.Description>
-            {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
+            {error && <p className="font-inter-body text-xs text-[#e2686f] mb-4">{error}</p>}
             <div className="flex gap-2 justify-end">
               <Dialog.Close asChild>
                 <button
                   type="button"
-                  className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500"
+                  className="h-9 px-3.5 rounded border border-[#223a5c] text-[#cfe0f4] text-[13px] font-semibold hover:border-[#38bdf8] hover:text-white transition-colors"
                 >
                   Keep it
                 </button>
@@ -1037,7 +1034,7 @@ export function NextMatchCard({
                 type="button"
                 onClick={handleCancelGame}
                 disabled={saving}
-                className="px-4 py-2 rounded bg-red-900 hover:bg-red-800 border border-red-700 text-red-200 text-sm font-medium disabled:opacity-50"
+                className="h-9 px-4 rounded border border-[#e2686f]/40 text-[#e2686f] text-[13px] font-bold hover:bg-[#e2686f]/10 transition-colors disabled:opacity-50"
               >
                 {saving ? 'Cancelling…' : 'Confirm Cancellation'}
               </button>

@@ -243,12 +243,13 @@ export function Navbar({
   if (pathname === '/' && (!authResolved || !user)) return null
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-700 bg-slate-900">
+    <header className="sticky top-0 z-50 border-b border-[#101d31] bg-[rgba(6,11,20,.92)] backdrop-blur-[10px]">
       {/* Action bar — desktop: 3-column grid to centre nav tabs */}
-      <div className="hidden sm:grid grid-cols-3 h-14 w-full max-w-2xl lg:max-w-[888px] mx-auto items-center">
+      <div className="hidden sm:grid grid-cols-[1fr_auto_1fr] h-[60px] w-full max-w-[936px] mx-auto px-6 items-center">
         {/* Left: logo */}
-        <Link href={logo.url} className="flex items-center shrink-0">
-          <img src="/logo.png" alt="Crafted Football" className="h-10 w-10" />
+        <Link href={logo.url} className="flex items-center gap-2.5 shrink-0 text-[#f4f9ff]">
+          <img src="/logo.png" alt="Craft Football" className="block h-[30px] w-[30px]" />
+          <span className="text-base font-bold tracking-[-.02em]">Craft Football</span>
         </Link>
 
         {/* Centre: nav tabs */}
@@ -258,8 +259,8 @@ export function Navbar({
               key={item.title}
               href={item.url}
               className={cn(
-                'text-sm font-medium transition-colors',
-                isActive(item) ? 'text-slate-100' : 'text-slate-400 hover:text-slate-100'
+                'font-plex text-[10.5px] font-bold uppercase tracking-[.14em] transition-colors',
+                isActive(item) ? 'text-[#f4f9ff]' : 'text-[#8ba4c4] hover:text-[#f4f9ff]'
               )}
             >
               {item.title}
@@ -268,7 +269,7 @@ export function Navbar({
         </div>
 
         {/* Right: auth / user controls */}
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-2">
           {showNav && !user && (
             <AuthDialog redirect={slug ? `/${slug}/results` : '/'} size="xs" signinOnly />
           )}
@@ -288,10 +289,10 @@ export function Navbar({
                 <DropdownMenuContent align="end">
                   <div className="px-2 py-1.5">
                     {displayName && (
-                      <p className="text-sm font-medium text-slate-100">{displayName}</p>
+                      <p className="font-inter-body text-[13px] font-semibold text-[#f4f9ff]">{displayName}</p>
                     )}
                     {slug && (
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="font-plex text-[9px] font-bold uppercase tracking-[.16em] text-[#6f88a8] mt-1">
                         {isLeagueAdmin ? 'Admin' : 'Member'}
                       </p>
                     )}
@@ -316,8 +317,9 @@ export function Navbar({
 
       {/* Mobile action bar */}
       <div className="flex sm:hidden h-14 w-full items-center justify-between px-4">
-          <Link href={logo.url} className="flex items-center shrink-0">
-            <img src="/logo.png" alt="Crafted Football" className="h-10 w-10" />
+          <Link href={logo.url} className="flex items-center gap-2.5 shrink-0 text-[#f4f9ff]">
+            <img src="/logo.png" alt="Craft Football" className="block h-[30px] w-[30px]" />
+            <span className="text-[15px] font-bold tracking-[-.02em]">Craft Football</span>
           </Link>
           {showNav && !user && (
             <AuthDialog redirect={slug ? `/${slug}/results` : '/'} size="xs" signinOnly />
@@ -327,9 +329,9 @@ export function Navbar({
               <SheetTrigger asChild>
                 <AvatarButton name={displayName ?? ''} />
               </SheetTrigger>
-              <SheetContent className="overflow-y-auto bg-slate-900 border-slate-700">
+              <SheetContent className="overflow-y-auto bg-[#0a1421] border-[#1b2c46]">
                 <SheetHeader>
-                  <SheetTitle className="text-slate-100">Menu</SheetTitle>
+                  <SheetTitle className="text-base font-bold tracking-[-.02em] text-[#f4f9ff]">Menu</SheetTitle>
                 </SheetHeader>
                 <div className="my-6 flex flex-col gap-6">
                   <Accordion
@@ -340,12 +342,12 @@ export function Navbar({
                     {resolvedMenu.map((item) => renderMobileMenuItem(item, isActive(item)))}
                   </Accordion>
                   {mobileExtraLinks.length > 0 && (
-                    <div className="border-t border-slate-700 py-4">
+                    <div className="border-t border-[#1b2c46] py-4">
                       <div className="grid grid-cols-2 justify-start">
                         {mobileExtraLinks.map((link, idx) => (
                           <Link
                             key={idx}
-                            className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-100"
+                            className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded px-4 py-2 text-sm font-medium text-[#8ba4c4] transition-colors hover:bg-[#101d31] hover:text-[#f4f9ff]"
                             href={link.url}
                           >
                             {link.name}
@@ -354,20 +356,20 @@ export function Navbar({
                       </div>
                     </div>
                   )}
-                  <div className="border-t border-slate-700 pt-4 flex flex-col gap-4">
+                  <div className="border-t border-[#1b2c46] pt-4 flex flex-col gap-4">
                     <div>
                       {displayName && (
-                        <p className="text-sm font-medium text-slate-100">{displayName}</p>
+                        <p className="font-inter-body text-[13px] font-semibold text-[#f4f9ff]">{displayName}</p>
                       )}
                       {slug && (
-                        <p className="text-xs text-slate-400 mt-0.5">
+                        <p className="font-plex text-[9px] font-bold uppercase tracking-[.16em] text-[#6f88a8] mt-1">
                           {isLeagueAdmin ? 'Admin' : 'Member'}
                         </p>
                       )}
                     </div>
                     <Link
                       href="/settings"
-                      className="flex items-center gap-2 font-semibold text-slate-100"
+                      className="flex items-center gap-2 text-sm font-bold text-[#f4f9ff]"
                       onClick={() => setSheetOpen(false)}
                     >
                       <Settings className="size-4" />
@@ -375,7 +377,7 @@ export function Navbar({
                     </Link>
                     <button
                       onClick={handleSignOut}
-                      className="flex items-center gap-2 font-semibold text-slate-100"
+                      className="flex items-center gap-2 text-sm font-bold text-[#f4f9ff]"
                     >
                       <LogOut className="size-4" />
                       Log out

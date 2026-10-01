@@ -138,11 +138,11 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
     return (
       <>
         <div className="flex items-center justify-between mb-3">
-          <p className="text-sm text-slate-400">No players in this league yet.</p>
+          <p className="text-sm text-[#8ba4c4]">No players in this league yet.</p>
           <button
             type="button"
             onClick={() => setAddOpen(true)}
-            className="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
+            className="px-3 py-1.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-xs font-bold"
           >
             + Add player
           </button>
@@ -162,22 +162,22 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-base font-semibold text-slate-100">
+        <h2 className="text-base font-semibold text-[#f4f9ff]">
           {players.length} {players.length === 1 ? 'Player' : 'Players'}
         </h2>
         <button
           type="button"
           onClick={() => setAddOpen(true)}
-          className="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
+          className="px-3 py-1.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-xs font-bold"
         >
           + Add player
         </button>
       </div>
 
-      <div className="bg-sky-950/40 border border-sky-900/40 rounded-lg px-3.5 py-2.5 mb-3.5">
-        <div className="text-xs font-semibold text-sky-400 mb-0.5">Strength &amp; mentality influence Auto-Pick</div>
-        <div className="text-xs text-slate-400">
-          <span className="text-slate-300">Strength</span> is your private read on each player — only admins ever see it. Set <span className="text-slate-300">Below / Average / Above</span> for players new to the league; it stops contributing after their first 10 games. <span className="text-slate-300">Mentality</span> (GK · DEF · BAL · ATT) tells Auto-Pick where they&apos;re best deployed. Changes save as you tap.
+      <div className="bg-[#38bdf8]/8 border border-[#38bdf8]/35 rounded-lg px-3.5 py-2.5 mb-3.5">
+        <div className="text-xs font-semibold text-[#38bdf8] mb-0.5">Strength &amp; mentality influence Auto-Pick</div>
+        <div className="text-xs text-[#8ba4c4]">
+          <span className="text-[#cfe0f4]">Strength</span> is your private read on each player. Only admins ever see it. Set <span className="text-[#cfe0f4]">Below / Average / Above</span> for players new to the league; it stops contributing after their first 10 games. <span className="text-[#cfe0f4]">Mentality</span> (GK · DEF · BAL · ATT) tells Auto-Pick where they&apos;re best deployed. Changes save as you tap.
         </div>
       </div>
 
@@ -189,14 +189,14 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
           <div
             key={player.name}
             className={cn(
-              'rounded-lg bg-slate-800 border overflow-hidden',
-              hasError ? 'border-red-800' : isExpanded || renamingPlayer === player.name ? 'border-slate-600' : 'border-slate-700'
+              'rounded-lg bg-[#0a1421] border overflow-hidden',
+              hasError ? 'border-[#e2686f]/40' : isExpanded || renamingPlayer === player.name ? 'border-[#223a5c]' : 'border-[#1b2c46]'
             )}
           >
             {/* ── Collapsed row ── */}
             <div className={cn('flex items-center gap-3 px-3 py-2.5', renamingPlayer === player.name && 'opacity-60')}>
               <span className="flex items-center gap-1.5 flex-1 min-w-0">
-                <span className="text-sm font-semibold text-slate-100 truncate">{player.name}</span>
+                <span className="text-sm font-semibold text-[#f4f9ff] truncate">{player.name}</span>
                 {renamingPlayer !== player.name && (
                   <button
                     type="button"
@@ -205,7 +205,7 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                       setRenameValue(player.name)
                       setRenameError(null)
                     }}
-                    className="text-slate-600 hover:text-slate-400 transition-colors shrink-0"
+                    className="text-[#4f688a] hover:text-[#8ba4c4] transition-colors shrink-0"
                     aria-label={`Rename ${player.name}`}
                   >
                     <Pencil className="size-3" />
@@ -221,17 +221,17 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                 aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${player.name}`}
               >
                 {player.linked_display_name && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border bg-emerald-900/40 text-emerald-300 border-emerald-700/50">
-                    <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" />
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border bg-[#bef264]/8 text-[#bef264] border-[#bef264]/35">
+                    <span className="size-1.5 rounded-full bg-[#bef264] shrink-0" />
                     {player.linked_display_name}
                   </span>
                 )}
-                <span className="text-[10px] font-semibold bg-blue-950 text-blue-300 border border-blue-800 rounded px-1.5 py-0.5">
+                <span className="text-[10px] font-semibold bg-[#38bdf8]/12 text-[#7dd3fc] border border-[#38bdf8]/35 rounded px-1.5 py-0.5">
                   {MENTALITY_DISPLAY[player.mentality]}
                 </span>
                 <ChevronDown
                   className={cn(
-                    'size-3.5 text-slate-500 transition-transform',
+                    'size-3.5 text-[#6f88a8] transition-transform',
                     isExpanded && 'rotate-180'
                   )}
                 />
@@ -240,13 +240,13 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
 
             {/* ── Expanded controls ── */}
             {isExpanded && (
-              <div className="border-t border-slate-700 px-3 py-3 flex flex-col gap-3">
+              <div className="border-t border-[#1b2c46] px-3 py-3 flex flex-col gap-3">
                 {(player.played ?? 0) < 10 && (
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">
+                    <p className="font-plex text-[9px] font-bold text-[#6f88a8] uppercase tracking-[.18em] mb-1.5">
                       Strength
-                      <span className="ml-1.5 normal-case tracking-normal text-slate-400">
-                        — no longer used after {10 - (player.played ?? 0)} more {10 - (player.played ?? 0) === 1 ? 'game' : 'games'}
+                      <span className="ml-1.5 text-[#4f688a]">
+                        · no longer used after {10 - (player.played ?? 0)} more {10 - (player.played ?? 0) === 1 ? 'game' : 'games'}
                       </span>
                     </p>
                     <StrengthPills
@@ -257,7 +257,7 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                 )}
 
                 <div>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">Mentality</p>
+                  <p className="font-plex text-[9px] font-bold text-[#6f88a8] uppercase tracking-[.18em] mb-1.5">Mentality</p>
                   <MentalityControl
                     value={player.mentality}
                     onChange={(m) => patch(player.name, { mentality: m })}
@@ -266,10 +266,10 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                 </div>
 
                 <div>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">Member Link</p>
+                  <p className="font-plex text-[9px] font-bold text-[#6f88a8] uppercase tracking-[.18em] mb-1.5">Member Link</p>
                   {player.linked_display_name ? (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs border bg-emerald-900/40 text-emerald-300 border-emerald-700/50">
-                      <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" />
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs border bg-[#bef264]/8 text-[#bef264] border-[#bef264]/35">
+                      <span className="size-1.5 rounded-full bg-[#bef264] shrink-0" />
                       {player.linked_display_name}
                     </span>
                   ) : (
@@ -279,7 +279,7 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                         setLinkingPlayerName(linkingPlayerName === player.name ? null : player.name)
                         setLinkError(null)
                       }}
-                      className="text-xs text-slate-500 border border-dashed border-slate-600 px-2 py-0.5 rounded hover:border-slate-400 hover:text-slate-300 transition-colors"
+                      className="text-xs text-[#6f88a8] border border-dashed border-[#223a5c] px-2 py-0.5 rounded hover:border-[#3d5578] hover:text-[#cfe0f4] transition-colors"
                     >
                       + Link member
                     </button>
@@ -290,8 +290,8 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
 
             {/* ── Rename panel ── */}
             {renamingPlayer === player.name && (
-              <div className="border-t border-sky-900/30 bg-sky-950/10 px-3 py-3">
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-2">Rename player</p>
+              <div className="border-t border-[#38bdf8]/35 bg-[#38bdf8]/8 px-3 py-3">
+                <p className="text-[10px] text-[#6f88a8] uppercase tracking-wide mb-2">Rename player</p>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
@@ -302,26 +302,26 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                       if (e.key === 'Escape') { setRenamingPlayer(null); setRenameValue('') }
                     }}
                     autoFocus
-                    className="w-36 px-2.5 py-1.5 rounded-md bg-slate-900 border border-sky-700 text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-36 px-2.5 py-1.5 rounded bg-[#0c1728] border border-[#38bdf8]/50 text-[#f4f9ff] text-sm focus:outline-none focus:ring-0 focus:border-[#38bdf8]"
                   />
                   <button
                     type="button"
                     onClick={() => renamePlayer(player.name)}
                     disabled={renameSubmitting || !renameValue.trim()}
-                    className="px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium disabled:opacity-50 transition-colors"
+                    className="px-3 py-1.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-xs font-bold disabled:opacity-50 transition-colors"
                   >
                     {renameSubmitting ? '…' : 'Save'}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setRenamingPlayer(null); setRenameValue(''); setRenameError(null) }}
-                    className="px-3 py-1.5 rounded-md border border-slate-600 text-slate-400 text-xs hover:border-slate-500 transition-colors"
+                    className="px-3 py-1.5 rounded-md border border-[#223a5c] text-[#8ba4c4] text-xs hover:border-[#2c4a72] transition-colors"
                   >
                     Cancel
                   </button>
                 </div>
                 {renameError && (
-                  <p className="mt-2 text-xs text-red-400">{renameError}</p>
+                  <p className="mt-2 text-xs text-[#e2686f]">{renameError}</p>
                 )}
               </div>
             )}
@@ -336,14 +336,14 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                   onCancel={() => { setLinkingPlayerName(null); setLinkError(null) }}
                 />
                 {linkError && (
-                  <p className="px-3 pb-3 text-xs text-red-400">{linkError}</p>
+                  <p className="px-3 pb-3 text-xs text-[#e2686f]">{linkError}</p>
                 )}
               </>
             )}
 
             {/* Error state */}
             {hasError && (
-              <p className="px-3 pb-2 text-[10px] text-red-400">Failed to save — please try again.</p>
+              <p className="px-3 pb-2 text-[10px] text-[#e2686f]">Failed to save. Please try again.</p>
             )}
           </div>
         )
@@ -373,7 +373,7 @@ function MentalityControl({
   return (
     <div
       className={cn(
-        'flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden text-[10px] font-semibold',
+        'flex border border-[#223a5c] rounded overflow-hidden font-plex text-[9px] font-bold uppercase tracking-[.12em]',
         fullWidth && 'w-full'
       )}
     >
@@ -382,12 +382,12 @@ function MentalityControl({
           key={v}
           onClick={() => { if (v !== value) onChange(v) }}
           className={cn(
-            'py-1 transition-colors',
-            fullWidth ? 'flex-1' : 'px-2',
+            'transition-colors border-[#223a5c]',
+            fullWidth ? 'flex-1 h-8' : 'h-6 px-2',
             i < MENTALITY_LABELS.length - 1 && 'border-r',
             v === value
-              ? 'bg-blue-950 text-blue-300 border-blue-800'
-              : 'text-slate-500 border-slate-700 hover:text-slate-300'
+              ? 'bg-[rgba(8,47,73,.6)] text-[#7dd3fc]'
+              : 'text-[#8ba4c4] hover:text-white'
           )}
         >
           {label}

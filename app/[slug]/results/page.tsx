@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
-import { sortWeeks, dayNameToIndex, isPastDeadline, getMostRecentExpectedGameDate, getNextWeekNumber, deriveSeason, parseWeekDate, getSeasonPlayedWeekCount } from '@/lib/utils'
+import { sortWeeks, dayNameToIndex, isPastDeadline, getMostRecentExpectedGameDate, getNextWeekNumber, deriveSeason, parseWeekDate, getSeasonPlayedWeekCount, getHeaderSeason } from '@/lib/utils'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
@@ -18,8 +18,7 @@ import { MobileStatsFAB } from '@/components/MobileStatsFAB'
 import { SidebarSticky } from '@/components/SidebarSticky'
 import { BfcacheRefresh } from '@/components/BfcacheRefresh'
 import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
-import { getCelebratedQuarter } from '@/lib/sidebar-stats'
-import { QuarterCelebration } from '@/components/QuarterCelebration'
+import { getCelebratedQuarter, type ResultsCelebration } from '@/lib/sidebar-stats'
 import type { Week, ScheduledWeek, LeagueDetails } from '@/lib/types'
 
 interface Props {
@@ -65,7 +64,7 @@ export default async function LeagueResultsPage({ params }: Props) {
 
   if (tier === 'public' && !canSeeMatchHistory && !canSeeMatchEntry && !canSeePlayerStats) {
     return (
-      <main className="max-w-xl mx-auto px-4 sm:px-6 py-4">
+      <main className="max-w-[624px] mx-auto px-4 sm:px-6 pt-5 pb-14">
         <LeaguePrivateState leagueName={game.name} />
       </main>
     )
@@ -130,10 +129,15 @@ export default async function LeagueResultsPage({ params }: Props) {
     }
   }
 
+  // Champion card for the latest completed quarter. The match lists render it
+  // above that quarter's first result, so it sits below the next match.
   const celebratedQuarter = getCelebratedQuarter(weeks)
   const canSeeCelebration =
     isAdmin || isFeatureEnabled(features, 'quarter_celebration', tier)
-  const showCelebration = celebratedQuarter !== null && canSeeCelebration
+  const celebration: ResultsCelebration | null =
+    celebratedQuarter && canSeeCelebration
+      ? { quarter: celebratedQuarter, leagueName: game.name, leagueSlug: slug }
+      : null
 
   const goalkeepers = players.filter((p) => p.mentality === 'goalkeeper').map((p) => p.name)
 
@@ -152,10 +156,10 @@ export default async function LeagueResultsPage({ params }: Props) {
   // ── Public tier ──
   if (tier === 'public') {
     return (
-      <main className="px-4 sm:px-6 py-4">
+      <main className="px-4 sm:px-6 pt-5 pb-14">
         <BfcacheRefresh />
         <div className="flex justify-center gap-6 items-start">
-          <div className="w-full max-w-xl shrink-0 space-y-8">
+          <div className="w-full max-w-xl shrink-0">
             <LeaguePageHeader
               leagueName={game.name}
               leagueId={leagueId}
@@ -163,40 +167,35 @@ export default async function LeagueResultsPage({ params }: Props) {
               playedCount={playedCount}
               totalWeeks={totalWeeks}
               pct={pct}
+              season={getHeaderSeason(weeks)}
               currentTab="results"
               isAdmin={isAdmin}
               details={details}
               joinStatus={joinStatus}
               pendingRequestCount={pendingRequestCount}
             />
-            {showCelebration && (
-              <QuarterCelebration
-                quarter={celebratedQuarter!}
-                leagueName={game.name}
-                leagueSlug={slug}
-                variant="card"
-              />
-            )}
-            {nextWeek && (
-              <PublicMatchEntrySection
-                gameId={leagueId}
-                leagueSlug={slug}
-                weeks={weeks}
-                initialScheduledWeek={nextWeek}
-                canEdit={canSeeMatchEntry}
-                leagueName={game.name}
-              />
-            )}
-            {canSeeMatchHistory && (
-              <section>
-                <PublicMatchList weeks={weeks} />
-              </section>
-            )}
-            {!isAuthenticated && (
-              <p className="text-xs text-slate-600 text-center pb-4">
-                Sign in for full access to your league.
-              </p>
-            )}
+            <div className="flex flex-col gap-3">
+              {nextWeek && (
+                <PublicMatchEntrySection
+                  gameId={leagueId}
+                  leagueSlug={slug}
+                  weeks={weeks}
+                  initialScheduledWeek={nextWeek}
+                  canEdit={canSeeMatchEntry}
+                  leagueName={game.name}
+                />
+              )}
+              {canSeeMatchHistory && (
+                <section>
+                  <PublicMatchList weeks={weeks} celebration={celebration} />
+                </section>
+              )}
+              {!isAuthenticated && (
+                <p className="pt-2 font-plex text-[9px] uppercase tracking-[.14em] text-[#4f688a] text-center">
+                  Sign in for full access to your league.
+                </p>
+              )}
+            </div>
           </div>
           <SidebarSticky>
             <StatsSidebar
@@ -221,7 +220,7 @@ export default async function LeagueResultsPage({ params }: Props) {
 
   // ── Member / Admin tier ──
   return (
-    <main className="px-4 sm:px-6 py-4">
+    <main className="px-4 sm:px-6 pt-5 pb-14">
       <BfcacheRefresh />
       <div className="flex justify-center gap-6 items-start">
         <div className="w-full max-w-xl shrink-0">
@@ -232,6 +231,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             playedCount={playedCount}
             totalWeeks={totalWeeks}
             pct={pct}
+            season={getHeaderSeason(weeks)}
             currentTab="results"
             isAdmin={isAdmin}
             details={details}
@@ -239,16 +239,6 @@ export default async function LeagueResultsPage({ params }: Props) {
             pendingRequestCount={pendingRequestCount}
           />
           {showClaimBanner && <ClaimOnboardingBanner leagueId={leagueId} />}
-          {showCelebration && (
-            <div className="mb-3">
-              <QuarterCelebration
-                quarter={celebratedQuarter!}
-                leagueName={game.name}
-                leagueSlug={slug}
-                variant="card"
-              />
-            </div>
-          )}
           <div className="flex flex-col gap-3">
             {canSeeMatchEntry ? (
               <ResultsSection
@@ -263,6 +253,7 @@ export default async function LeagueResultsPage({ params }: Props) {
                 leagueDayIndex={leagueDayIndex}
                 isAdmin={isAdmin}
                 leagueName={game.name}
+                celebration={celebration}
               />
             ) : canSeeMatchHistory ? (
               <WeekList
@@ -276,7 +267,7 @@ export default async function LeagueResultsPage({ params }: Props) {
               />
             ) : (
               <div className="py-16 text-center">
-                <p className="text-sm text-slate-500">Nothing to show here yet.</p>
+                <p className="text-sm text-[#6f88a8]">Nothing to show here yet.</p>
               </div>
             )}
           </div>

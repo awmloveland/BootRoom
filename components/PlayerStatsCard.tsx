@@ -125,10 +125,10 @@ export function PlayerStatsCard({ leagueId, feature, onChanged }: PlayerStatsCar
   const publicMentality = localPublicConfig?.show_mentality ?? true
 
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-800 overflow-hidden mb-3">
-      <div className="px-4 py-3 border-b border-slate-700/60">
-        <div className="text-sm font-semibold text-slate-100">Player Stats</div>
-        <div className="text-xs text-slate-500 mt-0.5">
+    <div className="rounded-xl border border-[#1b2c46] bg-[#0a1421] overflow-hidden mb-3">
+      <div className="px-4 py-3 border-b border-[#1b2c46]">
+        <div className="text-sm font-semibold text-[#f4f9ff]">Player Stats</div>
+        <div className="text-xs text-[#6f88a8] mt-0.5">
           Choose which stat columns and badges are visible on the players page for each audience.
         </div>
       </div>
@@ -136,7 +136,7 @@ export function PlayerStatsCard({ leagueId, feature, onChanged }: PlayerStatsCar
 
         {/* Members stat columns */}
         <div>
-          <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-2">Members</div>
+          <div className="text-[10px] text-[#6f88a8] uppercase tracking-wide mb-2">Members</div>
           <div className="grid grid-cols-3 gap-x-3 gap-y-1.5">
             {ALL_STATS.map(stat => {
               const checked = membersStats.includes(stat.key)
@@ -150,7 +150,7 @@ export function PlayerStatsCard({ leagueId, feature, onChanged }: PlayerStatsCar
                   />
                   <div className={cn(
                     'w-3.5 h-3.5 rounded-sm flex-shrink-0 flex items-center justify-center border',
-                    checked ? 'bg-sky-600 border-sky-600' : 'bg-slate-700 border-slate-600'
+                    checked ? 'bg-[#38bdf8] border-[#38bdf8]/50' : 'bg-[#1b2c46] border-[#223a5c]'
                   )}>
                     {checked && (
                       <svg width="9" height="9" viewBox="0 0 10 10" fill="white">
@@ -158,7 +158,7 @@ export function PlayerStatsCard({ leagueId, feature, onChanged }: PlayerStatsCar
                       </svg>
                     )}
                   </div>
-                  <span className="text-xs text-slate-400">{stat.label}</span>
+                  <span className="text-xs text-[#8ba4c4]">{stat.label}</span>
                 </label>
               )
             })}
@@ -166,8 +166,8 @@ export function PlayerStatsCard({ leagueId, feature, onChanged }: PlayerStatsCar
         </div>
 
         {/* Public stat columns */}
-        <div className="border-t border-slate-700/60 pt-3">
-          <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-2">Public</div>
+        <div className="border-t border-[#1b2c46] pt-3">
+          <div className="text-[10px] text-[#6f88a8] uppercase tracking-wide mb-2">Public</div>
           <div className="grid grid-cols-3 gap-x-3 gap-y-1.5">
             {ALL_STATS.map(stat => {
               const checked = publicStats.includes(stat.key)
@@ -181,7 +181,7 @@ export function PlayerStatsCard({ leagueId, feature, onChanged }: PlayerStatsCar
                   />
                   <div className={cn(
                     'w-3.5 h-3.5 rounded-sm flex-shrink-0 flex items-center justify-center border',
-                    checked ? 'bg-sky-600 border-sky-600' : 'bg-slate-700 border-slate-600'
+                    checked ? 'bg-[#38bdf8] border-[#38bdf8]/50' : 'bg-[#1b2c46] border-[#223a5c]'
                   )}>
                     {checked && (
                       <svg width="9" height="9" viewBox="0 0 10 10" fill="white">
@@ -189,7 +189,7 @@ export function PlayerStatsCard({ leagueId, feature, onChanged }: PlayerStatsCar
                       </svg>
                     )}
                   </div>
-                  <span className="text-xs text-slate-400">{stat.label}</span>
+                  <span className="text-xs text-[#8ba4c4]">{stat.label}</span>
                 </label>
               )
             })}
@@ -197,26 +197,26 @@ export function PlayerStatsCard({ leagueId, feature, onChanged }: PlayerStatsCar
         </div>
 
         {/* Player card badges */}
-        <div className="border-t border-slate-700/60 pt-3">
-          <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-2">Player card badges</div>
-          <div className="text-xs text-slate-300 mb-2">
-            Mentality badge <span className="text-slate-500 text-[10px]">(ATT / BAL / DEF / GK)</span>
+        <div className="border-t border-[#1b2c46] pt-3">
+          <div className="text-[10px] text-[#6f88a8] uppercase tracking-wide mb-2">Player card badges</div>
+          <div className="text-xs text-[#cfe0f4] mb-2">
+            Mentality badge <span className="text-[#6f88a8] text-[10px]">(ATT / BAL / DEF / GK)</span>
           </div>
           <div className="rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-2 bg-slate-900/60 border-b border-slate-700/60">
-              <span className="text-sm text-slate-300">Members</span>
+            <div className="flex items-center justify-between px-3 py-2 bg-[#0c1728] border-b border-[#1b2c46]">
+              <span className="text-sm text-[#cfe0f4]">Members</span>
               <Toggle enabled={membersMentality} onChange={handleMentalityMembersChange} disabled={saving} />
             </div>
-            <div className="flex items-center justify-between px-3 py-2 bg-slate-900/60">
-              <span className="text-sm text-slate-300">Public</span>
+            <div className="flex items-center justify-between px-3 py-2 bg-[#0c1728]">
+              <span className="text-sm text-[#cfe0f4]">Public</span>
               <Toggle enabled={publicMentality} onChange={handleMentalityPublicChange} disabled={saving} />
             </div>
           </div>
         </div>
 
       </div>
-      {error && <div className="px-4 pb-3 text-xs text-red-400">{error}</div>}
-      {saved && <div className="px-4 pb-3 text-xs text-sky-400">Saved</div>}
+      {error && <div className="px-4 pb-3 text-xs text-[#e2686f]">{error}</div>}
+      {saved && <div className="px-4 pb-3 text-xs text-[#38bdf8]">Saved</div>}
     </div>
   )
 }

@@ -3,10 +3,10 @@ interface RecentFormProps {
 }
 
 const CHAR_CLASS: Record<string, string> = {
-  W: 'text-green-400',
-  D: 'text-slate-400',
-  L: 'text-red-400',
-  '-': 'text-slate-600',
+  W: 'text-[#38bdf8]',
+  D: 'text-[#8ba4c4]',
+  L: 'text-[#e2686f]',
+  '-': 'text-[#4f688a]',
 }
 
 export function RecentForm({ form }: RecentFormProps) {
@@ -15,7 +15,7 @@ export function RecentForm({ form }: RecentFormProps) {
       {[...form].reverse().map((char, i) => (
         <span
           key={i}
-          className={`font-mono text-sm font-bold tracking-wide ${CHAR_CLASS[char] ?? 'text-slate-500'}`}
+          className={`font-mono text-sm font-bold tracking-wide ${CHAR_CLASS[char] ?? 'text-[#6f88a8]'}`}
         >
           {char}
         </span>

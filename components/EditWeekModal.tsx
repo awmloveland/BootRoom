@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { ChevronDown, X } from 'lucide-react'
 import type { Week, Player, Winner } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -37,18 +37,18 @@ function PlayerChip({
       draggable
       onDragStart={onDragStart}
       className={cn(
-        'flex items-center justify-between gap-2 rounded-md px-3 py-1.5 text-sm cursor-grab select-none',
-        team === 'A' && 'bg-slate-900 border border-blue-800 text-slate-200',
-        team === 'B' && 'bg-slate-900 border border-violet-800 text-slate-200',
-        team === 'roster' && 'bg-slate-900 border border-slate-700 text-slate-400'
+        'flex items-center justify-between gap-1.5 rounded font-inter-body text-xs font-semibold cursor-grab select-none',
+        team === 'A' && 'px-[9px] py-1.5 bg-[rgba(8,47,73,.55)] border-l-2 border-[#38bdf8] text-[#dff1ff]',
+        team === 'B' && 'px-[9px] py-1.5 bg-[rgba(46,16,101,.45)] border-l-2 border-[#a78bfa] text-[#efeaff]',
+        team === 'roster' && 'px-2.5 py-1.5 border border-[#223a5c] text-[#8ba4c4]'
       )}
     >
-      <span>{name}</span>
+      <span className="whitespace-nowrap">{name}</span>
       {onRemove && (
         <button
           type="button"
           onClick={onRemove}
-          className="text-slate-500 hover:text-slate-300 leading-none text-base"
+          className="text-[#6f88a8] hover:text-white leading-none text-sm"
           aria-label={`Remove ${name}`}
         >
           ×
@@ -101,8 +101,8 @@ function LineupEditor({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+    <div>
+      <div className="grid grid-cols-2 gap-2.5">
         {/* Team A */}
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOverA(true) }}
@@ -111,11 +111,11 @@ function LineupEditor({
           }}
           onDrop={(e) => handleDrop('A', e)}
           className={cn(
-            'rounded-lg border p-2.5 min-h-[80px] flex flex-col gap-1.5 transition-colors',
-            dragOverA ? 'border-blue-600 bg-blue-950/20' : 'border-slate-700 bg-slate-800/50'
+            'rounded-lg border bg-[#0c1728] p-2.5 min-h-20 flex flex-col gap-[5px] transition-colors',
+            dragOverA ? 'border-[#38bdf8]/50' : 'border-[#1b2c46]'
           )}
         >
-          <p className="text-xs font-semibold uppercase tracking-wide text-blue-400 mb-1">Team A</p>
+          <p className="font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#7dd3fc] mb-[3px]">Team A</p>
           {teamA.map((name) => (
             <PlayerChip
               key={name}
@@ -129,7 +129,7 @@ function LineupEditor({
             />
           ))}
           {teamA.length === 0 && (
-            <p className="text-xs text-slate-600 text-center pt-2">Drop players here</p>
+            <p className="font-plex text-[9px] uppercase tracking-[.14em] text-[#4f688a] text-center pt-2">Drop players here</p>
           )}
         </div>
 
@@ -141,11 +141,11 @@ function LineupEditor({
           }}
           onDrop={(e) => handleDrop('B', e)}
           className={cn(
-            'rounded-lg border p-2.5 min-h-[80px] flex flex-col gap-1.5 transition-colors',
-            dragOverB ? 'border-violet-600 bg-violet-950/20' : 'border-slate-700 bg-slate-800/50'
+            'rounded-lg border bg-[#0c1728] p-2.5 min-h-20 flex flex-col gap-[5px] transition-colors',
+            dragOverB ? 'border-[#a78bfa]/50' : 'border-[#1b2c46]'
           )}
         >
-          <p className="text-xs font-semibold uppercase tracking-wide text-violet-400 mb-1">Team B</p>
+          <p className="font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#c4b5fd] mb-[3px]">Team B</p>
           {teamB.map((name) => (
             <PlayerChip
               key={name}
@@ -159,15 +159,15 @@ function LineupEditor({
             />
           ))}
           {teamB.length === 0 && (
-            <p className="text-xs text-slate-600 text-center pt-2">Drop players here</p>
+            <p className="font-plex text-[9px] uppercase tracking-[.14em] text-[#4f688a] text-center pt-2">Drop players here</p>
           )}
         </div>
       </div>
 
       {/* Roster */}
-      <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-2.5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
-          Roster — drag into a team
+      <div className="mt-2.5 rounded-lg border border-[#1b2c46] bg-[#0c1728] p-2.5">
+        <p className="font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#6f88a8] mb-2">
+          Roster · drag into a team
         </p>
         <input
           type="text"
@@ -175,7 +175,7 @@ function LineupEditor({
           placeholder="Search players"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-300 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500 mb-2"
+          className="w-full h-8 rounded border border-[#1b2c46] bg-[#060b14] px-2.5 py-0 font-inter-body text-xs text-[#f4f9ff] placeholder:text-[#4f688a] focus:outline-none focus:ring-0 focus:border-[#38bdf8] mb-2"
         />
         <div className="flex flex-wrap gap-1.5">
           {roster.map((name) => (
@@ -190,10 +190,10 @@ function LineupEditor({
             />
           ))}
           {roster.length === 0 && search === '' && (
-            <p className="text-xs text-slate-600">All players assigned</p>
+            <p className="font-plex text-[9px] uppercase tracking-[.14em] text-[#4f688a]">All players assigned</p>
           )}
           {roster.length === 0 && search !== '' && (
-            <p className="text-xs text-slate-600">No players match</p>
+            <p className="font-plex text-[9px] uppercase tracking-[.14em] text-[#4f688a]">No players match</p>
           )}
         </div>
       </div>
@@ -245,7 +245,7 @@ export function EditWeekModal({
     }
 
     if (!week.id) {
-      setError('Cannot edit this week — missing ID')
+      setError('Cannot edit this week: missing ID')
       return
     }
 
@@ -284,7 +284,7 @@ export function EditWeekModal({
 
       onSaved()
     } catch {
-      setError('Network error — please try again')
+      setError('Network error. Please try again')
     } finally {
       setSaving(false)
     }
@@ -292,28 +292,28 @@ export function EditWeekModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-2xl rounded-xl border border-slate-700 bg-slate-900 shadow-2xl overflow-y-auto max-h-[90vh]">
+      <div className="absolute inset-0 bg-[#030710]/80" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-[468px] rounded-[14px] border border-[#1b2c46] bg-[#0a1421] shadow-[0_34px_80px_rgba(0,0,0,.65)] overflow-y-auto max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
-          <h2 className="text-base font-semibold text-slate-100">
+        <div className="flex items-center justify-between px-5 pt-4 pb-3.5 border-b border-[#1b2c46] bg-[#0c1728]">
+          <h2 className="text-base font-bold tracking-[-.02em] text-[#f4f9ff]">
             Edit Week {week.week}
           </h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 transition-colors"
+            className="inline-flex size-7 items-center justify-center text-[#8ba4c4] hover:text-white transition-colors"
             aria-label="Close"
           >
-            <X className="h-5 w-5" />
+            <X className="size-4" strokeWidth={2.2} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 space-y-5">
+        <div className="px-5 py-[18px] flex flex-col gap-4">
           {/* Date + Status */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium uppercase tracking-wide text-slate-500 mb-1.5">
+              <label className="block font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-1.5">
                 Date
               </label>
               <input
@@ -322,30 +322,33 @@ export function EditWeekModal({
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 placeholder="DD MMM YYYY"
-                className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full h-9 rounded border border-[#1b2c46] bg-[#0c1728] px-3 py-0 font-plex text-xs text-[#f4f9ff] placeholder:text-[#4f688a] focus:outline-none focus:ring-0 focus:border-[#38bdf8]"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium uppercase tracking-wide text-slate-500 mb-1.5">
+              <label className="block font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-1.5">
                 Status
               </label>
-              <select
-                name="status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as EditStatus)}
-                className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
-              >
-                <option value="played">Played</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="unrecorded">Unrecorded</option>
-                <option value="dnf">DNF</option>
-              </select>
+              <div className="relative">
+                <select
+                  name="status"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as EditStatus)}
+                  className="w-full h-9 appearance-none bg-none rounded border border-[#1b2c46] bg-[#0c1728] pl-3 pr-8 py-0 font-inter-body text-xs font-semibold text-[#f4f9ff] focus:outline-none focus:ring-0 focus:border-[#38bdf8]"
+                >
+                  <option value="played">Played</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="unrecorded">Unrecorded</option>
+                  <option value="dnf">DNF</option>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-[11px] top-1/2 -translate-y-1/2 size-[13px] text-[#6f88a8]" />
+              </div>
             </div>
           </div>
 
           {/* Clear warning */}
           {showClearWarning && (
-            <p className="text-xs text-red-400 bg-red-950/30 border border-red-900/50 rounded-md px-3 py-2">
+            <p className="font-inter-body text-xs text-[#e2686f] bg-[#e2686f]/10 border border-[#e2686f]/40 rounded px-3 py-2">
               This will clear the recorded result and lineups.
             </p>
           )}
@@ -355,24 +358,24 @@ export function EditWeekModal({
             <>
               {/* Result */}
               <div>
-                <label className="block text-xs font-medium uppercase tracking-wide text-slate-500 mb-1.5">
+                <label className="block font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-1.5">
                   Result
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1.5">
                   {RESULT_OPTIONS.map((opt) => (
                     <button
                       key={opt}
                       type="button"
                       onClick={() => setWinner(opt)}
                       className={cn(
-                        'rounded-md border px-3 py-2 text-sm font-medium transition-colors',
+                        'h-9 rounded border text-xs font-bold transition-colors',
                         winner === opt
                           ? opt === 'teamA'
-                            ? 'bg-blue-900 border-blue-700 text-blue-300'
+                            ? 'bg-[rgba(8,47,73,.6)] border-[#38bdf8]/50 text-[#7dd3fc]'
                             : opt === 'teamB'
-                            ? 'bg-violet-900 border-violet-700 text-violet-300'
-                            : 'bg-slate-700 border-slate-500 text-slate-300'
-                          : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'
+                            ? 'bg-[rgba(46,16,101,.5)] border-[#a78bfa]/50 text-[#c4b5fd]'
+                            : 'bg-[#1b2c46] border-[#2c4a72] text-[#cfe0f4]'
+                          : 'bg-[#0c1728] border-[#223a5c] text-[#8ba4c4] hover:border-[#38bdf8]'
                       )}
                     >
                       {opt === 'teamA' ? 'Team A' : opt === 'teamB' ? 'Team B' : 'Draw'}
@@ -384,24 +387,24 @@ export function EditWeekModal({
               {/* Margin */}
               {winner !== 'draw' && (
                 <div>
-                  <label className="block text-xs font-medium uppercase tracking-wide text-slate-500 mb-1.5">
+                  <label className="block font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-1.5">
                     Margin of victory
                   </label>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5">
                     <button
                       type="button"
                       onClick={() => setMargin((m) => Math.max(1, m - 1))}
-                      className="h-8 w-8 rounded-md border border-slate-700 bg-slate-800 text-slate-300 text-lg leading-none hover:bg-slate-700 transition-colors"
+                      className="h-8 w-8 rounded border border-[#223a5c] bg-[#0c1728] text-[#8ba4c4] text-base leading-none hover:text-white transition-colors"
                     >
                       −
                     </button>
-                    <span className="w-8 text-center text-sm font-semibold text-slate-200">
+                    <span className="w-7 text-center font-plex text-sm font-bold text-[#f4f9ff]">
                       {margin}
                     </span>
                     <button
                       type="button"
                       onClick={() => setMargin((m) => Math.min(20, m + 1))}
-                      className="h-8 w-8 rounded-md border border-slate-700 bg-slate-800 text-slate-300 text-lg leading-none hover:bg-slate-700 transition-colors"
+                      className="h-8 w-8 rounded border border-[#223a5c] bg-[#0c1728] text-[#8ba4c4] text-base leading-none hover:text-white transition-colors"
                     >
                       +
                     </button>
@@ -411,7 +414,7 @@ export function EditWeekModal({
 
               {/* Lineups */}
               <div>
-                <label className="block text-xs font-medium uppercase tracking-wide text-slate-500 mb-1.5">
+                <label className="block font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-1.5">
                   Lineups
                 </label>
                 <LineupEditor
@@ -428,7 +431,7 @@ export function EditWeekModal({
           {/* DNF fields — lineups editable, no result or margin */}
           {status === 'dnf' && (
             <div>
-              <label className="block text-xs font-medium uppercase tracking-wide text-slate-500 mb-1.5">
+              <label className="block font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-1.5">
                 Lineups
               </label>
               <LineupEditor
@@ -443,7 +446,7 @@ export function EditWeekModal({
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-medium uppercase tracking-wide text-slate-500 mb-1.5">
+            <label className="block font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-1.5">
               Notes
             </label>
             <textarea
@@ -452,25 +455,25 @@ export function EditWeekModal({
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               placeholder="Optional notes"
-              className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500 resize-none"
+              className="block w-full rounded border border-[#1b2c46] bg-[#0c1728] px-3 py-2.5 font-inter-body text-xs text-[#f4f9ff] placeholder:text-[#4f688a] focus:outline-none focus:ring-0 focus:border-[#38bdf8] resize-none"
             />
           </div>
 
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && <p className="font-inter-body text-xs text-[#e2686f]">{error}</p>}
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-800">
+        <div className="flex justify-end gap-2 px-5 py-3.5 border-t border-[#1b2c46] bg-[#0c1728]">
           <button
             onClick={onClose}
-            className="rounded-md border border-slate-700 bg-transparent px-4 py-2 text-sm text-slate-400 hover:bg-slate-800 transition-colors"
+            className="h-9 px-3.5 rounded border border-[#223a5c] text-[#cfe0f4] text-[13px] font-semibold hover:border-[#38bdf8] hover:text-white transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-50 transition-colors"
+            className="h-9 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-[13px] font-bold disabled:opacity-50 transition-colors"
           >
             {saving ? 'Saving…' : 'Save changes'}
           </button>

@@ -38,18 +38,18 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <p className="text-slate-400">Loading…</p>
+      <div className="min-h-screen bg-[#060b14] flex items-center justify-center">
+        <p className="text-[#8ba4c4]">Loading…</p>
       </div>
     )
   }
 
   if (status === 'not-invited') {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#060b14] flex items-center justify-center px-4">
         <div className="max-w-md text-center">
-          <h1 className="text-xl font-semibold text-slate-100 mb-2">Profile required</h1>
-          <p className="text-slate-400 text-sm mb-6">
+          <h1 className="text-xl font-semibold text-[#f4f9ff] mb-2">Profile required</h1>
+          <p className="text-[#8ba4c4] text-sm mb-6">
             Your account is missing a profile. Sign out and sign in again, or contact support.
           </p>
           <button
@@ -57,7 +57,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
               await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' })
               window.location.href = '/sign-in'
             }}
-            className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium transition-colors"
+            className="px-4 py-2 rounded-lg bg-[#1b2c46] hover:bg-[#223a5c] text-[#f4f9ff] text-sm font-medium transition-colors"
           >
             Sign out
           </button>

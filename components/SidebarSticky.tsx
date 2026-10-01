@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState } from 'react'
 
-const NAV_HEIGHT = 72
+const NAV_HEIGHT = 80
 
 /**
  * Sticky sidebar wrapper that pins to the top when the sidebar fits within

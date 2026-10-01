@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { LandingPage } from '@/components/landing/LandingPage'
+import { cn } from '@/lib/utils'
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const MONTH_IDX: Record<string, number> = Object.fromEntries(MONTH_SHORT.map((m, i) => [m, i]))
@@ -24,6 +25,20 @@ function formatWeekDate(date: Date): string {
 function formatDisplayDate(weekDateStr: string): string {
   const date = parseWeekDate(weekDateStr)
   return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+/** Eyebrow above the page title, e.g. "Thursday · Matchday minus 1". */
+function buildMatchdayEyebrow(nextDates: (string | null)[]): string {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const weekday = today.toLocaleDateString('en-GB', { weekday: 'long' })
+  const daysAway = nextDates
+    .filter((d): d is string => d !== null)
+    .map((d) => Math.round((parseWeekDate(d).getTime() - today.getTime()) / 86_400_000))
+    .filter((n) => n >= 0)
+  if (daysAway.length === 0) return weekday
+  const soonest = Math.min(...daysAway)
+  return soonest === 0 ? `${weekday} · Matchday` : `${weekday} · Matchday minus ${soonest}`
 }
 
 /**
@@ -97,7 +112,7 @@ export default async function HomePage() {
     const [scheduledRes, playedRes, cancelledRes] = await Promise.all([
       service
         .from('weeks')
-        .select('game_id, date')
+        .select('game_id, date, format')
         .in('game_id', gameIds)
         .eq('status', 'scheduled')
         .order('week', { ascending: true }),
@@ -116,8 +131,12 @@ export default async function HomePage() {
 
     // First scheduled date per league
     const scheduledByLeague: Record<string, string> = {}
+    const scheduledFormatByLeague: Record<string, string | null> = {}
     for (const row of scheduledRes.data ?? []) {
-      if (!scheduledByLeague[row.game_id]) scheduledByLeague[row.game_id] = row.date
+      if (!scheduledByLeague[row.game_id]) {
+        scheduledByLeague[row.game_id] = row.date
+        scheduledFormatByLeague[row.game_id] = row.format ?? null
+      }
     }
 
     // Most recent played date per league
@@ -133,39 +152,66 @@ export default async function HomePage() {
       cancelledByLeague[row.game_id].add(row.date)
     }
 
+    const leagueCards = leagues.map((league) => {
+      const nextDate = computeNextMatchDate(
+        scheduledByLeague[league.id] ?? null,
+        lastPlayedByLeague[league.id] ?? null,
+        cancelledByLeague[league.id] ?? new Set(),
+      )
+      // Format is only known when the next match is the scheduled (lineup-set) week
+      const format = nextDate && nextDate === scheduledByLeague[league.id]
+        ? scheduledFormatByLeague[league.id] ?? null
+        : null
+      return { league, nextDate, format }
+    })
+
     return (
-      <main className="max-w-xl mx-auto px-4 sm:px-6 py-8">
-        <h1 className="text-xl font-semibold text-slate-100 mb-6">Your leagues</h1>
-        {leagues.length === 0 ? (
-          <p className="text-slate-400 text-sm">You&apos;re not in any leagues yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {leagues.map((league) => {
-              const nextDate = computeNextMatchDate(
-                scheduledByLeague[league.id] ?? null,
-                lastPlayedByLeague[league.id] ?? null,
-                cancelledByLeague[league.id] ?? new Set(),
-              )
-              return (
+      <main className="px-4 sm:px-6 pt-5 pb-14">
+        <div className="mx-auto w-full max-w-xl pt-4">
+          <p className="inline-flex items-center gap-2 font-plex text-[9px] font-bold uppercase tracking-[.2em] text-[#bef264]">
+            <span className="h-0.5 w-[18px] bg-[#bef264]" />
+            {buildMatchdayEyebrow(leagueCards.map((c) => c.nextDate))}
+          </p>
+          <h1 className="mt-2.5 text-[26px] sm:text-[30px] leading-none font-bold tracking-[-.035em] text-[#f4f9ff]">
+            Your leagues
+          </h1>
+          {leagues.length === 0 ? (
+            <p className="mt-6 font-inter-body text-[13px] text-[#6f88a8]">You&apos;re not in any leagues yet.</p>
+          ) : (
+            <div className="mt-6 flex flex-col gap-2">
+              {leagueCards.map(({ league, nextDate, format }) => (
                 <Link
                   key={league.id}
                   href={`/${league.slug}/results`}
-                  className="flex items-center justify-between p-4 rounded-lg bg-slate-800 border border-slate-700 hover:border-slate-600 transition-colors"
+                  className={cn(
+                    'flex items-center justify-between gap-4 px-[18px] py-4 rounded-xl border transition-colors hover:border-[#38bdf8]',
+                    nextDate
+                      ? 'border-[#1b2c46] bg-[#0a1421] shadow-[0_18px_44px_rgba(0,0,0,.42)]'
+                      : 'border-dashed border-[#223a5c]'
+                  )}
                 >
                   <div>
-                    <p className="text-sm font-medium text-slate-100">{league.name}</p>
+                    <p className={cn(
+                      'font-bold tracking-[-.02em]',
+                      nextDate ? 'text-base text-[#f4f9ff]' : 'text-[15px] text-[#cfe0f4]'
+                    )}>
+                      {league.name}
+                    </p>
                     {nextDate ? (
-                      <p className="text-xs text-slate-400 mt-1.5">Next match {formatDisplayDate(nextDate)}</p>
+                      <p className="mt-1.5 font-plex text-[9.5px] uppercase tracking-[.14em] text-[#8ba4c4] whitespace-nowrap">
+                        Next match <span className="text-[#38bdf8]">{formatDisplayDate(nextDate)}</span>
+                        {format && ` · ${format}`}
+                      </p>
                     ) : (
-                      <p className="text-xs text-slate-400 mt-1.5">No upcoming match</p>
+                      <p className="mt-1.5 font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">No upcoming match</p>
                     )}
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-500 shrink-0 ml-4" />
+                  <ChevronRight className={cn('size-4 shrink-0', nextDate ? 'text-[#6f88a8]' : 'text-[#4f688a]')} />
                 </Link>
-              )
-            })}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </main>
     )
   }

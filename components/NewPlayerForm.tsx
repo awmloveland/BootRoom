@@ -65,7 +65,7 @@ export function NewPlayerForm({
     <>
       <div className="p-5 flex flex-col gap-4">
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+          <label className="block font-plex text-[9px] font-bold text-[#6f88a8] uppercase tracking-[.18em] mb-1.5">
             Player name
           </label>
           <input
@@ -77,32 +77,32 @@ export function NewPlayerForm({
             placeholder="Full name"
             disabled={submitting}
             autoFocus
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full bg-[#0c1728] border border-[#1b2c46] rounded px-3 py-2 text-sm text-[#f4f9ff] placeholder:text-[#4f688a] focus:outline-none focus:ring-0 focus:border-[#38bdf8] disabled:opacity-50"
           />
-          {nameError && <p className="text-xs text-red-400 mt-1">{nameError}</p>}
-          {!nameError && submitError && <p className="text-xs text-red-400 mt-1">{submitError}</p>}
+          {nameError && <p className="text-xs text-[#e2686f] mt-1">{nameError}</p>}
+          {!nameError && submitError && <p className="text-xs text-[#e2686f] mt-1">{submitError}</p>}
           {showNameHelper && (
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-[11px] text-[#6f88a8] mt-1">
               They&apos;ll be added to the league roster permanently after confirming during result.
             </p>
           )}
         </div>
 
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
+          <label className="block font-plex text-[9px] font-bold text-[#6f88a8] uppercase tracking-[.18em] mb-1.5">
             Strength
           </label>
           <StrengthPills value={strength} onChange={setStrength} disabled={submitting} />
-          <p className="text-[11px] text-slate-500 mt-1">
-            Defaults to Average — change only if you know this player.
+          <p className="text-[11px] text-[#6f88a8] mt-1">
+            Defaults to Average. Change only if you know this player.
           </p>
         </div>
 
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+          <label className="block font-plex text-[9px] font-bold text-[#6f88a8] uppercase tracking-[.18em] mb-1.5">
             Mentality
           </label>
-          <div className="flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden text-[10px] font-semibold">
+          <div className="flex border border-[#223a5c] rounded overflow-hidden font-plex text-[9px] font-bold uppercase tracking-[.12em]">
             {MENTALITY_OPTIONS.map(({ value, label }, i) => (
               <button
                 key={value}
@@ -110,11 +110,11 @@ export function NewPlayerForm({
                 disabled={submitting}
                 onClick={() => { if (value !== mentality) setMentality(value) }}
                 className={cn(
-                  'flex-1 py-1.5 transition-colors',
+                  'flex-1 h-8 transition-colors border-[#223a5c]',
                   i < MENTALITY_OPTIONS.length - 1 && 'border-r',
                   value === mentality
-                    ? 'bg-blue-950 text-blue-300 border-blue-800'
-                    : 'text-slate-500 border-slate-700 hover:text-slate-300',
+                    ? 'bg-[rgba(8,47,73,.6)] text-[#7dd3fc]'
+                    : 'text-[#8ba4c4] hover:text-white',
                   submitting && 'opacity-50'
                 )}
               >
@@ -122,7 +122,7 @@ export function NewPlayerForm({
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">
+          <p className="text-[11px] text-[#6f88a8] mt-1">
             GK = dedicated goalkeeper, plays in goal every game.
           </p>
         </div>
@@ -134,7 +134,7 @@ export function NewPlayerForm({
             type="button"
             onClick={onCancel}
             disabled={submitting}
-            className="px-4 py-2 rounded border border-slate-600 text-slate-300 text-sm hover:border-slate-500 disabled:opacity-50"
+            className="px-4 py-2 rounded border border-[#223a5c] text-[#cfe0f4] text-sm hover:border-[#2c4a72] disabled:opacity-50"
           >
             {cancelLabel}
           </button>
@@ -143,7 +143,7 @@ export function NewPlayerForm({
           type="button"
           onClick={handleSubmit}
           disabled={submitting || !name.trim()}
-          className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold disabled:opacity-40"
+          className="px-4 py-2 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-sm font-bold disabled:opacity-40"
         >
           {submitting ? 'Adding…' : submitLabel}
         </button>

@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { computeAllQuarters } from '@/lib/sidebar-stats'
-import { getSeasonPlayedWeekCount } from '@/lib/utils'
+import { getSeasonPlayedWeekCount, getHeaderSeason } from '@/lib/utils'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { HonoursSection } from '@/components/HonoursSection'
 import { HonoursLoginPrompt } from '@/components/HonoursLoginPrompt'
@@ -66,7 +66,7 @@ export default async function HonoursPage({ params }: Props) {
   }
 
   return (
-    <main className="px-4 sm:px-6 pt-4 pb-8">
+    <main className="px-4 sm:px-6 pt-5 pb-14">
       <div className="flex justify-center gap-6 items-start">
         <div className="w-full max-w-xl shrink-0">
           <LeaguePageHeader
@@ -76,6 +76,7 @@ export default async function HonoursPage({ params }: Props) {
             playedCount={playedCount}
             totalWeeks={totalWeeks}
             pct={pct}
+            season={getHeaderSeason(weeks)}
             currentTab="honours"
             isAdmin={isAdmin}
             details={details}

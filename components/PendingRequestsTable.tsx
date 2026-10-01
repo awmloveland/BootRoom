@@ -96,14 +96,14 @@ export function PendingRequestsTable({ leagueId, initialRequests, pendingClaims 
   if (requests.length === 0) return null
 
   return (
-    <div className="rounded-lg border border-slate-700 bg-slate-800 overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-700 bg-slate-800/50">
-        <p className="text-sm font-medium text-slate-200">
+    <div className="rounded-xl border border-[#1b2c46] bg-[#0a1421] overflow-hidden">
+      <div className="px-4 py-3 border-b border-[#1b2c46] bg-[#0c1728]">
+        <p className="text-sm font-medium text-[#dff1ff]">
           Pending requests{' '}
-          <span className="text-slate-500 font-normal">({requests.length})</span>
+          <span className="text-[#6f88a8] font-normal">({requests.length})</span>
         </p>
       </div>
-      <ul className="divide-y divide-slate-700/40">
+      <ul className="divide-y divide-[#1b2c46]">
         {requests.map((req) => {
           const isExpanded = expandedIds.has(req.id)
           const attachedClaim = claimByUser[req.user_id] ?? null
@@ -111,11 +111,11 @@ export function PendingRequestsTable({ leagueId, initialRequests, pendingClaims 
           const isBusyClaim = claimId !== null && claimProcessing === claimId
           const isOverrideExpanded = claimId !== null && expandedClaimId === claimId
           return (
-            <li key={req.id} className="divide-y divide-slate-700/40">
+            <li key={req.id} className="divide-y divide-[#1b2c46]">
               <div className="px-4 py-3 flex items-start gap-4">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-100 truncate">{req.display_name}</p>
-                  <p className="text-xs text-slate-500 truncate">{req.email}</p>
+                  <p className="text-sm text-[#f4f9ff] truncate">{req.display_name}</p>
+                  <p className="text-xs text-[#6f88a8] truncate">{req.email}</p>
                   {req.message && (
                     <button
                       type="button"
@@ -123,7 +123,7 @@ export function PendingRequestsTable({ leagueId, initialRequests, pendingClaims 
                       onClick={() => toggleExpand(req.id)}
                     >
                       <p className={cn(
-                        'text-xs text-slate-400 italic',
+                        'text-xs text-[#8ba4c4] italic',
                         !isExpanded && 'line-clamp-2'
                       )}>
                         &ldquo;{req.message}&rdquo;
@@ -136,7 +136,7 @@ export function PendingRequestsTable({ leagueId, initialRequests, pendingClaims 
                     type="button"
                     disabled={processing === req.id}
                     onClick={() => handleReview(req.id, 'declined')}
-                    className="text-xs font-medium text-slate-500 hover:text-red-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="text-xs font-medium text-[#6f88a8] hover:text-[#e2686f] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     Decline
                   </button>
@@ -144,7 +144,7 @@ export function PendingRequestsTable({ leagueId, initialRequests, pendingClaims 
                     type="button"
                     disabled={processing === req.id}
                     onClick={() => handleReview(req.id, 'approved')}
-                    className="text-xs font-medium text-sky-400 hover:text-sky-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="text-xs font-medium text-[#38bdf8] hover:text-[#7dd3fc] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     {processing === req.id ? '…' : 'Approve'}
                   </button>
@@ -153,15 +153,15 @@ export function PendingRequestsTable({ leagueId, initialRequests, pendingClaims 
 
               {/* Attached claim chip — independent of the join approve/decline */}
               {attachedClaim && (
-                <div className="mx-4 my-2.5 rounded-lg border border-blue-800 bg-blue-950/40 overflow-hidden">
+                <div className="mx-4 my-2.5 rounded-lg border border-[#38bdf8]/35 bg-[#38bdf8]/8 overflow-hidden">
                   <div className="px-3 py-2 flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="size-1.5 rounded-full bg-amber-400 shrink-0" />
-                        <span className="text-xs text-blue-200 font-medium">
+                        <span className="size-1.5 rounded-full bg-[#f5c04a] shrink-0" />
+                        <span className="text-xs text-[#dff1ff] font-medium">
                           Claims to be: {attachedClaim.player_name}
                         </span>
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-[#6f88a8]">
                           · Player identity pending approval
                         </span>
                       </div>
@@ -172,7 +172,7 @@ export function PendingRequestsTable({ leagueId, initialRequests, pendingClaims 
                       type="button"
                       disabled={isBusyClaim}
                       onClick={() => handleReviewClaim(attachedClaim.id, 'rejected')}
-                      className="text-xs font-medium text-slate-500 hover:text-red-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="text-xs font-medium text-[#6f88a8] hover:text-[#e2686f] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                       Reject claim
                     </button>
@@ -184,7 +184,7 @@ export function PendingRequestsTable({ leagueId, initialRequests, pendingClaims 
                           prev === attachedClaim.id ? null : attachedClaim.id
                         )
                       }
-                      className="flex items-center gap-0.5 text-xs font-medium text-sky-400 hover:text-sky-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="flex items-center gap-0.5 text-xs font-medium text-[#38bdf8] hover:text-[#7dd3fc] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                       Link to different player
                       <ChevronRight
@@ -195,7 +195,7 @@ export function PendingRequestsTable({ leagueId, initialRequests, pendingClaims 
                       type="button"
                       disabled={isBusyClaim}
                       onClick={() => handleReviewClaim(attachedClaim.id, 'approved')}
-                      className="text-xs font-medium text-emerald-400 hover:text-emerald-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="text-xs font-medium text-[#bef264] hover:text-[#bef264] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                       {isBusyClaim && !isOverrideExpanded ? '…' : 'Approve claim'}
                     </button>
@@ -218,7 +218,7 @@ export function PendingRequestsTable({ leagueId, initialRequests, pendingClaims 
         })}
       </ul>
       {error && (
-        <p className="px-4 py-2 text-xs text-red-400 border-t border-slate-700">{error}</p>
+        <p className="px-4 py-2 text-xs text-[#e2686f] border-t border-[#1b2c46]">{error}</p>
       )}
     </div>
   )

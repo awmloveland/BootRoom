@@ -158,38 +158,38 @@ export function LeagueDetailsForm({
     <div className="space-y-4">
       {/* Day-change confirmation modal */}
       {dayChangeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-800 p-5 space-y-4 shadow-xl">
-            <p className="text-sm text-slate-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#030710]/80 px-4">
+          <div className="w-full max-w-sm rounded-xl border border-[#1b2c46] bg-[#0a1421] p-5 space-y-4 shadow-xl">
+            <p className="text-sm text-[#dff1ff]">
               You&apos;ve changed the match day from{' '}
-              <span className="font-semibold text-slate-100">{initialDay}</span> to{' '}
-              <span className="font-semibold text-slate-100">{day}</span>.
+              <span className="font-semibold text-[#f4f9ff]">{initialDay}</span> to{' '}
+              <span className="font-semibold text-[#f4f9ff]">{day}</span>.
             </p>
             <div className="space-y-2">
               <button
                 onClick={() => commitSave(dayChangeModal.scheduledWeekId)}
                 disabled={saving}
-                className="w-full rounded-md border border-slate-600 bg-slate-700 px-4 py-2.5 text-left text-sm text-slate-100 hover:bg-slate-600 disabled:opacity-50"
+                className="w-full rounded-md border border-[#223a5c] bg-[#1b2c46] px-4 py-2.5 text-left text-sm text-[#f4f9ff] hover:bg-[#223a5c] disabled:opacity-50"
               >
                 <p className="font-medium">Move this match</p>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-[#8ba4c4] mt-0.5">
                   Reschedule {dayChangeModal.oldDayDisplay} → {dayChangeModal.newDayDisplay}
                 </p>
               </button>
               <button
                 onClick={() => commitSave()}
                 disabled={saving}
-                className="w-full rounded-md border border-slate-600 bg-slate-700 px-4 py-2.5 text-left text-sm text-slate-100 hover:bg-slate-600 disabled:opacity-50"
+                className="w-full rounded-md border border-[#223a5c] bg-[#1b2c46] px-4 py-2.5 text-left text-sm text-[#f4f9ff] hover:bg-[#223a5c] disabled:opacity-50"
               >
                 <p className="font-medium">Keep this match</p>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-[#8ba4c4] mt-0.5">
                   Leave {dayChangeModal.oldDayDisplay} as-is, apply {day} from next game
                 </p>
               </button>
             </div>
             <button
               onClick={() => setDayChangeModal(null)}
-              className="w-full text-xs text-slate-500 hover:text-slate-400 py-1"
+              className="w-full text-xs text-[#6f88a8] hover:text-[#8ba4c4] py-1"
             >
               Cancel
             </button>
@@ -201,18 +201,18 @@ export function LeagueDetailsForm({
       <LeagueInfoBar details={previewDetails} leagueSlug={leagueSlug} isAdmin={false} />
 
       {/* Card */}
-      <div className="rounded-lg border border-slate-700 bg-slate-800">
+      <div className="rounded-xl border border-[#1b2c46] bg-[#0a1421]">
         {/* Card header */}
-        <div className="border-b border-slate-700 px-4 py-3">
-          <h3 className="text-sm font-medium text-slate-100">League details</h3>
-          <p className="text-xs text-slate-400 mt-0.5">Visible to all members and the public.</p>
+        <div className="border-b border-[#1b2c46] px-4 py-3">
+          <h3 className="text-sm font-medium text-[#f4f9ff]">League details</h3>
+          <p className="text-xs text-[#8ba4c4] mt-0.5">Visible to all members and the public.</p>
         </div>
 
         {/* Fields */}
         <div className="space-y-4 p-4">
           {/* League name */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+            <label className="text-xs font-medium text-[#8ba4c4] uppercase tracking-wide">
               League name
             </label>
             <input
@@ -223,18 +223,18 @@ export function LeagueDetailsForm({
               placeholder="e.g. Craft Football"
               maxLength={80}
               required
-              className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              className="w-full rounded border border-[#223a5c] bg-[#0c1728] px-3 py-2 text-sm text-[#f4f9ff] placeholder:text-[#4f688a] focus:outline-none focus:ring-0 focus:border-[#38bdf8]"
             />
             {name.trim() && (
-              <p className="text-xs text-slate-500 mt-1">
-                URL: <span className="text-slate-400">craft-football.com/{generateSlug(name.trim())}</span>
+              <p className="text-xs text-[#6f88a8] mt-1">
+                URL: <span className="text-[#8ba4c4]">craft-football.com/{generateSlug(name.trim())}</span>
               </p>
             )}
           </div>
 
           {/* Location */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+            <label className="text-xs font-medium text-[#8ba4c4] uppercase tracking-wide">
               Location
             </label>
             <input
@@ -243,21 +243,21 @@ export function LeagueDetailsForm({
               value={location}
               onChange={(e) => { setLocation(e.target.value); markDirty() }}
               placeholder="e.g. Hackney Marshes"
-              className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              className="w-full rounded border border-[#223a5c] bg-[#0c1728] px-3 py-2 text-sm text-[#f4f9ff] placeholder:text-[#4f688a] focus:outline-none focus:ring-0 focus:border-[#38bdf8]"
             />
           </div>
 
           {/* Day + Time */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+              <label className="text-xs font-medium text-[#8ba4c4] uppercase tracking-wide">
                 Day
               </label>
               <select
                 name="day"
                 value={day}
                 onChange={(e) => { setDay(e.target.value); markDirty() }}
-                className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                className="w-full rounded border border-[#223a5c] bg-[#0c1728] px-3 py-2 text-sm text-[#f4f9ff] focus:outline-none focus:ring-0 focus:border-[#38bdf8]"
               >
                 <option value="">Select day</option>
                 {DAYS.map((d) => (
@@ -268,14 +268,14 @@ export function LeagueDetailsForm({
               </select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+              <label className="text-xs font-medium text-[#8ba4c4] uppercase tracking-wide">
                 Kick-off time
               </label>
               <select
                 name="kickoff-time"
                 value={kickoffTime}
                 onChange={(e) => { setKickoffTime(e.target.value); markDirty() }}
-                className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                className="w-full rounded border border-[#223a5c] bg-[#0c1728] px-3 py-2 text-sm text-[#f4f9ff] focus:outline-none focus:ring-0 focus:border-[#38bdf8]"
               >
                 <option value="">Select time</option>
                 {TIMES.map((t) => (
@@ -287,19 +287,19 @@ export function LeagueDetailsForm({
 
           {/* Players (read-only) */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+            <label className="text-xs font-medium text-[#8ba4c4] uppercase tracking-wide">
               Players in league
             </label>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-400">{playerCount} players</span>
-              <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-400">auto</span>
+              <span className="text-sm text-[#8ba4c4]">{playerCount} players</span>
+              <span className="rounded-full bg-[#1b2c46] px-2 py-0.5 text-xs text-[#8ba4c4]">auto</span>
             </div>
-            <p className="text-xs text-slate-600">Counted automatically from the Players tab.</p>
+            <p className="text-xs text-[#4f688a]">Counted automatically from the Players tab.</p>
           </div>
 
           {/* Bio */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+            <label className="text-xs font-medium text-[#8ba4c4] uppercase tracking-wide">
               Bio
             </label>
             <textarea
@@ -308,24 +308,24 @@ export function LeagueDetailsForm({
               onChange={(e) => { setBio(e.target.value); markDirty() }}
               placeholder="A short description of your league..."
               rows={3}
-              className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400 resize-none"
+              className="w-full rounded border border-[#223a5c] bg-[#0c1728] px-3 py-2 text-sm text-[#f4f9ff] placeholder:text-[#4f688a] focus:outline-none focus:ring-0 focus:border-[#38bdf8] resize-none"
             />
-            <p className="text-xs text-slate-600">Keep it short — one or two sentences works best.</p>
+            <p className="text-xs text-[#4f688a]">Keep it short: one or two sentences works best.</p>
           </div>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-[#e2686f]">{error}</p>}
         </div>
 
         {/* Footer with full-width button */}
-        <div className="border-t border-slate-700 p-4">
+        <div className="border-t border-[#1b2c46] p-4">
           <button
             onClick={handleSave}
             disabled={saving || saved}
             className={cn(
               'w-full rounded-md px-4 py-2 text-sm font-medium transition-colors',
               saved
-                ? 'bg-slate-700 text-slate-300 cursor-default'
-                : 'bg-slate-100 text-slate-900 hover:bg-white disabled:opacity-50'
+                ? 'bg-[#1b2c46] text-[#cfe0f4] cursor-default'
+                : 'bg-[#38bdf8] text-[#05101d] hover:bg-[#7dd3fc] disabled:opacity-50'
             )}
           >
             {saving ? 'Saving…' : saved ? 'Saved' : 'Save details'}
