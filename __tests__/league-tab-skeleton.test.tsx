@@ -2,31 +2,52 @@
  * @jest-environment jsdom
  */
 import { render, screen } from '@testing-library/react'
-import { LeagueTabSkeleton } from '@/components/LeagueTabSkeleton'
+import { LeagueHeaderSkeleton, LeagueTabSkeleton } from '@/components/LeagueTabSkeleton'
+
+jest.mock('next/navigation', () => ({
+  useSelectedLayoutSegment: () => 'honours',
+}))
+
+// jsdom has no layout engine; ScrollTabIntoView calls this on the active tab.
+beforeAll(() => {
+  Element.prototype.scrollIntoView = jest.fn()
+})
 
 describe('LeagueTabSkeleton', () => {
-  it('renders all four tab labels', () => {
-    render(<LeagueTabSkeleton tab="results" />)
-    for (const label of ['Results', 'Players', 'Honours', 'Lineup Lab']) {
-      expect(screen.getByText(label)).toBeInTheDocument()
-    }
-  })
-
-  it('marks only the requested tab as current', () => {
-    render(<LeagueTabSkeleton tab="honours" />)
-    const current = screen.getAllByRole('listitem').filter((el) => el.getAttribute('aria-current') === 'page')
-    expect(current).toHaveLength(1)
-    expect(current[0]).toHaveTextContent('Honours')
-  })
-
   it('starts invisible and fades in after a delay, so fast loads never flash it', () => {
-    render(<LeagueTabSkeleton tab="results" />)
-    const main = screen.getByRole('main')
-    expect(main).toHaveClass('starting:opacity-0', 'opacity-100', 'transition-opacity', 'delay-200')
+    const { container } = render(<LeagueTabSkeleton />)
+    expect(container.firstChild).toHaveClass('starting:opacity-0', 'opacity-100', 'transition-opacity', 'delay-200')
   })
 
   it('announces itself as busy to assistive tech', () => {
-    render(<LeagueTabSkeleton tab="players" />)
-    expect(screen.getByRole('main')).toHaveAttribute('aria-busy', 'true')
+    const { container } = render(<LeagueTabSkeleton />)
+    expect(container.firstChild).toHaveAttribute('aria-busy', 'true')
+  })
+
+  it('only covers the tab content, not the header or tab bar', () => {
+    render(<LeagueTabSkeleton />)
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
+    expect(screen.queryByText('Results')).not.toBeInTheDocument()
+  })
+})
+
+describe('LeagueHeaderSkeleton', () => {
+  it('renders the real tab links for the league', () => {
+    render(<LeagueHeaderSkeleton leagueSlug="the-boot-room" />)
+    for (const [label, path] of [
+      ['Results', 'results'],
+      ['Players', 'players'],
+      ['Honours', 'honours'],
+      ['Lineup Lab', 'lineup-lab'],
+    ]) {
+      expect(screen.getByRole('link', { name: label })).toHaveAttribute('href', `/the-boot-room/${path}`)
+    }
+  })
+
+  it('marks only the tab in the URL as current', () => {
+    render(<LeagueHeaderSkeleton leagueSlug="the-boot-room" />)
+    const current = screen.getAllByRole('link').filter((el) => el.getAttribute('aria-current') === 'page')
+    expect(current).toHaveLength(1)
+    expect(current[0]).toHaveTextContent('Honours')
   })
 })
