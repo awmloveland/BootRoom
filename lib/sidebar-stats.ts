@@ -1,4 +1,4 @@
-import { parseWeekDate } from '@/lib/utils'
+import { computeStandings, parseWeekDate } from '@/lib/utils'
 import type { Player, Week } from '@/lib/types'
 
 // ─── gamesLeftInQuarter ───────────────────────────────────────────────────────
@@ -97,7 +97,7 @@ export interface QuarterlyEntry {
   drew: number
   lost: number
   points: number
-  goalDiff: number  // sum of signed margins: + for wins, - for losses; see aggregateWeeks
+  goalDiff: number  // sum of signed margins: + for wins, - for losses; see computeStandings
 }
 
 export interface QuarterAward {
@@ -260,34 +260,6 @@ function buildQuarterAwards(entries: QuarterlyEntry[], weekSlice: Week[]): Quart
   return awards
 }
 
-function aggregateWeeks(weeks: Week[]): QuarterlyEntry[] {
-  const map = new Map<string, QuarterlyEntry>()
-  for (const w of weeks) {
-    if (w.status !== 'played') continue
-    // goal_difference is an unsigned margin: winners gain it, losers lose it.
-    // An unrecorded margin counts as 0.
-    const margin = w.goal_difference ?? 0
-    const allPlayers = [...w.teamA, ...w.teamB]
-    for (const name of allPlayers) {
-      if (!map.has(name)) map.set(name, { name, played: 0, won: 0, drew: 0, lost: 0, points: 0, goalDiff: 0 })
-      const e = map.get(name)!
-      e.played++
-      const onTeamA = w.teamA.includes(name)
-      if (w.winner === 'draw') { e.drew++; e.points += 1 }
-      else if ((w.winner === 'teamA' && onTeamA) || (w.winner === 'teamB' && !onTeamA)) { e.won++; e.points += 3; e.goalDiff += margin }
-      else { e.lost++; e.goalDiff -= margin }
-    }
-  }
-  // Points, then GD, then fewer games played, then wins, then name
-  return Array.from(map.values()).sort((a, b) =>
-    b.points - a.points ||
-    b.goalDiff - a.goalDiff ||
-    a.played - b.played ||
-    b.won - a.won ||
-    a.name.localeCompare(b.name)
-  )
-}
-
 export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gameDay?: number): QuarterlyTableResult {
   const { q, year } = quarterOf(now)
 
@@ -301,7 +273,7 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gam
   const quarterLabel = `Q${displayQ} ${yy}`
 
   const displayWeeks = weeks.filter(w => weekInQuarter(w, displayQ, displayYear))
-  const entries = aggregateWeeks(displayWeeks).slice(0, 10)
+  const entries = computeStandings(displayWeeks).slice(0, 10)
 
   // gamesLeft is 0 during holdover (the displayed quarter is complete)
   const resolvedGameDay = gameDay ?? inferGameDay(weeks)
@@ -317,7 +289,7 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gam
   const prevYear = q === 1 ? year - 1 : year
   const prevYY = String(prevYear).slice(-2)
   const prevWeeks = weeks.filter(w => weekInQuarter(w, prevQ, prevYear))
-  const prevEntries = aggregateWeeks(prevWeeks)
+  const prevEntries = computeStandings(prevWeeks)
   const lastChampion = prevEntries.length > 0 ? prevEntries[0].name : null
   const lastQuarterLabel = prevEntries.length > 0 ? `Q${prevQ} ${prevYY}` : null
 
@@ -428,7 +400,7 @@ export function computeAllQuarters(weeks: Week[], now: Date = new Date()): Honou
       let gamesPlayed: number | undefined
       if (status === 'completed') {
         const playedWeeks = qWeeks.filter(w => w.status === 'played')
-        entries  = aggregateWeeks(playedWeeks)
+        entries  = computeStandings(playedWeeks)
         champion = entries[0]?.name
         awards   = buildQuarterAwards(entries, playedWeeks)
         gamesPlayed = playedWeeks.length

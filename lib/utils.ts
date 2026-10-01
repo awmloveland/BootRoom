@@ -2,7 +2,7 @@ import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { LeagueDetails, Player, Strength, Week, Winner, YearStats } from './types'
 import { strengthToRating } from './strength'
-import type { QuarterSummary } from './sidebar-stats'
+import type { QuarterSummary, QuarterlyEntry } from './sidebar-stats'
 
 // --- Per-player score (wprScore) ---
 const WPR_PPG_WEIGHT = 0.60            // shrunk points-per-game contribution
@@ -67,6 +67,38 @@ export function formatWinner(winner: Winner): string {
 /** Signed goal difference for standings tables, e.g. '+5', '0', '-3'. */
 export function formatGoalDiff(goalDiff: number): string {
   return goalDiff > 0 ? `+${goalDiff}` : String(goalDiff)
+}
+
+/**
+ * Ranked standings for a set of weeks (only played weeks count). Used by the
+ * sidebar and honours quarter tables and the result share text, so they all
+ * agree on order: points, then GD, then fewer games played, then wins, then name.
+ */
+export function computeStandings(weeks: Week[]): QuarterlyEntry[] {
+  const map = new Map<string, QuarterlyEntry>()
+  for (const w of weeks) {
+    if (w.status !== 'played') continue
+    // goal_difference is an unsigned margin: winners gain it, losers lose it.
+    // An unrecorded margin counts as 0.
+    const margin = w.goal_difference ?? 0
+    const allPlayers = [...w.teamA, ...w.teamB]
+    for (const name of allPlayers) {
+      if (!map.has(name)) map.set(name, { name, played: 0, won: 0, drew: 0, lost: 0, points: 0, goalDiff: 0 })
+      const e = map.get(name)!
+      e.played++
+      const onTeamA = w.teamA.includes(name)
+      if (w.winner === 'draw') { e.drew++; e.points += 1 }
+      else if ((w.winner === 'teamA' && onTeamA) || (w.winner === 'teamB' && !onTeamA)) { e.won++; e.points += 3; e.goalDiff += margin }
+      else { e.lost++; e.goalDiff -= margin }
+    }
+  }
+  return Array.from(map.values()).sort((a, b) =>
+    b.points - a.points ||
+    b.goalDiff - a.goalDiff ||
+    a.played - b.played ||
+    b.won - a.won ||
+    a.name.localeCompare(b.name)
+  )
 }
 
 const MONTH_LONG: Record<string, string> = {
@@ -782,34 +814,19 @@ export function buildResultShareText(params: {
 
   // ── Quarter table top 5 ──────────────────────────────────────────────────
   const tableLines: string[] = []
-  // Inline quarterly table
-  const now = new Date()
-  const q = Math.floor(now.getMonth() / 3) + 1
-  const year = now.getFullYear()
+  // The quarter of the result being shared, not of today
+  const q = Math.floor(parsed.getMonth() / 3) + 1
+  const year = parsed.getFullYear()
   const qWeeks = weeks.filter(w => {
-    if (w.status !== 'played') return false
     const d = parseWeekDate(w.date)
-    const wq = Math.floor(d.getMonth() / 3) + 1
-    return wq === q && d.getFullYear() === year
+    return Math.floor(d.getMonth() / 3) + 1 === q && d.getFullYear() === year
   })
-  const tableMap = new Map<string, number>()
-  for (const w of qWeeks) {
-    for (const name of [...w.teamA, ...w.teamB]) {
-      const prev = tableMap.get(name) ?? 0
-      const onTeamA = w.teamA.includes(name)
-      const pts = w.winner === 'draw' ? 1
-        : (w.winner === 'teamA' && onTeamA) || (w.winner === 'teamB' && !onTeamA) ? 3 : 0
-      tableMap.set(name, prev + pts)
-    }
-  }
-  const tableEntries = Array.from(tableMap.entries())
-    .sort(([,a],[,b]) => b - a)
-    .slice(0, 5)
+  const tableEntries = computeStandings(qWeeks).slice(0, 5)
   if (tableEntries.length > 0) {
     const qLabel = `Q${q} ${year}`
     tableLines.push(`📊 ${qLabel} standings`)
-    tableEntries.forEach(([name, pts], i) => {
-      tableLines.push(`${i + 1}. ${name} — ${pts}pts`)
+    tableEntries.forEach((e, i) => {
+      tableLines.push(`${i + 1}. ${e.name} — ${e.points}pts`)
     })
   }
 
