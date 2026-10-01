@@ -633,12 +633,33 @@ export function isLeagueDetailsFilled(details: LeagueDetails | null | undefined)
   return !!(details.location || details.day || details.kickoff_time || details.bio)
 }
 
-/** Returns true if the match card should render the meta row (margin and/or notes). */
-export function shouldShowMeta(
-  goal_difference: number | null | undefined,
-  notes: string | undefined
-): boolean {
-  return (goal_difference != null && goal_difference !== 0) || !!(notes && notes.trim() !== '')
+/**
+ * Width (in %) of the Team A segment of a played match card's margin bar.
+ * Leans 6% per goal towards the winner from an even 50%, clamped to 20–80%.
+ */
+export function getMarginBarWidth(winner: Winner, goalDifference: number | null | undefined): number {
+  const gd = Math.abs(goalDifference ?? 0)
+  if (winner === 'teamA') return Math.min(80, 50 + gd * 6)
+  if (winner === 'teamB') return Math.max(20, 50 - gd * 6)
+  return 50
+}
+
+/**
+ * Centre caption under a played match card's margin bar. Written in normal case;
+ * the card uppercases it. `viewerWon` is true when the viewer's linked player was
+ * on the winning side; a losing viewer keeps the neutral team caption.
+ */
+export function getMarginCaption(
+  winner: Winner,
+  goalDifference: number | null | undefined,
+  viewerWon = false
+): string | null {
+  if (!winner) return null
+  if (winner === 'draw') return 'Honours even'
+  const subject = viewerWon ? 'You' : winner === 'teamA' ? 'Team A' : 'Team B'
+  const gd = Math.abs(goalDifference ?? 0)
+  if (gd === 0) return `${subject} won`
+  return `${subject} won by ${gd} ${gd === 1 ? 'goal' : 'goals'}`
 }
 
 /**

@@ -1,13 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown, Pencil } from 'lucide-react'
 import { Week } from '@/lib/types'
-import type { Player, ScheduledWeek } from '@/lib/types'
-import { WinnerBadge } from './WinnerBadge'
-import { TeamList } from './TeamList'
-import { cn, shouldShowMeta, isPastDeadline, buildResultShareText, buildDnfShareText, shareOrCopy } from '@/lib/utils'
+import type { Player, ScheduledWeek, Winner } from '@/lib/types'
+import { ResultChip, WinnerBadge } from './WinnerBadge'
+import { FaceOffLineup, TeamList } from './TeamList'
+import {
+  cn,
+  isPastDeadline,
+  buildResultShareText,
+  buildDnfShareText,
+  shareOrCopy,
+  getMarginBarWidth,
+  getMarginCaption,
+} from '@/lib/utils'
 import { ResultModal } from '@/components/ResultModal'
 import { EditWeekModal } from '@/components/EditWeekModal'
 
@@ -25,6 +33,8 @@ interface MatchCardProps {
   weeks?: Week[]
   isMostRecent?: boolean
   onNameGuest?: (week: Week, guestName: string) => void
+  /** The viewer's linked player, for the YOU tag and caption on played weeks. */
+  linkedPlayerName?: string | null
 }
 
 // ── Edit button helpers ───────────────────────────────────────────────────────
@@ -43,11 +53,14 @@ function EditIconButton({ onClick }: { onClick: () => void }) {
 }
 
 /** Text button used inside expanded card bodies. */
-function EditResultButton({ onClick }: { onClick: () => void }) {
+function EditResultButton({ onClick, className }: { onClick: () => void; className?: string }) {
   return (
     <button
       onClick={onClick}
-      className="h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold hover:border-[#38bdf8] hover:text-white transition-colors"
+      className={cn(
+        'h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold hover:border-[#38bdf8] hover:text-white transition-colors',
+        className
+      )}
     >
       Edit result
     </button>
@@ -174,6 +187,7 @@ interface PlayedCardProps {
   weeks?: Week[]
   isMostRecent: boolean
   onNameGuest?: (guestName: string) => void
+  linkedPlayerName?: string | null
 }
 
 // ── DnfCard ───────────────────────────────────────────────────────────────────
@@ -469,6 +483,61 @@ function AwaitingResultCard({
   )
 }
 
+// ── MarginBar ─────────────────────────────────────────────────────────────────
+
+interface MarginBarProps {
+  winner: NonNullable<Winner>
+  goalDifference?: number | null
+  viewerWon: boolean
+}
+
+/** Split bar that leans towards the winning side, with a caption beneath. */
+function MarginBar({ winner, goalDifference, viewerWon }: MarginBarProps) {
+  const isDraw = winner === 'draw'
+  const target = getMarginBarWidth(winner, goalDifference)
+
+  // Start level and ease to the final split once the open card has mounted.
+  const [widthA, setWidthA] = useState(50)
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setWidthA(target))
+    return () => cancelAnimationFrame(frame)
+  }, [target])
+
+  return (
+    <div className="mt-4">
+      <div className={cn('flex h-3 gap-0.5 rounded-[3px] overflow-hidden bg-[#060b14]', isDraw && 'relative')}>
+        <span
+          className={cn(
+            'block bg-[#38bdf8] transition-[width] duration-300 ease-out motion-reduce:transition-none',
+            isDraw ? 'opacity-55' : winner === 'teamB' && 'opacity-50'
+          )}
+          style={{ width: `${widthA}%` }}
+        />
+        <span
+          className={cn(
+            'block flex-1 bg-[#a78bfa]',
+            isDraw ? 'opacity-55' : winner === 'teamA' && 'opacity-50'
+          )}
+        />
+        {isDraw && (
+          <span className="absolute left-1/2 -top-0.5 -bottom-0.5 w-0 -translate-x-px border-l-2 border-dashed border-[#f4f9ff]" />
+        )}
+      </div>
+      <div className="mt-[7px] flex items-center justify-between gap-2 font-plex font-bold uppercase tracking-[.14em]">
+        <span className={cn('text-[8.5px]', winner === 'teamB' ? 'text-[#6f88a8]' : 'text-[#7dd3fc]')}>
+          Team A
+        </span>
+        <span className={cn('text-center text-[9.5px]', isDraw ? 'text-[#8ba4c4]' : 'text-[#bef264]')}>
+          {getMarginCaption(winner, goalDifference, viewerWon)}
+        </span>
+        <span className={cn('text-[8.5px]', winner === 'teamA' ? 'text-[#6f88a8]' : 'text-[#c4b5fd]')}>
+          Team B
+        </span>
+      </div>
+    </div>
+  )
+}
+
 // ── PlayedCard ────────────────────────────────────────────────────────────────
 
 function PlayedCard({
@@ -485,9 +554,15 @@ function PlayedCard({
   weeks,
   isMostRecent,
   onNameGuest,
+  linkedPlayerName,
 }: PlayedCardProps) {
   const [showEditModal, setShowEditModal] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  const canShare = isMostRecent && !!(leagueName && leagueSlug && weeks)
+  const notes = week.notes?.trim()
+  const winningTeam = week.winner === 'teamA' ? week.teamA : week.winner === 'teamB' ? week.teamB : []
+  const viewerWon = !!linkedPlayerName && winningTeam.includes(linkedPlayerName)
 
   async function handleShare() {
     if (!leagueName || !leagueSlug || !weeks || !week.winner) return
@@ -519,7 +594,7 @@ function PlayedCard({
       <Collapsible.Root open={isOpen} onOpenChange={onToggle}>
         <div
           className={cn(
-            'rounded-xl border bg-[#0a1421] transition-colors duration-150',
+            'rounded-xl border bg-[#0a1421] overflow-hidden transition-colors duration-150',
             isOpen
               ? 'border-[#2c4a72] shadow-[0_18px_44px_rgba(0,0,0,.42)]'
               : 'border-[#1b2c46] hover:border-[#2c4a72]'
@@ -527,7 +602,7 @@ function PlayedCard({
         >
           <Collapsible.Trigger asChild>
             <button
-              className="w-full flex items-center justify-between gap-3 px-[18px] py-3 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38bdf8] cursor-pointer"
+              className="w-full flex items-center justify-between gap-3 px-[18px] py-3 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#38bdf8] cursor-pointer"
               aria-expanded={isOpen}
               aria-controls={`week-${week.week}-content`}
             >
@@ -539,7 +614,7 @@ function PlayedCard({
                 </p>
               </div>
               <div className="flex items-center gap-2.5">
-                <WinnerBadge winner={week.winner} />
+                <ResultChip winner={week.winner} goalDifference={week.goal_difference} />
                 <ChevronDown
                   className={cn(
                     'h-[15px] w-[15px] text-[#6f88a8] transition-transform duration-200 flex-shrink-0',
@@ -557,54 +632,49 @@ function PlayedCard({
           >
             <div className="border-t border-[#1b2c46]">
               <div className="px-[18px] py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <TeamList
-                    label="Team A"
-                    players={week.teamA}
-                    team="A"
-                    rating={week.team_a_rating}
-                    goalkeepers={goalkeepers}
-                    onNameGuest={onNameGuest}
-                  />
-                  <TeamList
-                    label="Team B"
-                    players={week.teamB}
-                    team="B"
-                    rating={week.team_b_rating}
-                    goalkeepers={goalkeepers}
-                    onNameGuest={onNameGuest}
-                  />
-                </div>
+                <FaceOffLineup
+                  teamA={week.teamA}
+                  teamB={week.teamB}
+                  teamARating={week.team_a_rating}
+                  teamBRating={week.team_b_rating}
+                  winner={week.winner}
+                  goalkeepers={goalkeepers}
+                  linkedPlayerName={linkedPlayerName}
+                  onNameGuest={onNameGuest}
+                />
 
-                {(shouldShowMeta(week.goal_difference, week.notes) || isAdmin || (isMostRecent && leagueName && leagueSlug && !!weeks)) && (
-                  <>
-                    <div className="flex flex-wrap items-center gap-2 mt-3.5 pt-3.5 border-t border-[#1b2c46]">
-                      {week.goal_difference != null && week.goal_difference !== 0 && (
-                        <span className="rounded border border-[#1b2c46] bg-[#0c1728] px-2.5 py-1.5 font-plex text-[9.5px] font-bold uppercase tracking-[.14em] text-[#bef264] whitespace-nowrap">
-                          Margin +{week.goal_difference} goals
-                        </span>
-                      )}
-                      {week.notes?.trim() && (
-                        <p className="w-full rounded border border-[#1b2c46] bg-[#0c1728] px-3 py-[9px] font-inter-body text-xs italic leading-normal text-[#8ba4c4]">
-                          {week.notes.trim()}
-                        </p>
-                      )}
-                      <div className="ml-auto flex items-center gap-2">
+                {week.winner && (
+                  <MarginBar
+                    winner={week.winner}
+                    goalDifference={week.goal_difference}
+                    viewerWon={viewerWon}
+                  />
+                )}
+
+                {(notes || isAdmin || canShare) && (
+                  <div className="flex flex-wrap items-center gap-2 mt-3.5 pt-3.5 border-t border-[#1b2c46]">
+                    {notes && (
+                      <p className="w-full rounded border border-[#1b2c46] bg-[#0c1728] px-3 py-[9px] font-inter-body text-xs italic leading-normal text-[#8ba4c4]">
+                        {notes}
+                      </p>
+                    )}
+                    {(isAdmin || canShare) && (
+                      <div className={cn('w-full gap-2', isAdmin && canShare ? 'grid grid-cols-2' : 'flex')}>
                         {isAdmin && (
-                          <EditResultButton onClick={() => setShowEditModal(true)} />
+                          <EditResultButton onClick={() => setShowEditModal(true)} className="flex-1 h-9" />
                         )}
-                        {isMostRecent && leagueName && leagueSlug && weeks && (
+                        {canShare && (
                           <button
                             type="button"
                             onClick={handleShare}
-                            className="h-8 px-3.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-xs font-bold transition-colors"
+                            className="flex-1 h-9 px-3.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-xs font-bold transition-colors"
                           >
                             {copied ? 'Copied!' : 'Share'}
                           </button>
                         )}
                       </div>
-                    </div>
-                  </>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -641,6 +711,7 @@ export function MatchCard({
   weeks,
   isMostRecent = false,
   onNameGuest,
+  linkedPlayerName = null,
 }: MatchCardProps) {
   const nameGuestHandler =
     isAdmin && week.id && onNameGuest
@@ -719,6 +790,7 @@ export function MatchCard({
       weeks={weeks}
       isMostRecent={isMostRecent}
       onNameGuest={nameGuestHandler}
+      linkedPlayerName={linkedPlayerName}
     />
   )
 }

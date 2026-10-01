@@ -1,6 +1,6 @@
 // __tests__/margin-of-victory.test.ts
 import type { Week } from '@/lib/types'
-import { shouldShowMeta } from '@/lib/utils'
+import { getMarginBarWidth, getMarginCaption } from '@/lib/utils'
 
 describe('Week type — goal_difference', () => {
   it('accepts goal_difference as a number', () => {
@@ -42,33 +42,58 @@ describe('Week type — goal_difference', () => {
   })
 })
 
-// ── shouldShowMeta ──────────────────────────────────────────────
-// Tests the display condition: show the meta row when there's a
-// non-null, non-zero margin OR non-empty notes.
+// ── getMarginBarWidth ──────────────────────────────────────────
+// Team A segment width for the tug of war bar on played match cards.
 
-describe('shouldShowMeta', () => {
-  it('returns true when goal_difference is a positive win margin', () => {
-    expect(shouldShowMeta(3, undefined)).toBe(true)
+describe('getMarginBarWidth', () => {
+  it('leans towards Team A by 6% per goal', () => {
+    expect(getMarginBarWidth('teamA', 2)).toBe(62)
   })
 
-  it('returns false when goal_difference is 0 (draw) with no notes', () => {
-    expect(shouldShowMeta(0, undefined)).toBe(false)
+  it('leans away from Team A when Team B wins', () => {
+    expect(getMarginBarWidth('teamB', 1)).toBe(44)
   })
 
-  it('returns false when goal_difference is null with no notes', () => {
-    expect(shouldShowMeta(null, undefined)).toBe(false)
+  it('clamps to 80% and 20%', () => {
+    expect(getMarginBarWidth('teamA', 9)).toBe(80)
+    expect(getMarginBarWidth('teamB', 9)).toBe(20)
   })
 
-  it('returns true when goal_difference is null but notes are present', () => {
-    expect(shouldShowMeta(null, 'Good game')).toBe(true)
+  it('sits level on a draw or when the margin was not recorded', () => {
+    expect(getMarginBarWidth('draw', 0)).toBe(50)
+    expect(getMarginBarWidth('teamA', null)).toBe(50)
+  })
+})
+
+// ── getMarginCaption ────────────────────────────────────────────
+
+describe('getMarginCaption', () => {
+  it('names the winning team and the margin', () => {
+    expect(getMarginCaption('teamA', 2)).toBe('Team A won by 2 goals')
+    expect(getMarginCaption('teamB', 3)).toBe('Team B won by 3 goals')
   })
 
-  it('returns false when notes are whitespace only', () => {
-    expect(shouldShowMeta(null, '   ')).toBe(false)
+  it('uses the singular for a one goal margin', () => {
+    expect(getMarginCaption('teamB', 1)).toBe('Team B won by 1 goal')
   })
 
-  it('returns true when draw (0) but notes are present', () => {
-    expect(shouldShowMeta(0, 'Played in rain')).toBe(true)
+  it('drops the margin when it is null or 0', () => {
+    expect(getMarginCaption('teamA', null)).toBe('Team A won')
+    expect(getMarginCaption('teamA', 0)).toBe('Team A won')
+  })
+
+  it('switches to "You" when the viewer was on the winning side', () => {
+    expect(getMarginCaption('teamA', 2, true)).toBe('You won by 2 goals')
+    expect(getMarginCaption('teamA', null, true)).toBe('You won')
+  })
+
+  it('reads "Honours even" on a draw', () => {
+    expect(getMarginCaption('draw', 0)).toBe('Honours even')
+    expect(getMarginCaption('draw', 0, true)).toBe('Honours even')
+  })
+
+  it('returns null when there is no result', () => {
+    expect(getMarginCaption(null, null)).toBeNull()
   })
 })
 

@@ -21,6 +21,7 @@ interface Props {
   isAdmin?: boolean
   leagueName?: string
   celebration?: ResultsCelebration | null
+  linkedPlayerName?: string | null
 }
 
 export function ResultsSection({
@@ -36,6 +37,7 @@ export function ResultsSection({
   isAdmin = false,
   leagueName,
   celebration = null,
+  linkedPlayerName = null,
 }: Props) {
   const router = useRouter()
 
@@ -77,6 +79,7 @@ export function ResultsSection({
           onResultSaved={() => router.refresh()}
           leagueName={leagueName}
           celebration={celebration}
+          linkedPlayerName={linkedPlayerName}
         />
       )}
     </div>

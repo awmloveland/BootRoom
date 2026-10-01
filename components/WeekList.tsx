@@ -23,6 +23,7 @@ interface Props {
   onResultSaved?: () => void
   leagueName?: string
   celebration?: ResultsCelebration | null   // champion card, rendered above the first result of that quarter
+  linkedPlayerName?: string | null          // viewer's linked player, for the YOU tag on played weeks
 }
 
 interface NameGuestTarget {
@@ -42,6 +43,7 @@ export function WeekList({
   onResultSaved = () => {},
   leagueName,
   celebration = null,
+  linkedPlayerName = null,
 }: Props) {
   const router = useRouter()
   const recentEligible = sortWeeks(weeks.filter((w) => w.status === 'played' || w.status === 'dnf'))
@@ -132,6 +134,7 @@ export function WeekList({
               weeks={weeks}
               isMostRecent={week.week === mostRecent?.week}
               onNameGuest={handleNameGuestRequest}
+              linkedPlayerName={linkedPlayerName}
             />
           </Fragment>
         )
