@@ -15,8 +15,8 @@ const quarter: QuarterSummary = {
   dateRange: { from: '10 Apr 2026', to: '17 Apr 2026' },
   champion: 'Marcus',
   entries: [
-    { name: 'Marcus', played: 6, won: 5, drew: 1, lost: 0, points: 16 },
-    { name: 'Danny', played: 6, won: 3, drew: 0, lost: 3, points: 9 },
+    { name: 'Marcus', played: 6, won: 5, drew: 1, lost: 0, points: 16, goalDiff: 9 },
+    { name: 'Danny', played: 6, won: 3, drew: 0, lost: 3, points: 9, goalDiff: -1 },
   ],
   awards: [
     { key: 'champion', nickname: 'Champion', icon: '🏅', player: 'Marcus', stat: '16 pts' },

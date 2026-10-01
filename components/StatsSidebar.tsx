@@ -1,5 +1,5 @@
 import { Trophy } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatGoalDiff } from '@/lib/utils'
 import { computeInForm, computeQuarterlyTable, computeTeamAB } from '@/lib/sidebar-stats'
 import { FormDots } from '@/components/FormDots'
 import type { Player, Week } from '@/lib/types'
@@ -139,7 +139,7 @@ function QuarterlyTableWidget({ weeks, leagueDayIndex }: { weeks: Week[]; league
   return (
     <div className={WIDGET_CLASS}>
       {/* Header with inline column labels */}
-      <div className="px-3.5 py-2.5 border-b border-[#17263c] bg-[#0c1728] flex items-center gap-1.5 font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#4f688a]">
+      <div className="px-3.5 py-2.5 border-b border-[#17263c] bg-[#0c1728] flex items-center gap-1 font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#4f688a]">
         <span className={cn(WIDGET_TITLE_CLASS, 'flex-1 min-w-0 truncate')}>
           {quarterLabel}
         </span>
@@ -147,6 +147,7 @@ function QuarterlyTableWidget({ weeks, leagueDayIndex }: { weeks: Week[]; league
         <span className="w-[18px] text-center">W</span>
         <span className="w-[18px] text-center">D</span>
         <span className="w-[18px] text-center">L</span>
+        <span className="w-[26px] text-center">GD</span>
         <span className="w-[26px] text-right text-[#6f88a8]">Pts</span>
       </div>
 
@@ -186,6 +187,9 @@ function QuarterlyTableWidget({ weeks, leagueDayIndex }: { weeks: Week[]; league
                 </span>
                 <span className="font-plex text-[10.5px] text-[#4f688a] w-[18px] text-center shrink-0">
                   {e.lost}
+                </span>
+                <span className="font-plex text-[10.5px] text-[#4f688a] w-[26px] text-center shrink-0">
+                  {formatGoalDiff(e.goalDiff)}
                 </span>
                 <span className={cn(
                   'font-plex text-xs font-bold w-[26px] text-right shrink-0',

@@ -387,6 +387,18 @@ describe('buildResultShareText', () => {
     expect(shareText).toContain('standings')
   })
 
+  it('ranks Q standings like the league tables, breaking points ties on GD', () => {
+    const weeks = [
+      makeWeek({ week: 11, date: '03 Apr 2026', teamA: ['Alice'], teamB: ['Opp1'], winner: 'teamA', goal_difference: 1 }),
+      makeWeek({ week: 12, date: '10 Apr 2026', teamA: ['Zed'], teamB: ['Opp2'], winner: 'teamA', goal_difference: 4 }),
+    ]
+    const { shareText } = buildResultShareText({
+      ...BASE_PARAMS, teamA: ['Zed'], teamB: ['Opp2'], goalDifference: 4, weeks,
+    })
+    // Quarter comes from the result's date, not today's
+    expect(shareText).toContain('📊 Q2 2026 standings\n1. Zed — 3pts\n2. Alice — 3pts')
+  })
+
   // ── highlightsText ──
 
   it('returns non-empty highlightsText when highlights exist', () => {
