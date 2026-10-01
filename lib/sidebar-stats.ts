@@ -278,7 +278,14 @@ function aggregateWeeks(weeks: Week[]): QuarterlyEntry[] {
       else { e.lost++; e.goalDiff -= margin }
     }
   }
-  return Array.from(map.values()).sort((a, b) => b.points - a.points || b.won - a.won || a.name.localeCompare(b.name))
+  // Points, then GD, then fewer games played, then wins, then name
+  return Array.from(map.values()).sort((a, b) =>
+    b.points - a.points ||
+    b.goalDiff - a.goalDiff ||
+    a.played - b.played ||
+    b.won - a.won ||
+    a.name.localeCompare(b.name)
+  )
 }
 
 export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gameDay?: number): QuarterlyTableResult {

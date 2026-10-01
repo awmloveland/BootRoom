@@ -509,6 +509,73 @@ describe('quarter table goal difference', () => {
   })
 })
 
+// ─── ranking order ────────────────────────────────────────────────────────────
+
+describe('quarter table ranking', () => {
+  const now = new Date(2026, 2, 20) // 20 Mar 2026, Q1
+
+  function order(weeks: Week[]): string[] {
+    return computeQuarterlyTable(weeks, now).entries.map(e => e.name)
+  }
+
+  it('ranks higher GD first when points are level', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '05 Jan 2026', teamA: ['Alice'], teamB: ['Opp1'], winner: 'teamA', goal_difference: 1 }),
+      makeWeek({ week: 2, date: '12 Jan 2026', teamA: ['Zed'], teamB: ['Opp2'], winner: 'teamA', goal_difference: 4 }),
+    ]
+    const names = order(weeks)
+    // Both on 3 pts. Zed +4 beats Alice +1
+    expect(names.indexOf('Zed')).toBeLessThan(names.indexOf('Alice'))
+  })
+
+  it('ranks fewer games played first when points and GD are level', () => {
+    const weeks: Week[] = [
+      // Zed: 1 game, 3 pts, GD +2
+      makeWeek({ week: 1, date: '05 Jan 2026', teamA: ['Zed'], teamB: ['Opp1'], winner: 'teamA', goal_difference: 2 }),
+      // Bob: 2 games, 3 pts, GD +3 -1 = +2
+      makeWeek({ week: 2, date: '12 Jan 2026', teamA: ['Bob'], teamB: ['Opp2'], winner: 'teamA', goal_difference: 3 }),
+      makeWeek({ week: 3, date: '19 Jan 2026', teamA: ['Opp3'], teamB: ['Bob'], winner: 'teamA', goal_difference: 1 }),
+    ]
+    const names = order(weeks)
+    expect(names.indexOf('Zed')).toBeLessThan(names.indexOf('Bob'))
+  })
+
+  it('falls back to wins when points, GD and games played are level', () => {
+    const weeks: Week[] = [
+      // Zed: W by 2, L by 1, L by 1 → 3 pts, GD 0, 3 played, 1 win
+      makeWeek({ week: 1, date: '05 Jan 2026', teamA: ['Zed'], teamB: ['Opp1'], winner: 'teamA', goal_difference: 2 }),
+      makeWeek({ week: 2, date: '12 Jan 2026', teamA: ['Opp2'], teamB: ['Zed'], winner: 'teamA', goal_difference: 1 }),
+      makeWeek({ week: 3, date: '19 Jan 2026', teamA: ['Opp3'], teamB: ['Zed'], winner: 'teamA', goal_difference: 1 }),
+      // Bob: three draws → 3 pts, GD 0, 3 played, 0 wins
+      makeWeek({ week: 4, date: '26 Jan 2026', teamA: ['Bob'], teamB: ['Opp4'], winner: 'draw', goal_difference: 0 }),
+      makeWeek({ week: 5, date: '02 Feb 2026', teamA: ['Bob'], teamB: ['Opp4'], winner: 'draw', goal_difference: 0 }),
+      makeWeek({ week: 6, date: '09 Feb 2026', teamA: ['Bob'], teamB: ['Opp4'], winner: 'draw', goal_difference: 0 }),
+    ]
+    const names = order(weeks)
+    expect(names.indexOf('Zed')).toBeLessThan(names.indexOf('Bob'))
+  })
+
+  it('falls back to name when everything else is level', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '05 Jan 2026', teamA: ['Zed', 'Alice'], teamB: ['Opp1', 'Opp2'], winner: 'teamA', goal_difference: 2 }),
+    ]
+    expect(order(weeks).slice(0, 2)).toEqual(['Alice', 'Zed'])
+  })
+
+  it('decides the quarter champion on GD when points are level', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '10 Jan 2026', teamA: ['Bob'], teamB: ['Opp1'], winner: 'teamA', goal_difference: 1 }),
+      makeWeek({ week: 2, date: '17 Jan 2026', teamA: ['Zed'], teamB: ['Opp2'], winner: 'teamA', goal_difference: 5 }),
+    ]
+    const q1 = computeAllQuarters(weeks, new Date(2026, 6, 8)) // Q3 2026, so Q1 is completed
+      .find(y => y.year === 2026)!
+      .quarters.find(q => q.q === 1)!
+    expect(q1.status).toBe('completed')
+    expect(q1.champion).toBe('Zed')
+    expect(q1.entries![0].name).toBe('Zed')
+  })
+})
+
 // ─── computeTeamAB ────────────────────────────────────────────────────────────
 
 describe('computeTeamAB', () => {
