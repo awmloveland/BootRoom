@@ -24,7 +24,7 @@ export function LeagueTabNav({ leagueSlug }: { leagueSlug: string }) {
   const currentTab = useSelectedLayoutSegment()
 
   return (
-    <nav className="flex gap-1 overflow-x-auto border-b border-[#17263c] mt-5 -mx-4 px-4 sm:mx-0 sm:px-0 touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <nav className="relative flex gap-1 overflow-x-auto border-b border-[#17263c] mt-5 -mx-4 px-4 sm:mx-0 sm:px-0 touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {TABS.map(({ key, label, icon: Icon, className }) => (
         <Link
           key={key}

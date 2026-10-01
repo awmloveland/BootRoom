@@ -28,6 +28,16 @@ describe('LeagueTabNav', () => {
     expect(links[1]).not.toHaveClass('lg:hidden')
   })
 
+  it('contains its absolutely positioned tab markers so they cannot widen the page', () => {
+    // ScrollTabIntoView renders an sr-only (position: absolute) span in every
+    // tab. Unless the scrolling nav is their containing block, a marker in a
+    // tab that sits off screen escapes the nav's overflow and adds horizontal
+    // scroll to the whole page on phones.
+    segment.mockReturnValue('overview')
+    render(<LeagueTabNav leagueSlug="the-boot-room" />)
+    expect(screen.getByRole('navigation')).toHaveClass('relative', 'overflow-x-auto')
+  })
+
   it('marks Overview as current on the overview segment', () => {
     segment.mockReturnValue('overview')
     render(<LeagueTabNav leagueSlug="the-boot-room" />)
