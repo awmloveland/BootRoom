@@ -1,7 +1,9 @@
 // app/[slug]/(tabs)/overview/page.tsx
 export const dynamic = 'force-dynamic'
 
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled, isLeagueHidden } from '@/lib/features'
 import { dayNameToIndex, getNextMatchSeed, getOverviewViewerCard } from '@/lib/utils'
@@ -19,6 +21,10 @@ import { OverviewTableCard } from '@/components/overview/OverviewTableCard'
 
 interface Props {
   params: Promise<{ slug: string }>
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  return leaguePageMetadata((await params).slug, 'overview')
 }
 
 export default async function LeagueOverviewPage({ params }: Props) {

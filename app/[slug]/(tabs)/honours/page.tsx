@@ -1,7 +1,9 @@
 // app/[slug]/(tabs)/honours/page.tsx
 export const dynamic = 'force-dynamic'
 
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { getGameBySlug, getAuthAndRole, getWeeks, getMyClaimInfo } from '@/lib/fetchers'
 import { dayNameToIndex } from '@/lib/utils'
@@ -12,6 +14,10 @@ import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
 
 interface Props {
   params: Promise<{ slug: string }>
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  return leaguePageMetadata((await params).slug, 'honours')
 }
 
 export default async function HonoursPage({ params }: Props) {

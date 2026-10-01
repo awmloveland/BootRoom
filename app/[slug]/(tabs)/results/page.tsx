@@ -1,7 +1,9 @@
 // app/[slug]/(tabs)/results/page.tsx
 export const dynamic = 'force-dynamic'
 
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled, isLeagueHidden } from '@/lib/features'
 import { dayNameToIndex, isPastDeadline, parseWeekDate } from '@/lib/utils'
@@ -16,6 +18,10 @@ import type { Week, ScheduledWeek } from '@/lib/types'
 
 interface Props {
   params: Promise<{ slug: string }>
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  return leaguePageMetadata((await params).slug, 'results')
 }
 
 export default async function LeagueResultsPage({ params }: Props) {

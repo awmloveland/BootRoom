@@ -1,7 +1,9 @@
 // app/page.tsx
 export const dynamic = 'force-dynamic'
 
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { getUser } from '@/lib/fetchers'
 import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 import { cookies, headers } from 'next/headers'
@@ -81,9 +83,15 @@ function computeNextMatchDate(
   return formatWeekDate(candidate)
 }
 
+// Signed-in visitors with several leagues see their league list; everyone
+// else gets the landing page (or is redirected) under the default title.
+export async function generateMetadata(): Promise<Metadata> {
+  return (await getUser()) ? { title: 'Your leagues' } : {}
+}
+
 export default async function HomePage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
 
   if (user) {
     const { data: memberships } = await supabase
