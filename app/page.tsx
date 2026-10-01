@@ -102,7 +102,7 @@ export default async function HomePage() {
 
     const validLeagues = leagues.filter((l) => l.id)
     if (validLeagues.length === 1) {
-      redirect(`/${validLeagues[0].slug}/results`)
+      redirect(`/${validLeagues[0].slug}`)
     }
 
     const service = createServiceClient()
@@ -182,7 +182,7 @@ export default async function HomePage() {
               {leagueCards.map(({ league, nextDate, format }) => (
                 <Link
                   key={league.id}
-                  href={`/${league.slug}/results`}
+                  href={`/${league.slug}`}
                   className={cn(
                     'flex items-center justify-between gap-4 px-[18px] py-4 rounded-xl border transition-colors hover:border-[#38bdf8]',
                     nextDate
