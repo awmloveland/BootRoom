@@ -1,13 +1,19 @@
 // app/[slug]/(tabs)/lineup-lab/page.tsx
 export const dynamic = 'force-dynamic'
 
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { leaguePageMetadata } from '@/lib/metadata'
 import { getGameBySlug, getAuthAndRole, getPlayerStats } from '@/lib/fetchers'
 import { LineupLab } from '@/components/LineupLab'
 import { LineupLabLoginPrompt } from '@/components/LineupLabLoginPrompt'
 
 interface Props {
   params: Promise<{ slug: string }>
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  return leaguePageMetadata((await params).slug, 'lineup-lab')
 }
 
 export default async function LineupLabPage({ params }: Props) {

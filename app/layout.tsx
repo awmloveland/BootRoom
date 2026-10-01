@@ -14,7 +14,8 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://craft-football.com'),
-  title: 'Craft Football',
+  // Pages set their own tab title; league pages override it in full (lib/metadata.ts).
+  title: { default: 'Craft Football', template: '%s · Craft Football' },
   description: 'Results, stats and fair teams for your weekly game.',
   openGraph: {
     title: 'Craft Football',

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="4 4 72 72">
+  <!-- Dark ball on light browser chrome, light ball (as in the logo) on dark chrome -->
+  <style>
+    svg { color: #0a1421; }
+    @media (prefers-color-scheme: dark) { svg { color: #d8d8d8; } }
+  </style>
+  <circle cx="40" cy="40" r="33" fill="none" stroke="currentColor" stroke-width="4" />
+  <path fill="currentColor" d="M40.15 31.00L40.15 23.50L49.26 17.64L58.40 24.28L55.65 34.76L48.51 37.08ZM48.61 37.36L55.74 35.04L64.13 41.90L60.63 52.64L49.82 53.26L45.41 47.19ZM45.17 47.37L49.58 53.44L45.65 63.53L34.35 63.53L30.42 53.44L34.83 47.37ZM34.59 47.19L30.18 53.26L19.37 52.64L15.87 41.90L24.26 35.04L31.39 37.36ZM31.49 37.08L24.35 34.76L21.60 24.28L30.74 17.64L39.85 23.50L39.85 31.00Z" />
+</svg>

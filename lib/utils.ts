@@ -813,6 +813,67 @@ export function getMostRecentExpectedGameDate(
   return formatWeekDate(candidate)
 }
 
+/**
+ * What is happening in a league right now, for the browser tab title: today's
+ * result once it is in, "Match day" on a game day, "Match day tomorrow" the day
+ * before. Null when there is nothing to say.
+ *
+ * A game day is a week row dated that day, or the league's regular day
+ * (0=Sun…6=Sat) when no row exists yet.
+ */
+export function getLeagueTitleStatus(
+  weeks: Week[],
+  now: Date,
+  leagueDayIndex?: number
+): string | null {
+  const today = new Date(now)
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(today.getDate() + 1)
+
+  const todayWeek = weeks.find((w) => w.date === formatWeekDate(today))
+  if (todayWeek) {
+    switch (todayWeek.status) {
+      case 'played':
+        return todayWeek.winner === 'draw'
+          ? 'Full time: draw'
+          : `Full time: ${formatWinner(todayWeek.winner)} won`
+      case 'dnf':
+        return 'Did not finish'
+      case 'cancelled':
+        return 'Cancelled today'
+      case 'unrecorded':
+        return 'Awaiting result'
+      case 'scheduled':
+        return 'Match day'
+    }
+  }
+  if (leagueDayIndex === today.getDay()) return 'Match day'
+
+  const tomorrowWeek = weeks.find((w) => w.date === formatWeekDate(tomorrow))
+  if (tomorrowWeek) return tomorrowWeek.status === 'scheduled' ? 'Match day tomorrow' : null
+  if (leagueDayIndex === tomorrow.getDay()) return 'Match day tomorrow'
+
+  return null
+}
+
+/**
+ * Browser tab title for a league page, e.g. "(2) Results · The Boot Room".
+ * The bracketed count (pending requests for admins) is left off at zero.
+ */
+export function buildLeagueTitle({
+  page,
+  leagueName,
+  pendingCount = 0,
+}: {
+  page: string
+  leagueName: string
+  pendingCount?: number
+}): string {
+  const title = `${page} · ${leagueName}`
+  return pendingCount > 0 ? `(${pendingCount}) ${title}` : title
+}
+
 const MILESTONE_SET = new Set([10, 25])
 function isMilestone(n: number): boolean {
   if (MILESTONE_SET.has(n)) return true
