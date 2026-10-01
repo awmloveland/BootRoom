@@ -3,11 +3,11 @@ import type { QuarterlyTableResult, QuarterStanding } from '@/lib/sidebar-stats'
 import type { Week } from '@/lib/types'
 import { EmptyState, WIDGET_CLASS, WIDGET_TITLE_CLASS } from '@/components/StatsSidebar'
 import {
+  buildQuarterTableRows,
   ChampionBox,
   QuarterProgress,
   QuarterTableColumnLabels,
   QuarterTableRows,
-  type QuarterTableRow,
 } from '@/components/QuarterTable'
 
 interface OverviewTableCardProps {
@@ -77,11 +77,7 @@ function LastResultStrip({ week }: { week: Week }) {
 
 /** Overview card 3: last result strip, quarterly league table, previous champion. */
 export function OverviewTableCard({ table, standing, lastResult }: OverviewTableCardProps) {
-  const rows: QuarterTableRow[] = table.entries.map((entry, i) => ({ entry, rank: i + 1 }))
-  // A viewer ranked below the cut still gets their row, with its true rank.
-  if (standing && standing.rank > table.entries.length) {
-    rows.push({ entry: standing.entry, rank: standing.rank })
-  }
+  const rows = buildQuarterTableRows(table.entries, standing)
   const showProgress = table.entries.length > 0 && (table.gamesLeft > 0 || table.isHoldover)
 
   return (

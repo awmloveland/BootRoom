@@ -1,6 +1,7 @@
+import { Fragment } from 'react'
 import { Trophy } from 'lucide-react'
 import { cn, formatGoalDiff } from '@/lib/utils'
-import type { QuarterlyEntry } from '@/lib/sidebar-stats'
+import type { QuarterlyEntry, QuarterStanding } from '@/lib/sidebar-stats'
 
 /** 'sidebar' is the 288px stats sidebar; 'page' is the Overview tab content column. */
 export type WidgetSize = 'sidebar' | 'page'
@@ -29,6 +30,18 @@ export interface QuarterTableRow {
   rank: number
 }
 
+/**
+ * Ranked rows for the top-of-table slice. A viewer ranked below the cut still
+ * gets their row appended, with its true rank.
+ */
+export function buildQuarterTableRows(entries: QuarterlyEntry[], standing: QuarterStanding | null): QuarterTableRow[] {
+  const rows: QuarterTableRow[] = entries.map((entry, i) => ({ entry, rank: i + 1 }))
+  if (standing && standing.rank > entries.length) {
+    rows.push({ entry: standing.entry, rank: standing.rank })
+  }
+  return rows
+}
+
 interface QuarterTableRowsProps {
   rows: QuarterTableRow[]
   /** Name of the row to highlight, or null for none. */
@@ -41,46 +54,50 @@ export function QuarterTableRows({ rows, highlightName, size = 'sidebar' }: Quar
   const page = size === 'page'
   return (
     <div className="flex flex-col gap-0.5">
-      {rows.map(({ entry: e, rank }) => {
+      {rows.map(({ entry: e, rank }, i) => {
         const on = e.name === highlightName
+        // A skip in rank (the viewer's row below the top 10) gets a divider above it.
+        const gap = i > 0 && rank !== rows[i - 1].rank + 1
         return (
-          <div
-            key={e.name}
-            className={cn(
-              'flex items-center gap-1 px-1 -mx-1 rounded',
-              page ? 'py-1' : 'py-[3px]',
-              on && (page ? 'bg-[#38bdf8]/10' : 'bg-[#38bdf8]/7')
-            )}
-          >
-            <span className={cn(
-              'font-plex text-[10px] font-bold w-3.5 text-left shrink-0',
-              on ? 'text-[#38bdf8]' : 'text-[#4f688a]'
-            )}>
-              {rank}
-            </span>
-            <span className={cn(
-              'font-inter-body text-[12.5px] flex-1 truncate',
-              on ? 'font-bold text-[#f4f9ff]' : 'font-medium text-[#8ba4c4]'
-            )}>
-              {e.name}
-            </span>
-            {on && page && (
-              <span className="font-plex text-[7.5px] font-bold uppercase tracking-[.14em] px-[5px] py-0.5 mr-1 rounded-[3px] bg-[#38bdf8] text-[#05101d] shrink-0">
-                You
+          <Fragment key={e.name}>
+            {gap && <div aria-hidden className="my-1.5 border-t border-dashed border-[#223a5c]" />}
+            <div
+              className={cn(
+                'flex items-center gap-1 px-1 -mx-1 rounded',
+                page ? 'py-1' : 'py-[3px]',
+                on && (page ? 'bg-[#38bdf8]/10' : 'bg-[#38bdf8]/7')
+              )}
+            >
+              <span className={cn(
+                'font-plex text-[10px] font-bold w-3.5 text-left shrink-0',
+                on ? 'text-[#38bdf8]' : 'text-[#4f688a]'
+              )}>
+                {rank}
               </span>
-            )}
-            <span className={cn(NUM_CLASS, 'w-[22px]')}>{e.played}</span>
-            <span className={cn(NUM_CLASS, 'w-[18px]')}>{e.won}</span>
-            <span className={cn(NUM_CLASS, 'w-[18px]')}>{e.drew}</span>
-            <span className={cn(NUM_CLASS, 'w-[18px]')}>{e.lost}</span>
-            <span className={cn(NUM_CLASS, 'w-[26px]')}>{formatGoalDiff(e.goalDiff)}</span>
-            <span className={cn(
-              'font-plex text-xs font-bold w-[26px] text-right shrink-0',
-              on ? 'text-[#38bdf8]' : 'text-[#dff1ff]'
-            )}>
-              {e.points}
-            </span>
-          </div>
+              <span className={cn(
+                'font-inter-body text-[12.5px] flex-1 truncate',
+                on ? 'font-bold text-[#f4f9ff]' : 'font-medium text-[#8ba4c4]'
+              )}>
+                {e.name}
+              </span>
+              {on && page && (
+                <span className="font-plex text-[7.5px] font-bold uppercase tracking-[.14em] px-[5px] py-0.5 mr-1 rounded-[3px] bg-[#38bdf8] text-[#05101d] shrink-0">
+                  You
+                </span>
+              )}
+              <span className={cn(NUM_CLASS, 'w-[22px]')}>{e.played}</span>
+              <span className={cn(NUM_CLASS, 'w-[18px]')}>{e.won}</span>
+              <span className={cn(NUM_CLASS, 'w-[18px]')}>{e.drew}</span>
+              <span className={cn(NUM_CLASS, 'w-[18px]')}>{e.lost}</span>
+              <span className={cn(NUM_CLASS, 'w-[26px]')}>{formatGoalDiff(e.goalDiff)}</span>
+              <span className={cn(
+                'font-plex text-xs font-bold w-[26px] text-right shrink-0',
+                on ? 'text-[#38bdf8]' : 'text-[#dff1ff]'
+              )}>
+                {e.points}
+              </span>
+            </div>
+          </Fragment>
         )
       })}
     </div>

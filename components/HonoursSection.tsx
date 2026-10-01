@@ -4,12 +4,22 @@ import { useEffect, useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown } from 'lucide-react'
 import { cn, buildQuarterShareText, shareOrCopy, formatGoalDiff } from '@/lib/utils'
-import type { QuarterSummary, HonoursYear } from '@/lib/sidebar-stats'
+import type { QuarterSummary, HonoursYear, QuarterlyTableResult, QuarterStanding } from '@/lib/sidebar-stats'
+import {
+  buildQuarterTableRows,
+  QuarterProgress,
+  QuarterTableColumnLabels,
+  QuarterTableRows,
+} from '@/components/QuarterTable'
 
 interface HonoursSectionProps {
   data: HonoursYear[]
   leagueName: string
   leagueSlug: string
+  /** The sidebar's quarterly table, shown on the in-progress quarter card. */
+  liveTable?: QuarterlyTableResult | null
+  /** The linked viewer's place in the live table, or null for unlinked viewers. */
+  standing?: QuarterStanding | null
 }
 
 const PAGE_SIZE = 10
@@ -188,6 +198,42 @@ function CompletedCardBody({
   )
 }
 
+// ── Quarter card body (in progress only) ──────────────────────────────────────
+
+function LiveCardBody({
+  table,
+  standing,
+}: {
+  table: QuarterlyTableResult | null
+  standing: QuarterStanding | null
+}) {
+  if (!table || table.entries.length === 0) {
+    return (
+      <div className="border-t border-dashed border-[#223a5c] px-4 py-2.5 flex items-center gap-3">
+        <div className="w-[3px] h-[26px] rounded-sm bg-[#38bdf8] opacity-50 shrink-0" />
+        <p className="font-inter-body text-xs leading-normal text-[#6f88a8]">
+          The live table will appear here once the first game is played
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="border-t border-[#1b2c46] px-4 py-3">
+      <div className="flex items-center gap-1 pb-2 mb-1 border-b border-[#17263c] font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#4f688a]">
+        <span className="flex-1">Player</span>
+        <QuarterTableColumnLabels />
+      </div>
+      <QuarterTableRows
+        rows={buildQuarterTableRows(table.entries, standing)}
+        highlightName={standing ? standing.entry.name : null}
+        size="page"
+      />
+      {table.gamesLeft > 0 && <QuarterProgress gamesLeft={table.gamesLeft} gamesTotal={table.gamesTotal} />}
+    </div>
+  )
+}
+
 // ── Quarter card ──────────────────────────────────────────────────────────────
 
 function QuarterCard({
@@ -197,6 +243,8 @@ function QuarterCard({
   onToggle,
   leagueName,
   leagueSlug,
+  liveTable,
+  standing,
 }: {
   quarter: QuarterSummary
   anchorId: string
@@ -204,6 +252,8 @@ function QuarterCard({
   onToggle: () => void
   leagueName: string
   leagueSlug: string
+  liveTable: QuarterlyTableResult | null
+  standing: QuarterStanding | null
 }) {
   const { status, q, seasonName, champion } = quarter
   const subtitle = quarterSubtitle(quarter)
@@ -224,6 +274,12 @@ function QuarterCard({
   }
 
   if (status === 'in_progress') {
+    // During holdover the sidebar table shows last quarter, so only use it when
+    // it is this quarter's.
+    const table = liveTable && !liveTable.isHoldover
+      && liveTable.displayQ === q && liveTable.displayYear === quarter.year
+      ? liveTable
+      : null
     return (
       <div id={anchorId} className="rounded-xl border border-[#38bdf8]/35 bg-[#0a1421] shadow-[0_18px_44px_rgba(0,0,0,.42)]">
         <div className="w-full flex items-center gap-3 px-4 py-3">
@@ -234,12 +290,7 @@ function QuarterCard({
           </div>
           <StatusPill status={status} />
         </div>
-        <div className="border-t border-dashed border-[#223a5c] px-4 py-2.5 flex items-center gap-3">
-          <div className="w-[3px] h-[26px] rounded-sm bg-[#38bdf8] opacity-50 shrink-0" />
-          <p className="font-inter-body text-xs leading-normal text-[#6f88a8]">
-            Final standings will appear here once all games are recorded
-          </p>
-        </div>
+        <LiveCardBody table={table} standing={standing} />
       </div>
     )
   }
@@ -275,7 +326,7 @@ function QuarterCard({
 
 // ── Section ───────────────────────────────────────────────────────────────────
 
-export function HonoursSection({ data, leagueName, leagueSlug }: HonoursSectionProps) {
+export function HonoursSection({ data, leagueName, leagueSlug, liveTable = null, standing = null }: HonoursSectionProps) {
   const [openKey, setOpenKey] = useState<string | null>(() => {
     for (const yearGroup of data) {
       for (const q of yearGroup.quarters) {
@@ -336,6 +387,8 @@ export function HonoursSection({ data, leagueName, leagueSlug }: HonoursSectionP
                   onToggle={() => setOpenKey(openKey === key ? null : key)}
                   leagueName={leagueName}
                   leagueSlug={leagueSlug}
+                  liveTable={liveTable}
+                  standing={standing}
                 />
               )
             })}
