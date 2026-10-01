@@ -7,7 +7,6 @@ import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, g
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { LeagueHeaderSkeleton, LeagueSidebarSkeleton } from '@/components/LeagueTabSkeleton'
 import { StatsSidebar } from '@/components/StatsSidebar'
-import { MobileStatsFAB } from '@/components/MobileStatsFAB'
 import { SidebarSticky } from '@/components/SidebarSticky'
 import type { LeagueDetails } from '@/lib/types'
 
@@ -19,7 +18,7 @@ interface Props {
 const TOTAL_WEEKS = 52
 
 /**
- * Shared shell for the four league tabs. Next.js keeps a layout mounted across
+ * Shared shell for the league tabs. Next.js keeps a layout mounted across
  * navigations between its child routes, so the header, tab bar and stats
  * sidebar stay on screen while only the tab content below swaps (via each
  * tab's loading.tsx). router.refresh() re-renders the layout too, so header
@@ -106,19 +105,15 @@ async function LeagueSidebar({ slug }: { slug: string }) {
 
   if (isLeagueHidden(features, resolveVisibilityTier(userRole))) return null
 
-  const sidebar = (
-    <StatsSidebar
-      players={players}
-      weeks={weeks}
-      leagueDayIndex={dayNameToIndex(game.day ?? null) ?? undefined}
-      linkedPlayerName={claim.playerName}
-    />
-  )
-
+  // Large screens only. Below lg these stats live on the Overview tab.
   return (
-    <>
-      <SidebarSticky>{sidebar}</SidebarSticky>
-      <MobileStatsFAB>{sidebar}</MobileStatsFAB>
-    </>
+    <SidebarSticky>
+      <StatsSidebar
+        players={players}
+        weeks={weeks}
+        leagueDayIndex={dayNameToIndex(game.day ?? null) ?? undefined}
+        linkedPlayerName={claim.playerName}
+      />
+    </SidebarSticky>
   )
 }

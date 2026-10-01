@@ -349,6 +349,15 @@ name (`computeStandings` in `lib/utils.ts`). After merging it in:
   table is sorted with, so the Your stats position can never disagree with the
   table. "Joint top" now needs level points, GD, games played and wins.
 
+## Addendum: Stats button removed (2026-10-01)
+
+Decided after the first build: with the Overview tab in place, the floating
+Stats button and its bottom sheet are redundant on every tab, not just on
+Overview. `components/MobileStatsFAB.tsx` is deleted and the tabs layout renders
+the stats sidebar for large screens only. This supersedes the "Stats button"
+section above. Below `lg`, the Overview tab is the only place the sidebar stats
+appear.
+
 ## Files
 
 New:

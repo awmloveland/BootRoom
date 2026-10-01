@@ -4,7 +4,6 @@
 import { render, screen } from '@testing-library/react'
 import { useSelectedLayoutSegment } from 'next/navigation'
 import { LeagueTabNav } from '@/components/LeagueTabNav'
-import { MobileStatsFAB } from '@/components/MobileStatsFAB'
 
 jest.mock('next/navigation', () => ({
   useSelectedLayoutSegment: jest.fn(),
@@ -42,19 +41,5 @@ describe('LeagueTabNav', () => {
     segment.mockReturnValue('overview')
     render(<LeagueTabNav leagueSlug="the-boot-room" />)
     expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page')
-  })
-})
-
-describe('MobileStatsFAB', () => {
-  it('shows the Stats button on other tabs', () => {
-    segment.mockReturnValue('results')
-    render(<MobileStatsFAB><p>stats</p></MobileStatsFAB>)
-    expect(screen.getByRole('button', { name: 'View live stats' })).toBeInTheDocument()
-  })
-
-  it('renders nothing on the Overview tab', () => {
-    segment.mockReturnValue('overview')
-    const { container } = render(<MobileStatsFAB><p>stats</p></MobileStatsFAB>)
-    expect(container).toBeEmptyDOMElement()
   })
 })
