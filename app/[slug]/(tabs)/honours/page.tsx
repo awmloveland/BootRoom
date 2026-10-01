@@ -4,7 +4,8 @@ export const dynamic = 'force-dynamic'
 import { notFound } from 'next/navigation'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { getGameBySlug, getAuthAndRole, getWeeks, getMyClaimInfo } from '@/lib/fetchers'
-import { computeAllQuarters } from '@/lib/sidebar-stats'
+import { dayNameToIndex } from '@/lib/utils'
+import { computeAllQuarters, computeQuarterlyTable, getQuarterStanding } from '@/lib/sidebar-stats'
 import { HonoursSection } from '@/components/HonoursSection'
 import { HonoursLoginPrompt } from '@/components/HonoursLoginPrompt'
 import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
@@ -32,6 +33,12 @@ export default async function HonoursPage({ params }: Props) {
   // Onboarding banner for members with no claim.
   const showClaimBanner = tier === 'member' && claim.status === 'none'
 
+  // The in-progress quarter shows the same live table as the sidebar.
+  const now = new Date()
+  const liveTable = computeQuarterlyTable(weeks, now, dayNameToIndex(game.day ?? null) ?? undefined)
+  // claim.playerName is only set for an approved claim.
+  const standing = getQuarterStanding(liveTable.allEntries, claim.playerName)
+
   return (
     <>
       {showClaimBanner && <ClaimOnboardingBanner leagueId={leagueId} />}
@@ -39,7 +46,9 @@ export default async function HonoursPage({ params }: Props) {
         <HonoursLoginPrompt leagueSlug={slug} leagueName={game.name} />
       ) : (
         <HonoursSection
-          data={computeAllQuarters(weeks, new Date())}
+          data={computeAllQuarters(weeks, now)}
+          liveTable={liveTable}
+          standing={standing}
           leagueName={game.name}
           leagueSlug={slug}
         />
