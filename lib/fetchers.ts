@@ -2,7 +2,7 @@
 import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { sortWeeks } from '@/lib/utils'
+import { sortWeeks, deriveSeason, getMostRecentExpectedGameDate, getNextWeekNumber, isPastDeadline } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
 import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality, Strength, JoinRequestStatus, PendingJoinRequest, PlayerClaimStatus } from '@/lib/types'
 import { ratingToStrength } from '@/lib/strength'
@@ -307,3 +307,40 @@ export const getWeeks = cache(async (leagueId: string): Promise<Week[]> => {
     .in('status', ['played', 'cancelled', 'unrecorded', 'scheduled', 'dnf'])
   return sortWeeks(((data ?? []) as WeekRow[]).map(mapWeekRow))
 })
+
+// ── Unrecorded week ───────────────────────────────────────────────────────────
+
+/**
+ * Lazily create an 'unrecorded' row when the most recent expected game day has
+ * passed its deadline with no row for it. Returns the weeks list with the new
+ * row appended; the row is built locally from the id the RPC returns, so there
+ * is no second fetch. Returns the same list when nothing was created.
+ *
+ * Not cached: it writes. Callers skip it for the public tier.
+ */
+export async function ensureUnrecordedWeek(
+  leagueId: string,
+  weeks: Week[],
+  leagueDayIndex?: number,
+): Promise<Week[]> {
+  const recentDate = getMostRecentExpectedGameDate(weeks, leagueDayIndex)
+  if (!recentDate || !isPastDeadline(recentDate)) return weeks
+  if (weeks.some((w) => w.date === recentDate)) return weeks
+
+  const season = deriveSeason(weeks) || String(new Date().getFullYear())
+  const week = getNextWeekNumber(weeks)
+  const service = createServiceClient()
+  const { data: newId } = await service.rpc('create_unrecorded_week', {
+    p_game_id: leagueId,
+    p_season: season,
+    p_week: week,
+    p_date: recentDate,
+  })
+  // The RPC returns the new row's UUID, or null on ON CONFLICT DO NOTHING.
+  if (!newId) return weeks
+
+  return sortWeeks([
+    ...weeks,
+    { id: newId as string, season, week, date: recentDate, status: 'unrecorded', teamA: [], teamB: [], winner: null },
+  ])
+}

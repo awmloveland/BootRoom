@@ -2,11 +2,10 @@
 export const dynamic = 'force-dynamic'
 
 import { notFound } from 'next/navigation'
-import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled, isLeagueHidden } from '@/lib/features'
-import { sortWeeks, dayNameToIndex, isPastDeadline, getMostRecentExpectedGameDate, getNextWeekNumber, deriveSeason, parseWeekDate } from '@/lib/utils'
-import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyClaimInfo } from '@/lib/fetchers'
+import { dayNameToIndex, isPastDeadline, parseWeekDate } from '@/lib/utils'
+import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
@@ -59,39 +58,10 @@ export default async function LeagueResultsPage({ params }: Props) {
   const leagueDayIndex = dayNameToIndex(game.day ?? null) ?? undefined
 
   // Lazily create an unrecorded row if the most recent expected game day passed
-  // with no row. Uses the UUID returned by the RPC to construct the Week locally
-  // — no second DB fetch needed.
-  let weeks: Week[] = rawWeeks
-  const recentDate = getMostRecentExpectedGameDate(weeks, leagueDayIndex)
-  if (recentDate && isPastDeadline(recentDate) && tier !== 'public') {
-    const recentWeekNum = getNextWeekNumber(weeks)
-    const existingRow = weeks.find((w) => w.date === recentDate)
-    if (!existingRow) {
-      const season = deriveSeason(weeks) || String(new Date().getFullYear())
-      const service = createServiceClient()
-      const { data: newId } = await service.rpc('create_unrecorded_week', {
-        p_game_id: leagueId,
-        p_season: season,
-        p_week: recentWeekNum,
-        p_date: recentDate,
-      })
-      // RPC returns UUID on insert, null on ON CONFLICT DO NOTHING.
-      // If non-null, the row is new — append it locally without re-fetching.
-      if (newId) {
-        const unrecordedWeek: Week = {
-          id: newId as string,
-          season,
-          week: recentWeekNum,
-          date: recentDate,
-          status: 'unrecorded',
-          teamA: [],
-          teamB: [],
-          winner: null,
-        }
-        weeks = sortWeeks([...weeks, unrecordedWeek])
-      }
-    }
-  }
+  // with no row. Shared with the Overview tab.
+  const weeks: Week[] = tier !== 'public'
+    ? await ensureUnrecordedWeek(leagueId, rawWeeks, leagueDayIndex)
+    : rawWeeks
 
   // Derive nextWeek unconditionally — used for both the editable match entry section
   // (gated by canSeeMatchEntry) and the always-public read-only lineup display.

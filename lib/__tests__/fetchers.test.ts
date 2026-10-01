@@ -5,7 +5,8 @@ jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 jest.mock('@/lib/supabase/service', () => ({ createServiceClient: jest.fn() }))
 
 // Import after the mocks are registered.
-import { getUser, getAuthAndRole, getPendingBadgeCount, getMyJoinRequestStatus, getMyClaimInfo } from '@/lib/fetchers'
+import { getUser, getAuthAndRole, getPendingBadgeCount, getMyJoinRequestStatus, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
+import type { Week } from '@/lib/types'
 
 const LEAGUE = '11111111-1111-1111-1111-111111111111'
 const USER = { id: 'user-1', email: 'a@b.c' }
@@ -157,5 +158,69 @@ describe('getMyClaimInfo', () => {
       rpc: jest.fn(),
     })
     await expect(getMyClaimInfo(LEAGUE)).resolves.toEqual({ status: 'approved', playerName: 'Dev' })
+  })
+})
+
+describe('ensureUnrecordedWeek', () => {
+  // Thursday league (day index 4).
+  const playedWeek: Week = {
+    id: 'w14', season: '2026', week: 14, date: '02 Apr 2026', status: 'played',
+    teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA',
+  }
+
+  afterEach(() => { jest.useRealTimers() })
+
+  it('creates and appends an unrecorded row when the last game day has no row', async () => {
+    // Friday 10 Apr 2026: Thursday 9 Apr is past its 20:00 deadline.
+    jest.useFakeTimers().setSystemTime(new Date(2026, 3, 10, 12))
+    const rpc = jest.fn().mockResolvedValue({ data: 'new-id', error: null })
+    ;(createServiceClient as jest.Mock).mockReturnValue({ rpc })
+
+    const result = await ensureUnrecordedWeek(LEAGUE, [playedWeek], 4)
+
+    expect(rpc).toHaveBeenCalledWith('create_unrecorded_week', {
+      p_game_id: LEAGUE,
+      p_season: '2026',
+      p_week: 15,
+      p_date: '09 Apr 2026',
+    })
+    expect(result).toHaveLength(2)
+    expect(result[0]).toEqual({
+      id: 'new-id', season: '2026', week: 15, date: '09 Apr 2026', status: 'unrecorded',
+      teamA: [], teamB: [], winner: null,
+    })
+  })
+
+  it('does nothing when a row already exists for that date', async () => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 3, 10, 12))
+    const rpc = jest.fn()
+    ;(createServiceClient as jest.Mock).mockReturnValue({ rpc })
+    const weeks: Week[] = [
+      playedWeek,
+      { id: 'w15', season: '2026', week: 15, date: '09 Apr 2026', status: 'cancelled', teamA: [], teamB: [], winner: null },
+    ]
+
+    await expect(ensureUnrecordedWeek(LEAGUE, weeks, 4)).resolves.toBe(weeks)
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('does nothing before the game day deadline', async () => {
+    // Thursday 9 Apr 2026 at midday: the deadline is 20:00 that evening.
+    jest.useFakeTimers().setSystemTime(new Date(2026, 3, 9, 12))
+    const rpc = jest.fn()
+    ;(createServiceClient as jest.Mock).mockReturnValue({ rpc })
+    const weeks = [playedWeek]
+
+    await expect(ensureUnrecordedWeek(LEAGUE, weeks, 4)).resolves.toBe(weeks)
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('returns the list unchanged when the RPC reports the row already exists', async () => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 3, 10, 12))
+    const rpc = jest.fn().mockResolvedValue({ data: null, error: null })
+    ;(createServiceClient as jest.Mock).mockReturnValue({ rpc })
+    const weeks = [playedWeek]
+
+    await expect(ensureUnrecordedWeek(LEAGUE, weeks, 4)).resolves.toBe(weeks)
   })
 })
