@@ -7,9 +7,22 @@ import { AuthDialog } from '@/components/AuthDialog'
 interface HonoursLoginPromptProps {
   leagueSlug: string
   leagueName: string
+  /** Tab route segment the sign-in returns to. Shared by Seasons and Records. */
+  tab?: 'honours' | 'records'
 }
 
-export function HonoursLoginPrompt({ leagueSlug, leagueName }: HonoursLoginPromptProps) {
+const COPY = {
+  honours: {
+    title: 'Sign in to view Seasons',
+    body: 'See quarterly champions and standings for your league.',
+  },
+  records: {
+    title: 'Sign in to view Records',
+    body: 'See all-time records, streaks and titles for your league.',
+  },
+}
+
+export function HonoursLoginPrompt({ leagueSlug, leagueName, tab = 'honours' }: HonoursLoginPromptProps) {
   const [signInOpen, setSignInOpen] = useState(false)
   const [signUpOpen, setSignUpOpen] = useState(false)
 
@@ -19,10 +32,8 @@ export function HonoursLoginPrompt({ leagueSlug, leagueName }: HonoursLoginPromp
         <Lock size={22} className="text-[#6f88a8]" />
       </div>
       <div className="flex flex-col items-center gap-1">
-        <p className="text-[#f4f9ff] font-semibold text-base">Sign in to view Honours</p>
-        <p className="text-[#6f88a8] text-sm max-w-xs">
-          See quarterly champions and standings for your league.
-        </p>
+        <p className="text-[#f4f9ff] font-semibold text-base">{COPY[tab].title}</p>
+        <p className="text-[#6f88a8] text-sm max-w-xs">{COPY[tab].body}</p>
       </div>
       <div className="flex items-center gap-3">
         <button
@@ -42,14 +53,14 @@ export function HonoursLoginPrompt({ leagueSlug, leagueName }: HonoursLoginPromp
       <AuthDialog
         open={signInOpen}
         onOpenChange={setSignInOpen}
-        redirect={`/${leagueSlug}/honours`}
+        redirect={`/${leagueSlug}/${tab}`}
         signinOnly
       />
 
       <AuthDialog
         open={signUpOpen}
         onOpenChange={setSignUpOpen}
-        redirect={`/${leagueSlug}/honours?open_join=1`}
+        redirect={`/${leagueSlug}/${tab}?open_join=1`}
         initialMode="signup"
         leagueName={leagueName}
       />

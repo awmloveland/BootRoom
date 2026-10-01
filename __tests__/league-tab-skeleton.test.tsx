@@ -8,11 +8,6 @@ jest.mock('next/navigation', () => ({
   useSelectedLayoutSegment: () => 'honours',
 }))
 
-// jsdom has no layout engine; ScrollTabIntoView calls this on the active tab.
-beforeAll(() => {
-  Element.prototype.scrollIntoView = jest.fn()
-})
-
 describe('LeagueTabSkeleton', () => {
   it('starts invisible and fades in after a delay, so fast loads never flash it', () => {
     const { container } = render(<LeagueTabSkeleton />)
@@ -38,7 +33,8 @@ describe('LeagueHeaderSkeleton', () => {
       ['Overview', 'overview'],
       ['Results', 'results'],
       ['Players', 'players'],
-      ['Honours', 'honours'],
+      ['Seasons', 'honours'],
+      ['Records', 'records'],
       ['Lineup Lab', 'lineup-lab'],
     ]) {
       expect(screen.getByRole('link', { name: label })).toHaveAttribute('href', `/the-boot-room/${path}`)
@@ -49,6 +45,6 @@ describe('LeagueHeaderSkeleton', () => {
     render(<LeagueHeaderSkeleton leagueSlug="the-boot-room" />)
     const current = screen.getAllByRole('link').filter((el) => el.getAttribute('aria-current') === 'page')
     expect(current).toHaveLength(1)
-    expect(current[0]).toHaveTextContent('Honours')
+    expect(current[0]).toHaveTextContent('Seasons')
   })
 })

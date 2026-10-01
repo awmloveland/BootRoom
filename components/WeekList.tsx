@@ -126,22 +126,25 @@ export function WeekList({
             )}
             {yearChanged && <YearDivider year={week.season} />}
             {monthChanged && !yearChanged && <MonthDivider label={formatMonthYear(week.date)} />}
-            <MatchCard
-              week={week}
-              isOpen={openWeek === week.week}
-              onToggle={() => handleToggle(week.week)}
-              goalkeepers={goalkeepers}
-              isAdmin={isAdmin}
-              gameId={gameId}
-              allPlayers={allPlayers}
-              onResultSaved={onResultSaved}
-              leagueName={leagueName}
-              leagueSlug={leagueSlug}
-              weeks={weeks}
-              isMostRecent={week.season === mostRecent?.season && week.week === mostRecent?.week}
-              onNameGuest={handleNameGuestRequest}
-              linkedPlayerName={linkedPlayerName}
-            />
+            {/* Anchor for …/results#week-<season>-<week> deep links. */}
+            <div id={`week-${week.season}-${week.week}`} className="scroll-mt-4">
+              <MatchCard
+                week={week}
+                isOpen={openWeek === week.week}
+                onToggle={() => handleToggle(week.week)}
+                goalkeepers={goalkeepers}
+                isAdmin={isAdmin}
+                gameId={gameId}
+                allPlayers={allPlayers}
+                onResultSaved={onResultSaved}
+                leagueName={leagueName}
+                leagueSlug={leagueSlug}
+                weeks={weeks}
+                isMostRecent={week.season === mostRecent?.season && week.week === mostRecent?.week}
+                onNameGuest={handleNameGuestRequest}
+                linkedPlayerName={linkedPlayerName}
+              />
+            </div>
           </Fragment>
         )
       })}
