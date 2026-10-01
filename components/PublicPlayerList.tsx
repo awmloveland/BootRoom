@@ -7,11 +7,11 @@ import { PlayerCard } from '@/components/PlayerCard'
 import type { Player, SortKey, Week } from '@/lib/types'
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: 'name',       label: 'Name' },
-  { value: 'played',     label: 'Games Played' },
   { value: 'won',        label: 'Won' },
+  { value: 'recentForm', label: 'Last 5' },
+  { value: 'played',     label: 'Played' },
   { value: 'winRate',    label: 'Win Rate' },
-  { value: 'recentForm', label: 'Recent Form' },
+  { value: 'name',       label: 'Name' },
 ]
 
 function formScore(form: string): number {
@@ -51,6 +51,8 @@ const DEFAULT_ASC: Record<SortKey, boolean> = {
   recentForm: false,
 }
 
+const DEFAULT_SORT: SortKey = 'won'
+
 interface Props {
   players: Player[]
   visibleStats?: string[]
@@ -59,16 +61,33 @@ interface Props {
 }
 
 export function PublicPlayerList({ players, visibleStats, showMentality = true, weeks }: Props) {
-  const [openPlayer, setOpenPlayer]     = useState<string | null>(null)
-  const [sortBy, setSortBy]             = useState<SortKey>('name')
-  const [sortAsc, setSortAsc]           = useState(true)
+  // Open the top card on first render so the list doesn't land fully collapsed
+  const [openPlayer, setOpenPlayer]     = useState<string | null>(
+    () => sortPlayers(players, DEFAULT_SORT, DEFAULT_ASC[DEFAULT_SORT])[0]?.name ?? null,
+  )
+  const [sortBy, setSortBy]             = useState<SortKey>(DEFAULT_SORT)
+  const [sortAsc, setSortAsc]           = useState(DEFAULT_ASC[DEFAULT_SORT])
   const [searchQuery, setSearchQuery]   = useState('')
+  // Bumped on every sort change to remount the list (see the cards wrapper below)
+  const [sortVersion, setSortVersion]   = useState(0)
 
-  const displayed = useMemo(() => {
+  const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
-    const filtered = q ? players.filter((p) => p.name.toLowerCase().includes(q)) : players
-    return sortPlayers(filtered, sortBy, sortAsc)
-  }, [players, searchQuery, sortBy, sortAsc])
+    return q ? players.filter((p) => p.name.toLowerCase().includes(q)) : players
+  }, [players, searchQuery])
+
+  const displayed = useMemo(
+    () => sortPlayers(filtered, sortBy, sortAsc),
+    [filtered, sortBy, sortAsc],
+  )
+
+  // Re-sorting opens whichever card lands at the top
+  function applySort(key: SortKey, ascending: boolean) {
+    setSortBy(key)
+    setSortAsc(ascending)
+    setOpenPlayer(sortPlayers(filtered, key, ascending)[0]?.name ?? null)
+    setSortVersion((v) => v + 1)
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -104,8 +123,7 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true, 
                   aria-pressed={sortBy === opt.value}
                   onClick={() => {
                     if (sortBy === opt.value) return
-                    setSortBy(opt.value)
-                    setSortAsc(DEFAULT_ASC[opt.value])
+                    applySort(opt.value, DEFAULT_ASC[opt.value])
                   }}
                   className={cn(
                     'h-7 px-[11px] rounded border font-plex text-[9.5px] font-bold uppercase tracking-[.12em] whitespace-nowrap transition-colors shrink-0',
@@ -122,7 +140,7 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true, 
           <button
             type="button"
             aria-label="Toggle sort direction"
-            onClick={() => setSortAsc((a) => !a)}
+            onClick={() => applySort(sortBy, !sortAsc)}
             className="shrink-0 inline-flex items-center gap-1.5 h-7 px-2.5 rounded border border-[#1b2c46] bg-[#0c1728] font-plex text-[9.5px] font-bold uppercase tracking-[.1em] text-[#8ba4c4] hover:border-[#38bdf8] transition-colors"
           >
             <ArrowUp
@@ -140,18 +158,26 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true, 
           {searchQuery.trim() ? 'No players match your search' : 'No players'}
         </p>
       ) : (
-        displayed.map((player) => (
-          <PlayerCard
-            key={player.name}
-            player={player}
-            isOpen={openPlayer === player.name}
-            onToggle={() => setOpenPlayer((prev) => (prev === player.name ? null : player.name))}
-            visibleStats={visibleStats}
-            showMentality={showMentality}
-            sortBy={sortBy}
-            weeks={weeks}
-          />
-        ))
+        // Remounting on sort change swaps the list in one fade instead of cards
+        // jumping position while the old and new open cards animate height.
+        // Radix skips the expand animation for a card that mounts open.
+        <div
+          key={sortVersion}
+          className={cn('flex flex-col gap-3', sortVersion > 0 && 'motion-safe:animate-list-in')}
+        >
+          {displayed.map((player) => (
+            <PlayerCard
+              key={player.name}
+              player={player}
+              isOpen={openPlayer === player.name}
+              onToggle={() => setOpenPlayer((prev) => (prev === player.name ? null : player.name))}
+              visibleStats={visibleStats}
+              showMentality={showMentality}
+              sortBy={sortBy}
+              weeks={weeks}
+            />
+          ))}
+        </div>
       )}
     </div>
   )
