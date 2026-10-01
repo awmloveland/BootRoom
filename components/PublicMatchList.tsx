@@ -12,11 +12,17 @@ import type { Week } from '@/lib/types'
 interface PublicMatchListProps {
   weeks: Week[]
   celebration?: ResultsCelebration | null   // champion card, rendered above the first result of that quarter
+  leagueName?: string                       // with leagueSlug, enables Share on the most recent result
+  leagueSlug?: string
 }
 
-export function PublicMatchList({ weeks, celebration = null }: PublicMatchListProps) {
+export function PublicMatchList({ weeks, celebration = null, leagueName, leagueSlug }: PublicMatchListProps) {
   const playedWeeks = getPlayedWeeks(weeks)
   const mostRecent = sortWeeks(playedWeeks)[0] ?? null
+  // Share follows the same rule as WeekList (latest played or DNF week), but only
+  // played cards offer it to guests; the DNF card is unchanged for now.
+  const mostRecentResult =
+    sortWeeks(weeks.filter((w) => w.status === 'played' || w.status === 'dnf'))[0] ?? null
 
   const [openWeek, setOpenWeek] = useState<number | null>(mostRecent?.week ?? null)
 
@@ -49,6 +55,10 @@ export function PublicMatchList({ weeks, celebration = null }: PublicMatchListPr
               week={week}
               isOpen={openWeek === week.week}
               onToggle={() => setOpenWeek((prev) => (prev === week.week ? null : week.week))}
+              leagueName={leagueName}
+              leagueSlug={leagueSlug}
+              weeks={weeks}
+              isMostRecent={week.status === 'played' && week.week === mostRecentResult?.week}
             />
           </Fragment>
         )

@@ -115,7 +115,12 @@ export default async function LeagueResultsPage({ params }: Props) {
           )}
           {canSeeMatchHistory && (
             <section>
-              <PublicMatchList weeks={weeks} celebration={celebration} />
+              <PublicMatchList
+                weeks={weeks}
+                celebration={celebration}
+                leagueName={game.name}
+                leagueSlug={slug}
+              />
             </section>
           )}
           {!isAuthenticated && (
@@ -148,6 +153,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             isAdmin={isAdmin}
             leagueName={game.name}
             celebration={celebration}
+            linkedPlayerName={claim.playerName}
           />
         ) : canSeeMatchHistory ? (
           <WeekList
@@ -158,6 +164,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             leagueSlug={game.slug}
             allPlayers={players}
             leagueName={game.name}
+            linkedPlayerName={claim.playerName}
           />
         ) : (
           <div className="py-16 text-center">

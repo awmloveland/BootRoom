@@ -46,6 +46,9 @@ export async function PATCH(
   const winner = typeof b.winner === 'string' && VALID_WINNERS.includes(b.winner as typeof VALID_WINNERS[number])
     ? b.winner
     : null
+  if (status === 'played' && !winner) {
+    return NextResponse.json({ error: 'winner must be teamA, teamB, or draw for a played week' }, { status: 400 })
+  }
   const notes = typeof b.notes === 'string' ? b.notes : null
   const goalDifference = typeof b.goalDifference === 'number' ? b.goalDifference : null
   // Unsigned win margin: the winner is stored separately, so negatives are invalid

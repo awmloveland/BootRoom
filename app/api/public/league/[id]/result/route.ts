@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { Winner } from '@/lib/types'
 
+const VALID_WINNERS = ['teamA', 'teamB', 'draw'] as const
+
 type Params = { params: Promise<{ id: string }> }
 
 export async function POST(request: Request, { params }: Params) {
@@ -36,6 +38,10 @@ export async function POST(request: Request, { params }: Params) {
 
   if (dnf && (winner !== undefined && winner !== null)) {
     return NextResponse.json({ error: 'DNF games cannot have a winner' }, { status: 422 })
+  }
+
+  if (!dnf && !VALID_WINNERS.includes(winner as typeof VALID_WINNERS[number])) {
+    return NextResponse.json({ error: 'winner must be teamA, teamB, or draw' }, { status: 400 })
   }
 
   function safeRating(val: unknown): number | null {
