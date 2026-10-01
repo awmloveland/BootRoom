@@ -97,6 +97,7 @@ export interface QuarterlyEntry {
   drew: number
   lost: number
   points: number
+  goalDiff: number  // sum of signed win margins; see aggregateWeeks
 }
 
 export interface QuarterAward {
@@ -263,15 +264,18 @@ function aggregateWeeks(weeks: Week[]): QuarterlyEntry[] {
   const map = new Map<string, QuarterlyEntry>()
   for (const w of weeks) {
     if (w.status !== 'played') continue
+    // goal_difference is an unsigned margin: winners gain it, losers lose it.
+    // An unrecorded margin counts as 0.
+    const margin = w.goal_difference ?? 0
     const allPlayers = [...w.teamA, ...w.teamB]
     for (const name of allPlayers) {
-      if (!map.has(name)) map.set(name, { name, played: 0, won: 0, drew: 0, lost: 0, points: 0 })
+      if (!map.has(name)) map.set(name, { name, played: 0, won: 0, drew: 0, lost: 0, points: 0, goalDiff: 0 })
       const e = map.get(name)!
       e.played++
       const onTeamA = w.teamA.includes(name)
       if (w.winner === 'draw') { e.drew++; e.points += 1 }
-      else if ((w.winner === 'teamA' && onTeamA) || (w.winner === 'teamB' && !onTeamA)) { e.won++; e.points += 3 }
-      else { e.lost++ }
+      else if ((w.winner === 'teamA' && onTeamA) || (w.winner === 'teamB' && !onTeamA)) { e.won++; e.points += 3; e.goalDiff += margin }
+      else { e.lost++; e.goalDiff -= margin }
     }
   }
   return Array.from(map.values()).sort((a, b) => b.points - a.points || b.won - a.won || a.name.localeCompare(b.name))

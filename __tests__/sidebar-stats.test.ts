@@ -439,6 +439,76 @@ describe('computeQuarterlyTable', () => {
 
 })
 
+// ─── goal difference ──────────────────────────────────────────────────────────
+
+describe('quarter table goal difference', () => {
+  const now = new Date(2026, 2, 20) // 20 Mar 2026, Q1
+
+  function gdOf(weeks: Week[], name: string): number | undefined {
+    return computeQuarterlyTable(weeks, now).entries.find(e => e.name === name)?.goalDiff
+  }
+
+  it('gives winners +margin and losers -margin', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '05 Jan 2026', teamA: ['Alice', 'Bob'], teamB: ['Charlie', 'Dave'], winner: 'teamA', goal_difference: 3 }),
+    ]
+    expect(gdOf(weeks, 'Alice')).toBe(3)
+    expect(gdOf(weeks, 'Bob')).toBe(3)
+    expect(gdOf(weeks, 'Charlie')).toBe(-3)
+    expect(gdOf(weeks, 'Dave')).toBe(-3)
+  })
+
+  it('applies the margin correctly when Team B wins', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '05 Jan 2026', teamA: ['Alice'], teamB: ['Charlie'], winner: 'teamB', goal_difference: 2 }),
+    ]
+    expect(gdOf(weeks, 'Alice')).toBe(-2)
+    expect(gdOf(weeks, 'Charlie')).toBe(2)
+  })
+
+  it('gives both sides 0 for a draw', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '05 Jan 2026', teamA: ['Alice'], teamB: ['Charlie'], winner: 'draw', goal_difference: 0 }),
+    ]
+    expect(gdOf(weeks, 'Alice')).toBe(0)
+    expect(gdOf(weeks, 'Charlie')).toBe(0)
+  })
+
+  it('counts an unrecorded margin as 0 but still counts the result', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '05 Jan 2026', teamA: ['Alice'], teamB: ['Charlie'], winner: 'teamB', goal_difference: null }),
+      makeWeek({ week: 2, date: '12 Jan 2026', teamA: ['Alice'], teamB: ['Charlie'], winner: 'teamB' }), // field missing
+    ]
+    const entries = computeQuarterlyTable(weeks, now).entries
+    const alice = entries.find(e => e.name === 'Alice')!
+    const charlie = entries.find(e => e.name === 'Charlie')!
+    expect(alice.goalDiff).toBe(0)
+    expect(alice.played).toBe(2)
+    expect(alice.lost).toBe(2)
+    expect(charlie.goalDiff).toBe(0)
+    expect(charlie.won).toBe(2)
+    expect(charlie.points).toBe(6)
+  })
+
+  it('sums margins across games', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '05 Jan 2026', teamA: ['Alice'], teamB: ['Charlie'], winner: 'teamA', goal_difference: 3 }),
+      makeWeek({ week: 2, date: '12 Jan 2026', teamA: ['Charlie'], teamB: ['Alice'], winner: 'teamA', goal_difference: 1 }),
+      makeWeek({ week: 3, date: '19 Jan 2026', teamA: ['Alice'], teamB: ['Charlie'], winner: 'draw', goal_difference: 0 }),
+    ]
+    expect(gdOf(weeks, 'Alice')).toBe(2)    // +3 -1 +0
+    expect(gdOf(weeks, 'Charlie')).toBe(-2) // -3 +1 +0
+  })
+
+  it('ignores cancelled weeks', () => {
+    const weeks: Week[] = [
+      makeWeek({ week: 1, date: '05 Jan 2026', teamA: ['Alice'], teamB: ['Charlie'], winner: 'teamA', goal_difference: 3 }),
+      makeWeek({ week: 2, date: '12 Jan 2026', status: 'cancelled', teamA: ['Alice'], teamB: ['Charlie'], winner: null, goal_difference: null }),
+    ]
+    expect(gdOf(weeks, 'Alice')).toBe(3)
+  })
+})
+
 // ─── computeTeamAB ────────────────────────────────────────────────────────────
 
 describe('computeTeamAB', () => {
