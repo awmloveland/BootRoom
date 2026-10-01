@@ -64,6 +64,11 @@ export function formatWinner(winner: Winner): string {
   }
 }
 
+/** Signed goal difference for standings tables, e.g. '+5', '0', '-3'. */
+export function formatGoalDiff(goalDiff: number): string {
+  return goalDiff > 0 ? `+${goalDiff}` : String(goalDiff)
+}
+
 const MONTH_LONG: Record<string, string> = {
   Jan: 'January',  Feb: 'February', Mar: 'March',    Apr: 'April',
   May: 'May',      Jun: 'June',     Jul: 'July',      Aug: 'August',
