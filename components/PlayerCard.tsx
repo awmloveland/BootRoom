@@ -5,6 +5,8 @@ import { ChevronDown } from 'lucide-react'
 import { useState, useMemo, useRef, useEffect } from 'react'
 import type { Player, SortKey, Week, YearStats } from '@/lib/types'
 import { FormDots } from '@/components/FormDots'
+import { TeammatesChart } from '@/components/TeammatesChart'
+import { computeTeammates } from '@/lib/sidebar-stats'
 import { cn, computeYearStats } from '@/lib/utils'
 
 interface PlayerCardProps {
@@ -88,6 +90,12 @@ export function PlayerCard({
     if (!selectedYear || !weeks) return null
     return computeYearStats(player.name, weeks, selectedYear)
   }, [selectedYear, weeks, player.name])
+
+  // All-time, whatever the year dropdown says
+  const teammates = useMemo(
+    () => (weeks ? computeTeammates(player.name, weeks) : null),
+    [weeks, player.name]
+  )
 
   const displayPlayer = yearStats
     ? { ...player, ...yearStats }
@@ -323,6 +331,23 @@ export function PlayerCard({
                 ))}
               </div>
             </div>
+
+            {/* ── Section 4: Win % with teammates ── */}
+            {teammates && (
+              <div className="border-t border-[#1b2c46] pt-3.5">
+                <div className="flex flex-wrap justify-between items-baseline gap-x-3 gap-y-1 mb-2.5">
+                  <p className={STAT_LABEL_CLASS}>Win % with teammates</p>
+                  <p className="font-plex text-[8.5px] uppercase tracking-[.14em] text-[#4f688a]">Min 5 together</p>
+                </div>
+                {teammates.length > 0 ? (
+                  <TeammatesChart teammates={teammates} size="large" />
+                ) : (
+                  <p className="px-3 py-4 border border-dashed border-[#223a5c] rounded text-center font-inter-body text-xs text-[#6f88a8]">
+                    Nobody has played 5 games with {player.name.split(' ')[0]} yet.
+                  </p>
+                )}
+              </div>
+            )}
 
           </div>
         </Collapsible.Content>

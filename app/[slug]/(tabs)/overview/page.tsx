@@ -107,6 +107,7 @@ export default async function LeagueOverviewPage({ params }: Props) {
             player={linkedPlayer}
             standing={standing}
             quarterLabel={`Q${table.displayQ} ${table.displayYear}`}
+            weeks={weeks}
           />
         )}
         {viewerCard === 'sign-in' && <OverviewSignInCard leagueSlug={slug} />}

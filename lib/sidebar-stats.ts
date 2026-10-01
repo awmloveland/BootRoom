@@ -1,4 +1,5 @@
 import { compareStandings, computeStandings, parseWeekDate } from '@/lib/utils'
+import { isGuestName } from '@/lib/guestName'
 import type { Player, Week } from '@/lib/types'
 
 // ─── gamesLeftInQuarter ───────────────────────────────────────────────────────
@@ -608,4 +609,50 @@ export function computeTeamAB(weeks: Week[]): TeamABResult {
   }
 
   return { teamAWins, draws, teamBWins, total: played.length, streakTeam, streakLength }
+}
+
+// ─── computeTeammates ─────────────────────────────────────────────────────────
+
+export interface TeammateStat {
+  name: string
+  played: number
+  won: number
+  drew: number
+  /** 0–100, rounded */
+  winRate: number
+}
+
+/**
+ * Every teammate who has played at least `minGames` played weeks on the same
+ * side as `playerName`, with the pair's record. Draws count as played, not won.
+ * Guests are left out. Sorted by win rate, then by games together.
+ */
+export function computeTeammates(playerName: string, weeks: Week[], minGames = 5): TeammateStat[] {
+  const together = new Map<string, { played: number; won: number; drew: number }>()
+
+  for (const w of weeks) {
+    if (w.status !== 'played') continue
+    const side = w.teamA.includes(playerName) ? 'teamA' : w.teamB.includes(playerName) ? 'teamB' : null
+    if (!side) continue
+    const won = w.winner === side
+    const drew = w.winner === 'draw'
+    for (const name of w[side]) {
+      if (name === playerName || isGuestName(name)) continue
+      const pair = together.get(name) ?? { played: 0, won: 0, drew: 0 }
+      pair.played++
+      if (won) pair.won++
+      if (drew) pair.drew++
+      together.set(name, pair)
+    }
+  }
+
+  return Array.from(together, ([name, { played, won, drew }]) => ({
+    name,
+    played,
+    won,
+    drew,
+    winRate: Math.round((won / played) * 100),
+  }))
+    .filter((t) => t.played >= minGames)
+    .sort((a, b) => b.winRate - a.winRate || b.played - a.played)
 }
