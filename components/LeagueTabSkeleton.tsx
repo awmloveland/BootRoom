@@ -1,14 +1,5 @@
-import { ClipboardList, Users, Trophy, FlaskConical } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-type LeagueTab = 'results' | 'players' | 'honours' | 'lineup-lab'
-
-const TABS: { key: LeagueTab; label: string; Icon: typeof ClipboardList }[] = [
-  { key: 'results', label: 'Results', Icon: ClipboardList },
-  { key: 'players', label: 'Players', Icon: Users },
-  { key: 'honours', label: 'Honours', Icon: Trophy },
-  { key: 'lineup-lab', label: 'Lineup Lab', Icon: FlaskConical },
-]
+import { LeagueTabNav } from '@/components/LeagueTabNav'
 
 function Block({ className }: { className?: string }) {
   return <div className={cn('rounded bg-[#17263c] animate-pulse', className)} />
@@ -44,85 +35,72 @@ function WidgetSkeleton({ rows }: { rows: number }) {
 }
 
 /**
- * Placeholder for the four league tab pages. Mirrors the real page structure
- * (LeaguePageHeader, info pills, tab nav, match cards, desktop sidebar
- * widgets) so nothing shifts when the real content streams in. The tab nav is
- * real text with the active tab underlined, so a click visibly "lands" before
- * any data arrives.
+ * Placeholder for LeaguePageHeader while the league layout streams in on a
+ * full page load. Spacing matches the real header so the tab bar lands where
+ * the real one does. The tab bar itself is the real, clickable nav.
+ */
+export function LeagueHeaderSkeleton({ leagueSlug }: { leagueSlug: string }) {
+  return (
+    <div className="mb-[18px]" aria-busy="true">
+      <div className="flex items-start justify-between gap-3.5">
+        <div>
+          <div className="flex items-center gap-2 h-6">
+            <span className="h-0.5 w-[18px] bg-[#bef264]" />
+            <Block className="h-2.5 w-20" />
+          </div>
+          <Block className="mt-2 h-[26px] sm:h-[30px] w-52" />
+          <div className="mt-2 flex h-[15px] items-center">
+            <Block className="h-2.5 w-44" />
+          </div>
+        </div>
+        <div className="shrink-0 pt-[22px]">
+          <Block className="h-8 w-28" />
+        </div>
+      </div>
+      <div className="mt-3.5 space-y-2.5">
+        <div className="flex flex-wrap gap-1.5">
+          <Block className="h-6 w-28" />
+          <Block className="h-6 w-24" />
+          <Block className="h-6 w-20" />
+        </div>
+        <div className="flex h-[19px] items-center">
+          <Block className="h-3 w-56" />
+        </div>
+      </div>
+      <LeagueTabNav leagueSlug={leagueSlug} />
+    </div>
+  )
+}
+
+/** Placeholder for the desktop StatsSidebar, same visibility rule as SidebarSticky. */
+export function LeagueSidebarSkeleton() {
+  return (
+    <div className="hidden lg:flex w-72 shrink-0 flex-col gap-3" aria-busy="true">
+      <WidgetSkeleton rows={10} />
+      <WidgetSkeleton rows={5} />
+    </div>
+  )
+}
+
+/**
+ * Placeholder for a league tab's content while the page renders. The header,
+ * tab bar and sidebar live in the league layout and stay on screen during tab
+ * switches, so only the content column is replaced.
  *
  * The skeleton starts invisible and fades in after a short delay via
  * `@starting-style` (Tailwind's `starting:` variant). Fast navigations swap
  * straight to content with no skeleton flash; slow ones still get the
  * placeholder. Browsers without `@starting-style` show it immediately.
  */
-export function LeagueTabSkeleton({ tab }: { tab: LeagueTab }) {
+export function LeagueTabSkeleton() {
   return (
-    <main
-      className="px-4 sm:px-6 pt-5 pb-14 opacity-100 starting:opacity-0 transition-opacity duration-300 delay-200"
+    <div
+      className="flex flex-col gap-3 opacity-100 starting:opacity-0 transition-opacity duration-300 delay-200"
       aria-busy="true"
     >
-      <div className="flex justify-center gap-6 items-start">
-        <div className="w-full max-w-xl shrink-0">
-          {/* Header: season eyebrow, league name, meta line, join/share button */}
-          <div className="mb-[18px]">
-            <div className="flex items-start justify-between gap-3.5">
-              <div>
-                <div className="flex items-center gap-2 h-6">
-                  <span className="h-0.5 w-[18px] bg-[#bef264]" />
-                  <Block className="h-2.5 w-20" />
-                </div>
-                <Block className="mt-2 h-[26px] sm:h-[30px] w-52" />
-                <div className="mt-2 flex h-[15px] items-center">
-                  <Block className="h-2.5 w-44" />
-                </div>
-              </div>
-              <div className="shrink-0 pt-[22px]">
-                <Block className="h-8 w-28" />
-              </div>
-            </div>
-            <div className="mt-3.5 space-y-2.5">
-              <div className="flex flex-wrap gap-1.5">
-                <Block className="h-6 w-28" />
-                <Block className="h-6 w-24" />
-                <Block className="h-6 w-20" />
-              </div>
-              <div className="flex h-[19px] items-center">
-                <Block className="h-3 w-56" />
-              </div>
-            </div>
-            <ul className="flex gap-1 overflow-x-auto border-b border-[#17263c] mt-5 -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {TABS.map(({ key, label, Icon }) => (
-                <li
-                  key={key}
-                  aria-current={tab === key ? 'page' : undefined}
-                  className={cn(
-                    '-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 pb-[11px] font-plex text-[10.5px] font-bold uppercase tracking-[.14em] whitespace-nowrap',
-                    tab === key
-                      ? 'border-[#38bdf8] text-[#f4f9ff]'
-                      : 'border-transparent text-[#8ba4c4]'
-                  )}
-                >
-                  <Icon className="size-[13px]" />
-                  {label}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Content cards */}
-          <div className="flex flex-col gap-3">
-            {Array.from({ length: 5 }, (_, i) => (
-              <CardSkeleton key={i} />
-            ))}
-          </div>
-        </div>
-
-        {/* Desktop sidebar, same visibility rule as SidebarSticky */}
-        <div className="hidden lg:flex w-72 shrink-0 flex-col gap-3">
-          <WidgetSkeleton rows={10} />
-          <WidgetSkeleton rows={5} />
-        </div>
-      </div>
-    </main>
+      {Array.from({ length: 5 }, (_, i) => (
+        <CardSkeleton key={i} />
+      ))}
+    </div>
   )
 }

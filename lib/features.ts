@@ -22,3 +22,16 @@ export function isFeatureEnabled(
   if (tier === 'public') return feature.public_enabled
   return false
 }
+
+/**
+ * True when a visitor at this tier can see none of the league's tab content,
+ * so the league renders as private (no header, no stats sidebar).
+ */
+export function isLeagueHidden(features: LeagueFeature[], tier: VisibilityTier): boolean {
+  if (tier !== 'public') return false
+  return (
+    !isFeatureEnabled(features, 'match_history', tier) &&
+    !isFeatureEnabled(features, 'match_entry', tier) &&
+    !isFeatureEnabled(features, 'player_stats', tier)
+  )
+}
