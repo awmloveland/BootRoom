@@ -1,6 +1,7 @@
 {
   "framework": "nextjs",
   "buildCommand": "npm run build",
+  "regions": ["dub1"],
   "redirects": [
     {
       "source": "/:path*",

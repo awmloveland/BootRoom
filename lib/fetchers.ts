@@ -29,12 +29,29 @@ export const getGameBySlug = cache(async (slug: string) => {
   return data
 })
 
+// ── Auth client + user ────────────────────────────────────────────────────────
+
+// One cookie-backed auth client per request. Creating it is cheap, but sharing
+// it keeps every auth-dependent fetcher on the same instance.
+export const getAuthClient = cache(async () => createClient())
+
+// One call to Supabase Auth per request. Every fetcher that needs the current
+// user goes through here so a page never pays for the auth round trip twice.
+export const getUser = cache(async () => {
+  try {
+    const authSupabase = await getAuthClient()
+    const { data: { user } } = await authSupabase.auth.getUser()
+    return user
+  } catch {
+    return null
+  }
+})
+
 // ── Auth + role ───────────────────────────────────────────────────────────────
 
 export const getAuthAndRole = cache(async (leagueId: string) => {
   try {
-    const authSupabase = await createClient()
-    const { data: { user } } = await authSupabase.auth.getUser()
+    const user = await getUser()
     if (!user) return { user: null, userRole: null as GameRole | null, isAuthenticated: false }
     // Sequential by necessity: user.id is required to look up the league role.
     const service = createServiceClient()
@@ -184,20 +201,32 @@ export async function getJoinRequestStatus(
   return data.status as JoinRequestStatus
 }
 
+// The join/share button state for the current visitor, resolved entirely from
+// the request's cached auth state so pages can run it in their parallel batch.
+//   null      → signed out (page shows Join → AuthDialog)
+//   'member'  → has a league role (page shows Share)
+//   otherwise → the visitor's join request status
+export const getMyJoinRequestStatus = cache(async (
+  leagueId: string
+): Promise<JoinRequestStatus | 'member' | null> => {
+  const { user, userRole, isAuthenticated } = await getAuthAndRole(leagueId)
+  if (!isAuthenticated || !user) return null
+  if (userRole !== null) return 'member'
+  return getJoinRequestStatus(leagueId, user.id)
+})
+
 // ── Pending join requests ─────────────────────────────────────────────────────
 
 // Fetches all pending join requests for a league. Returns [] if the caller
 // is not an admin (the RPC raises 'Access denied' which the catch swallows).
 export const getPendingJoinRequests = cache(async (leagueId: string): Promise<PendingJoinRequest[]> => {
   try {
-    const authSupabase = await createClient()
-    const { data: { user } } = await authSupabase.auth.getUser()
+    const user = await getUser()
     if (!user) return []
-
+    const authSupabase = await getAuthClient()
     const { data, error } = await authSupabase.rpc('get_join_requests', {
       p_game_id: leagueId,
     })
-
     if (error) return []
     return (data ?? []) as PendingJoinRequest[]
   } catch {
@@ -213,9 +242,9 @@ export const getPendingJoinCount = cache(async (leagueId: string): Promise<numbe
 // Returns count of pending player claims. Returns 0 for non-admins (RPC denies access).
 export const getPendingClaimCount = cache(async (leagueId: string): Promise<number> => {
   try {
-    const authSupabase = await createClient()
-    const { data: { user } } = await authSupabase.auth.getUser()
+    const user = await getUser()
     if (!user) return 0
+    const authSupabase = await getAuthClient()
     const { data, error } = await authSupabase.rpc('get_player_claims', { p_game_id: leagueId })
     if (error) return 0
     const claims = (data ?? []) as { status: string }[]
@@ -226,7 +255,11 @@ export const getPendingClaimCount = cache(async (leagueId: string): Promise<numb
 })
 
 // Combined badge count for the admin settings gear: pending join requests + pending claims.
+// Only admins can see the gear, and both RPCs deny non-admins anyway, so skip
+// the two round trips unless the cached role says admin or creator.
 export const getPendingBadgeCount = cache(async (leagueId: string): Promise<number> => {
+  const { userRole } = await getAuthAndRole(leagueId)
+  if (userRole !== 'admin' && userRole !== 'creator') return 0
   const [joinCount, claimCount] = await Promise.all([
     getPendingJoinCount(leagueId),
     getPendingClaimCount(leagueId),
@@ -241,9 +274,10 @@ export const getMyClaimInfo = cache(async (leagueId: string): Promise<{
   playerName: string | null
 }> => {
   try {
-    const authSupabase = await createClient()
-    const { data: { user } } = await authSupabase.auth.getUser()
-    if (!user) return { status: 'none', playerName: null }
+    // Claims only exist for members. Non-members (public tier) skip the query.
+    const { user, userRole } = await getAuthAndRole(leagueId)
+    if (!user || userRole === null) return { status: 'none', playerName: null }
+    const authSupabase = await getAuthClient()
     const { data } = await authSupabase
       .from('player_claims')
       .select('status, admin_override_name, player_name')

@@ -6,7 +6,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled } from '@/lib/features'
 import { sortWeeks, dayNameToIndex, isPastDeadline, getMostRecentExpectedGameDate, getNextWeekNumber, deriveSeason, parseWeekDate, getSeasonPlayedWeekCount, getHeaderSeason } from '@/lib/utils'
-import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
+import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
 import { PublicMatchList } from '@/components/PublicMatchList'
 import { WeekList } from '@/components/WeekList'
@@ -19,7 +19,7 @@ import { SidebarSticky } from '@/components/SidebarSticky'
 import { BfcacheRefresh } from '@/components/BfcacheRefresh'
 import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
 import { getCelebratedQuarter, type ResultsCelebration } from '@/lib/sidebar-stats'
-import type { Week, ScheduledWeek, LeagueDetails, JoinRequestStatus } from '@/lib/types'
+import type { Week, ScheduledWeek, LeagueDetails } from '@/lib/types'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -31,43 +31,32 @@ export default async function LeagueResultsPage({ params }: Props) {
   if (!game) notFound()
   const leagueId = game.id
 
-  // getAuthAndRole and getFeatures are cache hits from the layout.
-  // getPlayerStats and getWeeks run fresh — both start in parallel.
-  const [{ user, userRole, isAuthenticated }, features, players, rawWeeks, pendingRequestCount] = await Promise.all([
+  // Everything below is independent given leagueId, so it runs in one batch.
+  // getAuthAndRole and getFeatures are already in flight from the layout.
+  const [
+    { userRole, isAuthenticated },
+    features,
+    players,
+    rawWeeks,
+    pendingRequestCount,
+    joinStatus,
+    claim,
+  ] = await Promise.all([
     getAuthAndRole(leagueId),
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
-    getPendingBadgeCount(leagueId),  // returns 0 for non-admins (RPC denies access)
+    getPendingBadgeCount(leagueId),   // 0 for non-admins, no RPCs
+    getMyJoinRequestStatus(leagueId), // null | 'member' | JoinRequestStatus
+    getMyClaimInfo(leagueId),         // 'none' for non-members, no query
   ])
 
-  // Resolve joinStatus for the Join/Share button
-  let joinStatus: JoinRequestStatus | 'member' | 'not-member' | null = null
-
-  if (!isAuthenticated) {
-    joinStatus = null  // not signed in → show Join → opens AuthDialog signup
-  } else if (userRole !== null) {
-    joinStatus = 'member'  // already a member/admin/creator → show Share
-  } else {
-    // Signed in, not a member — check for an existing request
-    joinStatus = await getJoinRequestStatus(leagueId, user!.id)
-    // Returns 'pending' | 'approved' | 'declined' | 'none'
-    // 'none' and 'declined' both → show Join button
-    // 'approved' shouldn't happen (would be in game_members) but handle gracefully
-  }
-
-  // game is guaranteed non-null — the layout already called notFound() if missing.
   const tier = resolveVisibilityTier(userRole)
   const isAdmin = tier === 'admin'
 
-  // Show onboarding banner for non-admin members with no claim.
-  let linkedPlayerName: string | null = null
-  let showClaimBanner = false
-  if (tier !== 'public') {
-    const { status, playerName } = await getMyClaimInfo(leagueId)
-    linkedPlayerName = playerName
-    if (tier === 'member') showClaimBanner = status === 'none'
-  }
+  // Onboarding banner for members with no claim; linked name for the sidebar.
+  const linkedPlayerName = claim.playerName
+  const showClaimBanner = tier === 'member' && claim.status === 'none'
 
   const canSeeMatchHistory = isAdmin || isFeatureEnabled(features, 'match_history', tier)
   const canSeeMatchEntry = isAdmin || isFeatureEnabled(features, 'match_entry', tier)

@@ -11,7 +11,7 @@ interface Props {
 
 export default async function LeagueLayout({ children, params }: Props) {
   const { slug } = await params
-  // Resolve slug → game (includes UUID). Pre-warm all shared fetchers in parallel.
+  // Resolve slug → game (includes UUID). Warm shared fetchers without awaiting them.
   // Pages call these same cached functions — no extra DB queries.
   let game = await getGameBySlug(slug)
   if (!game) {
@@ -28,10 +28,12 @@ export default async function LeagueLayout({ children, params }: Props) {
     notFound()
   }
 
-  await Promise.all([
-    getAuthAndRole(game.id),
-    getFeatures(game.id),
-  ])
+  // Warm the per-request cache without blocking. React cache() memoises the
+  // in-flight promise, so the page's own calls join these rather than
+  // re-fetching, and the layout renders as soon as the slug resolves — which
+  // is what lets each tab's loading.tsx appear promptly.
+  void getAuthAndRole(game.id)
+  void getFeatures(game.id)
 
   return <>{children}</>
 }
