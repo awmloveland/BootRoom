@@ -2458,7 +2458,7 @@ with:
   )
 ```
 
-In the load effect, replace:
+In the load effect (the `useEffect` that contains `async function load()`; `if (publicMode) {` also appears in several handlers, which must not change), replace its first line:
 
 ```tsx
     if (publicMode) {
