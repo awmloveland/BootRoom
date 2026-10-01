@@ -18,7 +18,6 @@ interface Props {
   canAutoPick: boolean
   allPlayers: Player[]
   showMatchHistory: boolean
-  initialYear: string               // season to show first, resolved from ?year= on the server
   showMatchEntry?: boolean          // false for members who can see results but not enter them
   leagueDayIndex?: number
   isAdmin?: boolean
@@ -41,7 +40,6 @@ export function ResultsSection({
   canAutoPick,
   allPlayers,
   showMatchHistory,
-  initialYear,
   showMatchEntry = true,
   leagueDayIndex,
   isAdmin = false,
@@ -50,7 +48,7 @@ export function ResultsSection({
   linkedPlayerName = null,
 }: Props) {
   const router = useRouter()
-  const { seasons, year, isDefaultYear, selectYear } = useResultsYear(weeks, initialYear)
+  const { seasons, year, isDefaultYear, selectYear } = useResultsYear(weeks)
 
   const [openWeek, setOpenWeek] = useState<number | null>(() => latestResultIn(weeks, year))
 
@@ -84,7 +82,8 @@ export function ResultsSection({
           />
         </div>
       )}
-      {showMatchHistory && weeks.length > 0 && (
+      {/* Read-only members on an empty league still get WeekList's "No results yet." */}
+      {showMatchHistory && (weeks.length > 0 || !showMatchEntry) && (
         <WeekList
           weeks={weeks}
           season={year}

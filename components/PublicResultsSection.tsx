@@ -15,7 +15,6 @@ interface Props {
   canEditMatchEntry: boolean
   showMatchHistory: boolean
   celebration: ResultsCelebration | null
-  initialYear: string // season to show first, resolved from ?year= on the server
 }
 
 /** Public results: year tabs, the next match on the current year, then the selected year's results. */
@@ -28,9 +27,8 @@ export function PublicResultsSection({
   canEditMatchEntry,
   showMatchHistory,
   celebration,
-  initialYear,
 }: Props) {
-  const { seasons, year, isDefaultYear, selectYear } = useResultsYear(weeks, initialYear)
+  const { seasons, year, isDefaultYear, selectYear } = useResultsYear(weeks)
 
   return (
     <>

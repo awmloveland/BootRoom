@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 import { notFound } from 'next/navigation'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled, isLeagueHidden } from '@/lib/features'
-import { dayNameToIndex, getSeasons, isPastDeadline, parseWeekDate, resolveSelectedYear } from '@/lib/utils'
+import { dayNameToIndex, isPastDeadline, parseWeekDate } from '@/lib/utils'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
 import { PublicResultsSection } from '@/components/PublicResultsSection'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
@@ -16,11 +16,10 @@ import type { Week, ScheduledWeek } from '@/lib/types'
 
 interface Props {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ year?: string | string[] }>
 }
 
-export default async function LeagueResultsPage({ params, searchParams }: Props) {
-  const [{ slug }, { year: yearParam }] = await Promise.all([params, searchParams])
+export default async function LeagueResultsPage({ params }: Props) {
+  const { slug } = await params
   const game = await getGameBySlug(slug)
   if (!game) notFound()
   const leagueId = game.id
@@ -61,12 +60,6 @@ export default async function LeagueResultsPage({ params, searchParams }: Props)
   const weeks: Week[] = tier !== 'public'
     ? await ensureUnrecordedWeek(leagueId, rawWeeks, leagueDayIndex)
     : rawWeeks
-
-  // Year tabs: ?year= when it is one of the league's seasons, else the newest.
-  const initialYear = resolveSelectedYear(
-    getSeasons(weeks),
-    typeof yearParam === 'string' ? yearParam : undefined
-  )
 
   // Derive nextWeek unconditionally — used for both the editable match entry section
   // (gated by canSeeMatchEntry) and the always-public read-only lineup display.
@@ -117,7 +110,6 @@ export default async function LeagueResultsPage({ params, searchParams }: Props)
             canEditMatchEntry={canSeeMatchEntry}
             showMatchHistory={canSeeMatchHistory}
             celebration={celebration}
-            initialYear={initialYear}
           />
           {!isAuthenticated && (
             <p className="pt-2 font-plex text-[9px] uppercase tracking-[.14em] text-[#4f688a] text-center">
@@ -146,7 +138,6 @@ export default async function LeagueResultsPage({ params, searchParams }: Props)
             allPlayers={players}
             showMatchHistory={canSeeMatchHistory}
             showMatchEntry={canSeeMatchEntry}
-            initialYear={initialYear}
             leagueDayIndex={leagueDayIndex}
             isAdmin={isAdmin}
             leagueName={game.name}

@@ -6,7 +6,10 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { ResultsSection } from '@/components/ResultsSection'
 import type { Week, WeekStatus } from '@/lib/types'
 
-jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh: jest.fn() }) }))
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: jest.fn() }),
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}))
 jest.mock('@/components/NextMatchCard', () => ({
   NextMatchCard: () => <div data-testid="next-match" />,
 }))
@@ -38,7 +41,6 @@ function renderSection(props: Partial<React.ComponentProps<typeof ResultsSection
       canAutoPick={true}
       allPlayers={[]}
       showMatchHistory={true}
-      initialYear="2026"
       {...props}
     />
   )
@@ -95,8 +97,9 @@ describe('ResultsSection year tabs', () => {
     expect(screen.getByTestId('next-match')).toBe(before)
   })
 
-  it('starts on a past year when initialYear says so', () => {
-    const { container } = renderSection({ initialYear: '2025' })
+  it('starts on a past year when the URL says so', () => {
+    window.history.replaceState(null, '', '/craft-football/results?year=2025')
+    const { container } = renderSection()
     expect(screen.getByTestId('next-match')).not.toBeVisible()
     expect(ids(container)).toEqual(['week-2025-40', 'week-2025-39'])
     expect(container.querySelector('[data-testid="week-2025-40"]')).toHaveAttribute('data-open', 'true')
@@ -105,6 +108,11 @@ describe('ResultsSection year tabs', () => {
   it('hides the next match when match entry is off', () => {
     renderSection({ showMatchEntry: false })
     expect(screen.queryByTestId('next-match')).not.toBeInTheDocument()
+  })
+
+  it('shows the empty state for a read-only member on a league with no weeks', () => {
+    renderSection({ weeks: [], showMatchEntry: false })
+    expect(screen.getByText('No results yet.')).toBeInTheDocument()
   })
 
   it('renders no tabs for a single-season league', () => {
@@ -118,7 +126,8 @@ describe('ResultsSection year tabs', () => {
   })
 
   it('still shows the next match for a past ?year= when match history is hidden', () => {
-    renderSection({ showMatchHistory: false, initialYear: '2025' })
+    window.history.replaceState(null, '', '/craft-football/results?year=2025')
+    renderSection({ showMatchHistory: false })
     expect(screen.getByTestId('next-match')).toBeVisible()
   })
 })

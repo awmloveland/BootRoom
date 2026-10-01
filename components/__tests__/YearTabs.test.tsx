@@ -6,6 +6,10 @@ import { render, screen, fireEvent, renderHook, act } from '@testing-library/rea
 import { YearTabs, useResultsYear } from '@/components/YearTabs'
 import type { Week } from '@/lib/types'
 
+jest.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}))
+
 function makeWeek(season: string, week: number): Week {
   return { id: `${season}-${week}`, season, week, date: `01 Jan ${season}`, status: 'played', teamA: [], teamB: [], winner: null }
 }
@@ -44,15 +48,39 @@ describe('useResultsYear', () => {
 
   const weeks = [makeWeek('2026', 2), makeWeek('2025', 40)]
 
-  it('starts on the initial year and reports whether it is the default', () => {
-    const { result } = renderHook(() => useResultsYear(weeks, '2025'))
+  it('starts on the year in the URL and reports whether it is the default', () => {
+    window.history.replaceState(null, '', '/craft-football/results?year=2025')
+    const { result } = renderHook(() => useResultsYear(weeks))
     expect(result.current.seasons).toEqual(['2026', '2025'])
     expect(result.current.year).toBe('2025')
     expect(result.current.isDefaultYear).toBe(false)
   })
 
+  it('starts on the newest season with a bare URL', () => {
+    const { result } = renderHook(() => useResultsYear(weeks))
+    expect(result.current.year).toBe('2026')
+    expect(result.current.isDefaultYear).toBe(true)
+  })
+
+  it('falls back to the newest season for a ?year= the league does not have', () => {
+    window.history.replaceState(null, '', '/craft-football/results?year=1999')
+    const { result } = renderHook(() => useResultsYear(weeks))
+    expect(result.current.year).toBe('2026')
+    expect(result.current.isDefaultYear).toBe(true)
+  })
+
+  it('restores the picked year from the URL when remounted after Back', () => {
+    const first = renderHook(() => useResultsYear(weeks))
+    act(() => first.result.current.selectYear('2025'))
+    first.unmount()
+    // Back restores the URL, then the page remounts from Next's cached payload.
+    window.history.replaceState(null, '', '/craft-football/results?year=2025')
+    const { result } = renderHook(() => useResultsYear(weeks))
+    expect(result.current.year).toBe('2025')
+  })
+
   it('selectYear switches year and writes the URL', () => {
-    const { result } = renderHook(() => useResultsYear(weeks, '2026'))
+    const { result } = renderHook(() => useResultsYear(weeks))
     act(() => result.current.selectYear('2025'))
     expect(result.current.year).toBe('2025')
     expect(window.location.search).toBe('?year=2025')
@@ -63,14 +91,15 @@ describe('useResultsYear', () => {
   })
 
   it('follows a new default season when the viewer is on the default year', () => {
-    const { result, rerender } = renderHook(({ w }) => useResultsYear(w, '2026'), { initialProps: { w: weeks } })
+    const { result, rerender } = renderHook(({ w }) => useResultsYear(w), { initialProps: { w: weeks } })
     rerender({ w: [{ ...makeWeek('2027', 1), status: 'scheduled' }, ...weeks] })
     expect(result.current.year).toBe('2027')
     expect(result.current.isDefaultYear).toBe(true)
   })
 
   it('stays on a picked past year when a new season appears', () => {
-    const { result, rerender } = renderHook(({ w }) => useResultsYear(w, '2025'), { initialProps: { w: weeks } })
+    window.history.replaceState(null, '', '/craft-football/results?year=2025')
+    const { result, rerender } = renderHook(({ w }) => useResultsYear(w), { initialProps: { w: weeks } })
     rerender({ w: [makeWeek('2027', 1), ...weeks] })
     expect(result.current.year).toBe('2025')
   })

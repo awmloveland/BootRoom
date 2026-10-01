@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { cn, getSeasons, writeYearParam } from '@/lib/utils'
+import { useSearchParams } from 'next/navigation'
+import { cn, getSeasons, resolveSelectedYear, writeYearParam } from '@/lib/utils'
 import type { Week } from '@/lib/types'
 
 interface YearTabsProps {
@@ -50,11 +51,23 @@ export function YearTabs({ years, selected, onSelect }: YearTabsProps) {
  * Selected Results year, mirrored to `?year=`. While the viewer is on the
  * default (newest) season, `picked` stays null so a newer season arriving on
  * refresh becomes the view rather than leaving them on last year.
+ *
+ * The starting year comes from the URL, not a server-resolved prop. Our year
+ * switches only call history.replaceState, so Next's cached RSC payload keeps
+ * whatever year the server first rendered. Pressing Back restores that cached
+ * payload without refetching, and a server prop would then disagree with the
+ * URL. useSearchParams follows Next's canonical URL, replaceState updates
+ * included. It is read only in the useState initialiser so our own later
+ * replaceState calls don't fight the state.
  */
-export function useResultsYear(weeks: Week[], initialYear: string) {
+export function useResultsYear(weeks: Week[]) {
+  const param = useSearchParams().get('year')
   const seasons = getSeasons(weeks)
-  const defaultYear = seasons[0] ?? initialYear
-  const [picked, setPicked] = useState<string | null>(initialYear === defaultYear ? null : initialYear)
+  const defaultYear = resolveSelectedYear(seasons, null)
+  const [picked, setPicked] = useState<string | null>(() => {
+    const fromUrl = resolveSelectedYear(seasons, param)
+    return fromUrl === defaultYear ? null : fromUrl
+  })
   const year = picked && seasons.includes(picked) ? picked : defaultYear
 
   function selectYear(next: string) {

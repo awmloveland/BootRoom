@@ -6,6 +6,9 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { PublicResultsSection } from '@/components/PublicResultsSection'
 import type { ScheduledWeek, Week } from '@/lib/types'
 
+jest.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}))
 jest.mock('@/components/PublicMatchEntrySection', () => ({
   PublicMatchEntrySection: () => <div data-testid="next-match" />,
 }))
@@ -38,7 +41,6 @@ function renderSection(props: Partial<React.ComponentProps<typeof PublicResultsS
       canEditMatchEntry={false}
       showMatchHistory={true}
       celebration={null}
-      initialYear="2026"
       {...props}
     />
   )
@@ -71,8 +73,9 @@ describe('PublicResultsSection', () => {
     expect(window.location.search).toBe('?year=2025')
   })
 
-  it('starts on a past year when initialYear says so', () => {
-    const { container } = renderSection({ initialYear: '2025' })
+  it('starts on a past year when the URL says so', () => {
+    window.history.replaceState(null, '', '/craft-football/results?year=2025')
+    const { container } = renderSection()
     expect(ids(container)).toEqual(['week-2025-40', 'week-2025-39'])
     expect(container.querySelector('[data-testid="week-2025-40"]')).toHaveAttribute('data-open', 'true')
     expect(screen.getByTestId('next-match')).not.toBeVisible()
@@ -99,7 +102,8 @@ describe('PublicResultsSection', () => {
   })
 
   it('still shows the next match for a past ?year= when match history is hidden', () => {
-    renderSection({ showMatchHistory: false, initialYear: '2025' })
+    window.history.replaceState(null, '', '/craft-football/results?year=2025')
+    renderSection({ showMatchHistory: false })
     expect(screen.getByTestId('next-match')).toBeVisible()
   })
 })
