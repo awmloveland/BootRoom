@@ -153,9 +153,6 @@ export function LeagueJoinArea({ leagueId, leagueSlug, leagueName, joinStatus, i
         redirect={joinRedirect}
         initialMode="signup"
         leagueName={leagueName}
-        onSignedUp={() => {
-          setAuthDialogOpen(false)
-        }}
       />
 
       <JoinRequestDialog

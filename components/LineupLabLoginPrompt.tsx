@@ -3,18 +3,15 @@
 import { useState } from 'react'
 import { Lock } from 'lucide-react'
 import { AuthDialog } from '@/components/AuthDialog'
-import { JoinRequestDialog } from '@/components/JoinRequestDialog'
 
 interface LineupLabLoginPromptProps {
-  leagueId: string
   leagueSlug: string
   leagueName: string
 }
 
-export function LineupLabLoginPrompt({ leagueId, leagueSlug, leagueName }: LineupLabLoginPromptProps) {
+export function LineupLabLoginPrompt({ leagueSlug, leagueName }: LineupLabLoginPromptProps) {
   const [signInOpen, setSignInOpen] = useState(false)
   const [signUpOpen, setSignUpOpen] = useState(false)
-  const [joinOpen, setJoinOpen] = useState(false)
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
@@ -52,21 +49,9 @@ export function LineupLabLoginPrompt({ leagueId, leagueSlug, leagueName }: Lineu
       <AuthDialog
         open={signUpOpen}
         onOpenChange={setSignUpOpen}
-        redirect={`/${leagueSlug}/lineup-lab`}
+        redirect={`/${leagueSlug}/lineup-lab?open_join=1`}
         initialMode="signup"
         leagueName={leagueName}
-        onSignedUp={() => {
-          setSignUpOpen(false)
-          setJoinOpen(true)
-        }}
-      />
-
-      <JoinRequestDialog
-        leagueId={leagueId}
-        leagueName={leagueName}
-        open={joinOpen}
-        onOpenChange={setJoinOpen}
-        onSuccess={() => setJoinOpen(false)}
       />
     </div>
   )

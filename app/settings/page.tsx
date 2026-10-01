@@ -7,11 +7,27 @@ import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import PlayerClaimPicker from '@/components/PlayerClaimPicker'
+import { SkeletonCard, SKELETON_FADE_IN } from '@/components/ui/skeleton'
 import type { PlayerClaim } from '@/lib/types'
 
 interface League {
   id: string
   name: string
+}
+
+function AccountHeader({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="mb-6">
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1.5 text-sm text-[#8ba4c4] hover:text-[#dff1ff] transition-colors mb-3"
+      >
+        <ArrowLeft className="size-4" />
+        Back
+      </button>
+      <h1 className="text-xl font-semibold text-[#f4f9ff]">Account</h1>
+    </div>
+  )
 }
 
 export default function AccountSettingsPage() {
@@ -186,23 +202,19 @@ export default function AccountSettingsPage() {
   }
 
   if (loading) return (
-    <div className="min-h-[50vh] flex items-center justify-center">
-      <p className="text-[#8ba4c4]">Loading…</p>
-    </div>
+    <main className="max-w-xl mx-auto px-4 sm:px-6 py-8">
+      <AccountHeader onBack={() => router.back()} />
+      {/* Account info, then profile card shapes */}
+      <div className={cn('flex flex-col gap-4', SKELETON_FADE_IN)} aria-busy="true">
+        <SkeletonCard rows={2} />
+        <SkeletonCard rows={3} />
+      </div>
+    </main>
   )
 
   return (
     <main className="max-w-xl mx-auto px-4 sm:px-6 py-8">
-      <div className="mb-6">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-sm text-[#8ba4c4] hover:text-[#dff1ff] transition-colors mb-3"
-        >
-          <ArrowLeft className="size-4" />
-          Back
-        </button>
-        <h1 className="text-xl font-semibold text-[#f4f9ff]">Account</h1>
-      </div>
+      <AccountHeader onBack={() => router.back()} />
 
       {/* ── Account info card (read-only) ──────────────────────────────── */}
       <div className="rounded-xl bg-[#0a1421] border border-[#1b2c46] overflow-hidden mb-4">

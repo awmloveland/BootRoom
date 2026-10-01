@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { Skeleton, SKELETON_FADE_IN } from '@/components/ui/skeleton'
 import type { FeatureKey } from '@/lib/types'
 
 const FEATURE_LABELS: Record<FeatureKey, string> = {
@@ -59,7 +60,17 @@ export default function ExperimentsPage() {
       </p>
 
       {loading ? (
-        <p className="text-[#8ba4c4] text-sm">Loading…</p>
+        <div className={cn('space-y-2', SKELETON_FADE_IN)} aria-busy="true">
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-[#0a1421] border border-[#1b2c46]">
+              <div>
+                <Skeleton className="h-3.5 w-32" />
+                <Skeleton className="mt-1.5 h-3 w-24" />
+              </div>
+              <Skeleton className="h-5 w-9 rounded-full" />
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="space-y-2">
           {experiments.map((exp) => (
