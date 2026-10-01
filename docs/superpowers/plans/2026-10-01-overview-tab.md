@@ -251,11 +251,9 @@ function ordinal(n: number): string {
 }
 ```
 
-Add directly after `isPastDeadline` (it must come after `parseWeekDate` and `isPastDeadline`, which it uses):
+Add directly after `isPastDeadline`. `DAY_SHORT` already exists in this file (used by the share text builders); reuse it, do not redeclare it:
 
 ```ts
-const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
 /** 'DD MMM YYYY' → 'Thu 09 Apr', for fixture lines. */
 export function formatFixtureDate(date: string): string {
   const [day, month] = date.split(' ')

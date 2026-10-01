@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { LeagueDetails, Player, Strength, Week, Winner, YearStats } from './types'
+import { LeagueDetails, Player, PlayerClaimStatus, ScheduledWeek, Strength, Week, Winner, YearStats } from './types'
+import type { VisibilityTier } from './roles'
 import { strengthToRating } from './strength'
 import type { QuarterSummary } from './sidebar-stats'
 
@@ -604,6 +605,69 @@ export function isPastDeadline(dateStr: string): boolean {
   return Date.now() > deadline.getTime()
 }
 
+/** 'DD MMM YYYY' → 'Thu 09 Apr', for fixture lines. */
+export function formatFixtureDate(date: string): string {
+  const [day, month] = date.split(' ')
+  return `${DAY_SHORT[parseWeekDate(date).getDay()]} ${day.padStart(2, '0')} ${month}`
+}
+
+/**
+ * The week the next match card should start from, derived on the server so the
+ * Overview tab can render the card in its first paint.
+ *
+ * Takes the latest-dated row that is scheduled, cancelled or unrecorded:
+ *   - unrecorded, or past the 20:00 deadline → null (the card is idle)
+ *   - otherwise → that row as a ScheduledWeek
+ */
+export function getNextMatchSeed(weeks: Week[]): ScheduledWeek | null {
+  const latest = sortWeeks(
+    weeks.filter((w) => w.status === 'scheduled' || w.status === 'cancelled' || w.status === 'unrecorded')
+  )[0]
+  if (!latest || !latest.id) return null
+  if (latest.status === 'unrecorded') return null
+  if (isPastDeadline(latest.date)) return null
+  return {
+    id: latest.id,
+    season: latest.season,
+    week: latest.week,
+    date: latest.date,
+    format: latest.format ?? null,
+    teamA: latest.teamA,
+    teamB: latest.teamB,
+    status: latest.status === 'cancelled' ? 'cancelled' : 'scheduled',
+    lineupMetadata: latest.lineupMetadata ?? null,
+    team_a_rating: latest.team_a_rating ?? null,
+    team_b_rating: latest.team_b_rating ?? null,
+  }
+}
+
+/**
+ * Where a visitor lands when they open a league. Phones and Android tablets get
+ * the Overview tab (hidden at lg and above); everything else gets Results.
+ * iPadOS Safari sends a desktop user agent, so iPads land on Results.
+ */
+export function leagueLandingPath(slug: string, userAgent: string | null | undefined): string {
+  const smallScreen = /Mobi|Android/i.test(userAgent ?? '')
+  return `/${slug}/${smallScreen ? 'overview' : 'results'}`
+}
+
+export type OverviewViewerCard = 'sign-in' | 'link-profile' | 'your-stats' | null
+
+/** Which card sits second on the Overview tab for this viewer. */
+export function getOverviewViewerCard(viewer: {
+  isAuthenticated: boolean
+  tier: VisibilityTier
+  claimStatus: PlayerClaimStatus | 'none'
+  /** Claim approved and the player exists in the stats list. */
+  hasLinkedPlayer: boolean
+}): OverviewViewerCard {
+  if (!viewer.isAuthenticated) return 'sign-in'
+  if (viewer.tier === 'public') return null
+  if (viewer.hasLinkedPlayer) return 'your-stats'
+  if (viewer.tier === 'member' && viewer.claimStatus === 'none') return 'link-profile'
+  return null
+}
+
 /**
  * Returns the date string ('DD MMM YYYY') of the most recent expected game day
  * that has already passed, or null if no game day can be determined.
@@ -643,15 +707,20 @@ function isMilestone(n: number): boolean {
   return n >= 50 && n % 50 === 0
 }
 
-function ordinal(n: number): string {
+/** 'st' | 'nd' | 'rd' | 'th' for a positive integer. */
+export function ordinalSuffix(n: number): string {
   const v = n % 100
-  if (v >= 11 && v <= 13) return `${n}th`
+  if (v >= 11 && v <= 13) return 'th'
   switch (n % 10) {
-    case 1: return `${n}st`
-    case 2: return `${n}nd`
-    case 3: return `${n}rd`
-    default: return `${n}th`
+    case 1: return 'st'
+    case 2: return 'nd'
+    case 3: return 'rd'
+    default: return 'th'
   }
+}
+
+function ordinal(n: number): string {
+  return `${n}${ordinalSuffix(n)}`
 }
 
 function playerWeeksDesc(playerName: string, weeks: Week[]): Week[] {
