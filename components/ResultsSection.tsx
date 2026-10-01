@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getLatestResultWeek } from '@/lib/utils'
 import { NextMatchCard } from '@/components/NextMatchCard'
@@ -56,6 +56,23 @@ export function ResultsSection({
     selectYear(next)
     setOpenWeek(latestResultIn(weeks, next))
   }
+
+  // Deep link: …/results?year=<season>#week-<season>-<week> (the Records tab's
+  // biggest win) opens that match and scrolls it into view on load.
+  useEffect(() => {
+    const match = window.location.hash.replace(/^#/, '').match(/^week-(\d{4})-(\d+)$/)
+    if (!match) return
+    const [, season, weekNum] = match
+    if (!weeks.some((w) => w.season === season && w.week === Number(weekNum))) return
+    if (season !== year) selectYear(season)
+    setOpenWeek(Number(weekNum))
+    // Wait a frame so the card is rendered/expanded before scrolling to it.
+    requestAnimationFrame(() => {
+      document.getElementById(`week-${season}-${weekNum}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+    // Mount only: the hash is read once, like the Seasons quarter links.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleBuildStart = useCallback(() => {
     setOpenWeek(null)

@@ -208,3 +208,71 @@ export interface PlayerClaim {
   display_name?: string | null
   email?: string
 }
+
+// ── All-time records (Records tab) ────────────────────────────────────────────
+
+export type RecordBadge = 'tied' | 'live' | 'iron_man'
+
+/** One row of a record's expanded top 5. */
+export interface RecordEntry {
+  name: string
+  value: string
+  sub?: string   // qualifier shown before the value, e.g. '18 GP', '20W 7D', 'Live'
+}
+
+/** One all-time record row. All display strings are pre-formatted in normal case. */
+export interface LeagueRecord {
+  key: string
+  label: string          // 'Most appearances'
+  holders: string[]      // empty when nobody qualifies yet
+  holderLabel: string    // holders joined for display, or 'Nobody yet'
+  value: string          // '45', '61%', '1.89'
+  note: string           // mono subline, e.g. 'of 50 games'
+  unit: string           // header of the top-5 value column, e.g. 'Games'
+  badge?: RecordBadge
+  top: RecordEntry[]     // up to 5; empty means the row does not expand
+  foot?: string          // qualifier footnote under the top 5
+}
+
+/** One row of the Trophy cabinet: a champion, or a shared quarter. */
+export interface TitleRow {
+  key: string
+  name: string           // 'Jaff', or 'Luke, Ian & Alice' for a shared quarter
+  quarters: string       // 'Q3 2026 · on GD'
+  count: number
+  shared: boolean
+}
+
+export interface RivalryRecord {
+  games: number
+  draws: number
+  leader: { name: string; wins: number }    // the side with more wins, shown left
+  trailer: { name: string; wins: number }
+}
+
+export interface MilestoneBadge {
+  threshold: number
+  players: number
+}
+
+export interface BiggestWin {
+  margin: number
+  date: string           // 'DD MMM YYYY'
+  season: string
+  week: number
+}
+
+export interface RecordsData {
+  totalGames: number
+  career: LeagueRecord[]
+  streaks: LeagueRecord[]
+  waitForWin: LeagueRecord | null       // softened banter row, never expands
+  quartersPlayed: number
+  titles: TitleRow[]
+  duos: LeagueRecord[]
+  rivalry: RivalryRecord | null
+  milestones: MilestoneBadge[]
+  nextMilestone: LeagueRecord | null
+  biggestWin: BiggestWin | null
+  teamAB: { teamA: number; teamB: number; draws: number }
+}

@@ -11,6 +11,16 @@ interface YearTabsProps {
   onSelect: (year: string) => void
 }
 
+/** Pill recipe shared by the Results year tabs and the Records group pills. */
+export function pillClassName(active: boolean): string {
+  return cn(
+    'h-8 shrink-0 rounded-full border px-4 font-plex text-[10px] font-bold uppercase tracking-[.14em] whitespace-nowrap transition-colors',
+    active
+      ? 'border-[#38bdf8]/50 bg-[#38bdf8]/12 text-[#7dd3fc]'
+      : 'border-[#1b2c46] bg-[#0a1421] text-[#8ba4c4] hover:border-[#2c4a72] hover:text-[#f4f9ff]'
+  )
+}
+
 /** Second tab row on Results: one pill per season. Hidden when the league has a single season. */
 export function YearTabs({ years, selected, onSelect }: YearTabsProps) {
   if (years.length <= 1) return null
@@ -32,12 +42,7 @@ export function YearTabs({ years, selected, onSelect }: YearTabsProps) {
             onClick={() => {
               if (!active) onSelect(year)
             }}
-            className={cn(
-              'h-8 shrink-0 rounded-full border px-4 font-plex text-[10px] font-bold uppercase tracking-[.14em] transition-colors',
-              active
-                ? 'border-[#38bdf8]/50 bg-[#38bdf8]/12 text-[#7dd3fc]'
-                : 'border-[#1b2c46] bg-[#0a1421] text-[#8ba4c4] hover:border-[#2c4a72] hover:text-[#f4f9ff]'
-            )}
+            className={pillClassName(active)}
           >
             {year}
           </button>

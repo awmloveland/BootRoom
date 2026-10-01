@@ -131,3 +131,35 @@ describe('ResultsSection year tabs', () => {
     expect(screen.getByTestId('next-match')).toBeVisible()
   })
 })
+
+describe('ResultsSection week deep link', () => {
+  beforeAll(() => {
+    Element.prototype.scrollIntoView = jest.fn()
+  })
+
+  it('opens and scrolls to the linked week from the Records tab', () => {
+    window.history.replaceState(null, '', '/craft-football/results?year=2025#week-2025-39')
+    jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => { cb(0); return 0 })
+    const { container } = renderSection()
+    expect(screen.getByRole('tab', { name: '2025' })).toHaveAttribute('aria-selected', 'true')
+    expect(container.querySelector('[data-testid="week-2025-39"]')).toHaveAttribute('data-open', 'true')
+    expect(container.querySelector('[data-testid="week-2025-40"]')).toHaveAttribute('data-open', 'false')
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled()
+    expect(document.getElementById('week-2025-39')).toContainElement(
+      container.querySelector('[data-testid="week-2025-39"]') as HTMLElement
+    )
+  })
+
+  it('switches year when the link has no year param', () => {
+    window.history.replaceState(null, '', '/craft-football/results#week-2025-39')
+    const { container } = renderSection()
+    expect(screen.getByRole('tab', { name: '2025' })).toHaveAttribute('aria-selected', 'true')
+    expect(container.querySelector('[data-testid="week-2025-39"]')).toHaveAttribute('data-open', 'true')
+  })
+
+  it('ignores a hash for a week that does not exist', () => {
+    window.history.replaceState(null, '', '/craft-football/results#week-2024-1')
+    const { container } = renderSection()
+    expect(container.querySelector('[data-testid="week-2026-2"]')).toHaveAttribute('data-open', 'true')
+  })
+})
