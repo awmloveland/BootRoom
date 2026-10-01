@@ -10,6 +10,7 @@ import { LeagueDetailsForm } from '@/components/LeagueDetailsForm'
 import { PlayerRosterPanel } from '@/components/PlayerRosterPanel'
 import { PlayerClaimsTable } from '@/components/PlayerClaimsTable'
 import { cn } from '@/lib/utils'
+import { Skeleton, SkeletonCard, SKELETON_FADE_IN } from '@/components/ui/skeleton'
 import type { LeagueMember, LeagueFeature, LeagueDetails, PlayerAttribute, PendingJoinRequest, PlayerClaim } from '@/lib/types'
 import { PendingRequestsTable } from '@/components/PendingRequestsTable'
 
@@ -24,6 +25,17 @@ function TabInitialiser({ onTab }: { onTab: (tab: Section) => void }) {
     }
   }, [searchParams, onTab])
   return null
+}
+
+/** Placeholder for a settings panel: one card per entry, with that many rows. */
+function PanelSkeleton({ cards }: { cards: number[] }) {
+  return (
+    <div className={cn('flex flex-col gap-3', SKELETON_FADE_IN)} aria-busy="true">
+      {cards.map((rows, i) => (
+        <SkeletonCard key={i} rows={rows} />
+      ))}
+    </div>
+  )
 }
 
 function formatExpiry(iso: string | null): string {
@@ -46,15 +58,17 @@ export default function LeagueSettingsPage() {
   // League details state
   const [leagueDetails, setLeagueDetails] = useState<LeagueDetails | null>(null)
   const [playerCount, setPlayerCount] = useState(0)
-  const [detailsLoading, setDetailsLoading] = useState(false)
+  // Section loading flags start true so a panel never renders once with
+  // empty data before its first fetch kicks off.
+  const [detailsLoading, setDetailsLoading] = useState(true)
 
   // Members state
   const [members, setMembers] = useState<LeagueMember[]>([])
-  const [membersLoading, setMembersLoading] = useState(false)
+  const [membersLoading, setMembersLoading] = useState(true)
 
   // Pending join requests state
   const [pendingRequests, setPendingRequests] = useState<PendingJoinRequest[]>([])
-  const [pendingLoading, setPendingLoading] = useState(false)
+  const [pendingLoading, setPendingLoading] = useState(true)
 
   // Player claims state
   const [pendingClaims, setPendingClaims] = useState<PlayerClaim[]>([])
@@ -70,11 +84,11 @@ export default function LeagueSettingsPage() {
 
   // Features state
   const [features, setFeatures] = useState<LeagueFeature[]>([])
-  const [featuresLoading, setFeaturesLoading] = useState(false)
+  const [featuresLoading, setFeaturesLoading] = useState(true)
 
   // Players state
   const [players, setPlayers] = useState<PlayerAttribute[]>([])
-  const [playersLoading, setPlayersLoading] = useState(false)
+  const [playersLoading, setPlayersLoading] = useState(true)
 
   useEffect(() => {
     async function init() {
@@ -217,14 +231,6 @@ export default function LeagueSettingsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section, isAdmin, loadDetails, loadMembers, loadFeatures, loadPlayers])
 
-  if (loading) {
-    return (
-      <div className="min-h-[50vh] flex items-center justify-center">
-        <p className="font-inter-body text-[13px] text-[#6f88a8]">Loading…</p>
-      </div>
-    )
-  }
-
   const NAV: { id: Section; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'details',  label: 'League Details', Icon: Info },
     { id: 'members',  label: 'Members',        Icon: Users },
@@ -246,7 +252,13 @@ export default function LeagueSettingsPage() {
           Back
         </button>
         <h1 className="mt-3.5 text-[26px] sm:text-[30px] leading-none font-bold tracking-[-.035em] text-[#f4f9ff]">Settings</h1>
-        <p className="mt-2 font-plex text-[10px] uppercase tracking-[.14em] text-[#6f88a8]">{leagueName}</p>
+        {loading ? (
+          <div className="mt-2 flex h-[15px] items-center" aria-busy="true">
+            <Skeleton className="h-2.5 w-32" />
+          </div>
+        ) : (
+          <p className="mt-2 font-plex text-[10px] uppercase tracking-[.14em] text-[#6f88a8]">{leagueName}</p>
+        )}
       </div>
 
       {/* Section tabs */}
@@ -275,8 +287,8 @@ export default function LeagueSettingsPage() {
       {/* ── LEAGUE DETAILS ── */}
       {section === 'details' && (
         <div>
-          {detailsLoading ? (
-            <p className="font-inter-body text-[13px] text-[#6f88a8]">Loading…</p>
+          {loading || detailsLoading ? (
+            <PanelSkeleton cards={[6]} />
           ) : (
             <LeagueDetailsForm
               leagueId={leagueId}
@@ -343,7 +355,7 @@ export default function LeagueSettingsPage() {
 
           {/* Pending join requests */}
           {pendingLoading ? (
-            <p className="font-inter-body text-[13px] text-[#6f88a8]">Loading requests…</p>
+            <PanelSkeleton cards={[2]} />
           ) : pendingRequests.length > 0 ? (
             <PendingRequestsTable
               leagueId={leagueId}
@@ -373,7 +385,7 @@ export default function LeagueSettingsPage() {
           <div>
             <p className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-3">League Members</p>
             {membersLoading ? (
-              <p className="font-inter-body text-[13px] text-[#6f88a8]">Loading members…</p>
+              <PanelSkeleton cards={[6]} />
             ) : (
               <AdminMemberTable
                 leagueId={leagueId}
@@ -388,8 +400,8 @@ export default function LeagueSettingsPage() {
       {/* ── FEATURES ── */}
       {section === 'features' && (
         <div>
-          {featuresLoading ? (
-            <p className="font-inter-body text-[13px] text-[#6f88a8]">Loading…</p>
+          {loading || featuresLoading ? (
+            <PanelSkeleton cards={[2, 2, 2, 2]} />
           ) : (
             <FeaturePanel
               leagueId={leagueId}
@@ -403,8 +415,8 @@ export default function LeagueSettingsPage() {
       {/* ── PLAYERS ── */}
       {section === 'players' && (
         <div>
-          {playersLoading ? (
-            <p className="font-inter-body text-[13px] text-[#6f88a8]">Loading…</p>
+          {loading || playersLoading ? (
+            <PanelSkeleton cards={[8]} />
           ) : (
             <PlayerRosterPanel
               leagueId={leagueId}

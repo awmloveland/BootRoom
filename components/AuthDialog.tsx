@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import {
   Dialog,
@@ -13,7 +14,7 @@ import {
 } from '@/components/ui/dialog'
 
 type AuthMode = 'signin' | 'signup'
-type AuthStep = 'details' | 'verify'
+type AuthStep = 'details' | 'verify' | 'redirecting'
 
 interface AuthDialogProps {
   /** Where to redirect after successful sign-in */
@@ -26,8 +27,6 @@ interface AuthDialogProps {
   leagueName?: string
   /** Defaults to 'signin' */
   initialMode?: AuthMode
-  /** Called after successful signup (parent opens JoinRequestDialog) */
-  onSignedUp?: () => void
   /** Controlled open state (optional) */
   open?: boolean
   /** Controlled open change handler (optional) */
@@ -41,14 +40,12 @@ const inputClass =
 function VerifyStep({
   email,
   onBack,
-  onSuccess,
-  onSignedUp,
+  onVerified,
   redirect,
 }: {
   email: string
   onBack: () => void
-  onSuccess: () => void
-  onSignedUp?: () => void
+  onVerified: () => void
   redirect: string
 }) {
   const [code, setCode] = useState('')
@@ -77,8 +74,9 @@ function VerifyStep({
       setLoading(false)
       return
     }
-    onSignedUp?.()
-    onSuccess()
+    // Keep the dialog up in its redirecting state until the browser unloads
+    // the page, so nothing underneath changes while the next page loads.
+    onVerified()
     window.location.href = redirect
   }
 
@@ -366,7 +364,6 @@ export function AuthDialog({
   trigger,
   leagueName,
   initialMode = 'signin',
-  onSignedUp,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
   signinOnly,
@@ -388,6 +385,7 @@ export function AuthDialog({
   }
 
   function handleOpenChange(next: boolean) {
+    if (step === 'redirecting') return
     if (!next) {
       setStep('details')
       setEmail('')
@@ -412,11 +410,14 @@ export function AuthDialog({
     setEmail('')
   }
 
-  const dialogTitle = step === 'verify' ? 'Check your email' : TITLES[mode]
+  const dialogTitle =
+    step === 'redirecting' ? 'Signing you in' : step === 'verify' ? 'Check your email' : TITLES[mode]
   const dialogDescription =
-    step === 'verify'
-      ? `Enter the 6-digit code we sent to ${email}`
-      : getDescription(mode, leagueName)
+    step === 'redirecting'
+      ? 'Taking you to your league.'
+      : step === 'verify'
+        ? `Enter the 6-digit code we sent to ${email}`
+        : getDescription(mode, leagueName)
 
   return (
     <>
@@ -437,12 +438,15 @@ export function AuthDialog({
             <DialogDescription>{dialogDescription}</DialogDescription>
           </DialogHeader>
 
-          {step === 'verify' ? (
+          {step === 'redirecting' ? (
+            <div className="flex justify-center py-6">
+              <Spinner className="size-6" label="Signing you in" />
+            </div>
+          ) : step === 'verify' ? (
             <VerifyStep
               email={email}
               onBack={handleBack}
-              onSuccess={() => setOpen(false)}
-              onSignedUp={onSignedUp}
+              onVerified={() => setStep('redirecting')}
               redirect={redirect}
             />
           ) : mode === 'signin' ? (

@@ -3,7 +3,7 @@
 import type { ReactElement } from 'react'
 import Link from 'next/link'
 import { usePathname, useParams, useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Settings, LogOut, FlaskConical } from 'lucide-react'
 
 import {
@@ -185,11 +185,19 @@ export function Navbar({
     return () => { cancelled = true }
   }, [pathname, fetchUserData, applyUserData])
 
+  // Read inside the auth listener without resubscribing on every navigation.
+  const pathnameRef = useRef(pathname)
+  useEffect(() => { pathnameRef.current = pathname }, [pathname])
+
   useEffect(() => {
     const supabase = createClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'INITIAL_SESSION') return
       if (event === 'SIGNED_IN') {
+        // Signing in from the landing page reloads straight into the app.
+        // Showing the app navbar first would stack it over the landing
+        // page's own header until the reload lands.
+        if (pathnameRef.current === '/') return
         fetchUserData().then(applyUserData)
       } else if (event === 'SIGNED_OUT') {
         setUser(null)

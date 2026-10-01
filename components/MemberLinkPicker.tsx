@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { SkeletonList } from '@/components/ui/skeleton'
 import type { LeagueMember } from '@/lib/types'
 
 interface Props {
@@ -49,8 +50,8 @@ export default function MemberLinkPicker({ leagueId, onLink, onCancel, submittin
       />
 
       {loading ? (
-        <p className="text-sm text-[#6f88a8] mb-3">Loading…</p>
-      ) : loadError ? (
+        <SkeletonList rows={4} className="mb-3" />
+      ) :  loadError ? (
         <p className="text-sm text-[#e2686f] mb-3">Failed to load members.</p>
       ) : filtered.length === 0 ? (
         <p className="text-sm text-[#6f88a8] mb-3">

@@ -4,6 +4,8 @@ import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { AuthDialog } from '@/components/AuthDialog'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 
 type Preview = {
   league_name: string
@@ -27,6 +29,22 @@ function InviteCard({ children }: { children: React.ReactNode }) {
         {children}
       </div>
     </div>
+  )
+}
+
+/** Invite card shape while the invite is looked up: title, body, button. */
+function LoadingInviteCard() {
+  return (
+    <InviteCard>
+      <div aria-busy="true" className="space-y-4">
+        <Skeleton className="h-5 w-3/4" />
+        <div className="space-y-2">
+          <Skeleton className="h-3.5 w-full" />
+          <Skeleton className="h-3.5 w-2/3" />
+        </div>
+        <Skeleton className="h-10 w-full" />
+      </div>
+    </InviteCard>
   )
 }
 
@@ -169,13 +187,20 @@ function InviteFlow() {
   }, [token])
 
   if (state.kind === 'loading') {
-    return <InviteCard><p className="text-[#8ba4c4] text-sm">Loading invite…</p></InviteCard>
+    return <LoadingInviteCard />
   }
   if (state.kind === 'invalid') {
     return <InvalidInviteCard />
   }
   if (state.kind === 'joining') {
-    return <InviteCard><p className="text-[#8ba4c4] text-sm">Joining {state.preview.league_name}…</p></InviteCard>
+    return (
+      <InviteCard>
+        <div className="flex items-center gap-3">
+          <Spinner />
+          <p className="text-[#8ba4c4] text-sm">Joining {state.preview.league_name}…</p>
+        </div>
+      </InviteCard>
+    )
   }
   if (state.kind === 'mismatch') {
     return (
@@ -214,9 +239,7 @@ function InviteFlow() {
 
 export default function InvitePage() {
   return (
-    <Suspense fallback={
-      <InviteCard><p className="text-[#8ba4c4] text-sm">Loading…</p></InviteCard>
-    }>
+    <Suspense fallback={<LoadingInviteCard />}>
       <InviteFlow />
     </Suspense>
   )

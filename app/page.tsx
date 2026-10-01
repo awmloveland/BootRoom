@@ -4,10 +4,11 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { LandingPage } from '@/components/landing/LandingPage'
-import { cn } from '@/lib/utils'
+import { cn, leagueLandingPath } from '@/lib/utils'
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const MONTH_IDX: Record<string, number> = Object.fromEntries(MONTH_SHORT.map((m, i) => [m, i]))
@@ -100,9 +101,12 @@ export default async function HomePage() {
       }
     })
 
+    // Go straight to the league's landing tab rather than via /[slug], which
+    // would cost another server redirect before the tab skeleton can show.
+    const userAgent = (await headers()).get('user-agent')
     const validLeagues = leagues.filter((l) => l.id)
     if (validLeagues.length === 1) {
-      redirect(`/${validLeagues[0].slug}`)
+      redirect(leagueLandingPath(validLeagues[0].slug, userAgent))
     }
 
     const service = createServiceClient()
@@ -182,7 +186,7 @@ export default async function HomePage() {
               {leagueCards.map(({ league, nextDate, format }) => (
                 <Link
                   key={league.id}
-                  href={`/${league.slug}`}
+                  href={leagueLandingPath(league.slug, userAgent)}
                   className={cn(
                     'flex items-center justify-between gap-4 px-[18px] py-4 rounded-xl border transition-colors hover:border-[#38bdf8]',
                     nextDate

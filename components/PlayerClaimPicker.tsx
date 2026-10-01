@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { SkeletonList } from '@/components/ui/skeleton'
 
 const SETTINGS_FOOTER =
   "Can't find your name? Ask your league admin to add you as a player first, then come back here to link your account."
@@ -61,8 +62,8 @@ export default function PlayerClaimPicker({
       />
 
       {loading ? (
-        <p className="text-sm text-[#6f88a8] mb-3">Loading…</p>
-      ) : loadError ? (
+        <SkeletonList rows={4} className="mb-3" />
+      ) :  loadError ? (
         <p className="text-sm text-[#e2686f] mb-3">Failed to load player names.</p>
       ) : filtered.length === 0 ? (
         <p className="text-sm text-[#6f88a8] mb-3">

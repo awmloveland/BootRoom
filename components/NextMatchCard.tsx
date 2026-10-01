@@ -14,6 +14,7 @@ import { AddPlayerModal } from '@/components/AddPlayerModal'
 import { ResultModal } from '@/components/ResultModal'
 import { FormDots } from '@/components/FormDots'
 import { NextGameIdle, NextGameLineup } from '@/components/overview/NextGameCard'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface Props {
   gameId: string
@@ -587,7 +588,23 @@ export function NextMatchCard({
     }
   }
 
-  if (cardState === 'loading') return null
+  // Same footprint as the idle card, so the match list below doesn't jump
+  // when the scheduled week arrives.
+  if (cardState === 'loading') {
+    return (
+      <div
+        className="rounded-xl border border-[#223a5c] bg-[#0a1421] px-[18px] py-3 shadow-[0_18px_44px_rgba(0,0,0,.42)]"
+        aria-busy="true"
+      >
+        <div className="flex h-[22px] items-center">
+          <Skeleton className="h-3.5 w-20" />
+        </div>
+        <div className="mt-[3px] flex h-[14px] items-center">
+          <Skeleton className="h-2.5 w-28" />
+        </div>
+      </div>
+    )
+  }
 
   const displayWeek = scheduledWeek?.week ?? nextWeekNum
   const displayDate = scheduledWeek?.date ?? nextDate

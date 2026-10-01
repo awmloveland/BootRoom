@@ -24,5 +24,5 @@ export default async function LineupLabPage({ params }: Props) {
 
   return isAuthenticated
     ? <LineupLab allPlayers={players} />
-    : <LineupLabLoginPrompt leagueId={leagueId} leagueSlug={slug} leagueName={game.name} />
+    : <LineupLabLoginPrompt leagueSlug={slug} leagueName={game.name} />
 }
