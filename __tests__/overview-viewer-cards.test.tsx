@@ -5,7 +5,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { OverviewYourStats } from '@/components/overview/OverviewYourStats'
 import { OverviewSignInCard, OverviewLinkProfileCard } from '@/components/overview/OverviewPromptCards'
 import type { QuarterStanding } from '@/lib/sidebar-stats'
-import type { Player } from '@/lib/types'
+import type { Player, Week } from '@/lib/types'
 
 // AuthDialog pulls in the Supabase client; a stub that exposes its props is enough here.
 jest.mock('@/components/AuthDialog', () => ({
@@ -31,7 +31,7 @@ const TOP: QuarterStanding = {
 
 describe('OverviewYourStats', () => {
   it('shows the name, record and tiles', () => {
-    render(<OverviewYourStats player={JAMIE} standing={TOP} quarterLabel="Q2 2026" />)
+    render(<OverviewYourStats player={JAMIE} standing={TOP} quarterLabel="Q2 2026" weeks={[]} />)
     expect(screen.getByText('Your stats')).toBeInTheDocument()
     expect(screen.getByText('All Time')).toBeInTheDocument()
     expect(screen.getByText('Jamie Ellis')).toBeInTheDocument()
@@ -46,32 +46,48 @@ describe('OverviewYourStats', () => {
   })
 
   it('leaves the GK prefix off for outfield players', () => {
-    render(<OverviewYourStats player={{ ...JAMIE, mentality: 'balanced' }} standing={TOP} quarterLabel="Q2 2026" />)
+    render(<OverviewYourStats player={{ ...JAMIE, mentality: 'balanced' }} standing={TOP} quarterLabel="Q2 2026" weeks={[]} />)
     expect(screen.getByText('28W · 4D · 10L')).toBeInTheDocument()
   })
 
   it('shows the quarter position with its ordinal and the joint top note', () => {
-    render(<OverviewYourStats player={JAMIE} standing={TOP} quarterLabel="Q2 2026" />)
+    render(<OverviewYourStats player={JAMIE} standing={TOP} quarterLabel="Q2 2026" weeks={[]} />)
     expect(screen.getByText('1')).toBeInTheDocument()
     expect(screen.getByText('st')).toBeInTheDocument()
     expect(screen.getByText('Q2 2026 · Joint top')).toBeInTheDocument()
   })
 
   it('leaves the joint top note off when the position is not shared', () => {
-    render(<OverviewYourStats player={JAMIE} standing={{ ...TOP, position: 3, jointTop: false }} quarterLabel="Q2 2026" />)
+    render(<OverviewYourStats player={JAMIE} standing={{ ...TOP, position: 3, jointTop: false }} quarterLabel="Q2 2026" weeks={[]} />)
     expect(screen.getByText('3')).toBeInTheDocument()
     expect(screen.getByText('rd')).toBeInTheDocument()
     expect(screen.getByText('Q2 2026')).toBeInTheDocument()
   })
 
   it('omits the position block when the player has no games this quarter', () => {
-    render(<OverviewYourStats player={JAMIE} standing={null} quarterLabel="Q2 2026" />)
+    render(<OverviewYourStats player={JAMIE} standing={null} quarterLabel="Q2 2026" weeks={[]} />)
     expect(screen.queryByText(/Q2 2026/)).not.toBeInTheDocument()
   })
 
   it('shows 0.0 points per game for a player with no games', () => {
-    render(<OverviewYourStats player={{ ...JAMIE, played: 0, won: 0, drew: 0, lost: 0, points: 0, winRate: 0, recentForm: '-----' }} standing={null} quarterLabel="Q2 2026" />)
+    render(<OverviewYourStats player={{ ...JAMIE, played: 0, won: 0, drew: 0, lost: 0, points: 0, winRate: 0, recentForm: '-----' }} standing={null} quarterLabel="Q2 2026" weeks={[]} />)
     expect(screen.getByText('0.0')).toBeInTheDocument()
+  })
+
+  it('shows win % with teammates once someone has 5 games with the player', () => {
+    const weeks: Week[] = Array.from({ length: 5 }, (_, i) => ({
+      season: '2026', week: i + 1, date: '07 May 2026', status: 'played',
+      teamA: ['Jamie Ellis', 'Sam Okafor'], teamB: ['Rav Singh'], winner: 'teamA',
+    }))
+    render(<OverviewYourStats player={JAMIE} standing={TOP} quarterLabel="Q2 2026" weeks={weeks} />)
+    expect(screen.getByText('Win % with teammates')).toBeInTheDocument()
+    expect(screen.getByText('Sam')).toBeInTheDocument()
+    expect(screen.queryByText('Rav')).toBeNull()
+  })
+
+  it('leaves the teammates section off when nobody qualifies', () => {
+    render(<OverviewYourStats player={JAMIE} standing={TOP} quarterLabel="Q2 2026" weeks={[]} />)
+    expect(screen.queryByText('Win % with teammates')).toBeNull()
   })
 })
 

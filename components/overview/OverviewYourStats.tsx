@@ -1,8 +1,9 @@
 import { ordinalSuffix } from '@/lib/utils'
-import type { QuarterStanding } from '@/lib/sidebar-stats'
-import type { Player } from '@/lib/types'
+import { computeTeammates, type QuarterStanding } from '@/lib/sidebar-stats'
+import type { Player, Week } from '@/lib/types'
 import { FormDots } from '@/components/FormDots'
 import { AllTimeChip } from '@/components/StatsSidebar'
+import { TeammatesChart } from '@/components/TeammatesChart'
 
 interface OverviewYourStatsProps {
   player: Player
@@ -10,6 +11,7 @@ interface OverviewYourStatsProps {
   standing: QuarterStanding | null
   /** e.g. 'Q2 2026' */
   quarterLabel: string
+  weeks: Week[]
 }
 
 function StatTile({ value, unit, label }: { value: string; unit?: string; label: string }) {
@@ -25,9 +27,10 @@ function StatTile({ value, unit, label }: { value: string; unit?: string; label:
 }
 
 /** Overview card 2 for a viewer with a linked player. */
-export function OverviewYourStats({ player, standing, quarterLabel }: OverviewYourStatsProps) {
+export function OverviewYourStats({ player, standing, quarterLabel, weeks }: OverviewYourStatsProps) {
   const record = `${player.mentality === 'goalkeeper' ? 'GK · ' : ''}${player.won}W · ${player.drew}D · ${player.lost}L`
   const pointsPerGame = player.played > 0 ? player.points / player.played : 0
+  const teammates = computeTeammates(player.name, weeks)
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-[#1b2c46] bg-[#101d31] shadow-[0_18px_44px_rgba(0,0,0,.42)]">
@@ -71,6 +74,18 @@ export function OverviewYourStats({ player, standing, quarterLabel }: OverviewYo
             <FormDots form={player.recentForm} className="gap-1.5 text-xs" />
           </div>
         </div>
+
+        {teammates.length > 0 && (
+          <>
+            <div className="flex items-center justify-between gap-3 border-t border-[#1b2c46] px-4 pt-3">
+              <span className="font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#6f88a8]">Win % with teammates</span>
+              <span className="whitespace-nowrap font-plex text-[8.5px] uppercase tracking-[.14em] text-[#4f688a]">Min 5 together</span>
+            </div>
+            <div className="px-4 pt-4 pb-3.5">
+              <TeammatesChart teammates={teammates} size="large" />
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

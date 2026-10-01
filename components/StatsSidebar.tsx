@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils'
-import { computeInForm, computeQuarterlyTable, computeTeamAB } from '@/lib/sidebar-stats'
+import { computeInForm, computeQuarterlyTable, computeTeamAB, computeTeammates } from '@/lib/sidebar-stats'
 import { FormDots } from '@/components/FormDots'
+import { TeammatesChart } from '@/components/TeammatesChart'
 import {
   ChampionBox,
   QuarterProgress,
@@ -32,24 +33,28 @@ function WidgetShell({
   title,
   headerRight,
   size = 'sidebar',
+  className,
+  bodyClassName,
   children,
 }: {
   title: string
   headerRight?: React.ReactNode
   size?: WidgetSize
+  className?: string
+  bodyClassName?: string
   children: React.ReactNode
 }) {
   const page = size === 'page'
   return (
-    <div className={WIDGET_CLASS}>
+    <div className={cn(WIDGET_CLASS, className)}>
       <div className={cn(
-        'py-2.5 border-b border-[#17263c] bg-[#0c1728] flex items-center justify-between',
+        'rounded-t-[11px] py-2.5 border-b border-[#17263c] bg-[#0c1728] flex items-center justify-between gap-2',
         page ? 'px-4' : 'px-3.5'
       )}>
-        <span className={WIDGET_TITLE_CLASS}>{title}</span>
+        <span className={cn(WIDGET_TITLE_CLASS, 'whitespace-nowrap')}>{title}</span>
         {headerRight}
       </div>
-      <div className={page ? 'px-4 py-3.5' : 'p-3.5'}>{children}</div>
+      <div className={cn(page ? 'px-4 py-3.5' : 'p-3.5', bodyClassName)}>{children}</div>
     </div>
   )
 }
@@ -95,6 +100,30 @@ function YourStatsWidget({ players, linkedPlayerName }: { players: Player[]; lin
           <span className="text-[#f4f9ff] font-bold">{player.played}</span> played
         </p>
       </div>
+    </WidgetShell>
+  )
+}
+
+// ─── Widget 0b: Your Teammates ────────────────────────────────────────────────
+
+function TeammatesWidget({ players, weeks, linkedPlayerName }: { players: Player[]; weeks: Week[]; linkedPlayerName?: string | null }) {
+  if (!linkedPlayerName || !players.some(p => p.name === linkedPlayerName)) return null
+  const teammates = computeTeammates(linkedPlayerName, weeks)
+  if (teammates.length === 0) return null
+
+  return (
+    <WidgetShell
+      title="Your teammates · Win %"
+      headerRight={
+        <span className="font-plex text-[8px] uppercase tracking-[.12em] text-[#4f688a] text-right">
+          Min 5 together
+        </span>
+      }
+      // The bar tooltip rises above the plot, so this widget must not clip
+      className="overflow-visible"
+      bodyClassName="pl-3"
+    >
+      <TeammatesChart teammates={teammates} size="small" />
     </WidgetShell>
   )
 }
@@ -273,6 +302,7 @@ export function StatsSidebar({ players, weeks, leagueDayIndex, linkedPlayerName 
   return (
     <div className="flex flex-col gap-3">
       <YourStatsWidget players={players} linkedPlayerName={linkedPlayerName} />
+      <TeammatesWidget players={players} weeks={weeks} linkedPlayerName={linkedPlayerName} />
       <QuarterlyTableWidget weeks={weeks} leagueDayIndex={leagueDayIndex} />
       <InFormWidget    players={players} weeks={weeks} />
       <TeamABWidget    weeks={weeks} />
