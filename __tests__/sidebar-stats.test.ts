@@ -468,7 +468,7 @@ describe('quarter table goal difference', () => {
 
   it('gives both sides 0 for a draw', () => {
     const weeks: Week[] = [
-      makeWeek({ week: 1, date: '05 Jan 2026', teamA: ['Alice'], teamB: ['Charlie'], winner: 'draw', goal_difference: 0 }),
+      makeWeek({ week: 1, date: '05 Jan 2026', teamA: ['Alice'], teamB: ['Charlie'], winner: 'draw', goal_difference: 2 }), // non-zero margin: draws must still add nothing
     ]
     expect(gdOf(weeks, 'Alice')).toBe(0)
     expect(gdOf(weeks, 'Charlie')).toBe(0)

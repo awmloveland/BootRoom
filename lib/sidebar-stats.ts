@@ -97,7 +97,7 @@ export interface QuarterlyEntry {
   drew: number
   lost: number
   points: number
-  goalDiff: number  // sum of signed win margins; see aggregateWeeks
+  goalDiff: number  // sum of signed margins: + for wins, - for losses; see aggregateWeeks
 }
 
 export interface QuarterAward {
