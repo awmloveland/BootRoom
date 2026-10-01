@@ -23,11 +23,13 @@ function makeWeek(season: string, week: number, date: string, status: WeekStatus
   return { id: `${season}-${week}`, season, week, date, status, teamA: [], teamB: [], winner: 'teamA' }
 }
 
-// Newest first, as the lists receive them. Week 31 exists in both years.
+// Newest first, as the lists receive them. Week 31 exists in both years, but each
+// year's latest result has a different number so the open-card checks can tell them apart.
 const weeks: Week[] = [
   makeWeek('2026', 32, '08 Oct 2026', 'scheduled'),
   makeWeek('2026', 31, '01 Oct 2026'),
   makeWeek('2026', 30, '24 Sep 2026'),
+  makeWeek('2025', 41, '09 Oct 2025'),
   makeWeek('2025', 31, '02 Oct 2025'),
   makeWeek('2025', 30, '25 Sep 2025'),
 ]
@@ -48,7 +50,7 @@ describe.each([
 ])('%s with a season', (_name, renderList) => {
   it('renders only that season’s weeks', () => {
     const { container } = render(renderList({ weeks, season: '2025' }))
-    expect(ids(container)).toEqual(['week-2025-31', 'week-2025-30'])
+    expect(ids(container)).toEqual(['week-2025-41', 'week-2025-31', 'week-2025-30'])
   })
 
   it('renders no year divider', () => {
@@ -66,12 +68,13 @@ describe.each([
 
   it('opens the selected season’s latest result', () => {
     const { container } = render(renderList({ weeks, season: '2025' }))
-    expect(attr(container, 'week-2025-31', 'data-open')).toBe('true')
-    expect(attr(container, 'week-2025-30', 'data-open')).toBe('false')
+    expect(attr(container, 'week-2025-41', 'data-open')).toBe('true')
+    expect(attr(container, 'week-2025-31', 'data-open')).toBe('false')
   })
 
   it('keeps the most-recent (share) treatment on the league-wide latest result only', () => {
     const past = render(renderList({ weeks, season: '2025' }))
+    expect(attr(past.container, 'week-2025-41', 'data-most-recent')).toBe('false')
     expect(attr(past.container, 'week-2025-31', 'data-most-recent')).toBe('false')
     past.unmount()
 
