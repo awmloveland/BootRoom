@@ -6,7 +6,7 @@ import { MonthDivider } from '@/components/MonthDivider'
 import { YearDivider } from '@/components/YearDivider'
 import { QuarterCelebration } from '@/components/QuarterCelebration'
 import { startsCelebratedQuarter, type ResultsCelebration } from '@/lib/sidebar-stats'
-import { getMonthKey, formatMonthYear, getPlayedWeeks, sortWeeks } from '@/lib/utils'
+import { getLatestResultWeek, getMonthKey, formatMonthYear, getPlayedWeeks, sortWeeks } from '@/lib/utils'
 import type { Week } from '@/lib/types'
 
 interface PublicMatchListProps {
@@ -14,34 +14,36 @@ interface PublicMatchListProps {
   celebration?: ResultsCelebration | null   // champion card, rendered above the first result of that quarter
   leagueName?: string                       // with leagueSlug, enables Share on the most recent result
   leagueSlug?: string
+  season?: string                           // only render this season's weeks (Results year tabs)
 }
 
-export function PublicMatchList({ weeks, celebration = null, leagueName, leagueSlug }: PublicMatchListProps) {
-  const playedWeeks = getPlayedWeeks(weeks)
-  const mostRecent = sortWeeks(playedWeeks)[0] ?? null
-  // Share follows the same rule as WeekList (latest played or DNF week), but only
-  // played cards offer it to guests; the DNF card is unchanged for now.
-  const mostRecentResult =
-    sortWeeks(weeks.filter((w) => w.status === 'played' || w.status === 'dnf'))[0] ?? null
+export function PublicMatchList({ weeks, celebration = null, leagueName, leagueSlug, season }: PublicMatchListProps) {
+  // Cards render for one season when the year tabs are in play; cards still get
+  // the full history for share text.
+  const visibleWeeks = season ? weeks.filter((w) => w.season === season) : weeks
+  const mostRecent = sortWeeks(getPlayedWeeks(visibleWeeks))[0] ?? null
+  // Share follows the same rule as WeekList (latest played or DNF week league-wide),
+  // but only played cards offer it to guests; the DNF card is unchanged for now.
+  const mostRecentResult = getLatestResultWeek(weeks)
 
   const [openWeek, setOpenWeek] = useState<number | null>(mostRecent?.week ?? null)
 
-  if (weeks.length === 0) {
+  if (visibleWeeks.length === 0) {
     return <p className="text-[#8ba4c4] text-sm">No match data available yet.</p>
   }
 
   return (
     <div className="flex flex-col gap-3">
-      <div id={`year-${weeks[0]?.season}`} />
-      {weeks.map((week, index) => {
+      <div id={`year-${visibleWeeks[0]?.season}`} />
+      {visibleWeeks.map((week, index) => {
         const yearChanged =
-          index > 0 && week.season !== weeks[index - 1].season
+          index > 0 && week.season !== visibleWeeks[index - 1].season
         const monthChanged =
           index > 0 &&
-          getMonthKey(week.date) !== getMonthKey(weeks[index - 1].date)
+          getMonthKey(week.date) !== getMonthKey(visibleWeeks[index - 1].date)
         return (
           <Fragment key={week.id ?? `${week.season}-${week.week}`}>
-            {celebration && startsCelebratedQuarter(weeks, index, celebration.quarter) && (
+            {celebration && startsCelebratedQuarter(visibleWeeks, index, celebration.quarter) && (
               <QuarterCelebration
                 quarter={celebration.quarter}
                 leagueName={celebration.leagueName}
@@ -58,7 +60,11 @@ export function PublicMatchList({ weeks, celebration = null, leagueName, leagueS
               leagueName={leagueName}
               leagueSlug={leagueSlug}
               weeks={weeks}
-              isMostRecent={week.status === 'played' && week.week === mostRecentResult?.week}
+              isMostRecent={
+                week.status === 'played' &&
+                week.season === mostRecentResult?.season &&
+                week.week === mostRecentResult?.week
+              }
             />
           </Fragment>
         )
