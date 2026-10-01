@@ -132,8 +132,18 @@ Labels are the four-digit year. No icons.
 
 ### `components/YearTabs.tsx` (new)
 
-Presentational. Props: `years: string[]`, `selected: string`,
+`YearTabs` is presentational. Props: `years: string[]`, `selected: string`,
 `onSelect: (year: string) => void`. Returns `null` when `years.length <= 1`.
+
+The same file exports `useResultsYear(weeks, initialYear)`, shared by both
+results sections. It returns `{ seasons, year, isDefaultYear, selectYear }`.
+While the viewer is on the default year it stores no explicit pick, so if a
+refresh brings in a newer season (an admin schedules the first game of a new
+year), the view moves to it instead of stranding the viewer on last year with
+Next Match hidden. A picked past year stays put. `selectYear` also calls
+`writeYearParam`.
+
+The year row only renders when match history is visible to the viewer.
 
 ### `components/WeekList.tsx` and `components/PublicMatchList.tsx`
 
@@ -153,8 +163,7 @@ reset from `ResultsSection`.
 
 - New props: `initialYear: string` and `showMatchEntry?: boolean` (default
   `true`).
-- Holds `year` state, computes `seasons` and `defaultYear`, and renders
-  `YearTabs` first.
+- Gets `year` from `useResultsYear` and renders `YearTabs` first.
 - Initial `openWeek` is the most recent played or DNF week in `initialYear`
   (today it is the league-wide latest, which is the same thing on the default
   year).
@@ -166,13 +175,18 @@ reset from `ResultsSection`.
 The member read-only branch of the results page (match history visible, match
 entry not) currently renders `WeekList` directly. It switches to
 `ResultsSection` with `showMatchEntry={false}`, so there is one member-side
-owner of the year state.
+owner of the year state. Those members also start seeing the quarter champion
+card, which the direct `WeekList` call previously left out.
+
+Both list components currently compare only `week.week` for "most recent".
+Week numbers restart each year, so this also changes them to compare season
+and week.
 
 ### `components/PublicResultsSection.tsx` (new)
 
 Client component for the public branch. It takes the props the page currently
 passes to `PublicMatchEntrySection` and `PublicMatchList`, plus `initialYear`
-and `showMatchHistory`. It owns `year` state the same way as
+and `showMatchHistory`. It uses `useResultsYear` the same way as
 `ResultsSection`: it renders `YearTabs`, `PublicMatchEntrySection` (only on
 the default year with a next week), and `PublicMatchList` with
 `season={year}`. The "Sign in for full access" footer stays in the server
