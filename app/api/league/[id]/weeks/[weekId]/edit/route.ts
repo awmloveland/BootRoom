@@ -48,6 +48,10 @@ export async function PATCH(
     : null
   const notes = typeof b.notes === 'string' ? b.notes : null
   const goalDifference = typeof b.goalDifference === 'number' ? b.goalDifference : null
+  // Unsigned win margin: the winner is stored separately, so negatives are invalid
+  if (goalDifference !== null && (!Number.isInteger(goalDifference) || goalDifference < 0)) {
+    return NextResponse.json({ error: 'goalDifference must be a non-negative integer' }, { status: 400 })
+  }
   const teamA = Array.isArray(b.teamA) && b.teamA.every((e: unknown) => typeof e === 'string')
     ? (b.teamA as string[])
     : null

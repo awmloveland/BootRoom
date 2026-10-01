@@ -322,9 +322,11 @@ The sidebar's rendered output does not change.
 - `getQuarterStanding(allEntries, name)` returns
   `{ rank, position, jointTop, entry }` or `null` when the player has no row.
   - `rank`: 1-based place in the sorted table (what the rank column shows).
-  - `position`: players level on both points and wins share a position, so
-    `position` is 1 plus the number of players strictly ahead on points, then
-    wins. This is what the Your stats card shows.
+  - `position`: players level on every ranking key share a position, so
+    `position` is 1 plus the number of players strictly ahead. The keys are
+    the table's own order from `compareStandings` in `lib/utils.ts`: points,
+    then goal difference, then fewer games played, then wins. This is what
+    the Your stats card shows.
   - `jointTop`: `position === 1` and at least one other player shares it.
 - `getLastResult(weeks)` returns the most recent `played` or `dnf` week, or
   `null`.
@@ -332,6 +334,20 @@ The sidebar's rendered output does not change.
 `lib/utils.ts` gains `leagueLandingPath` and `getNextMatchSeed` (both above),
 plus `ordinalSuffix(n)` if the existing private `ordinal` helper cannot be
 reused as is.
+
+## Addendum: goal difference (2026-10-01)
+
+PR #131 landed on `main` while this was in review. It added a GD column to the
+quarter tables and changed the ranking to points, GD, fewer games played, wins,
+name (`computeStandings` in `lib/utils.ts`). After merging it in:
+
+- The GD column lives in the shared `components/QuarterTable.tsx`, so the
+  sidebar and the Overview table both show it. The Overview table header uses
+  the same 4px gap as its rows so the six columns line up, not the 6px in the
+  handoff, which predates the column.
+- `getQuarterStanding` ranks with `compareStandings`, the same comparator the
+  table is sorted with, so the Your stats position can never disagree with the
+  table. "Joint top" now needs level points, GD, games played and wins.
 
 ## Files
 

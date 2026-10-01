@@ -7,7 +7,7 @@ import type { QuarterlyEntry, QuarterlyTableResult, QuarterStanding } from '@/li
 import type { Week } from '@/lib/types'
 
 function entry(name: string, points: number, won: number): QuarterlyEntry {
-  return { name, played: 3, won, drew: 0, lost: 3 - won, points }
+  return { name, played: 3, won, drew: 0, lost: 3 - won, points, goalDiff: won * 10 - 15 }
 }
 
 const THREE = [entry('Alice', 9, 3), entry('Bob', 6, 2), entry('Charlie', 3, 1)]
@@ -45,6 +45,14 @@ describe('OverviewTableCard: table', () => {
   it('titles the table with the quarter and four-digit year', () => {
     render(<OverviewTableCard table={makeTable()} standing={null} lastResult={null} />)
     expect(screen.getByText('League table · Q2 2026')).toBeInTheDocument()
+  })
+
+  it('shows the goal difference column, signed', () => {
+    render(<OverviewTableCard table={makeTable()} standing={null} lastResult={null} />)
+    expect(screen.getByText('GD')).toBeInTheDocument()
+    expect(screen.getByText('+15')).toBeInTheDocument() // Alice: 3 wins
+    expect(screen.getByText('+5')).toBeInTheDocument() // Bob: 2 wins
+    expect(screen.getByText('-5')).toBeInTheDocument() // Charlie: 1 win
   })
 
   it('highlights the viewer, not first place', () => {

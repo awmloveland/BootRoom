@@ -178,7 +178,7 @@ function QuarterlyTableWidget({ weeks, leagueDayIndex }: { weeks: Week[]; league
   return (
     <div className={WIDGET_CLASS}>
       {/* Header with inline column labels */}
-      <div className="px-3.5 py-2.5 border-b border-[#17263c] bg-[#0c1728] flex items-center gap-1.5 font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#4f688a]">
+      <div className="px-3.5 py-2.5 border-b border-[#17263c] bg-[#0c1728] flex items-center gap-1 font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#4f688a]">
         <span className={cn(WIDGET_TITLE_CLASS, 'flex-1 min-w-0 truncate')}>
           {quarterLabel}
         </span>

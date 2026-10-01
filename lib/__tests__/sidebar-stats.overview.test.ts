@@ -5,8 +5,8 @@ function played(week: number, date: string, teamA: string[], teamB: string[], wi
   return { id: `id-${week}`, season: date.slice(-4), week, date, status: 'played', teamA, teamB, winner }
 }
 
-function entry(name: string, points: number, won: number): QuarterlyEntry {
-  return { name, played: 5, won, drew: 0, lost: 0, points }
+function entry(name: string, points: number, won: number, goalDiff = 0, played = 5): QuarterlyEntry {
+  return { name, played, won, drew: 0, lost: 0, points, goalDiff }
 }
 
 describe('computeQuarterlyTable: Overview fields', () => {
@@ -84,6 +84,30 @@ describe('getQuarterStanding', () => {
     const table = [entry('Alice', 9, 3), entry('Bob', 9, 2)]
     expect(getQuarterStanding(table, 'Alice')).toMatchObject({ position: 1, jointTop: false })
     expect(getQuarterStanding(table, 'Bob')).toMatchObject({ position: 2, jointTop: false })
+  })
+
+  it('separates players level on points by goal difference', () => {
+    const table = [entry('Alice', 9, 3, 6), entry('Bob', 9, 3, 2)]
+    expect(getQuarterStanding(table, 'Alice')).toMatchObject({ position: 1, jointTop: false })
+    expect(getQuarterStanding(table, 'Bob')).toMatchObject({ position: 2, jointTop: false })
+  })
+
+  it('separates players level on points and goal difference by fewer games played', () => {
+    const table = [entry('Bob', 9, 3, 4, 4), entry('Alice', 9, 3, 4, 5)]
+    expect(getQuarterStanding(table, 'Bob')).toMatchObject({ position: 1, jointTop: false })
+    expect(getQuarterStanding(table, 'Alice')).toMatchObject({ position: 2, jointTop: false })
+  })
+
+  it('agrees with the table order computeQuarterlyTable produces', () => {
+    // Zed wins by 4, Alice by 1: level on points, Zed ahead on goal difference.
+    const weeks: Week[] = [
+      { ...played(14, '02 Apr 2026', ['Alice'], ['Opp1']), goal_difference: 1 },
+      { ...played(15, '09 Apr 2026', ['Zed'], ['Opp2']), goal_difference: 4 },
+    ]
+    const { allEntries } = computeQuarterlyTable(weeks, new Date(2026, 4, 15), 4)
+    expect(allEntries.map(e => e.name).slice(0, 2)).toEqual(['Zed', 'Alice'])
+    expect(getQuarterStanding(allEntries, 'Zed')).toMatchObject({ rank: 1, position: 1, jointTop: false })
+    expect(getQuarterStanding(allEntries, 'Alice')).toMatchObject({ rank: 2, position: 2, jointTop: false })
   })
 
   it('finds a player ranked below the top 10', () => {

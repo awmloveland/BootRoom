@@ -1,5 +1,5 @@
 import { Trophy } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatGoalDiff } from '@/lib/utils'
 import type { QuarterlyEntry } from '@/lib/sidebar-stats'
 
 /** 'sidebar' is the 288px stats sidebar; 'page' is the Overview tab content column. */
@@ -7,7 +7,10 @@ export type WidgetSize = 'sidebar' | 'page'
 
 const NUM_CLASS = 'font-plex text-[10.5px] text-[#4f688a] text-center shrink-0'
 
-/** The P / W / D / L / Pts labels. Render inside a flex header row that sets the font. */
+/**
+ * The P / W / D / L / GD / Pts labels. Render inside a flex header row that sets
+ * the font and uses gap-1, the same gap as the rows, so the columns line up.
+ */
 export function QuarterTableColumnLabels() {
   return (
     <>
@@ -15,6 +18,7 @@ export function QuarterTableColumnLabels() {
       <span className="w-[18px] text-center">W</span>
       <span className="w-[18px] text-center">D</span>
       <span className="w-[18px] text-center">L</span>
+      <span className="w-[26px] text-center">GD</span>
       <span className="w-[26px] text-right text-[#6f88a8]">Pts</span>
     </>
   )
@@ -69,6 +73,7 @@ export function QuarterTableRows({ rows, highlightName, size = 'sidebar' }: Quar
             <span className={cn(NUM_CLASS, 'w-[18px]')}>{e.won}</span>
             <span className={cn(NUM_CLASS, 'w-[18px]')}>{e.drew}</span>
             <span className={cn(NUM_CLASS, 'w-[18px]')}>{e.lost}</span>
+            <span className={cn(NUM_CLASS, 'w-[26px]')}>{formatGoalDiff(e.goalDiff)}</span>
             <span className={cn(
               'font-plex text-xs font-bold w-[26px] text-right shrink-0',
               on ? 'text-[#38bdf8]' : 'text-[#dff1ff]'

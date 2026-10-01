@@ -4,7 +4,7 @@ import type { QuarterSummary, QuarterlyEntry } from '../sidebar-stats'
 function entry(
   name: string, points: number, played: number, won: number, drew: number, lost: number
 ): QuarterlyEntry {
-  return { name, played, won, drew, lost, points }
+  return { name, played, won, drew, lost, points, goalDiff: 0 }
 }
 
 function makeQuarter(overrides: Partial<QuarterSummary> = {}): QuarterSummary {

@@ -41,6 +41,14 @@ describe('StatsSidebar', () => {
     expect(screen.queryByText('You')).not.toBeInTheDocument()
   })
 
+  it('shows the goal difference column', () => {
+    const weeks = WEEKS.map((w) => ({ ...w, goal_difference: 3 }))
+    render(<StatsSidebar players={PLAYERS} weeks={weeks} leagueDayIndex={4} />)
+    expect(screen.getByText('GD')).toBeInTheDocument()
+    expect(screen.getAllByText('+3')).toHaveLength(2) // Charlie, Dave
+    expect(screen.getAllByText('-3')).toHaveLength(2) // Alice, Bob
+  })
+
   it('shows quarter progress', () => {
     render(<StatsSidebar players={PLAYERS} weeks={WEEKS} leagueDayIndex={4} />)
     expect(screen.getByText(/^1 of \d+ played$/)).toBeInTheDocument()
@@ -92,8 +100,8 @@ describe('TeamABWidget', () => {
 
 describe('QuarterTableRows', () => {
   const rows = [
-    { rank: 1, entry: { name: 'Alice', played: 3, won: 3, drew: 0, lost: 0, points: 9 } },
-    { rank: 2, entry: { name: 'Bob', played: 3, won: 2, drew: 0, lost: 1, points: 6 } },
+    { rank: 1, entry: { name: 'Alice', played: 3, won: 3, drew: 0, lost: 0, points: 9, goalDiff: 5 } },
+    { rank: 2, entry: { name: 'Bob', played: 3, won: 2, drew: 0, lost: 1, points: 6, goalDiff: -2 } },
   ]
 
   it('tags the highlighted row with You at page size', () => {
@@ -102,6 +110,12 @@ describe('QuarterTableRows', () => {
     expect(highlighted).toHaveLength(1)
     expect(highlighted[0]).toHaveTextContent('Bob')
     expect(highlighted[0]).toHaveTextContent('You')
+  })
+
+  it('shows each row goal difference, signed', () => {
+    render(<QuarterTableRows rows={rows} highlightName={null} />)
+    expect(screen.getByText('+5')).toBeInTheDocument()
+    expect(screen.getByText('-2')).toBeInTheDocument()
   })
 
   it('highlights nobody when no name is given', () => {

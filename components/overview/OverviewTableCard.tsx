@@ -88,7 +88,7 @@ export function OverviewTableCard({ table, standing, lastResult }: OverviewTable
     <div className={WIDGET_CLASS}>
       {lastResult && <LastResultStrip week={lastResult} />}
 
-      <div className="flex items-center gap-1.5 border-b border-[#17263c] px-4 py-2 font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#4f688a]">
+      <div className="flex items-center gap-1 border-b border-[#17263c] px-4 py-2 font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#4f688a]">
         <span className={cn(WIDGET_TITLE_CLASS, 'flex-1 min-w-0 truncate')}>
           League table · Q{table.displayQ} {table.displayYear}
         </span>

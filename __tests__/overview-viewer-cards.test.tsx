@@ -26,7 +26,7 @@ const JAMIE: Player = {
 
 const TOP: QuarterStanding = {
   rank: 3, position: 1, jointTop: true,
-  entry: { name: 'Jamie Ellis', played: 1, won: 1, drew: 0, lost: 0, points: 3 },
+  entry: { name: 'Jamie Ellis', played: 1, won: 1, drew: 0, lost: 0, points: 3, goalDiff: 2 },
 }
 
 describe('OverviewYourStats', () => {
