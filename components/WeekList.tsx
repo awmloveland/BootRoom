@@ -8,7 +8,7 @@ import { YearDivider } from '@/components/YearDivider'
 import { NameGuestModal } from '@/components/NameGuestModal'
 import { QuarterCelebration } from '@/components/QuarterCelebration'
 import { startsCelebratedQuarter, type ResultsCelebration } from '@/lib/sidebar-stats'
-import { getMonthKey, formatMonthYear, sortWeeks } from '@/lib/utils'
+import { getLatestResultWeek, getMonthKey, formatMonthYear } from '@/lib/utils'
 import type { Mentality, Player, Strength, Week } from '@/lib/types'
 
 interface Props {
@@ -24,6 +24,7 @@ interface Props {
   leagueName?: string
   celebration?: ResultsCelebration | null   // champion card, rendered above the first result of that quarter
   linkedPlayerName?: string | null          // viewer's linked player, for the YOU tag on played weeks
+  season?: string                           // only render this season's weeks (Results year tabs)
 }
 
 interface NameGuestTarget {
@@ -44,11 +45,16 @@ export function WeekList({
   leagueName,
   celebration = null,
   linkedPlayerName = null,
+  season,
 }: Props) {
   const router = useRouter()
-  const recentEligible = sortWeeks(weeks.filter((w) => w.status === 'played' || w.status === 'dnf'))
-  const mostRecent = recentEligible[0] ?? null
-  const [internalOpenWeek, setInternalOpenWeek] = useState<number | null>(mostRecent?.week ?? null)
+  // Cards render for one season when the year tabs are in play; cards still get
+  // the full history for share text and edit modals.
+  const visibleWeeks = season ? weeks.filter((w) => w.season === season) : weeks
+  const mostRecent = getLatestResultWeek(weeks)
+  const [internalOpenWeek, setInternalOpenWeek] = useState<number | null>(
+    getLatestResultWeek(visibleWeeks)?.week ?? null
+  )
   const [nameGuestTarget, setNameGuestTarget] = useState<NameGuestTarget | null>(null)
 
   const isControlled = controlledOpenWeek !== undefined
@@ -98,19 +104,19 @@ export function WeekList({
 
   const existingPlayers = allPlayers.map((p) => p.name)
 
-  if (weeks.length === 0) {
+  if (visibleWeeks.length === 0) {
     return <p className="text-[#8ba4c4] text-sm">No results yet.</p>
   }
 
   return (
     <div className="flex flex-col gap-3">
-      {weeks.map((week, index) => {
-        const yearChanged = index > 0 && week.season !== weeks[index - 1].season
+      {visibleWeeks.map((week, index) => {
+        const yearChanged = index > 0 && week.season !== visibleWeeks[index - 1].season
         const monthChanged =
-          index > 0 && getMonthKey(week.date) !== getMonthKey(weeks[index - 1].date)
+          index > 0 && getMonthKey(week.date) !== getMonthKey(visibleWeeks[index - 1].date)
         return (
           <Fragment key={week.id ?? `${week.season}-${week.week}`}>
-            {celebration && startsCelebratedQuarter(weeks, index, celebration.quarter) && (
+            {celebration && startsCelebratedQuarter(visibleWeeks, index, celebration.quarter) && (
               <QuarterCelebration
                 quarter={celebration.quarter}
                 leagueName={celebration.leagueName}
@@ -132,7 +138,7 @@ export function WeekList({
               leagueName={leagueName}
               leagueSlug={leagueSlug}
               weeks={weeks}
-              isMostRecent={week.week === mostRecent?.week}
+              isMostRecent={week.season === mostRecent?.season && week.week === mostRecent?.week}
               onNameGuest={handleNameGuestRequest}
               linkedPlayerName={linkedPlayerName}
             />

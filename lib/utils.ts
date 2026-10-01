@@ -618,6 +618,37 @@ export function getHeaderSeason(weeks: Week[]): string {
   return relevant.some((w) => w.season === prevYear) ? prevYear : currentYear
 }
 
+/** Distinct seasons across all weeks (any status), newest first, e.g. ['2026', '2025']. */
+export function getSeasons(weeks: Week[]): string[] {
+  return Array.from(new Set(weeks.map((w) => w.season))).sort((a, b) => Number(b) - Number(a))
+}
+
+/**
+ * Season the Results tab shows: the `?year` param when it is one of the
+ * league's seasons, otherwise the newest season (or the current calendar year
+ * when the league has no weeks yet).
+ */
+export function resolveSelectedYear(seasons: string[], param: string | null | undefined): string {
+  if (param && seasons.includes(param)) return param
+  return seasons[0] ?? String(new Date().getFullYear())
+}
+
+/** Latest played or DNF week by date: the result card that opens by default. */
+export function getLatestResultWeek(weeks: Week[]): Week | null {
+  return sortWeeks(weeks.filter((w) => w.status === 'played' || w.status === 'dnf'))[0] ?? null
+}
+
+/**
+ * Mirrors the Results year into the URL without a navigation. The default
+ * year keeps the URL clean. Client-only.
+ */
+export function writeYearParam(year: string, defaultYear: string): void {
+  const url = new URL(window.location.href)
+  if (year === defaultYear) url.searchParams.delete('year')
+  else url.searchParams.set('year', year)
+  window.history.replaceState(null, '', url)
+}
+
 /** Returns the array of non-empty line-1 fact strings for the info bar. */
 export function buildLeagueInfoFacts(details: LeagueDetails): string[] {
   const facts: string[] = []

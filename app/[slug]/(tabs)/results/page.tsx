@@ -6,9 +6,7 @@ import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled, isLeagueHidden } from '@/lib/features'
 import { dayNameToIndex, isPastDeadline, parseWeekDate } from '@/lib/utils'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
-import { PublicMatchEntrySection } from '@/components/PublicMatchEntrySection'
-import { PublicMatchList } from '@/components/PublicMatchList'
-import { WeekList } from '@/components/WeekList'
+import { PublicResultsSection } from '@/components/PublicResultsSection'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { ResultsSection } from '@/components/ResultsSection'
 import { BfcacheRefresh } from '@/components/BfcacheRefresh'
@@ -103,26 +101,16 @@ export default async function LeagueResultsPage({ params }: Props) {
       <>
         <BfcacheRefresh />
         <div className="flex flex-col gap-3">
-          {nextWeek && (
-            <PublicMatchEntrySection
-              gameId={leagueId}
-              leagueSlug={slug}
-              weeks={weeks}
-              initialScheduledWeek={nextWeek}
-              canEdit={canSeeMatchEntry}
-              leagueName={game.name}
-            />
-          )}
-          {canSeeMatchHistory && (
-            <section>
-              <PublicMatchList
-                weeks={weeks}
-                celebration={celebration}
-                leagueName={game.name}
-                leagueSlug={slug}
-              />
-            </section>
-          )}
+          <PublicResultsSection
+            gameId={leagueId}
+            leagueSlug={slug}
+            leagueName={game.name}
+            weeks={weeks}
+            nextWeek={nextWeek}
+            canEditMatchEntry={canSeeMatchEntry}
+            showMatchHistory={canSeeMatchHistory}
+            celebration={celebration}
+          />
           {!isAuthenticated && (
             <p className="pt-2 font-plex text-[9px] uppercase tracking-[.14em] text-[#4f688a] text-center">
               Sign in for full access to your league.
@@ -139,7 +127,7 @@ export default async function LeagueResultsPage({ params }: Props) {
       <BfcacheRefresh />
       {showClaimBanner && <ClaimOnboardingBanner leagueId={leagueId} />}
       <div className="flex flex-col gap-3">
-        {canSeeMatchEntry ? (
+        {canSeeMatchEntry || canSeeMatchHistory ? (
           <ResultsSection
             gameId={leagueId}
             leagueSlug={game.slug}
@@ -149,21 +137,11 @@ export default async function LeagueResultsPage({ params }: Props) {
             canAutoPick={true}
             allPlayers={players}
             showMatchHistory={canSeeMatchHistory}
+            showMatchEntry={canSeeMatchEntry}
             leagueDayIndex={leagueDayIndex}
             isAdmin={isAdmin}
             leagueName={game.name}
             celebration={celebration}
-            linkedPlayerName={claim.playerName}
-          />
-        ) : canSeeMatchHistory ? (
-          <WeekList
-            weeks={weeks}
-            goalkeepers={goalkeepers}
-            isAdmin={isAdmin}
-            gameId={leagueId}
-            leagueSlug={game.slug}
-            allPlayers={players}
-            leagueName={game.name}
             linkedPlayerName={claim.playerName}
           />
         ) : (
