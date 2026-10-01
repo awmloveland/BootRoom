@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown } from 'lucide-react'
-import { cn, buildQuarterShareText, shareOrCopy } from '@/lib/utils'
+import { cn, buildQuarterShareText, shareOrCopy, formatGoalDiff } from '@/lib/utils'
 import type { QuarterSummary, HonoursYear } from '@/lib/sidebar-stats'
 
 interface HonoursSectionProps {
@@ -125,6 +125,7 @@ function CompletedCardBody({
           <span className="w-5 text-center">W</span>
           <span className="w-5 text-center">D</span>
           <span className="w-5 text-center">L</span>
+          <span className="w-7 text-center">GD</span>
           <span className="w-[30px] text-right text-[#6f88a8]">Pts</span>
         </div>
         <div className="flex flex-col gap-0.5">
@@ -152,6 +153,7 @@ function CompletedCardBody({
               <span className="font-plex text-[11px] text-[#6f88a8] w-5 text-center shrink-0">{e.won}</span>
               <span className="font-plex text-[11px] text-[#6f88a8] w-5 text-center shrink-0">{e.drew}</span>
               <span className="font-plex text-[11px] text-[#6f88a8] w-5 text-center shrink-0">{e.lost}</span>
+              <span className="font-plex text-[11px] text-[#6f88a8] w-7 text-center shrink-0">{formatGoalDiff(e.goalDiff)}</span>
               <span className={cn(
                 'font-plex text-[13px] font-bold w-[30px] text-right shrink-0',
                 i === 0 ? 'text-[#38bdf8]' : 'text-[#dff1ff]'
