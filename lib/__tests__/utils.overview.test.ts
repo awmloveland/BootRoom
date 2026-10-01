@@ -43,6 +43,19 @@ describe('leagueLandingPath', () => {
     expect(leagueLandingPath('the-boot-room', null)).toBe('/the-boot-room/results')
     expect(leagueLandingPath('the-boot-room', '')).toBe('/the-boot-room/results')
   })
+
+  it('trusts the measured viewport over the user agent', () => {
+    // A narrow desktop window or an iPad in portrait
+    expect(leagueLandingPath('the-boot-room', DESKTOP, 'narrow')).toBe('/the-boot-room/overview')
+    expect(leagueLandingPath('the-boot-room', IPAD, 'narrow')).toBe('/the-boot-room/overview')
+    // An Android tablet in landscape
+    expect(leagueLandingPath('the-boot-room', ANDROID_TABLET, 'wide')).toBe('/the-boot-room/results')
+  })
+
+  it('ignores an unrecognised viewport value', () => {
+    expect(leagueLandingPath('the-boot-room', DESKTOP, 'huge')).toBe('/the-boot-room/results')
+    expect(leagueLandingPath('the-boot-room', IPHONE, undefined)).toBe('/the-boot-room/overview')
+  })
 })
 
 describe('formatFixtureDate', () => {
