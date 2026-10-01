@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useSelectedLayoutSegment } from 'next/navigation'
 import { Activity, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -10,6 +11,7 @@ interface MobileStatsFABProps {
 }
 
 export function MobileStatsFAB({ children }: MobileStatsFABProps) {
+  const segment = useSelectedLayoutSegment()
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -67,6 +69,9 @@ export function MobileStatsFAB({ children }: MobileStatsFABProps) {
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [open, handleOpenChange])
+
+  // The Overview tab is the stats, so the button has nothing to add there.
+  if (segment === 'overview') return null
 
   return (
     <>

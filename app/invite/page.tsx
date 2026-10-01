@@ -162,7 +162,7 @@ function InviteFlow() {
 
       // Full-page navigation so middleware re-runs and the new
       // game_members row is visible to the league pages.
-      window.location.href = `/${preview.league_slug}/results`
+      window.location.href = `/${preview.league_slug}`
     }
     run()
     return () => { cancelled = true }

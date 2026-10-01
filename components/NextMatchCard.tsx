@@ -13,6 +13,7 @@ import { TeamList } from '@/components/TeamList'
 import { AddPlayerModal } from '@/components/AddPlayerModal'
 import { ResultModal } from '@/components/ResultModal'
 import { FormDots } from '@/components/FormDots'
+import { NextGameIdle, NextGameLineup } from '@/components/overview/NextGameCard'
 
 interface Props {
   gameId: string
@@ -35,6 +36,18 @@ interface Props {
   leagueDayIndex?: number
   /** Display name of the league — used to build the share text. */
   leagueName?: string
+  /**
+   * 'overview' renders the idle and lineup states in the Overview tab design and
+   * takes its first state from `initialScheduledWeek` instead of fetching, so the
+   * card is in the page's first paint. Building and cancelled are the same in both.
+   */
+  variant?: 'results' | 'overview'
+  /** Extra context shown by the Overview variant. */
+  overview?: {
+    linkedPlayerName?: string | null
+    location?: string | null
+    kickoffTime?: string | null
+  }
 }
 
 type CardState = 'loading' | 'idle' | 'building' | 'lineup' | 'cancelled'
@@ -129,9 +142,18 @@ export function NextMatchCard({
   onBuildStart,
   leagueDayIndex,
   leagueName = '',
+  variant = 'results',
+  overview,
 }: Props) {
-  const [cardState, setCardState] = useState<CardState>('loading')
-  const [scheduledWeek, setScheduledWeek] = useState<ScheduledWeek | null>(null)
+  const isOverview = variant === 'overview'
+  const [cardState, setCardState] = useState<CardState>(() => {
+    if (!isOverview) return 'loading'
+    if (!initialScheduledWeek) return 'idle'
+    return initialScheduledWeek.status === 'cancelled' ? 'cancelled' : 'lineup'
+  })
+  const [scheduledWeek, setScheduledWeek] = useState<ScheduledWeek | null>(
+    isOverview ? initialScheduledWeek ?? null : null
+  )
 
   // Building state — player selection
   const [selectedNames, setSelectedNames] = useState<string[]>([])
@@ -260,7 +282,8 @@ export function NextMatchCard({
   }
 
   useEffect(() => {
-    if (publicMode) {
+    // Public mode and the Overview variant take the week from the server.
+    if (publicMode || isOverview) {
       if (initialScheduledWeek) {
         setScheduledWeek(initialScheduledWeek)
         setCardState(initialScheduledWeek.status === 'cancelled' ? 'cancelled' : 'lineup')
@@ -340,7 +363,7 @@ export function NextMatchCard({
       }
     }
     load()
-  }, [gameId, publicMode, initialScheduledWeek])
+  }, [gameId, publicMode, isOverview, initialScheduledWeek])
 
   async function handleSaveLineup() {
     if (!autoPickResult || autoPickResult.suggestions.length === 0) {
@@ -573,8 +596,18 @@ export function NextMatchCard({
     <>
       <div className="rounded-xl border border-[#223a5c] bg-[#0a1421] overflow-hidden shadow-[0_18px_44px_rgba(0,0,0,.42)]">
 
+        {/* ── IDLE (Overview tab) ── */}
+        {isOverview && cardState === 'idle' && (
+          <NextGameIdle
+            week={nextWeekNum}
+            canEdit={canEdit}
+            onBuildTeams={() => { onBuildStart?.(); setCardState('building') }}
+            onCancelGame={() => { setError(null); setShowCancelModal(true) }}
+          />
+        )}
+
         {/* ── IDLE ── */}
-        {cardState === 'idle' && (
+        {!isOverview && cardState === 'idle' && (
           canEdit ? (
             <div className="flex items-center justify-between gap-4 px-[18px] py-3">
               <div>
@@ -889,8 +922,26 @@ export function NextMatchCard({
           )
         )}
 
+        {/* ── LINEUP (Overview tab) ── */}
+        {isOverview && cardState === 'lineup' && scheduledWeek && (
+          <NextGameLineup
+            week={displayWeek}
+            date={displayDate}
+            format={scheduledWeek.format}
+            teamA={scheduledWeek.teamA}
+            teamB={scheduledWeek.teamB}
+            linkedPlayerName={overview?.linkedPlayerName ?? null}
+            location={overview?.location ?? null}
+            kickoffTime={overview?.kickoffTime ?? null}
+            awaitingResult={isPastDeadline(scheduledWeek.date)}
+            canEdit={canEdit && scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0}
+            onEditLineups={handleEditLineup}
+            onResultGame={() => { setError(null); setShowResultModal(true) }}
+          />
+        )}
+
         {/* ── LINEUP header ── */}
-        {cardState === 'lineup' && scheduledWeek && (
+        {!isOverview && cardState === 'lineup' && scheduledWeek && (
           <div className="flex items-center justify-between gap-3 px-[18px] py-3 bg-[#0c1728] border-b border-[#1b2c46]">
             <div>
               <p className="text-[15px] font-bold tracking-[-.02em] text-[#f4f9ff]">Week {displayWeek}</p>
@@ -936,7 +987,7 @@ export function NextMatchCard({
         )}
 
         {/* ── LINEUP body ── */}
-        {cardState === 'lineup' && scheduledWeek && (
+        {!isOverview && cardState === 'lineup' && scheduledWeek && (
           <div className="px-[18px] py-4">
             <div className="grid grid-cols-2 gap-4">
               <TeamList
@@ -958,7 +1009,7 @@ export function NextMatchCard({
         )}
 
         {/* ── LINEUP footer ── */}
-        {cardState === 'lineup' && scheduledWeek && scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0 && (
+        {!isOverview && cardState === 'lineup' && scheduledWeek && scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-2 px-[18px] py-3 border-t border-[#1b2c46] bg-[#0c1728]">
             {canEdit ? (
               <button

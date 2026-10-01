@@ -11,5 +11,5 @@ export default async function LegacyLeaguePage({ params }: Props) {
   const { id } = await params
   const game = await getGame(id)
   if (!game) notFound()
-  redirect(`/${game.slug}/results`)
+  redirect(`/${game.slug}`)
 }

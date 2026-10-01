@@ -271,7 +271,7 @@ export function Navbar({
         {/* Right: auth / user controls */}
         <div className="flex items-center justify-end gap-2">
           {showNav && !user && (
-            <AuthDialog redirect={slug ? `/${slug}/results` : '/'} size="xs" signinOnly />
+            <AuthDialog redirect={slug ? `/${slug}` : '/'} size="xs" signinOnly />
           )}
           {showNav && user && (
             <div className="flex items-center gap-0.5">
@@ -322,7 +322,7 @@ export function Navbar({
             <span className="text-[15px] font-bold tracking-[-.02em]">Craft Football</span>
           </Link>
           {showNav && !user && (
-            <AuthDialog redirect={slug ? `/${slug}/results` : '/'} size="xs" signinOnly />
+            <AuthDialog redirect={slug ? `/${slug}` : '/'} size="xs" signinOnly />
           )}
           {showNav && user && (
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>

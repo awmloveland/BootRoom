@@ -1,4 +1,4 @@
-import { computeStandings, parseWeekDate } from '@/lib/utils'
+import { compareStandings, computeStandings, parseWeekDate } from '@/lib/utils'
 import type { Player, Week } from '@/lib/types'
 
 // ─── gamesLeftInQuarter ───────────────────────────────────────────────────────
@@ -110,9 +110,19 @@ export interface QuarterAward {
 
 export interface QuarterlyTableResult {
   quarterLabel: string
+  /** Quarter and four-digit year actually shown (the previous quarter during holdover). */
+  displayQ: number
+  displayYear: number
+  /** Top 10 of the displayed quarter. */
   entries: QuarterlyEntry[]
+  /** The full sorted table of the displayed quarter. */
+  allEntries: QuarterlyEntry[]
   lastChampion: string | null
+  lastChampionPoints: number | null
   lastQuarterLabel: string | null
+  /** Calendar previous quarter, or null when it has no played games. */
+  lastQ: number | null
+  lastYear: number | null
   gamesLeft: number
   gamesTotal: number
   isHoldover: boolean
@@ -273,7 +283,8 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gam
   const quarterLabel = `Q${displayQ} ${yy}`
 
   const displayWeeks = weeks.filter(w => weekInQuarter(w, displayQ, displayYear))
-  const entries = computeStandings(displayWeeks).slice(0, 10)
+  const allEntries = computeStandings(displayWeeks)
+  const entries = allEntries.slice(0, 10)
 
   // gamesLeft is 0 during holdover (the displayed quarter is complete)
   const resolvedGameDay = gameDay ?? inferGameDay(weeks)
@@ -290,10 +301,69 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gam
   const prevYY = String(prevYear).slice(-2)
   const prevWeeks = weeks.filter(w => weekInQuarter(w, prevQ, prevYear))
   const prevEntries = computeStandings(prevWeeks)
-  const lastChampion = prevEntries.length > 0 ? prevEntries[0].name : null
-  const lastQuarterLabel = prevEntries.length > 0 ? `Q${prevQ} ${prevYY}` : null
+  const hasPrev = prevEntries.length > 0
+  const lastChampion = hasPrev ? prevEntries[0].name : null
+  const lastChampionPoints = hasPrev ? prevEntries[0].points : null
+  const lastQuarterLabel = hasPrev ? `Q${prevQ} ${prevYY}` : null
 
-  return { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft, gamesTotal, isHoldover }
+  return {
+    quarterLabel,
+    displayQ,
+    displayYear,
+    entries,
+    allEntries,
+    lastChampion,
+    lastChampionPoints,
+    lastQuarterLabel,
+    lastQ: hasPrev ? prevQ : null,
+    lastYear: hasPrev ? prevYear : null,
+    gamesLeft,
+    gamesTotal,
+    isHoldover,
+  }
+}
+
+// ─── getQuarterStanding ───────────────────────────────────────────────────────
+
+export interface QuarterStanding {
+  /** 1-based place in the sorted table: what the rank column shows. */
+  rank: number
+  /**
+   * Players level on every ranking key (points, goal difference, games played,
+   * wins) share a position: what "1st" on the Your stats card shows.
+   */
+  position: number
+  /** First place, shared with at least one other player. */
+  jointTop: boolean
+  entry: QuarterlyEntry
+}
+
+/**
+ * Where a player sits in a quarterly table. `allEntries` must be the full sorted
+ * table from computeQuarterlyTable, not the top-10 slice.
+ */
+export function getQuarterStanding(
+  allEntries: QuarterlyEntry[],
+  name: string | null | undefined,
+): QuarterStanding | null {
+  if (!name) return null
+  const index = allEntries.findIndex(e => e.name === name)
+  if (index === -1) return null
+  const entry = allEntries[index]
+  // Same order as the table itself, minus the alphabetical last resort.
+  const ahead = allEntries.filter(e => compareStandings(e, entry) < 0).length
+  const level = allEntries.filter(e => compareStandings(e, entry) === 0).length
+  const position = ahead + 1
+  return { rank: index + 1, position, jointTop: position === 1 && level > 1, entry }
+}
+
+// ─── getLastResult ────────────────────────────────────────────────────────────
+
+/** The most recent week with a result (played or did not finish), or null. */
+export function getLastResult(weeks: Week[]): Week | null {
+  const resulted = weeks.filter(w => w.status === 'played' || w.status === 'dnf')
+  if (resulted.length === 0) return null
+  return resulted.reduce((a, b) => (parseWeekDate(a.date) >= parseWeekDate(b.date) ? a : b))
 }
 
 const SEASON_NAMES: Record<number, string> = { 1: 'Winter', 2: 'Spring', 3: 'Summer', 4: 'Autumn' }
