@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { cn, getSeasons, writeYearParam } from '@/lib/utils'
 import type { Week } from '@/lib/types'
 
@@ -57,13 +57,10 @@ export function useResultsYear(weeks: Week[], initialYear: string) {
   const [picked, setPicked] = useState<string | null>(initialYear === defaultYear ? null : initialYear)
   const year = picked && seasons.includes(picked) ? picked : defaultYear
 
-  const selectYear = useCallback(
-    (next: string) => {
-      setPicked(next === defaultYear ? null : next)
-      writeYearParam(next, defaultYear)
-    },
-    [defaultYear]
-  )
+  function selectYear(next: string) {
+    setPicked(next === defaultYear ? null : next)
+    writeYearParam(next, defaultYear)
+  }
 
   return { seasons, year, isDefaultYear: year === defaultYear, selectYear }
 }

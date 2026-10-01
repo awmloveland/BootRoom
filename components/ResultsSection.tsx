@@ -54,13 +54,10 @@ export function ResultsSection({
 
   const [openWeek, setOpenWeek] = useState<number | null>(() => latestResultIn(weeks, year))
 
-  const handleYearSelect = useCallback(
-    (next: string) => {
-      selectYear(next)
-      setOpenWeek(latestResultIn(weeks, next))
-    },
-    [selectYear, weeks]
-  )
+  function handleYearSelect(next: string) {
+    selectYear(next)
+    setOpenWeek(latestResultIn(weeks, next))
+  }
 
   const handleBuildStart = useCallback(() => {
     setOpenWeek(null)
@@ -69,20 +66,23 @@ export function ResultsSection({
   return (
     <div className="flex flex-col gap-3">
       {showMatchHistory && <YearTabs years={seasons} selected={year} onSelect={handleYearSelect} />}
-      {showMatchEntry && isDefaultYear && (
-        <NextMatchCard
-          gameId={gameId}
-          leagueSlug={leagueSlug}
-          weeks={weeks}
-          initialScheduledWeek={initialScheduledWeek}
-          onResultSaved={() => router.refresh()}
-          canEdit={true}
-          canAutoPick={canAutoPick}
-          allPlayers={allPlayers}
-          onBuildStart={handleBuildStart}
-          leagueDayIndex={leagueDayIndex}
-          leagueName={leagueName}
-        />
+      {showMatchEntry && (
+        // Hidden rather than unmounted on past years, so a half-built line-up survives a year switch.
+        <div hidden={showMatchHistory && !isDefaultYear}>
+          <NextMatchCard
+            gameId={gameId}
+            leagueSlug={leagueSlug}
+            weeks={weeks}
+            initialScheduledWeek={initialScheduledWeek}
+            onResultSaved={() => router.refresh()}
+            canEdit={true}
+            canAutoPick={canAutoPick}
+            allPlayers={allPlayers}
+            onBuildStart={handleBuildStart}
+            leagueDayIndex={leagueDayIndex}
+            leagueName={leagueName}
+          />
+        </div>
       )}
       {showMatchHistory && weeks.length > 0 && (
         <WeekList

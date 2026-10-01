@@ -54,14 +54,19 @@ describe('ResultsSection year tabs', () => {
   it('shows the tabs, the next match and the current year’s results by default', () => {
     const { container } = renderSection()
     expect(screen.getByRole('tab', { name: '2026' })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByTestId('next-match')).toBeInTheDocument()
+    expect(screen.getByTestId('next-match')).toBeVisible()
     expect(ids(container)).toEqual(['week-2026-2', 'week-2026-1'])
+  })
+
+  it('opens the latest result of the current year by default', () => {
+    const { container } = renderSection()
+    expect(container.querySelector('[data-testid="week-2026-2"]')).toHaveAttribute('data-open', 'true')
   })
 
   it('switching to a past year hides the next match, filters the list and opens that year’s latest result', () => {
     const { container } = renderSection()
     fireEvent.click(screen.getByRole('tab', { name: '2025' }))
-    expect(screen.queryByTestId('next-match')).not.toBeInTheDocument()
+    expect(screen.getByTestId('next-match')).not.toBeVisible()
     expect(ids(container)).toEqual(['week-2025-40', 'week-2025-39'])
     expect(container.querySelector('[data-testid="week-2025-40"]')).toHaveAttribute('data-open', 'true')
     expect(window.location.search).toBe('?year=2025')
@@ -71,13 +76,28 @@ describe('ResultsSection year tabs', () => {
     renderSection()
     fireEvent.click(screen.getByRole('tab', { name: '2025' }))
     fireEvent.click(screen.getByRole('tab', { name: '2026' }))
-    expect(screen.getByTestId('next-match')).toBeInTheDocument()
+    expect(screen.getByTestId('next-match')).toBeVisible()
     expect(window.location.search).toBe('')
+  })
+
+  it('re-opens the current year’s latest result when switching back to it', () => {
+    const { container } = renderSection()
+    fireEvent.click(screen.getByRole('tab', { name: '2025' }))
+    fireEvent.click(screen.getByRole('tab', { name: '2026' }))
+    expect(container.querySelector('[data-testid="week-2026-2"]')).toHaveAttribute('data-open', 'true')
+  })
+
+  it('keeps the next match mounted across a year switch so its state survives', () => {
+    renderSection()
+    const before = screen.getByTestId('next-match')
+    fireEvent.click(screen.getByRole('tab', { name: '2025' }))
+    fireEvent.click(screen.getByRole('tab', { name: '2026' }))
+    expect(screen.getByTestId('next-match')).toBe(before)
   })
 
   it('starts on a past year when initialYear says so', () => {
     const { container } = renderSection({ initialYear: '2025' })
-    expect(screen.queryByTestId('next-match')).not.toBeInTheDocument()
+    expect(screen.getByTestId('next-match')).not.toBeVisible()
     expect(ids(container)).toEqual(['week-2025-40', 'week-2025-39'])
     expect(container.querySelector('[data-testid="week-2025-40"]')).toHaveAttribute('data-open', 'true')
   })
@@ -95,5 +115,10 @@ describe('ResultsSection year tabs', () => {
   it('renders no tabs when match history is hidden', () => {
     renderSection({ showMatchHistory: false })
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+  })
+
+  it('still shows the next match for a past ?year= when match history is hidden', () => {
+    renderSection({ showMatchHistory: false, initialYear: '2025' })
+    expect(screen.getByTestId('next-match')).toBeVisible()
   })
 })

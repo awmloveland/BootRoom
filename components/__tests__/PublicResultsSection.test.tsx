@@ -53,17 +53,37 @@ beforeEach(() => window.history.replaceState(null, '', '/craft-football/results'
 describe('PublicResultsSection', () => {
   it('shows the next match and current year by default', () => {
     const { container } = renderSection()
-    expect(screen.getByTestId('next-match')).toBeInTheDocument()
+    expect(screen.getByTestId('next-match')).toBeVisible()
     expect(ids(container)).toEqual(['week-2026-2'])
+  })
+
+  it('selects the current year tab by default', () => {
+    renderSection()
+    expect(screen.getByRole('tab', { name: '2026' })).toHaveAttribute('aria-selected', 'true')
   })
 
   it('switching to a past year hides the next match and opens that year’s latest result', () => {
     const { container } = renderSection()
     fireEvent.click(screen.getByRole('tab', { name: '2025' }))
-    expect(screen.queryByTestId('next-match')).not.toBeInTheDocument()
+    expect(screen.getByTestId('next-match')).not.toBeVisible()
     expect(ids(container)).toEqual(['week-2025-40', 'week-2025-39'])
     expect(container.querySelector('[data-testid="week-2025-40"]')).toHaveAttribute('data-open', 'true')
     expect(window.location.search).toBe('?year=2025')
+  })
+
+  it('starts on a past year when initialYear says so', () => {
+    const { container } = renderSection({ initialYear: '2025' })
+    expect(ids(container)).toEqual(['week-2025-40', 'week-2025-39'])
+    expect(container.querySelector('[data-testid="week-2025-40"]')).toHaveAttribute('data-open', 'true')
+    expect(screen.getByTestId('next-match')).not.toBeVisible()
+  })
+
+  it('switching back to the current year shows the next match and clears the param', () => {
+    renderSection()
+    fireEvent.click(screen.getByRole('tab', { name: '2025' }))
+    fireEvent.click(screen.getByRole('tab', { name: '2026' }))
+    expect(screen.getByTestId('next-match')).toBeVisible()
+    expect(window.location.search).toBe('')
   })
 
   it('shows no next match when there is no upcoming week', () => {
@@ -75,6 +95,11 @@ describe('PublicResultsSection', () => {
     const { container } = renderSection({ showMatchHistory: false })
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
     expect(ids(container)).toEqual([])
-    expect(screen.getByTestId('next-match')).toBeInTheDocument()
+    expect(screen.getByTestId('next-match')).toBeVisible()
+  })
+
+  it('still shows the next match for a past ?year= when match history is hidden', () => {
+    renderSection({ showMatchHistory: false, initialYear: '2025' })
+    expect(screen.getByTestId('next-match')).toBeVisible()
   })
 })

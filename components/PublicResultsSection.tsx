@@ -35,15 +35,18 @@ export function PublicResultsSection({
   return (
     <>
       {showMatchHistory && <YearTabs years={seasons} selected={year} onSelect={selectYear} />}
-      {nextWeek && isDefaultYear && (
-        <PublicMatchEntrySection
-          gameId={gameId}
-          leagueSlug={leagueSlug}
-          weeks={weeks}
-          initialScheduledWeek={nextWeek}
-          canEdit={canEditMatchEntry}
-          leagueName={leagueName}
-        />
+      {nextWeek && (
+        // Hidden rather than unmounted on past years, so a half-built line-up survives a year switch.
+        <div hidden={showMatchHistory && !isDefaultYear}>
+          <PublicMatchEntrySection
+            gameId={gameId}
+            leagueSlug={leagueSlug}
+            weeks={weeks}
+            initialScheduledWeek={nextWeek}
+            canEdit={canEditMatchEntry}
+            leagueName={leagueName}
+          />
+        </div>
       )}
       {showMatchHistory && (
         <section>
