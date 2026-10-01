@@ -44,3 +44,33 @@ export async function PATCH(
 
   return NextResponse.json(data)
 }
+
+/** DELETE — remove a player from the roster and unlink any member. Match history is kept. Admin only. */
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string; name: string }> }
+) {
+  const { id, name: playerName } = await params
+
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { data: isAdmin } = await supabase.rpc('is_game_admin', { p_game_id: id })
+  if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const { error } = await supabase.rpc('admin_delete_player', {
+    p_game_id: id,
+    p_name: playerName,
+  })
+
+  if (error) {
+    if (error.message.includes('player_not_found')) {
+      return NextResponse.json({ error: 'Player not found' }, { status: 404 })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true })
+}

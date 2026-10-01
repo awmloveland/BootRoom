@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { ChevronDown, Pencil } from 'lucide-react'
+import { ChevronDown, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Mentality, PlayerAttribute, Strength } from '@/lib/types'
 import { StrengthPills } from '@/components/ui/StrengthPills'
@@ -38,6 +38,9 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
   const [renameValue, setRenameValue] = useState('')
   const [renameError, setRenameError] = useState<string | null>(null)
   const [renameSubmitting, setRenameSubmitting] = useState(false)
+  const [deletingPlayer, setDeletingPlayer] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
 
   const patch = useCallback(
@@ -124,6 +127,26 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
     }
   }
 
+  async function deletePlayer(name: string) {
+    setDeleteSubmitting(true)
+    setDeleteError(null)
+    try {
+      const res = await fetch(
+        `/api/league/${leagueId}/players/${encodeURIComponent(name)}`,
+        { method: 'DELETE', credentials: 'include' }
+      )
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to delete')
+      setPlayers((prev) => prev.filter((p) => p.name !== name))
+      setDeletingPlayer(null)
+      if (expandedName === name) setExpandedName(null)
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete')
+    } finally {
+      setDeleteSubmitting(false)
+    }
+  }
+
   function handleStrengthChange(name: string, next: Strength) {
     patch(name, { strength: next })
   }
@@ -190,7 +213,7 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
             key={player.name}
             className={cn(
               'rounded-lg bg-[#0a1421] border overflow-hidden',
-              hasError ? 'border-[#e2686f]/40' : isExpanded || renamingPlayer === player.name ? 'border-[#223a5c]' : 'border-[#1b2c46]'
+              hasError || deletingPlayer === player.name ? 'border-[#e2686f]/40' : isExpanded || renamingPlayer === player.name ? 'border-[#223a5c]' : 'border-[#1b2c46]'
             )}
           >
             {/* ── Collapsed row ── */}
@@ -285,6 +308,54 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
                     </button>
                   )}
                 </div>
+
+                {deletingPlayer !== player.name && (
+                  <div className="border-t border-[#17263c] pt-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeletingPlayer(player.name)
+                        setDeleteError(null)
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs text-[#6f88a8] hover:text-[#e2686f] transition-colors"
+                    >
+                      <Trash2 className="size-3" />
+                      Delete player
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Delete confirmation ── */}
+            {deletingPlayer === player.name && (
+              <div className="border-t border-[#e2686f]/35 bg-[#e2686f]/8 px-3 py-3">
+                <p className="text-sm font-semibold text-[#f4f9ff] mb-1">Delete {player.name}?</p>
+                <p className="text-xs text-[#8ba4c4] mb-3">
+                  They&apos;ll be removed from the roster, the Players tab and the team builder. Past match lineups keep their name.
+                  {player.linked_display_name && ` ${player.linked_display_name} will be unlinked.`}
+                  {' '}This can&apos;t be undone.
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => deletePlayer(player.name)}
+                    disabled={deleteSubmitting}
+                    className="px-3 py-1.5 rounded bg-[#e2686f] hover:bg-[#e2686f]/85 text-[#05101d] text-xs font-bold disabled:opacity-50 transition-colors"
+                  >
+                    {deleteSubmitting ? '…' : 'Delete'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setDeletingPlayer(null); setDeleteError(null) }}
+                    className="px-3 py-1.5 rounded-md border border-[#223a5c] text-[#8ba4c4] text-xs hover:border-[#2c4a72] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {deleteError && (
+                  <p className="mt-2 text-xs text-[#e2686f]">{deleteError}</p>
+                )}
               </div>
             )}
 
