@@ -688,13 +688,26 @@ export function getNextMatchSeed(weeks: Week[]): ScheduledWeek | null {
   }
 }
 
+/** Cookie holding the browser's last measured viewport, 'narrow' (below lg) or 'wide'. */
+export const VIEWPORT_COOKIE = 'viewport'
+
 /**
- * Where a visitor lands when they open a league. Phones and Android tablets get
- * the Overview tab (hidden at lg and above); everything else gets Results.
- * iPadOS Safari sends a desktop user agent, so iPads land on Results.
+ * Where a visitor lands when they open a league. Screens below lg get the
+ * Overview tab (hidden at lg and above); everything else gets Results.
+ * The viewport cookie is the source of truth once the browser has set it. On a
+ * first visit the user agent stands in: phones and Android tablets get
+ * Overview, everything else (including iPads, whose Safari sends a desktop
+ * user agent) gets Results.
  */
-export function leagueLandingPath(slug: string, userAgent: string | null | undefined): string {
-  const smallScreen = /Mobi|Android/i.test(userAgent ?? '')
+export function leagueLandingPath(
+  slug: string,
+  userAgent: string | null | undefined,
+  viewport?: string | null
+): string {
+  const smallScreen =
+    viewport === 'narrow' ? true
+    : viewport === 'wide' ? false
+    : /Mobi|Android/i.test(userAgent ?? '')
   return `/${slug}/${smallScreen ? 'overview' : 'results'}`
 }
 
