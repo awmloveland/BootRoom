@@ -1,0 +1,50 @@
+/**
+ * @jest-environment jsdom
+ */
+import { render, screen } from '@testing-library/react'
+import { useSelectedLayoutSegment } from 'next/navigation'
+import { LeagueTabNav } from '@/components/LeagueTabNav'
+import { MobileStatsFAB } from '@/components/MobileStatsFAB'
+
+jest.mock('next/navigation', () => ({
+  useSelectedLayoutSegment: jest.fn(),
+}))
+
+const segment = useSelectedLayoutSegment as jest.Mock
+
+// jsdom has no layout engine; ScrollTabIntoView calls this on the active tab.
+beforeAll(() => {
+  Element.prototype.scrollIntoView = jest.fn()
+})
+
+describe('LeagueTabNav', () => {
+  it('lists Overview first, hidden on large screens', () => {
+    segment.mockReturnValue('results')
+    render(<LeagueTabNav leagueSlug="the-boot-room" />)
+    const links = screen.getAllByRole('link')
+    expect(links.map((l) => l.textContent)).toEqual(['Overview', 'Results', 'Players', 'Honours', 'Lineup Lab'])
+    expect(links[0]).toHaveAttribute('href', '/the-boot-room/overview')
+    expect(links[0]).toHaveClass('lg:hidden')
+    expect(links[1]).not.toHaveClass('lg:hidden')
+  })
+
+  it('marks Overview as current on the overview segment', () => {
+    segment.mockReturnValue('overview')
+    render(<LeagueTabNav leagueSlug="the-boot-room" />)
+    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page')
+  })
+})
+
+describe('MobileStatsFAB', () => {
+  it('shows the Stats button on other tabs', () => {
+    segment.mockReturnValue('results')
+    render(<MobileStatsFAB><p>stats</p></MobileStatsFAB>)
+    expect(screen.getByRole('button', { name: 'View live stats' })).toBeInTheDocument()
+  })
+
+  it('renders nothing on the Overview tab', () => {
+    segment.mockReturnValue('overview')
+    const { container } = render(<MobileStatsFAB><p>stats</p></MobileStatsFAB>)
+    expect(container).toBeEmptyDOMElement()
+  })
+})

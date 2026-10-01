@@ -35,6 +35,7 @@ describe('LeagueHeaderSkeleton', () => {
   it('renders the real tab links for the league', () => {
     render(<LeagueHeaderSkeleton leagueSlug="the-boot-room" />)
     for (const [label, path] of [
+      ['Overview', 'overview'],
       ['Results', 'results'],
       ['Players', 'players'],
       ['Honours', 'honours'],
