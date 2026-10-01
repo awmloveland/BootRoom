@@ -43,8 +43,9 @@ export async function POST(request: Request, { params }: Params) {
     return null
   }
 
-  if (!dnf && !Number.isInteger(goalDifference)) {
-    return NextResponse.json({ error: 'goalDifference must be an integer' }, { status: 400 })
+  // Unsigned win margin: the winner is stored separately, so negatives are invalid
+  if (!dnf && (!Number.isInteger(goalDifference) || (goalDifference as number) < 0)) {
+    return NextResponse.json({ error: 'goalDifference must be a non-negative integer' }, { status: 400 })
   }
 
   const goalDiff = dnf ? null : (goalDifference as number)
