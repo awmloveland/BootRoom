@@ -223,10 +223,8 @@ export function NextMatchCard({
       .map((g) => [g.name, g.associatedPlayer] as [string, string])
 
     // Treat guests, new players and zero-game roster players as "unknown" —
-    // the count-balance filter spreads them across teams subject to
-    // pair-pinning constraints. autoPick no-ops internally when the set is
-    // empty or a singleton, so we can pass it unconditionally. We collect
-    // playerIds (not names) so same-named entities stay distinct.
+    // autoPick spreads them as evenly as sizes, keepers and guest pairs allow.
+    // We collect playerIds (not names) so same-named entities stay distinct.
     const unknownEntryNames = new Set<string>()
     for (const g of guestEntries) unknownEntryNames.add(g.name)
     for (const p of newPlayerEntries) unknownEntryNames.add(p.name)
@@ -490,11 +488,13 @@ export function NextMatchCard({
 
     const metadata = scheduledWeek.lineupMetadata
     if (metadata) {
-      setGuestEntries(metadata.guests.map((g) => ({
+      // A newcomer who has since joined the roster is already selected above.
+      const notOnRoster = (entry: { name: string }) => !knownPlayerNames.has(entry.name.toLowerCase())
+      setGuestEntries(metadata.guests.filter(notOnRoster).map((g) => ({
         ...g,
         strength: g.strength ?? 'average',
       })))
-      setNewPlayerEntries(metadata.new_players.map((p) => ({
+      setNewPlayerEntries(metadata.new_players.filter(notOnRoster).map((p) => ({
         ...p,
         strength: p.strength ?? 'average',
       })))
@@ -855,6 +855,9 @@ export function NextMatchCard({
                   )
                 })()}
 
+                {isAutoPickMode && autoPickResult.warning === 'uneven-teams' && (
+                  <p className="font-inter-body text-xs text-[#e2686f]">Teams are uneven because too many guests are tied to one player.</p>
+                )}
                 {error && <p className="font-inter-body text-xs text-[#e2686f]">{error}</p>}
               </div>
 
@@ -1101,6 +1104,7 @@ export function NextMatchCard({
           players={sortedPlayers.filter((p) => selectedNames.includes(p.name))}
           allLeaguePlayers={allPlayers}
           existingGuests={guestEntries}
+          existingNewPlayers={newPlayerEntries}
           onAdd={(entry) => {
             if (entry.type === 'guest') {
               setGuestEntries((prev) => [...prev, entry as GuestEntry])

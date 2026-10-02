@@ -1,658 +1,486 @@
-import { autoPick, findAssocTeam } from '@/lib/autoPick'
+import { autoPick, type AutoPickResult, type AutoPickSuggestion } from '@/lib/autoPick'
 import type { Player } from '@/lib/types'
-import { ewptScore, wprScore } from '@/lib/utils'
+import { ewptScore, ewptScoreFromRatings, wprScore } from '@/lib/utils'
 import { seededRng } from './helpers/seeded-rng'
 import { makePlayer, ratedPlayer } from './helpers/players'
 
-// ─── Helper ──────────────────────────────────────────────────────────────────
+// seededRng's first draw is below 0.5 for every seed from 0 to 200, so tests
+// that depend on the Team A / Team B coin use well-spread seeds.
+const spreadRng = (i: number) => seededRng(i * 7919)
+const SEEDS = Array.from({ length: 50 }, (_, i) => i + 1)
 
-function onSameTeam(suggestion: { teamA: Player[]; teamB: Player[] }, a: string, b: string): boolean {
-  const inA = (name: string) => suggestion.teamA.some((p) => p.name === name)
-  return inA(a) === inA(b)
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function onSameTeam(s: AutoPickSuggestion, a: Player, b: Player): boolean {
+  return s.teamA.includes(a) === s.teamA.includes(b)
 }
 
-// ─── Baseline: no pairs ───────────────────────────────────────────────────────
+/** Partition key by object identity, ignoring which side is called A. */
+function partitionKey(players: Player[], s: { teamA: Player[]; teamB: Player[] }): string {
+  const side = (team: Player[]) => team.map((p) => players.indexOf(p)).sort((x, y) => x - y).join(',')
+  return [side(s.teamA), side(s.teamB)].sort().join('|')
+}
 
-describe('autoPick — no pairs (baseline)', () => {
-  it('returns valid suggestions with all players distributed', () => {
-    const players = Array.from({ length: 10 }, (_, i) => makePlayer(`Player ${i + 1}`))
-    const result = autoPick(players)
-    expect(result.suggestions.length).toBeGreaterThan(0)
-    for (const s of result.suggestions) {
-      expect(s.teamA.length + s.teamB.length).toBe(10)
+function count(team: Player[], pred: (p: Player) => boolean): number {
+  return team.filter(pred).length
+}
+
+const isKeeper = (p: Player) => p.mentality === 'goalkeeper'
+
+/** A squad of `n` veterans with spread ratings. */
+function squad(n: number, rng: () => number = seededRng(n)): Player[] {
+  return Array.from({ length: n }, (_, i) => ratedPlayer(`P${i}`, 30 + rng() * 25))
+}
+
+/**
+ * Reference implementation of the valid set (7.2 steps 3 to 5) by brute force
+ * over every assignment. Only for small squads.
+ */
+function bruteForceValid(players: Player[], pairs: Array<[string, string]> = [], unknownIds = new Set<string>()) {
+  const n = players.length
+  const parent = players.map((_, i) => i)
+  const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])))
+  const takenGuests = new Set<number>()
+  for (const [g, h] of pairs) {
+    const gi = players.findIndex((p, i) => p.name === g && !takenGuests.has(i))
+    const hi = players.findIndex((p) => p.name === h)
+    if (gi < 0 || hi < 0 || gi === hi) continue
+    takenGuests.add(gi)
+    parent[find(gi)] = find(hi)
+  }
+  const splits: Array<{ a: Player[]; b: Player[]; diff: number; sizeGap: number; k: number; u: number }> = []
+  for (let mask = 0; mask < 1 << n; mask++) {
+    if (!(mask & 1)) continue // fix player 0 on A
+    const inA = (i: number) => ((mask >> i) & 1) === 1
+    let together = true
+    for (let i = 0; i < n; i++) if (inA(i) !== inA(find(i))) together = false
+    if (!together) continue
+    const a = players.filter((_, i) => inA(i))
+    const b = players.filter((_, i) => !inA(i))
+    splits.push({
+      a, b,
+      diff: Math.abs(ewptScore(a) - ewptScore(b)),
+      sizeGap: Math.abs(a.length - b.length),
+      k: Math.abs(count(a, isKeeper) - count(b, isKeeper)),
+      u: Math.abs(count(a, (p) => unknownIds.has(p.playerId)) - count(b, (p) => unknownIds.has(p.playerId))),
+    })
+  }
+  const minSize = Math.min(...splits.map((s) => s.sizeGap))
+  const bySize = splits.filter((s) => s.sizeGap === minSize)
+  const minK = Math.min(...bySize.map((s) => s.k))
+  const byK = bySize.filter((s) => s.k === minK)
+  const minU = Math.min(...byK.map((s) => s.u))
+  return byK.filter((s) => s.u === minU)
+}
+
+function expectEveryPlayerOnce(players: Player[], result: AutoPickResult) {
+  for (const s of result.suggestions) {
+    const all = [...s.teamA, ...s.teamB]
+    expect(all).toHaveLength(players.length)
+    for (const p of players) expect(all.filter((q) => q === p)).toHaveLength(1)
+  }
+}
+
+// ─── Basics ──────────────────────────────────────────────────────────────────
+
+describe('autoPick — basics', () => {
+  it('returns nothing for fewer than two players', () => {
+    expect(autoPick([])).toEqual({ suggestions: [], bestDiff: 0 })
+    expect(autoPick([ratedPlayer('Solo', 40)])).toEqual({ suggestions: [], bestDiff: 0 })
+  })
+
+  it('returns fewer than five suggestions when fewer distinct splits exist', () => {
+    // 4 players → 3 distinct 2 v 2 partitions.
+    const players = squad(4)
+    const result = autoPick(players, undefined, undefined, seededRng(1))
+    expect(result.suggestions).toHaveLength(3)
+    expect(new Set(result.suggestions.map((s) => partitionKey(players, s))).size).toBe(3)
+  })
+
+  it('returns five distinct suggestions for a normal squad', () => {
+    const players = squad(10)
+    const result = autoPick(players, undefined, undefined, seededRng(1))
+    expect(result.suggestions).toHaveLength(5)
+    expect(new Set(result.suggestions.map((s) => partitionKey(players, s))).size).toBe(5)
+  })
+})
+
+// ─── 7.9 acceptance tests ────────────────────────────────────────────────────
+
+describe('autoPick — 1. every player once', () => {
+  it('places each input object exactly once for random squads of 2 to 20 players', () => {
+    const rng = seededRng(2026)
+    for (let n = 2; n <= 20; n++) {
+      const players = Array.from({ length: n }, (_, i) =>
+        ratedPlayer(`P${i}`, 25 + rng() * 30, { mentality: rng() < 0.15 ? 'goalkeeper' : 'balanced' }),
+      )
+      // A few guests attached to random hosts.
+      const pairs: Array<[string, string]> = []
+      for (let i = 1; i < n; i++) {
+        if (rng() < 0.15) pairs.push([players[i].name, players[Math.floor(rng() * i)].name])
+      }
+      const unknownIds = new Set(players.filter(() => rng() < 0.2).map((p) => p.playerId))
+      const result = autoPick(players, pairs, unknownIds, seededRng(n))
+      expect(result.suggestions.length).toBeGreaterThan(0)
+      expectEveryPlayerOnce(players, result)
     }
   })
 })
 
-// ─── One pair ─────────────────────────────────────────────────────────────────
-// Use 10 players so there are C(8,4)=70 possible splits of the free pool —
-// the probability of every split accidentally keeping the pair together is
-// negligible without the pinning logic.
-
-describe('autoPick — one guest+associated pair', () => {
-  it('places guest and associated player on the same team in ALL suggestions', () => {
-    const players = [
-      makePlayer('Alice'),
-      makePlayer('Bob'),
-      makePlayer('Carol'),
-      makePlayer('Dave'),
-      makePlayer('Eve'),
-      makePlayer('Frank'),
-      makePlayer('Grace'),
-      makePlayer('Hank'),
-      makePlayer('Iris'),
-      makePlayer('Alice +1'),
-    ]
-    const pairs: Array<[string, string]> = [['Alice +1', 'Alice']]
-    const result = autoPick(players, pairs)
+describe('autoPick — 2. duplicate ids', () => {
+  it('keeps both of two free players who share a playerId and name', () => {
+    const players = squad(12)
+    const twinA = ratedPlayer('Tom', 40)
+    const twinB = ratedPlayer('Tom', 45)
+    expect(twinA.playerId).toBe(twinB.playerId)
+    const all = [...players, twinA, twinB]
+    const result = autoPick(all, undefined, undefined, seededRng(3))
     expect(result.suggestions.length).toBeGreaterThan(0)
     for (const s of result.suggestions) {
-      expect(onSameTeam(s, 'Alice', 'Alice +1')).toBe(true)
+      expect(s.teamA).toHaveLength(7)
+      expect(s.teamB).toHaveLength(7)
+    }
+    expectEveryPlayerOnce(all, result)
+  })
+})
+
+describe('autoPick — 3. equal sizes', () => {
+  it.each([4, 6, 10, 14, 18])('even n=%d gives equal teams', (n) => {
+    const result = autoPick(squad(n), undefined, undefined, seededRng(n))
+    for (const s of result.suggestions) expect(s.teamA.length).toBe(s.teamB.length)
+  })
+
+  it.each([3, 5, 9, 11, 15])('odd n=%d gives sizes differing by exactly one', (n) => {
+    const result = autoPick(squad(n), undefined, undefined, seededRng(n))
+    for (const s of result.suggestions) expect(Math.abs(s.teamA.length - s.teamB.length)).toBe(1)
+  })
+})
+
+describe('autoPick — 4. guest with host', () => {
+  it('keeps two guests of one host on the host’s team in every suggestion', () => {
+    const players = squad(8)
+    const host = players[0]
+    const g1 = makePlayer('P0 +1', { playerId: 'guest|P0 +1' })
+    const g2 = makePlayer('P0 +2', { playerId: 'guest|P0 +2' })
+    const all = [...players, g1, g2]
+    const pairs: Array<[string, string]> = [['P0 +1', 'P0'], ['P0 +2', 'P0']]
+    for (const seed of SEEDS) {
+      const result = autoPick(all, pairs, undefined, spreadRng(seed))
+      expect(result.suggestions.length).toBeGreaterThan(0)
+      for (const s of result.suggestions) {
+        expect(onSameTeam(s, host, g1)).toBe(true)
+        expect(onSameTeam(s, host, g2)).toBe(true)
+      }
+    }
+  })
+
+  it('keeps a guest with a goalkeeper host', () => {
+    const gk1 = ratedPlayer('GK1', 40, { mentality: 'goalkeeper' })
+    const gk2 = ratedPlayer('GK2', 40, { mentality: 'goalkeeper' })
+    const guest = makePlayer('GK1 +1', { playerId: 'guest|GK1 +1' })
+    const all = [gk1, gk2, guest, ...squad(7)]
+    const result = autoPick(all, [['GK1 +1', 'GK1']], undefined, seededRng(4))
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) {
+      expect(onSameTeam(s, gk1, guest)).toBe(true)
+      expect(onSameTeam(s, gk1, gk2)).toBe(false)
     }
   })
 })
 
-// ─── Multiple guests per associated player ────────────────────────────────────
-
-describe('autoPick — two guests sharing one associated player', () => {
-  it('places both guests and their associated player on the same team', () => {
-    const players = [
-      makePlayer('Alice'),
-      makePlayer('Bob'),
-      makePlayer('Carol'),
-      makePlayer('Dave'),
-      makePlayer('Eve'),
-      makePlayer('Alice +1'),
-      makePlayer('Alice +2'),
-    ]
-    const pairs: Array<[string, string]> = [
-      ['Alice +1', 'Alice'],
-      ['Alice +2', 'Alice'],
-    ]
-    const result = autoPick(players, pairs)
-    expect(result.suggestions.length).toBeGreaterThan(0)
-    for (const s of result.suggestions) {
-      expect(onSameTeam(s, 'Alice', 'Alice +1')).toBe(true)
-      expect(onSameTeam(s, 'Alice', 'Alice +2')).toBe(true)
+describe('autoPick — 5. guest keeper', () => {
+  it('puts a guest keeper and the roster keeper on opposite teams for every seed', () => {
+    const rosterGk = ratedPlayer('Keeper', 40, { mentality: 'goalkeeper' })
+    const outfield = squad(8)
+    const guestGk = makePlayer('P3 +1', { playerId: 'guest|P3 +1', mentality: 'goalkeeper' })
+    const all = [rosterGk, ...outfield, guestGk]
+    for (const seed of SEEDS) {
+      const result = autoPick(all, [['P3 +1', 'P3']], new Set([guestGk.playerId]), spreadRng(seed))
+      expect(result.suggestions.length).toBeGreaterThan(0)
+      for (const s of result.suggestions) expect(onSameTeam(s, rosterGk, guestGk)).toBe(false)
     }
   })
 })
 
-// ─── Associated player is a GK ────────────────────────────────────────────────
+describe('autoPick — 6. forced keeper pair', () => {
+  it('keeps a guest keeper with their keeper host and does not throw', () => {
+    const rosterGk = ratedPlayer('Keeper', 40, { mentality: 'goalkeeper' })
+    const guestGk = makePlayer('Keeper +1', { playerId: 'guest|Keeper +1', mentality: 'goalkeeper' })
+    const all = [rosterGk, guestGk, ...squad(8)]
+    const result = autoPick(all, [['Keeper +1', 'Keeper']], new Set([guestGk.playerId]), seededRng(6))
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) expect(onSameTeam(s, rosterGk, guestGk)).toBe(true)
+  })
+})
 
-describe('autoPick — associated player is a GK', () => {
-  it('places the guest on the same team as the GK-pinned associated player', () => {
-    const players = [
-      makePlayer('Alice', { mentality: 'goalkeeper' }),
-      makePlayer('Bob', { mentality: 'goalkeeper' }),
-      makePlayer('Carol'),
-      makePlayer('Dave'),
-      makePlayer('Alice +1'),
-      makePlayer('Eve'),
-    ]
-    const pairs: Array<[string, string]> = [['Alice +1', 'Alice']]
-    const result = autoPick(players, pairs)
+describe('autoPick — 7. keeper counts', () => {
+  const withKeepers = (k: number, n: number) => [
+    ...Array.from({ length: k }, (_, i) => ratedPlayer(`GK${i}`, 35 + i * 3, { mentality: 'goalkeeper' })),
+    ...squad(n - k),
+  ]
+
+  it('splits three keepers 2 and 1', () => {
+    const result = autoPick(withKeepers(3, 10), undefined, undefined, seededRng(7))
     expect(result.suggestions.length).toBeGreaterThan(0)
     for (const s of result.suggestions) {
-      expect(onSameTeam(s, 'Alice', 'Alice +1')).toBe(true)
+      expect([count(s.teamA, isKeeper), count(s.teamB, isKeeper)].sort()).toEqual([1, 2])
+    }
+  })
+
+  it('splits four keepers 2 and 2', () => {
+    const result = autoPick(withKeepers(4, 10), undefined, undefined, seededRng(7))
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) {
+      expect(count(s.teamA, isKeeper)).toBe(2)
+      expect(count(s.teamB, isKeeper)).toBe(2)
+    }
+  })
+
+  it('allows a single keeper', () => {
+    const result = autoPick(withKeepers(1, 10), undefined, undefined, seededRng(7))
+    expect(result.suggestions).toHaveLength(5)
+  })
+})
+
+describe('autoPick — 8. unknown balance', () => {
+  it('splits four free unknowns 2 and 2', () => {
+    const newcomers = Array.from({ length: 4 }, (_, i) => makePlayer(`New${i}`, { playerId: `new|New${i}` }))
+    const all = [...squad(6), ...newcomers]
+    const unknownIds = new Set(newcomers.map((p) => p.playerId))
+    for (const seed of SEEDS.slice(0, 10)) {
+      const result = autoPick(all, undefined, unknownIds, spreadRng(seed))
+      expect(result.suggestions.length).toBeGreaterThan(0)
+      for (const s of result.suggestions) {
+        expect(count(s.teamA, (p) => unknownIds.has(p.playerId))).toBe(2)
+      }
+    }
+  })
+
+  it('puts a keeper’s guest and an outfielder’s guest on opposite teams when they are the only unknowns', () => {
+    const keeper = ratedPlayer('Keeper', 40, { mentality: 'goalkeeper' })
+    const outfield = squad(7)
+    const gGuest = makePlayer('Keeper +1', { playerId: 'guest|Keeper +1' })
+    const oGuest = makePlayer('P2 +1', { playerId: 'guest|P2 +1' })
+    const all = [keeper, ...outfield, gGuest, oGuest]
+    const pairs: Array<[string, string]> = [['Keeper +1', 'Keeper'], ['P2 +1', 'P2']]
+    const unknownIds = new Set([gGuest.playerId, oGuest.playerId])
+    const result = autoPick(all, pairs, unknownIds, seededRng(8))
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) expect(onSameTeam(s, gGuest, oGuest)).toBe(false)
+  })
+})
+
+describe('autoPick — 9. oversized unit', () => {
+  it('fits one host with four guests into 5 v 5 for every seed', () => {
+    const keeper = ratedPlayer('Keeper', 40, { mentality: 'goalkeeper' })
+    const host = ratedPlayer('Host', 45)
+    const guests = Array.from({ length: 4 }, (_, i) => makePlayer(`Host +${i + 1}`, { playerId: `guest|Host +${i + 1}` }))
+    const all = [keeper, host, ...guests, ...squad(4)]
+    const pairs = guests.map((g) => [g.name, 'Host'] as [string, string])
+    for (const seed of SEEDS) {
+      const result = autoPick(all, pairs, new Set(guests.map((g) => g.playerId)), spreadRng(seed))
+      expect(result.warning).toBeUndefined()
+      expect(result.suggestions).toHaveLength(1)
+      expect(result.suggestions[0].teamA).toHaveLength(5)
+      expect(result.suggestions[0].teamB).toHaveLength(5)
+    }
+  })
+
+  it('warns and plays 6 v 4 when one host brings five guests', () => {
+    const host = ratedPlayer('Host', 45)
+    const guests = Array.from({ length: 5 }, (_, i) => makePlayer(`Host +${i + 1}`, { playerId: `guest|Host +${i + 1}` }))
+    const all = [host, ...guests, ...squad(4)]
+    const pairs = guests.map((g) => [g.name, 'Host'] as [string, string])
+    const result = autoPick(all, pairs, new Set(guests.map((g) => g.playerId)), seededRng(9))
+    expect(result.warning).toBe('uneven-teams')
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) {
+      expect([s.teamA.length, s.teamB.length].sort()).toEqual([4, 6])
+      expect(onSameTeam(s, host, guests[4])).toBe(true)
     }
   })
 })
 
-// ─── Associated player not in squad ──────────────────────────────────────────
+describe('autoPick — 10. seed independence', () => {
+  it.each([9, 12, 14])('returns the same partitions for every seed (n=%d)', (n) => {
+    const players = squad(n)
+    players[0].mentality = 'goalkeeper'
+    const keys = (seed: number) =>
+      autoPick(players, undefined, undefined, spreadRng(seed)).suggestions.map((s) => partitionKey(players, s)).sort().join(' / ')
+    const first = keys(1)
+    for (const seed of SEEDS) expect(keys(seed)).toBe(first)
+  })
+})
 
-describe('autoPick — associated player not in squad', () => {
-  it('distributes the guest freely when their associated player is absent', () => {
-    const players = [
-      makePlayer('Bob'),
-      makePlayer('Carol'),
-      makePlayer('Dave'),
-      makePlayer('Eve'),
-      makePlayer('Alice +1'), // associated with 'Alice', who is NOT in the squad
-    ]
-    const pairs: Array<[string, string]> = [['Alice +1', 'Alice']]
-    const result = autoPick(players, pairs)
-    expect(result.suggestions.length).toBeGreaterThan(0)
-    // All 5 players must be distributed across both teams
-    for (const s of result.suggestions) {
-      expect(s.teamA.length + s.teamB.length).toBe(5)
-      const allPlayers = [...s.teamA, ...s.teamB]
-      expect(allPlayers.some((p) => p.name === 'Alice +1')).toBe(true)
+describe('autoPick — 11. input-order independence', () => {
+  it('finds the same bestDiff when the input array is shuffled', () => {
+    const players = squad(12)
+    players[3].mentality = 'goalkeeper'
+    players[8].mentality = 'goalkeeper'
+    const base = autoPick(players, undefined, undefined, seededRng(1)).bestDiff
+    const rng = seededRng(11)
+    for (let t = 0; t < 10; t++) {
+      const shuffled = [...players]
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1))
+        ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+      }
+      expect(autoPick(shuffled, undefined, undefined, seededRng(t)).bestDiff).toBeCloseTo(base, 9)
     }
   })
 })
 
-// ─── Swap deduplication ───────────────────────────────────────────────────────
+describe('autoPick — 12. band', () => {
+  const newcomerGap = (s: { teamA: Player[]; teamB: Player[] }) =>
+    Math.abs(count(s.teamA, (p) => p.played < 5) - count(s.teamB, (p) => p.played < 5))
 
-describe('autoPick — swap deduplication', () => {
-  it('does not return two suggestions that are team-swaps of each other', () => {
-    // 10 identical-rated players → many valid exhaustive splits, so the pool
-    // is large enough to surface swap-pairs without deduplication.
+  it.each([1, 2, 3, 4, 5])('bestDiff is the brute-force minimum and suggestions come from the band (case %d)', (seed) => {
+    const rng = seededRng(seed * 101)
     const players = Array.from({ length: 10 }, (_, i) =>
-      makePlayer(`Player ${i + 1}`, { strength: 'average' })
+      i < 3
+        ? makePlayer(`New${i}`, { played: i, points: i * 2, strength: (['below', 'average', 'above'] as const)[i] })
+        : ratedPlayer(`P${i}`, 30 + rng() * 20, { mentality: i === 3 ? 'goalkeeper' : 'balanced' }),
     )
-    // Run across a handful of deterministic seeds to exercise the shuffle-and-pick
-    // logic under varied inputs — each seed must still produce distinct splits.
-    for (const seed of [1, 7, 42, 99, 256]) {
-      const result = autoPick(players, undefined, undefined, seededRng(seed))
-      for (let i = 0; i < result.suggestions.length; i++) {
-        for (let j = i + 1; j < result.suggestions.length; j++) {
-          const a = result.suggestions[i]
-          const b = result.suggestions[j]
-          const namesA = (t: typeof a) =>
-            [[...t.teamA].map((p) => p.name).sort(), [...t.teamB].map((p) => p.name).sort()]
-              .sort()
-              .join('|')
-          expect(namesA(a)).not.toBe(namesA(b))
-        }
+    const valid = bruteForceValid(players)
+    const minDiff = Math.min(...valid.map((s) => s.diff))
+    const result = autoPick(players, undefined, undefined, seededRng(seed))
+    expect(result.bestDiff).toBeCloseTo(minDiff, 9)
+
+    const band = valid.filter((s) => s.diff <= minDiff + 0.5)
+    const bandKeys = new Set(band.map((s) => partitionKey(players, { teamA: s.a, teamB: s.b })))
+    // These squads have a band of at least five distinct splits, so every
+    // suggestion must come from it.
+    expect(bandKeys.size).toBeGreaterThanOrEqual(5)
+    expect(result.suggestions).toHaveLength(5)
+    for (const s of result.suggestions) {
+      expect(bandKeys.has(partitionKey(players, s))).toBe(true)
+      expect(s.diff).toBeLessThanOrEqual(result.bestDiff + 0.5 + 1e-9)
+    }
+    expect(newcomerGap(result.suggestions[0])).toBe(Math.min(...band.map((s) => newcomerGap({ teamA: s.a, teamB: s.b }))))
+  })
+
+  it('falls back to the rest of the valid set by diff when the band is small', () => {
+    // Two strong, two weak and two middling players: few splits are level.
+    const players = [ratedPlayer('S1', 80), ratedPlayer('S2', 80), ratedPlayer('W1', 20), ratedPlayer('W2', 20), ratedPlayer('M1', 50), ratedPlayer('M2', 55)]
+    const result = autoPick(players, undefined, undefined, seededRng(12))
+    expect(result.suggestions).toHaveLength(5)
+    const diffs = result.suggestions.map((s) => s.diff)
+    const outside = diffs.filter((d) => d > result.bestDiff + 0.5)
+    expect(outside.length).toBeGreaterThan(0)
+    // Band suggestions come first, then the rest by diff ascending.
+    expect(diffs.slice(diffs.length - outside.length)).toEqual(outside)
+    for (let i = 1; i < outside.length; i++) expect(outside[i]).toBeGreaterThanOrEqual(outside[i - 1])
+  })
+})
+
+describe('autoPick — 13. interchangeable newcomers', () => {
+  it('does not return two suggestions that differ only by swapping identical newcomers', () => {
+    const newcomers = Array.from({ length: 4 }, (_, i) => makePlayer(`New${i}`, { playerId: `new|New${i}` }))
+    const all = [...squad(10), ...newcomers]
+    const unknownIds = new Set(newcomers.map((p) => p.playerId))
+    const result = autoPick(all, undefined, unknownIds, seededRng(13))
+    const canonical = (s: AutoPickSuggestion) => {
+      const side = (team: Player[]) =>
+        team.map((p) => (unknownIds.has(p.playerId) ? 'new' : String(all.indexOf(p)))).sort().join(',')
+      return [side(s.teamA), side(s.teamB)].sort().join('|')
+    }
+    const keys = result.suggestions.map(canonical)
+    expect(keys).toHaveLength(5)
+    expect(new Set(keys).size).toBe(keys.length)
+  })
+})
+
+describe('autoPick — 14. labels and order', () => {
+  it('puts a lone keeper on Team A between 30% and 70% of the time', () => {
+    const players = [ratedPlayer('Keeper', 40, { mentality: 'goalkeeper' }), ...squad(9)]
+    let onA = 0
+    for (let i = 1; i <= 200; i++) {
+      const s = autoPick(players, undefined, undefined, spreadRng(i)).suggestions[0]
+      if (s.teamA.includes(players[0])) onA++
+    }
+    expect(onA).toBeGreaterThanOrEqual(60)
+    expect(onA).toBeLessThanOrEqual(140)
+  })
+
+  it('lists goalkeepers first, then everyone else in input order', () => {
+    const players = [
+      ...squad(4),
+      ratedPlayer('GK1', 40, { mentality: 'goalkeeper' }),
+      ...squad(4, seededRng(99)).map((p, i) => ({ ...p, name: `Q${i}`, playerId: `known|Q${i}` })),
+      ratedPlayer('GK2', 41, { mentality: 'goalkeeper' }),
+    ]
+    const result = autoPick(players, undefined, undefined, seededRng(14))
+    expect(result.suggestions.length).toBeGreaterThan(0)
+    for (const s of result.suggestions) {
+      for (const team of [s.teamA, s.teamB]) {
+        const keepers = team.filter(isKeeper)
+        expect(team.slice(0, keepers.length)).toEqual(keepers)
+        const rest = team.slice(keepers.length).map((p) => players.indexOf(p))
+        expect(rest).toEqual([...rest].sort((a, b) => a - b))
       }
     }
   })
 })
 
-// ─── Guest is themselves a GK ─────────────────────────────────────────────────
-
-describe('autoPick — guest has goalkeeper: true', () => {
-  it('excludes the guest-GK from GK pool, places via pair pinning, preserves goalkeeper flag', () => {
-    const players = [
-      makePlayer('Alice', { mentality: 'goalkeeper' }),
-      makePlayer('Bob', { mentality: 'goalkeeper' }),
-      makePlayer('Carol'),
-      makePlayer('Dave'),
-      makePlayer('Bob +1', { mentality: 'goalkeeper' }), // guest who is also a GK
-      makePlayer('Eve'),
-    ]
-    const pairs: Array<[string, string]> = [['Bob +1', 'Bob']]
-    const result = autoPick(players, pairs)
+describe('autoPick — 15. score consistency', () => {
+  it('reports scores equal to ewptScore of each team', () => {
+    const players = [ratedPlayer('Keeper', 40, { mentality: 'goalkeeper' }), ...squad(9), makePlayer('New', { playerId: 'new|New' })]
+    const result = autoPick(players, undefined, new Set(['new|New']), seededRng(15))
     expect(result.suggestions.length).toBeGreaterThan(0)
     for (const s of result.suggestions) {
-      // Pair constraint satisfied
-      expect(onSameTeam(s, 'Bob', 'Bob +1')).toBe(true)
-      // Real GKs (Alice, Bob) must be on opposing teams — GK split unaffected
-      expect(onSameTeam(s, 'Alice', 'Bob')).toBe(false)
-      // Keeper mentality preserved on the guest object
-      const allPlayers = [...s.teamA, ...s.teamB]
-      const guestObj = allPlayers.find((p) => p.name === 'Bob +1')
-      expect(guestObj?.mentality).toBe('goalkeeper')
+      expect(s.scoreA).toBeCloseTo(ewptScore(s.teamA), 9)
+      expect(s.scoreB).toBeCloseTo(ewptScore(s.teamB), 9)
+      expect(s.diff).toBeCloseTo(Math.abs(s.scoreA - s.scoreB), 9)
     }
   })
 })
 
-// ─── New player count-balance filter ─────────────────────────────────────────
-
-describe('autoPick — unknownNames count-balance filter', () => {
-  it('splits 4 new players evenly (2 per team) in all suggestions', () => {
-    // 6 rated players + 4 new players (all same rating → algorithm needs
-    // count-balance filter to guarantee even split)
-    const rated = Array.from({ length: 6 }, (_, i) =>
-      ratedPlayer(`Rated ${i + 1}`, 60)
-    )
-    const newPlayers = [
-      ratedPlayer('New1', 50),
-      ratedPlayer('New2', 50),
-      ratedPlayer('New3', 50),
-      ratedPlayer('New4', 50),
-    ]
-    const newPlayerIds = new Set(newPlayers.map((p) => p.playerId))
-    const result = autoPick([...rated, ...newPlayers], undefined, newPlayerIds)
-    expect(result.suggestions.length).toBeGreaterThan(0)
+describe('autoPick — 16. large squads', () => {
+  function checkRules(players: Player[], result: AutoPickResult, pairs: Array<[Player, Player]>) {
     for (const s of result.suggestions) {
-      const countA = s.teamA.filter((p) => newPlayerIds.has(p.playerId)).length
-      const countB = s.teamB.filter((p) => newPlayerIds.has(p.playerId)).length
-      expect(Math.abs(countA - countB)).toBeLessThanOrEqual(1)
+      expect(Math.abs(s.teamA.length - s.teamB.length)).toBe(players.length % 2)
+      for (const [g, h] of pairs) expect(onSameTeam(s, g, h)).toBe(true)
+      expect(Math.abs(count(s.teamA, isKeeper) - count(s.teamB, isKeeper))).toBeLessThanOrEqual(1)
     }
+    expectEveryPlayerOnce(players, result)
+  }
+
+  it.each([22, 24])('n=%d with no pairs returns five valid suggestions', (n) => {
+    const players = squad(n)
+    players[0].mentality = 'goalkeeper'
+    players[5].mentality = 'goalkeeper'
+    const result = autoPick(players, undefined, undefined, seededRng(n))
+    expect(result.suggestions).toHaveLength(5)
+    checkRules(players, result, [])
   })
 
-  it('splits 5 new players with at most a 1-player count difference per team', () => {
-    const rated = Array.from({ length: 5 }, (_, i) =>
-      ratedPlayer(`Rated ${i + 1}`, 60)
-    )
-    const newPlayers = Array.from({ length: 5 }, (_, i) =>
-      ratedPlayer(`New ${i + 1}`, 50)
-    )
-    const newPlayerIds = new Set(newPlayers.map((p) => p.playerId))
-    const result = autoPick([...rated, ...newPlayers], undefined, newPlayerIds)
-    expect(result.suggestions.length).toBeGreaterThan(0)
-    for (const s of result.suggestions) {
-      const countA = s.teamA.filter((p) => newPlayerIds.has(p.playerId)).length
-      const countB = s.teamB.filter((p) => newPlayerIds.has(p.playerId)).length
-      expect(Math.abs(countA - countB)).toBeLessThanOrEqual(1)
-    }
+  it.each([22, 24])('n=%d with pairs returns one to five valid suggestions', (n) => {
+    const players = squad(n)
+    players[0].mentality = 'goalkeeper'
+    const pairs: Array<[string, string]> = [['P10', 'P1'], ['P11', 'P1'], ['P12', 'P2']]
+    const result = autoPick(players, pairs, new Set(['known|P10', 'known|P11', 'known|P12']), seededRng(n))
+    expect(result.suggestions.length).toBeGreaterThanOrEqual(1)
+    expect(result.suggestions.length).toBeLessThanOrEqual(5)
+    checkRules(players, result, [[players[10], players[1]], [players[11], players[1]], [players[12], players[2]]])
   })
 
-  it('uses new player ratings to find best balance within count constraint', () => {
-    // Two strong and two weak new players — the algorithm should produce a balanced
-    // split (1 strong + 1 weak per team) since the 6 rated players are equal and the
-    // count-balance filter ensures exactly 2 new players per team.
-    const rated = Array.from({ length: 6 }, (_, i) =>
-      ratedPlayer(`Rated ${i + 1}`, 55)
-    )
-    const newPlayers = [
-      ratedPlayer('StrongA', 80),
-      ratedPlayer('StrongB', 80),
-      ratedPlayer('WeakA', 20),
-      ratedPlayer('WeakB', 20),
-    ]
-    const newPlayerIds = new Set(newPlayers.map((p) => p.playerId))
-
-    const result = autoPick(
-      [...rated, ...newPlayers],
-      undefined,
-      newPlayerIds,
-      seededRng(42),
-    )
+  it('a 22-player squad of units 8, 7 and 7 plays 14 v 8 with a warning', () => {
+    const players = squad(22)
+    const pairs: Array<[string, string]> = []
+    for (let i = 1; i < 8; i++) pairs.push([`P${i}`, 'P0'])
+    for (let i = 9; i < 15; i++) pairs.push([`P${i}`, 'P8'])
+    for (let i = 16; i < 22; i++) pairs.push([`P${i}`, 'P15'])
+    const result = autoPick(players, pairs, undefined, seededRng(16))
+    expect(result.warning).toBe('uneven-teams')
     expect(result.suggestions.length).toBeGreaterThan(0)
-
-    // All suggestions must satisfy count-balance constraint
-    for (const s of result.suggestions) {
-      const countA = s.teamA.filter((p) => newPlayerIds.has(p.playerId)).length
-      const countB = s.teamB.filter((p) => newPlayerIds.has(p.playerId)).length
-      expect(Math.abs(countA - countB)).toBeLessThanOrEqual(1)
-    }
-
-    // Best split (lowest diff) must pair one strong + one weak per team. The
-    // (1+1) configuration is the only one that drives diff to 0 with these
-    // inputs, so it's guaranteed to surface as suggestions[0].
-    const best = result.suggestions[0]
-    const strongOnA = best.teamA.filter((p) => p.name === 'StrongA' || p.name === 'StrongB').length
-    const weakOnA = best.teamA.filter((p) => p.name === 'WeakA' || p.name === 'WeakB').length
-    expect(strongOnA).toBe(1)
-    expect(weakOnA).toBe(1)
-  })
-
-  it('returns valid suggestions with small squads when newPlayerIds is supplied', () => {
-    // Robustness: 3 players total, 2 new. The 2v1 split has valid 1-1 new-player
-    // splits (Rated+New1 vs New2, or Rated+New2 vs New1) so the filter passes —
-    // we just verify the function returns suggestions and distributes all players.
-    const players = [
-      ratedPlayer('Rated', 60),
-      ratedPlayer('New1', 50),
-      ratedPlayer('New2', 50),
-    ]
-    const newPlayerIds = new Set(['known|New1', 'known|New2'])
-    const result = autoPick(players, undefined, newPlayerIds)
-    expect(result.suggestions.length).toBeGreaterThan(0)
-    for (const s of result.suggestions) {
-      expect(s.teamA.length + s.teamB.length).toBe(3)
-    }
-  })
-
-  it('balances total unknowns (guests + new players) across teams', () => {
-    // 2 guests sharing associated player Alice → both pinned to Alice's team.
-    // 2 new players in the free pool. Under the extended filter, splits where
-    // both new players join the Alice-cluster team (3-vs-1 unknowns) must be
-    // rejected; a balanced 2-vs-2 split must be preferred.
-    const players = [
-      makePlayer('Alice'),
-      makePlayer('Bob'),
-      makePlayer('Carol'),
-      makePlayer('Dave'),
-      makePlayer('Alice +1'),
-      makePlayer('Alice +2'),
-      ratedPlayer('New1', 50),
-      ratedPlayer('New2', 50),
-    ]
-    const pairs: Array<[string, string]> = [
-      ['Alice +1', 'Alice'],
-      ['Alice +2', 'Alice'],
-    ]
-    const unknownIds = new Set(
-      ['Alice +1', 'Alice +2', 'New1', 'New2'].map((n) => `known|${n}`),
-    )
-    const result = autoPick(players, pairs, unknownIds)
-    expect(result.suggestions.length).toBeGreaterThan(0)
-    for (const s of result.suggestions) {
-      const countA = s.teamA.filter((p) => unknownIds.has(p.playerId)).length
-      const countB = s.teamB.filter((p) => unknownIds.has(p.playerId)).length
-      expect(Math.abs(countA - countB)).toBeLessThanOrEqual(1)
-    }
-  })
-
-  it('passes no unknownNames — behaviour unchanged from baseline', () => {
-    const players = Array.from({ length: 10 }, (_, i) => makePlayer(`Player ${i + 1}`))
-    const result = autoPick(players)
-    expect(result.suggestions.length).toBeGreaterThan(0)
-    for (const s of result.suggestions) {
-      expect(s.teamA.length + s.teamB.length).toBe(10)
-    }
-  })
-
-  it('with 1 new player, does not apply filter and still returns valid suggestions', () => {
-    // With only 1 new player, every split puts them on exactly one team so
-    // |countA - countB| is always 1 — the filter is bypassed to avoid a no-op.
-    const players = Array.from({ length: 8 }, (_, i) => makePlayer(`Player ${i + 1}`))
-    const newPlayerIds = new Set(['known|Player 1'])
-    const result = autoPick(players, undefined, newPlayerIds)
-    expect(result.suggestions.length).toBeGreaterThan(0)
-    for (const s of result.suggestions) {
-      expect(s.teamA.length + s.teamB.length).toBe(8)
-    }
+    for (const s of result.suggestions) expect([s.teamA.length, s.teamB.length].sort((a, b) => a - b)).toEqual([8, 14])
+    expectEveryPlayerOnce(players, result)
   })
 })
 
-// ─── Odd-player allocation (1.4) ─────────────────────────────────────────────
-
-describe('autoPick — odd-player allocation distribution', () => {
-  it('odd n=11: extra slot goes to either team roughly equally over 100 runs', () => {
-    const players = Array.from({ length: 11 }, (_, i) => makePlayer(`Player ${i + 1}`))
-    let aBigger = 0
-    for (let i = 0; i < 100; i++) {
-      const result = autoPick(players)
-      if (result.suggestions.length === 0) continue
-      const s = result.suggestions[0]
-      if (s.teamA.length === 6) aBigger++
-    }
-    // Soft bounds tolerating random variance. Pre-1.4 code pegs this at 100.
-    expect(aBigger).toBeGreaterThanOrEqual(35)
-    expect(aBigger).toBeLessThanOrEqual(65)
-  })
-
-  it('even n=10: both teams always size 5', () => {
-    const players = Array.from({ length: 10 }, (_, i) => makePlayer(`Player ${i + 1}`))
-    for (let i = 0; i < 100; i++) {
-      const result = autoPick(players)
-      if (result.suggestions.length === 0) continue
-      const s = result.suggestions[0]
-      expect(s.teamA.length).toBe(5)
-      expect(s.teamB.length).toBe(5)
-    }
-  })
-
-  it('odd n=11 with 2 GKs: extra slot distribution is balanced', () => {
-    const players = [
-      makePlayer('GK1', { mentality: 'goalkeeper' }),
-      makePlayer('GK2', { mentality: 'goalkeeper' }),
-      ...Array.from({ length: 9 }, (_, i) => makePlayer(`Player ${i + 1}`)),
-    ]
-    let aBigger = 0
-    for (let i = 0; i < 100; i++) {
-      const result = autoPick(players)
-      if (result.suggestions.length === 0) continue
-      const s = result.suggestions[0]
-      if (s.teamA.length === 6) aBigger++
-    }
-    expect(aBigger).toBeGreaterThanOrEqual(35)
-    expect(aBigger).toBeLessThanOrEqual(65)
+describe('ewptScoreFromRatings', () => {
+  it('matches ewptScore for the same players', () => {
+    const players = [ratedPlayer('Keeper', 41, { mentality: 'goalkeeper' }), ...squad(6), makePlayer('New')]
+    expect(ewptScoreFromRatings(players, players.map(wprScore))).toBe(ewptScore(players))
   })
 })
-
-// ─── findAssocTeam — placement helper ────────────────────────────────────────
-
-describe('findAssocTeam — placement helper', () => {
-  it('returns null when the associated player is nowhere', () => {
-    expect(findAssocTeam('known|Alice', null, null, [], [])).toBeNull()
-  })
-
-  it('returns null when assocId is undefined', () => {
-    expect(findAssocTeam(undefined, null, null, [], [])).toBeNull()
-  })
-
-  it('returns A when assoc matches the Team A pinned GK', () => {
-    const alice = makePlayer('Alice', { mentality: 'goalkeeper' })
-    expect(findAssocTeam(alice.playerId, alice, null, [], [])).toBe('A')
-  })
-
-  it('returns B when assoc matches the Team B pinned GK', () => {
-    const alice = makePlayer('Alice', { mentality: 'goalkeeper' })
-    expect(findAssocTeam(alice.playerId, null, alice, [], [])).toBe('B')
-  })
-
-  it('returns A when assoc is already in pinnedTeamA (prior pair)', () => {
-    const alice = makePlayer('Alice')
-    expect(findAssocTeam(alice.playerId, null, null, [alice], [])).toBe('A')
-  })
-
-  it('returns B when assoc is already in pinnedTeamB (prior pair)', () => {
-    const alice = makePlayer('Alice')
-    expect(findAssocTeam(alice.playerId, null, null, [], [alice])).toBe('B')
-  })
-
-  it('pinned GK takes precedence over pair-list membership when IDs match', () => {
-    const aliceGk = makePlayer('Alice', { mentality: 'goalkeeper' })
-    // Player with the same playerId in the pair list — precedence check
-    expect(findAssocTeam(aliceGk.playerId, aliceGk, null, [aliceGk], [])).toBe('A')
-  })
-})
-
-describe('autoPick — synthetic playerId identity (2.7)', () => {
-  it('distinguishes two players with identical names via different playerId', () => {
-    const alice1 = makePlayer('Alice', { playerId: 'roster|alice-1' })
-    const alice2 = makePlayer('Alice', { playerId: 'roster|alice-2' })
-    const squad = [alice1, alice2, makePlayer('Bob'), makePlayer('Carol')]
-    const result = autoPick(squad, undefined, undefined, seededRng(42))
-    expect(result.suggestions.length).toBeGreaterThan(0)
-    for (const s of result.suggestions) {
-      const all = [...s.teamA, ...s.teamB]
-      expect(all.filter((p) => p.playerId === alice1.playerId)).toHaveLength(1)
-      expect(all.filter((p) => p.playerId === alice2.playerId)).toHaveLength(1)
-    }
-  })
-
-  it('treats guest-Alice and known-Alice as distinct entities', () => {
-    const knownAlice = makePlayer('Alice', { playerId: 'known|Alice' })
-    const guestAlice = makePlayer('Alice', { playerId: 'guest|Alice' })
-    const squad = [knownAlice, guestAlice, makePlayer('Bob'), makePlayer('Carol')]
-    const result = autoPick(squad, undefined, undefined, seededRng(42))
-    expect(result.suggestions.length).toBeGreaterThan(0)
-    for (const s of result.suggestions) {
-      const all = [...s.teamA, ...s.teamB]
-      expect(all.filter((p) => p.playerId === knownAlice.playerId)).toHaveLength(1)
-      expect(all.filter((p) => p.playerId === guestAlice.playerId)).toHaveLength(1)
-    }
-  })
-})
-
-// ─── Initial pair toggle randomisation ───────────────────────────────────────
-
-describe('autoPick — initial pair toggle randomisation', () => {
-  it('places the pair on Team A when the seeded RNG opens with < 0.5', () => {
-    // seededRng(582)'s first value is ~0.462 — below 0.5, so toggle starts true → pair on A.
-    const players = [
-      makePlayer('Alice'),
-      makePlayer('Bob'),
-      makePlayer('Carol'),
-      makePlayer('Dave'),
-      makePlayer('Eve'),
-      makePlayer('Frank'),
-      makePlayer('Alice +1'),
-    ]
-    const pairs: Array<[string, string]> = [['Alice +1', 'Alice']]
-    const result = autoPick(players, pairs, undefined, seededRng(582))
-    expect(result.suggestions.length).toBeGreaterThan(0)
-    const inA = result.suggestions[0].teamA.some((p) => p.name === 'Alice')
-    expect(inA).toBe(true)
-  })
-
-  it('places the pair on Team B when the seeded RNG opens with >= 0.5', () => {
-    // seededRng(682)'s first value is ~0.500 — at or above 0.5, so toggle starts false → pair on B.
-    const players = [
-      makePlayer('Alice'),
-      makePlayer('Bob'),
-      makePlayer('Carol'),
-      makePlayer('Dave'),
-      makePlayer('Eve'),
-      makePlayer('Frank'),
-      makePlayer('Alice +1'),
-    ]
-    const pairs: Array<[string, string]> = [['Alice +1', 'Alice']]
-    const result = autoPick(players, pairs, undefined, seededRng(682))
-    expect(result.suggestions.length).toBeGreaterThan(0)
-    const inB = result.suggestions[0].teamB.some((p) => p.name === 'Alice')
-    expect(inB).toBe(true)
-  })
-
-  it('pair lands on each team roughly half the time across 200 runs', () => {
-    const players = [
-      makePlayer('Alice'),
-      makePlayer('Bob'),
-      makePlayer('Carol'),
-      makePlayer('Dave'),
-      makePlayer('Eve'),
-      makePlayer('Frank'),
-      makePlayer('Alice +1'),
-    ]
-    const pairs: Array<[string, string]> = [['Alice +1', 'Alice']]
-    let pairOnA = 0
-    for (let seed = 582; seed <= 781; seed++) {
-      const result = autoPick(players, pairs, undefined, seededRng(seed))
-      if (result.suggestions.length === 0) continue
-      const onA = result.suggestions[0].teamA.some((p) => p.name === 'Alice +1')
-      if (onA) pairOnA++
-    }
-    // Soft bounds tolerating random variance — pre-fix code would peg this at 200.
-    expect(pairOnA).toBeGreaterThanOrEqual(75)
-    expect(pairOnA).toBeLessThanOrEqual(125)
-  })
-
-  it('alternation across multiple pairs still works when initial toggle is false', () => {
-    // Two independent pairs (different associated players). With initial
-    // toggle = false (first pair to B), the second pair must alternate to A.
-    const players = [
-      makePlayer('Alice'),
-      makePlayer('Bob'),
-      makePlayer('Carol'),
-      makePlayer('Dave'),
-      makePlayer('Alice +1'),
-      makePlayer('Bob +1'),
-    ]
-    const pairs: Array<[string, string]> = [
-      ['Alice +1', 'Alice'],
-      ['Bob +1', 'Bob'],
-    ]
-    const result = autoPick(players, pairs, undefined, seededRng(682))
-    expect(result.suggestions.length).toBeGreaterThan(0)
-    const s = result.suggestions[0]
-    // Pair constraints satisfied
-    expect(onSameTeam(s, 'Alice', 'Alice +1')).toBe(true)
-    expect(onSameTeam(s, 'Bob', 'Bob +1')).toBe(true)
-    // Pairs land on opposing teams (alternation preserved)
-    expect(onSameTeam(s, 'Alice', 'Bob')).toBe(false)
-  })
-})
-
-// ─── Regression: 7v7 with one guest at "Average" ─────────────────────────────
-
-describe('autoPick — regression: 7v7 with one Average guest', () => {
-  it('gives the pair team stronger free picks on average than the other team', () => {
-    // Mirrors the user's scenario: 14 attendees (2 GKs + 12 outfielders) where
-    // one outfielder is the guest (a +1) and another is the guest's associated
-    // player ("Lloyd", mid-rated). The remaining 10 outfielders form a spread
-    // free pool so the optimizer has variance to balance against.
-    //
-    // The guest is rated 51, a little below the regulars.
-    // Pair team starts behind (avg pinned ≈ 53.7) vs other team (pinned = 55).
-    // To minimise EWTPI diff, the optimizer must give the pair team's 4 free
-    // slots a higher mean WPR than the other team's 6 — which is exactly the
-    // property we assert.
-    const regulars = Array.from({ length: 10 }, (_, i) =>
-      ratedPlayer(`Regular ${i + 1}`, 55 + i),
-    )
-    const lloyd = ratedPlayer('Lloyd', 55)
-    const gk1 = ratedPlayer('GK1', 55, { mentality: 'goalkeeper' })
-    const gk2 = ratedPlayer('GK2', 55, { mentality: 'goalkeeper' })
-    const guest = ratedPlayer('Lloyd +1', 51)
-
-    const players = [gk1, gk2, lloyd, guest, ...regulars]
-    const pairs: Array<[string, string]> = [['Lloyd +1', 'Lloyd']]
-
-    // Seeded so the test is deterministic across CI runs.
-    const result = autoPick(players, pairs, undefined, seededRng(7))
-    expect(result.suggestions.length).toBeGreaterThan(0)
-
-    const best = result.suggestions[0]
-    const pairTeam = best.teamA.some((p) => p.name === 'Lloyd +1') ? best.teamA : best.teamB
-    const otherTeam = pairTeam === best.teamA ? best.teamB : best.teamA
-
-    const isPinned = (p: Player) =>
-      p.name === 'GK1' || p.name === 'GK2' || p.name === 'Lloyd' || p.name === 'Lloyd +1'
-    const meanFreeWpr = (team: Player[]) => {
-      const free = team.filter((p) => !isPinned(p))
-      return free.reduce((sum, p) => sum + wprScore(p), 0) / free.length
-    }
-
-    expect(meanFreeWpr(pairTeam)).toBeGreaterThan(meanFreeWpr(otherTeam))
-  })
-})
-
-// ─── Closest-N selection ─────────────────────────────────────────────────────
-
-describe('autoPick — returns closest-N splits', () => {
-  // Canonical team-swap key so {A,B} and {B,A} collapse to the same string.
-  // Matches the dedup key used inside autoPick itself.
-  const teamSwapKey = (a: Player[], b: Player[]) =>
-    [a.map((p) => p.playerId).sort().join(','), b.map((p) => p.playerId).sort().join(',')]
-      .sort()
-      .join('|')
-
-  it('returns 5 suggestions sorted ascending by diff, and they are the 5 smallest-diff unique splits', () => {
-    // 10 players with varied ratings to guarantee >5 unique diffs.
-    // No goalkeepers → no GK pinning, so the search is over all 10 players.
-    const players = Array.from({ length: 10 }, (_, i) =>
-      makePlayer(`P${i + 1}`, { strength: (['below', 'average', 'above'] as const)[i % 3], played: 10, recentForm: 'WLDWL' })
-    )
-
-    const result = autoPick(players, undefined, undefined, seededRng(1))
-
-    // Length matches SUGGESTION_COUNT (= 5 after Task 2).
-    expect(result.suggestions.length).toBe(5)
-
-    // Sorted ascending by diff.
-    for (let i = 1; i < result.suggestions.length; i++) {
-      expect(result.suggestions[i].diff).toBeGreaterThanOrEqual(
-        result.suggestions[i - 1].diff,
-      )
-    }
-
-    // Brute-force completeness check: independently enumerate every 5-vs-5
-    // split, collapse team-swaps, and assert no unseen split beats the 5th.
-    const combinations = <T,>(arr: T[], k: number): T[][] => {
-      if (k === 0) return [[]]
-      if (k === arr.length) return [[...arr]]
-      if (k > arr.length) return []
-      const [first, ...rest] = arr
-      return [
-        ...combinations(rest, k - 1).map((c) => [first, ...c]),
-        ...combinations(rest, k),
-      ]
-    }
-
-    const suggestionKeys = new Set(
-      result.suggestions.map((s) => teamSwapKey(s.teamA, s.teamB)),
-    )
-    const worstSuggestedDiff = result.suggestions[4].diff
-
-    const visitedKeys = new Set<string>()
-    for (const teamA of combinations(players, 5)) {
-      const inA = new Set(teamA.map((p) => p.playerId))
-      const teamB = players.filter((p) => !inA.has(p.playerId))
-      const key = teamSwapKey(teamA, teamB)
-      if (visitedKeys.has(key)) continue
-      visitedKeys.add(key)
-      if (suggestionKeys.has(key)) continue
-      const diff = Math.abs(ewptScore(teamA) - ewptScore(teamB))
-      expect(diff).toBeGreaterThanOrEqual(worstSuggestedDiff)
-    }
-  })
-
-  it('returns fewer than 5 suggestions when fewer unique splits exist', () => {
-    // 4 players → sizeA=2 → C(4,2)=6 raw splits → 3 unique after team-swap dedup.
-    const players = [
-      makePlayer('A', { strength: 'above' }),
-      makePlayer('B', { strength: 'average' }),
-      makePlayer('C', { strength: 'below' }),
-      makePlayer('D', { strength: 'average' }),
-    ]
-    const result = autoPick(players, undefined, undefined, seededRng(1))
-
-    // 4 players → exactly 3 unique splits after team-swap dedup.
-    expect(result.suggestions.length).toBe(3)
-    // No duplicates among suggestions (team-swap dedup invariant).
-    const keys = new Set<string>()
-    for (const s of result.suggestions) {
-      const key = teamSwapKey(s.teamA, s.teamB)
-      expect(keys.has(key)).toBe(false)
-      keys.add(key)
-    }
-  })
-})
-

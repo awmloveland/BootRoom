@@ -212,22 +212,48 @@ export function enrichPlayersForRating(players: Player[], weeks: Week[]): Player
  *  - Depth modifier: small bonus/penalty relative to a 5-player baseline
  */
 export function ewptScore(players: Player[]): number {
-  if (players.length === 0) return 0
-  const wprScores = players.map((p) => wprScore(p))
-  const avgWpr = wprScores.reduce((sum, s) => sum + s, 0) / players.length
-  const gks = players.filter((p) => p.mentality === 'goalkeeper')
-  const gkCount = gks.length
+  return ewptScoreFromRatings(players, players.map((p) => wprScore(p)))
+}
+
+/** Team score from precomputed player ratings. `ewptScore(players)` equals `ewptScoreFromRatings(players, players.map(wprScore))`. */
+export function ewptScoreFromRatings(players: Player[], ratings: number[]): number {
+  let ratingSum = 0
+  let keeperCount = 0
+  let keeperRatingSum = 0
+  for (let i = 0; i < players.length; i++) {
+    ratingSum += ratings[i]
+    if (players[i].mentality === 'goalkeeper') {
+      keeperCount++
+      keeperRatingSum += ratings[i]
+    }
+  }
+  return ewptScoreFromTotals(players.length, ratingSum, keeperCount, keeperRatingSum)
+}
+
+/**
+ * Team score from a team's totals: its size, the sum of its players' ratings,
+ * its keeper count and the sum of its keepers' ratings. Lets the picker score
+ * a split without building the team. `keeperRatingSum` is only read when there
+ * is exactly one keeper.
+ */
+export function ewptScoreFromTotals(
+  size: number,
+  ratingSum: number,
+  keeperCount: number,
+  keeperRatingSum: number,
+): number {
+  if (size === 0) return 0
+  const avgWpr = ratingSum / size
   let gkModifier: number
-  if (gkCount === 0) {
+  if (keeperCount === 0) {
     gkModifier = NO_GK_PENALTY
-  } else if (gkCount === 1) {
-    const gkWpr = wprScore(gks[0])
-    gkModifier = GK_BASE_BONUS + (gkWpr / 100) * GK_WPR_SCALE
+  } else if (keeperCount === 1) {
+    gkModifier = GK_BASE_BONUS + (keeperRatingSum / 100) * GK_WPR_SCALE
   } else {
     gkModifier = DUAL_GK_PENALTY
   }
   const depthBonus = Math.min(
-    (players.length - DEPTH_BASELINE) * DEPTH_PER_EXTRA_PLAYER,
+    (size - DEPTH_BASELINE) * DEPTH_PER_EXTRA_PLAYER,
     DEPTH_MAX_BONUS,
   )
   return Math.min(
