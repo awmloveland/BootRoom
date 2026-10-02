@@ -29,6 +29,7 @@ export async function GET(request: Request) {
     .select('week, date, status, format, team_a, team_b, winner, notes, goal_difference')
     .eq('game_id', gameId)
     .in('status', ['played', 'cancelled', 'dnf'])
+    .order('season', { ascending: false })
     .order('week', { ascending: false })
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

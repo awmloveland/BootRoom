@@ -542,12 +542,16 @@ export function nextOccurrenceAfterToday(dayIndex: number): string {
   return formatWeekDate(next)
 }
 
-/** Return the next week number within the current calendar year (or 1 if no weeks this year). */
-export function getNextWeekNumber(weeks: Week[]): number {
-  const currentYear = String(new Date().getFullYear())
-  const thisYear = weeks.filter((w) => w.season === currentYear)
-  if (thisYear.length === 0) return 1
-  return Math.max(...thisYear.map((w) => w.week)) + 1
+/** Season (calendar year) a match date belongs to. `date` is 'DD MMM YYYY'. */
+export function seasonOfDate(date: string): string {
+  return date.split(' ')[2]
+}
+
+/** Next week number within `season`: highest existing week in that season plus one, or 1 if none. */
+export function getNextWeekNumber(weeks: Week[], season: string): number {
+  const inSeason = weeks.filter((w) => w.season === season)
+  if (inSeason.length === 0) return 1
+  return Math.max(...inSeason.map((w) => w.week)) + 1
 }
 
 export function computeYearStats(playerName: string, weeks: Week[], year: string): YearStats {
@@ -579,12 +583,6 @@ export function computeYearStats(playerName: string, weeks: Week[], year: string
   const recentForm = recent.join('').padEnd(5, '-')
 
   return { played, won, drew, lost, winRate, points, recentForm, qualified: played >= 5 }
-}
-
-export function deriveSeason(weeks: Week[]): string {
-  const played = getPlayedWeeks(weeks)
-  if (played.length === 0) return String(new Date().getFullYear())
-  return sortWeeks(played)[0].season
 }
 
 /**
