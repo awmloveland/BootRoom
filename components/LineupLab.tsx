@@ -1,19 +1,22 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { FlaskConical, Trash2 } from 'lucide-react'
-import { cn, ewptScore, winProbability, winCopy } from '@/lib/utils'
+import { cn, enrichPlayersForRating, ewptScore, winProbability, winCopy } from '@/lib/utils'
 import { autoPick } from '@/lib/autoPick'
 import { FormDots } from '@/components/FormDots'
-import type { Player } from '@/lib/types'
+import type { Player, Week } from '@/lib/types'
 
 const MIN_PLAYERS = 4
 
 interface Props {
   allPlayers: Player[]
+  weeks: Week[]
 }
 
-export function LineupLab({ allPlayers }: Props) {
+export function LineupLab({ allPlayers, weeks }: Props) {
+  // Same enrichment as the match card, so both show the same scores.
+  const ratedPlayers = useMemo(() => enrichPlayersForRating(allPlayers, weeks), [allPlayers, weeks])
   const [teamA, setTeamA] = useState<Player[]>([])
   const [teamB, setTeamB] = useState<Player[]>([])
   const [dragOver, setDragOver] = useState<{ team: 'A' | 'B'; index: number } | null>(null)
@@ -21,7 +24,7 @@ export function LineupLab({ allPlayers }: Props) {
 
   const selectedNames = new Set([...teamA, ...teamB].map((p) => p.name))
   const totalSelected = teamA.length + teamB.length
-  const sortedPlayers = [...allPlayers].sort((a, b) => a.name.localeCompare(b.name))
+  const sortedPlayers = [...ratedPlayers].sort((a, b) => a.name.localeCompare(b.name))
 
   function addPlayer(player: Player) {
     if (teamA.length <= teamB.length) {

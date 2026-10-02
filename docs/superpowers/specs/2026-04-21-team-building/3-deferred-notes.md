@@ -26,6 +26,7 @@ To activate any of these, promote to a full spec + prompt pair in this subdirect
 - **Effort:** 2–3 days.
 
 ## 3.4 Cadence-aware rustiness threshold
+- **Status:** Resolved by `2026-10-02-team-building-fairness-design.md` (Phase 2, section 6.2). Rust now counts league games missed since a player's last appearance, so it follows the league's cadence and no longer depends on the build day.
 - **What:** The 28-day rustiness threshold in `wprScore` is calendar-based. Fine for a weekly league (~4 games' gap); wrong for monthly or twice-weekly cadences.
 - **Parked because:** The current league's cadence is stable; no harm today.
 - **Revisit when:** A second league is added with different cadence, or this league's cadence changes.

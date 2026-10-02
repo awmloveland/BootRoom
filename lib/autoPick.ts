@@ -52,8 +52,8 @@ export function findAssocTeam(
  * can find, sorted by score diff ascending, with team-swap duplicates collapsed.
  *
  * Uses exhaustive search for n ≤ 20; random sampling for n > 20. Guest players
- * (not in DB) should be passed with a wprOverride set to the appropriate
- * league percentile and all stats at zero.
+ * (not in DB) should be passed as zero-game players carrying their strength
+ * label, so `wprScore` rates them like any other newcomer.
  *
  * @param pairs - Optional array of [guestName, associatedPlayerName] pairs.
  *   Each guest will be pinned to the same team as their associated player.

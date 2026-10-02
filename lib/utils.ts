@@ -1,25 +1,26 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { LeagueDetails, Player, PlayerClaimStatus, ScheduledWeek, Strength, Week, Winner, YearStats } from './types'
+import { LeagueDetails, Player, PlayerClaimStatus, ScheduledWeek, Week, Winner, YearStats } from './types'
 import type { VisibilityTier } from './roles'
-import { strengthToRating } from './strength'
 import type { QuarterSummary, QuarterlyEntry } from './sidebar-stats'
 
-// --- Per-player score (wprScore) ---
-const WPR_PPG_WEIGHT = 0.60            // shrunk points-per-game contribution
-const WPR_FORM_WEIGHT = 0.25           // recency-weighted form contribution
-const WPR_RATING_WEIGHT = 0.15         // rating prior contribution (fades with games played)
-const RUSTINESS_MULTIPLIER = 0.88      // applied when calendar-rusty or intermittent
-const RUSTINESS_DAYS = 28              // calendar threshold for rustiness
-const MIN_RECENT_GAMES = 2             // fewer played slots in recentForm → intermittent
+// --- Per-player score (wprScore, v2) ---
+// A player's rating is their shrunk points per game, plus a starting label
+// that fades out over their first LABEL_FADE_GAMES games, then discounted
+// for newcomers and for players returning after several missed games.
+const WPR_RESULTS_WEIGHT = 0.85        // shrunk points per game, normalised 0-100
+const WPR_LABEL_POINTS = 7.5           // 'above' adds this, 'below' subtracts it, 'average' adds 0
+const LABEL_FADE_GAMES = 10            // label weight reaches 0 at this many games (owner decision, do not change)
+const PRIOR_GAMES = 12                 // phantom average games used to shrink points per game
+const PRIOR_AVG_PPG = 1.5              // the phantom games' points per game (a 50% record)
 
-// --- Team score (ewptScore, post-1.2) ---
-const GK_BASE_BONUS = 0.5              // minimum GK bonus when exactly one keeper present
-const GK_WPR_SCALE = 2.0               // added per unit of (gkWpr / 100)
-const NO_GK_PENALTY = -1.5
-const DUAL_GK_PENALTY = -1
-const VARIETY_BONUS = 2
-const VARIETY_MIN_MENTALITIES = 3      // post-1.3: outfielders only
+// --- Team score (ewptScore) ---
+// Fixed team-score points. Halved for the v2 rating, whose spread is about
+// 40% narrower, so a lone keeper's handicap stays the same real-world size.
+const GK_BASE_BONUS = 0.25             // minimum GK bonus when exactly one keeper present
+const GK_WPR_SCALE = 1.0               // added per unit of (gkWpr / 100)
+const NO_GK_PENALTY = -0.75
+const DUAL_GK_PENALTY = -0.5
 const DEPTH_BASELINE = 5               // team size where depth bonus = 0
 const DEPTH_PER_EXTRA_PLAYER = 0.5
 const DEPTH_MAX_BONUS = 3              // cap on cumulative depth bonus
@@ -131,86 +132,73 @@ export function formatMonthYear(date: string): string {
 }
 
 /**
- * Weighted Performance Rating (WPR) score for a player.
+ * Weighted Performance Rating (WPR, v2) for a player.
  *
- * Three base components:
- *  - 60%: Points per game (W=3, D=1, L=0) with Bayesian shrinkage toward
- *          average (1.5 PPG) so small samples don't inflate the score.
- *  - 25%: Recent form (last 5 games) with recency weighting — more recent
- *          games count more, so improving players rank above fading ones.
- *  - 15%: Quality rating prior (1–3 scale), which fades to zero by ~10 games
- *          so it only influences players with very few results.
+ *  - Results: points per game (W=3, D=1, L=0) shrunk toward 1.5 by
+ *    PRIOR_GAMES phantom average games, normalised to 0-100 and weighted by
+ *    WPR_RESULTS_WEIGHT. A newcomer's rating moves gradually as results arrive.
+ *  - Label: the admin's strength label is a starting guess. 'above' adds
+ *    WPR_LABEL_POINTS, 'below' subtracts it, 'average' and unrated add 0. Its
+ *    weight fades linearly to zero at LABEL_FADE_GAMES games.
+ *  - Newcomer discount: x0.85 for 0 or 1 games, x0.90 for 2, x0.95 for 3.
+ *  - Rust discount: by league games missed since the player's last appearance
+ *    (`gamesMissed`, set by `enrichPlayersForRating`).
  *
- * Two penalties are applied after the base score:
- *  - Experience penalty (×0.85–0.95): players with 1–3 games played are still
- *    learning the league. Multiplier ramps from 0.85 at 1 game to 0.95 at 3 games.
- *  - Rustiness penalty (×0.88): applied if either (a) the player has not played
- *    in more than 28 calendar days (requires `lastPlayedWeekDate` to be set), or
- *    (b) fewer than 2 of the last 5 `recentForm` slots are real games.
- *    Both conditions trigger the same penalty; they can stack with the experience penalty.
- *
- * Players below the minimum games threshold (qualified === false) are ranked
- * last regardless of score.
- *
- * @param referenceDate - The date to compare against for the calendar rustiness check.
- *   Defaults to today. Pass a fixed date in tests for deterministic results.
+ * Pure: depends only on the player object, never on the clock. Recent form is
+ * displayed in the UI but does not feed the rating.
  */
-export function wprScore(player: Player, referenceDate?: Date): number {
-  if (player.wprOverride !== undefined) return player.wprOverride
-
-  const PRIOR_GAMES = 5         // shrinkage strength
-  const PRIOR_AVG_PPG = 1.5    // 50% win rate equivalent
-
-  // Component 1: shrunk points per game (0–3 scale → normalised 0–100)
+export function wprScore(player: Player): number {
   const shrunkPpg = (player.points + PRIOR_GAMES * PRIOR_AVG_PPG) / (player.played + PRIOR_GAMES)
-  const ppgScore = (shrunkPpg / 3) * 100
+  const resultsScore = (shrunkPpg / 3) * 100 * WPR_RESULTS_WEIGHT
 
-  // Component 2: recency-weighted form (most recent game has full weight)
-  const formChars = player.recentForm.split('')
-  const rawFormScore = formChars.reduce((acc, c, i) => {
-    const pts = c === 'W' ? 3 : c === 'D' ? 1 : 0
-    const weight = 1 - i * 0.15
-    return acc + pts * weight
-  }, 0)
-  // Denominator excludes '-' (unplayed) slots so short-history players aren't penalised.
-  const maxFormScore = formChars.reduce(
-    (acc, c, i) => (c === '-' ? acc : acc + 3 * (1 - i * 0.15)),
-    0,
-  )
-  const formScore = maxFormScore > 0 ? (rawFormScore / maxFormScore) * 100 : 0
+  const labelOffset =
+    player.strength === 'above' ? WPR_LABEL_POINTS
+    : player.strength === 'below' ? -WPR_LABEL_POINTS
+    : 0
+  const labelWeight = Math.max(0, 1 - player.played / LABEL_FADE_GAMES)
 
-  // Component 3: strength prior (Strength → 0–100), fades as played increases
-  const normRating = player.strength === null
-    ? 50
-    : ((strengthToRating(player.strength) - 1) / 2) * 100
-  const ratingWeight = Math.max(0, 1 - player.played / 10)
-  const ratingScore = normRating * ratingWeight
+  const score = resultsScore + labelOffset * labelWeight
+  return score * newcomerMultiplier(player.played) * rustMultiplier(player.gamesMissed ?? 0)
+}
 
-  let score = ppgScore * WPR_PPG_WEIGHT + formScore * WPR_FORM_WEIGHT + ratingScore * WPR_RATING_WEIGHT
+/** Players still new to the league are discounted: 0 or 1 game 0.85, 2 games 0.90, 3 games 0.95, 4+ games 1. */
+function newcomerMultiplier(played: number): number {
+  if (played <= 1) return 0.85
+  if (played === 2) return 0.90
+  if (played === 3) return 0.95
+  return 1
+}
 
-  // Experience penalty: players with 1–3 games are still learning the league.
-  // Multiplier ramps from 0.85 (1 game) to 0.95 (3 games), then full weight at 4+.
-  if (player.played >= 1 && player.played < 4) {
-    score *= 0.85 + 0.05 * (player.played - 1)
-  }
+/** 0 to 2 missed games: 1. 3 missed: 0.96. 4 missed: 0.92. 5 or more: 0.88. */
+function rustMultiplier(gamesMissed: number): number {
+  if (gamesMissed <= 2) return 1
+  if (gamesMissed === 3) return 0.96
+  if (gamesMissed === 4) return 0.92
+  return 0.88
+}
 
-  // Rustiness penalty: not recently active (calendar absence or intermittent attendance).
-  const recentGameCount = player.recentForm.split('').filter((c) => c !== '-').length
-  const isIntermittent = recentGameCount < MIN_RECENT_GAMES
+/**
+ * For each player name, the number of league games (status 'played' or 'dnf') dated after
+ * that player's most recent appearance in a 'played' or 'dnf' week. Players who have never
+ * appeared are absent from the map (treat as 0).
+ */
+export function gamesMissedByPlayer(weeks: Week[]): Map<string, number> {
+  const games = weeks
+    .filter((w) => w.status === 'played' || w.status === 'dnf')
+    .sort((a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime()) // most recent first
+  const missed = new Map<string, number>()
+  games.forEach((w, gamesSince) => {
+    for (const name of [...w.teamA, ...w.teamB]) {
+      if (!missed.has(name)) missed.set(name, gamesSince)
+    }
+  })
+  return missed
+}
 
-  let isCalendarRusty = false
-  if (player.lastPlayedWeekDate) {
-    const lastPlayed = new Date(player.lastPlayedWeekDate)
-    const ref = referenceDate ?? new Date()
-    const diffDays = (ref.getTime() - lastPlayed.getTime()) / (1000 * 60 * 60 * 24)
-    isCalendarRusty = diffDays > RUSTINESS_DAYS
-  }
-
-  if (isIntermittent || isCalendarRusty) {
-    score *= RUSTINESS_MULTIPLIER
-  }
-
-  return score
+/** Returns copies of `players` with `gamesMissed` set from `weeks`. */
+export function enrichPlayersForRating(players: Player[], weeks: Week[]): Player[] {
+  const missed = gamesMissedByPlayer(weeks)
+  return players.map((p) => ({ ...p, gamesMissed: missed.get(p.name) ?? 0 }))
 }
 
 /**
@@ -218,10 +206,9 @@ export function wprScore(player: Player, referenceDate?: Date): number {
  *
  * Returns a single 0–100 score for a group of players representing a team.
  *
- *  - Average WPR — overall team quality (form is already baked in per-player)
- *  - GK modifier: scaled by GK WPR — 0.5 + (wprScore(gk)/100)*2, range [+0.5,+2.5];
- *                 -1.5 for no GK, -1 for two (wasted slot)
- *  - Variety bonus: +2 if outfielders cover 3+ different mentalities
+ *  - Average WPR — overall team quality
+ *  - GK modifier: scaled by GK WPR — 0.25 + (wprScore(gk)/100)*1.0, range [+0.25,+1.25];
+ *                 -0.75 for no GK, -0.5 for two (wasted slot)
  *  - Depth modifier: small bonus/penalty relative to a 5-player baseline
  */
 export function ewptScore(players: Player[]): number {
@@ -239,19 +226,13 @@ export function ewptScore(players: Player[]): number {
   } else {
     gkModifier = DUAL_GK_PENALTY
   }
-  // Variety bonus rewards tactical diversity among outfielders.
-  // Goalkeepers are excluded — they're already credited via `gkModifier`.
-  const outfielderMentalities = new Set(
-    players.filter((p) => p.mentality !== 'goalkeeper').map((p) => p.mentality),
-  )
-  const varietyBonus = outfielderMentalities.size >= VARIETY_MIN_MENTALITIES ? VARIETY_BONUS : 0
   const depthBonus = Math.min(
     (players.length - DEPTH_BASELINE) * DEPTH_PER_EXTRA_PLAYER,
     DEPTH_MAX_BONUS,
   )
   return Math.min(
     100,
-    Math.max(0, avgWpr + gkModifier + varietyBonus + depthBonus),
+    Math.max(0, avgWpr + gkModifier + depthBonus),
   )
 }
 
@@ -263,9 +244,9 @@ export function ewptScore(players: Player[]): number {
  * for legacy lineups saved before the snapshot column existed.
  *
  * Recomputing at result-recording time is unsafe because the inputs to
- * `ewptScore` (notably `Player.lastPlayedWeekDate` and the per-guest
- * `wprOverride`) are not persisted, so the recomputed value drifts from
- * the snapshot a member saw pre-game.
+ * `ewptScore` (notably `Player.gamesMissed`, derived from the weeks at build
+ * time) are not persisted, and every result recorded since moves the ratings,
+ * so the recomputed value drifts from the snapshot a member saw pre-game.
  */
 export function resolveTeamRatingForResult(
   snapshot: number | null | undefined,
@@ -273,79 +254,6 @@ export function resolveTeamRatingForResult(
 ): number {
   if (snapshot !== null && snapshot !== undefined) return snapshot
   return parseFloat(ewptScore(recomputePlayers).toFixed(3))
-}
-
-/**
- * Computes the median WPR score of all players with 5 or more games played.
- * Used as the default strength for new players and guests when auto-picking.
- * Falls back to 50 if fewer than 3 qualified players exist (very new league).
- */
-export function leagueMedianWpr(players: Player[]): number {
-  const qualified = players.filter((p) => p.played >= 5)
-  if (qualified.length < 3) return 50
-  const scores = qualified.map((p) => wprScore(p)).sort((a, b) => a - b)
-  const mid = Math.floor(scores.length / 2)
-  return scores.length % 2 === 0
-    ? (scores[mid - 1] + scores[mid]) / 2
-    : scores[mid]
-}
-
-export interface WprPercentiles {
-  p25: number
-  p50: number
-  p75: number
-}
-
-/**
- * Computes WPR percentiles (p25 / p50 / p75) for all players with 5+ games played.
- * Used to calibrate strength hint offsets dynamically rather than using a fixed ±15.
- * Falls back to { p25: 40, p50: 50, p75: 60 } when fewer than 3 qualified players exist.
- */
-export function leagueWprPercentiles(players: Player[]): WprPercentiles {
-  const qualified = players.filter((p) => p.played >= 5)
-  if (qualified.length < 3) return { p25: 40, p50: 50, p75: 60 }
-  const scores = qualified.map((p) => wprScore(p)).sort((a, b) => a - b)
-  const n = scores.length
-  const p25 = scores[Math.ceil(n * 0.25) - 1]
-  const p50 = n % 2 === 0
-    ? (scores[n / 2 - 1] + scores[n / 2]) / 2
-    : scores[Math.floor(n / 2)]
-  const p75 = scores[Math.ceil(n * 0.75) - 1]
-  return { p25, p50, p75 }
-}
-
-/**
- * Maps a strength hint to a WPR value using the league's WPR percentiles.
- * Used to assign a `wprOverride` to guests and new players for the team-build.
- *
- * The multipliers discount the percentile to reflect that an unrated player's
- * true strength is uncertain. "Average" carries no information (default when
- * the admin doesn't know the guest), so it gets the strongest discount —
- * equivalent to the experience-penalty multiplier a real 1-game player would
- * receive in `wprScore`. "Below" and "Above" carry explicit but uncertain
- * information, so they get a lighter discount roughly equivalent to 3 games
- * of observed play.
- *
- * The final values are clamped so `below ≤ average ≤ above` for any percentile
- * spread. Without the clamp, tightly-clustered percentiles (e.g. p25=49, p50=50)
- * can flip the order because 0.92 / 0.85 ≈ 1.082 — an explicit "Below" hint
- * would then rate a guest higher than the "Average" default.
- */
-export const HINT_UNKNOWN_MULTIPLIER = 0.85
-export const HINT_EXPLICIT_MULTIPLIER = 0.92
-
-export function hintToWpr(
-  hint: Strength | null | undefined,
-  percentiles: WprPercentiles,
-): number {
-  const avg = percentiles.p50 * HINT_UNKNOWN_MULTIPLIER
-  if (hint === 'above') {
-    return Math.max(avg, Math.min(100, percentiles.p75) * HINT_EXPLICIT_MULTIPLIER)
-  }
-  if (hint === 'below') {
-    return Math.min(avg, Math.max(0, percentiles.p25) * HINT_EXPLICIT_MULTIPLIER)
-  }
-  return avg
 }
 
 /**
