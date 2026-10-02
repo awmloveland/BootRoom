@@ -123,7 +123,7 @@ function TeammatesWidget({ players, weeks, linkedPlayerName }: { players: Player
       className="overflow-visible"
       bodyClassName="pl-3"
     >
-      <TeammatesChart teammates={teammates} size="small" />
+      <TeammatesChart playerName={linkedPlayerName} teammates={teammates} size="small" />
     </WidgetShell>
   )
 }
