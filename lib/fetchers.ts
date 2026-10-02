@@ -2,9 +2,9 @@
 import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { sortWeeks, seasonOfDate, getMostRecentExpectedGameDate, getNextWeekNumber, isPastDeadline } from '@/lib/utils'
+import { sortWeeks, seasonOfDate, getMostRecentExpectedGameDate, getNextWeekNumber, isPastDeadline, parseLineupMetadata } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
-import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality, Strength, JoinRequestStatus, PendingJoinRequest, PlayerClaimStatus } from '@/lib/types'
+import type { GameRole, LeagueFeature, FeatureKey, Player, Week, JoinRequestStatus, PendingJoinRequest, PlayerClaimStatus } from '@/lib/types'
 import { ratingToStrength } from '@/lib/strength'
 
 // ── Game ─────────────────────────────────────────────────────────────────────
@@ -159,26 +159,7 @@ function mapWeekRow(row: WeekRow): Week {
     goal_difference: row.goal_difference ?? null,
     team_a_rating: row.team_a_rating ?? null,
     team_b_rating: row.team_b_rating ?? null,
-    lineupMetadata: row.lineup_metadata
-      ? {
-          guests: ((row.lineup_metadata.guests as any[]) ?? []).map((g: any) => ({
-            type: 'guest' as const,
-            name: g.name,
-            associatedPlayer: g.associated_player,
-            goalkeeper: g.goalkeeper ?? false,
-            // Accept new `strength` key or legacy `strength_hint`; fall back to 'average'
-            strength: (g.strength ?? g.strength_hint ?? 'average') as Strength,
-          })),
-          new_players: ((row.lineup_metadata.new_players as any[]) ?? []).map((p: any) => ({
-            type: 'new_player' as const,
-            name: p.name,
-            // Legacy metadata may have only `goalkeeper` set; derive mentality from it.
-            mentality: (p.mentality as Mentality) ?? (p.goalkeeper ? 'goalkeeper' : 'balanced'),
-            // Accept new `strength` key or legacy `strength_hint`; fall back to 'average'
-            strength: (p.strength ?? p.strength_hint ?? 'average') as Strength,
-          })),
-        }
-      : null,
+    lineupMetadata: parseLineupMetadata(row.lineup_metadata),
   }
 }
 
