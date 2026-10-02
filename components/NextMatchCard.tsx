@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, manAdvantage, isPastDeadline, buildShareText, shareOrCopy, fetchLineupShareUrl, wprScore, leagueWprPercentiles, parseWeekDate, hintToWpr, squadFormat } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, seasonOfDate, ewptScore, winProbability, winCopy, manAdvantage, isPastDeadline, buildShareText, shareOrCopy, fetchLineupShareUrl, wprScore, leagueWprPercentiles, parseWeekDate, hintToWpr, squadFormat } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality, Strength } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
@@ -236,8 +236,10 @@ export function NextMatchCard({
   )
 
   const nextDate = useMemo(() => getNextMatchDate(weeks, leagueDayIndex), [weeks, leagueDayIndex])
-  const nextWeekNum = useMemo(() => getNextWeekNumber(weeks), [weeks])
-  const season = useMemo(() => deriveSeason(weeks), [weeks])
+  // Both halves of the week key come from the match date, so a January game
+  // starts a new season instead of reusing last year's week numbers.
+  const nextSeason = useMemo(() => seasonOfDate(nextDate), [nextDate])
+  const nextWeekNum = useMemo(() => getNextWeekNumber(weeks, nextSeason), [weeks, nextSeason])
 
   const goalkeepers = useMemo(
     () => allPlayers.filter((p) => p.mentality === 'goalkeeper').map((p) => p.name),
@@ -331,6 +333,8 @@ export function NextMatchCard({
         .select('id, season, week, date, format, team_a, team_b, status, lineup_metadata, team_a_rating, team_b_rating')
         .eq('game_id', gameId)
         .in('status', ['scheduled', 'cancelled', 'unrecorded'])
+        // Week numbers restart each season, so order by season first.
+        .order('season', { ascending: false })
         .order('week', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -405,7 +409,8 @@ export function NextMatchCard({
     const teamB = localTeamB.map((p) => p.name)
     const teamARating = ewptScore(localTeamA)
     const teamBRating = ewptScore(localTeamB)
-    // When editing an existing scheduled week, use its week number and date
+    // When editing an existing scheduled week, use its season, week number and date
+    const saveSeason = scheduledWeek?.season ?? nextSeason
     const saveWeek = scheduledWeek?.week ?? nextWeekNum
     const saveDate = scheduledWeek?.date ?? nextDate
     const lineupMetadata: LineupMetadata = {
@@ -435,7 +440,7 @@ export function NextMatchCard({
         const res = await fetch(`/api/public/league/${gameId}/lineup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ season, week: saveWeek, date: saveDate, format: format || null, teamA, teamB, teamARating, teamBRating }),
+          body: JSON.stringify({ season: saveSeason, week: saveWeek, date: saveDate, format: format || null, teamA, teamB, teamARating, teamBRating }),
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error ?? 'Failed to save lineup')
@@ -444,7 +449,7 @@ export function NextMatchCard({
         const supabase = createClient()
         const { data, error: err } = await supabase.rpc('save_lineup', {
           p_game_id: gameId,
-          p_season: season,
+          p_season: saveSeason,
           p_week: saveWeek,
           p_date: saveDate,
           p_format: format || null,
@@ -457,7 +462,7 @@ export function NextMatchCard({
         if (err) throw err
         weekId = data as string
       }
-      setScheduledWeek({ id: weekId, season, week: saveWeek, date: saveDate, format, teamA, teamB, status: 'scheduled', lineupMetadata, team_a_rating: teamARating, team_b_rating: teamBRating })
+      setScheduledWeek({ id: weekId, season: saveSeason, week: saveWeek, date: saveDate, format, teamA, teamB, status: 'scheduled', lineupMetadata, team_a_rating: teamARating, team_b_rating: teamBRating })
       setCardState('lineup')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save lineup')
@@ -534,6 +539,7 @@ export function NextMatchCard({
   }
 
   async function handleCancelGame() {
+    const cancelSeason = scheduledWeek?.season ?? nextSeason
     const cancelWeek = scheduledWeek?.week ?? nextWeekNum
     const cancelDate = scheduledWeek?.date ?? nextDate
     setSaving(true)
@@ -544,7 +550,7 @@ export function NextMatchCard({
         const res = await fetch(`/api/public/league/${gameId}/cancel`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ season, week: cancelWeek, date: cancelDate }),
+          body: JSON.stringify({ season: cancelSeason, week: cancelWeek, date: cancelDate }),
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error ?? 'Failed to cancel')
@@ -553,14 +559,14 @@ export function NextMatchCard({
         const supabase = createClient()
         const { data, error: err } = await supabase.rpc('cancel_week', {
           p_game_id: gameId,
-          p_season: season,
+          p_season: cancelSeason,
           p_week: cancelWeek,
           p_date: cancelDate,
         })
         if (err) throw err
         weekId = data as string
       }
-      setScheduledWeek({ id: weekId, season, week: cancelWeek, date: cancelDate, format: null, teamA: [], teamB: [], status: 'cancelled' })
+      setScheduledWeek({ id: weekId, season: cancelSeason, week: cancelWeek, date: cancelDate, format: null, teamA: [], teamB: [], status: 'cancelled' })
       setShowCancelModal(false)
       setError(null)
       setCardState('cancelled')
