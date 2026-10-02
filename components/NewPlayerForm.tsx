@@ -21,6 +21,8 @@ export interface NewPlayerFormValues {
 interface Props {
   /** Existing names used for client-side case-insensitive collision check. */
   existingNames: string[]
+  /** Guests and new players already in this lineup, also checked case-insensitively. */
+  lineupNames?: string[]
   /** Whether to show the helper text under the name field (lineup-builder shows it; settings does not). */
   showNameHelper?: boolean
   /** External submit-error message (e.g. from a 409 response). */
@@ -37,6 +39,7 @@ interface Props {
 
 export function NewPlayerForm({
   existingNames,
+  lineupNames = [],
   showNameHelper = false,
   submitError = null,
   submitting = false,
@@ -53,9 +56,13 @@ export function NewPlayerForm({
   function handleSubmit() {
     const trimmed = name.trim()
     if (!trimmed) return
-    const collision = existingNames.some((n) => n.toLowerCase() === trimmed.toLowerCase())
-    if (collision) {
+    const matches = (n: string) => n.toLowerCase() === trimmed.toLowerCase()
+    if (existingNames.some(matches)) {
       setNameError(`A player named "${trimmed}" already exists in this league.`)
+      return
+    }
+    if (lineupNames.some(matches)) {
+      setNameError(`A player named "${trimmed}" is already in this lineup.`)
       return
     }
     onSubmit({ name: trimmed, strength, mentality })
