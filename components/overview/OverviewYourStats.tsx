@@ -82,7 +82,7 @@ export function OverviewYourStats({ player, standing, quarterLabel, weeks }: Ove
               <span className="whitespace-nowrap font-plex text-[8.5px] uppercase tracking-[.14em] text-[#4f688a]">Min 5 together</span>
             </div>
             <div className="px-4 pt-4 pb-3.5">
-              <TeammatesChart teammates={teammates} size="large" />
+              <TeammatesChart playerName={player.name} teammates={teammates} size="large" />
             </div>
           </>
         )}

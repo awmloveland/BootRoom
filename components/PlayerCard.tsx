@@ -340,7 +340,7 @@ export function PlayerCard({
                   <p className="font-plex text-[8.5px] uppercase tracking-[.14em] text-[#4f688a]">Min 5 together</p>
                 </div>
                 {teammates.length > 0 ? (
-                  <TeammatesChart teammates={teammates} size="large" />
+                  <TeammatesChart playerName={player.name} teammates={teammates} size="large" />
                 ) : (
                   <p className="px-3 py-4 border border-dashed border-[#223a5c] rounded text-center font-inter-body text-xs text-[#6f88a8]">
                     Nobody has played 5 games with {player.name.split(' ')[0]} yet.
