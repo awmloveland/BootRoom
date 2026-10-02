@@ -56,8 +56,7 @@ export interface Player {
   mentality: Mentality;
   strength: Strength | null;
   recentForm: string; // e.g. 'WWDLW' or '--WLW'
-  wprOverride?: number; // if set, wprScore returns this directly — used for guests/new players
-  lastPlayedWeekDate?: string; // 'DD MMM YYYY' — derived at runtime before auto-pick; not persisted
+  gamesMissed?: number; // league games since this player's last appearance; derived at runtime, not persisted
 }
 
 export interface BootRoomData {
@@ -139,14 +138,14 @@ export interface GuestEntry {
   name: string             // e.g. "Alice +1"
   associatedPlayer: string // e.g. "Alice"
   goalkeeper?: boolean     // whether this guest is playing as goalkeeper
-  strength: Strength       // drives wprOverride at resolution time
+  strength: Strength       // starting label for wprScore, which rates every zero-game player the same way
 }
 
 export interface NewPlayerEntry {
   type: 'new_player'       // runtime discriminant — not persisted to DB
   name: string
   mentality: Mentality     // balanced | attacking | defensive | goalkeeper
-  strength: Strength       // drives wprOverride at resolution time
+  strength: Strength       // starting label for wprScore, which rates every zero-game player the same way
 }
 
 export interface LineupMetadata {

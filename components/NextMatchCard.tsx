@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, seasonOfDate, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, wprScore, leagueWprPercentiles, parseWeekDate, hintToWpr } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, seasonOfDate, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, enrichPlayersForRating } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality, Strength } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
@@ -54,24 +54,11 @@ interface Props {
 type CardState = 'loading' | 'idle' | 'building' | 'lineup' | 'cancelled'
 
 /**
- * Scans played weeks to find the most recent week date each player appeared in.
- * Returns a map of player name → date string ('DD MMM YYYY'), or undefined if never played.
+ * Turns the squad's names into `Player` objects for the team builder. Guests
+ * and new players are plain zero-game players carrying their strength label,
+ * so `wprScore` rates them on the same scale as zero-game roster players.
  */
-function deriveLastPlayedDates(players: Player[], weeks: Week[]): Map<string, string | undefined> {
-  const playedWeeks = weeks
-    .filter((w) => w.status === 'played')
-    .sort((a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime()) // most recent first
-  const result = new Map<string, string | undefined>()
-  for (const player of players) {
-    const lastWeek = playedWeeks.find(
-      (w) => w.teamA.includes(player.name) || w.teamB.includes(player.name)
-    )
-    result.set(player.name, lastWeek?.date)
-  }
-  return result
-}
-
-function resolvePlayersForAutoPick(
+export function resolvePlayersForAutoPick(
   names: string[],
   allPlayers: Player[],
   guests: GuestEntry[],
@@ -80,7 +67,6 @@ function resolvePlayersForAutoPick(
   const lookup = new Map(allPlayers.map((p) => [p.name.toLowerCase(), p]))
   const guestLookup = new Map(guests.map((g) => [g.name.toLowerCase(), g]))
   const newPlayerLookup = new Map(newPlayers.map((p) => [p.name.toLowerCase(), p]))
-  const percentiles = leagueWprPercentiles(allPlayers)
 
   return names.map((name) => {
     const known = lookup.get(name.toLowerCase())
@@ -97,7 +83,6 @@ function resolvePlayersForAutoPick(
         mentality: guest.goalkeeper ? 'goalkeeper' : 'balanced',
         strength: guest.strength,
         recentForm: '',
-        wprOverride: hintToWpr(guest.strength, percentiles),
       }
     }
 
@@ -112,7 +97,6 @@ function resolvePlayersForAutoPick(
         mentality: newPlayer.mentality,
         strength: newPlayer.strength,
         recentForm: '',
-        wprOverride: hintToWpr(newPlayer.strength, percentiles),
       }
     }
 
@@ -233,26 +217,21 @@ export function NextMatchCard({
   }
 
   function handleAutoPick() {
-    const lastPlayedDates = deriveLastPlayedDates(allPlayers, weeks)
-    const enrichedPlayers = allPlayers.map((p) => ({
-      ...p,
-      lastPlayedWeekDate: lastPlayedDates.get(p.name),
-    }))
-    const resolved = resolvePlayersForAutoPick(squadNames, enrichedPlayers, guestEntries, newPlayerEntries)
+    const resolved = resolvePlayersForAutoPick(squadNames, enrichPlayersForRating(allPlayers, weeks), guestEntries, newPlayerEntries)
     const pairs = guestEntries
       .filter((g) => g.associatedPlayer)
       .map((g) => [g.name, g.associatedPlayer] as [string, string])
 
-    // Treat both guests and new players as "unknown" — the count-balance filter
-    // spreads them across teams subject to pair-pinning constraints. autoPick
-    // no-ops internally when the set is empty or a singleton, so we can pass it
-    // unconditionally. We collect playerIds (not names) so same-named entities
-    // stay distinct.
+    // Treat guests, new players and zero-game roster players as "unknown" —
+    // the count-balance filter spreads them across teams subject to
+    // pair-pinning constraints. autoPick no-ops internally when the set is
+    // empty or a singleton, so we can pass it unconditionally. We collect
+    // playerIds (not names) so same-named entities stay distinct.
     const unknownEntryNames = new Set<string>()
     for (const g of guestEntries) unknownEntryNames.add(g.name)
     for (const p of newPlayerEntries) unknownEntryNames.add(p.name)
     const unknownIds = new Set(
-      resolved.filter((p) => unknownEntryNames.has(p.name)).map((p) => p.playerId),
+      resolved.filter((p) => unknownEntryNames.has(p.name) || p.played === 0).map((p) => p.playerId),
     )
 
     const result = autoPick(resolved, pairs, unknownIds)

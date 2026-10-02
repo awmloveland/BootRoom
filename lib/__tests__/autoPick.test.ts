@@ -1,21 +1,8 @@
 import { autoPick, findAssocTeam } from '@/lib/autoPick'
 import type { Player } from '@/lib/types'
-import { ewptScore } from '@/lib/utils'
+import { ewptScore, wprScore } from '@/lib/utils'
 import { seededRng } from './helpers/seeded-rng'
-
-function makePlayer(name: string, overrides?: Partial<Player>): Player {
-  return {
-    playerId: `known|${name}`,
-    name,
-    played: 0, won: 0, drew: 0, lost: 0,
-    timesTeamA: 0, timesTeamB: 0,
-    winRate: 0, qualified: false, points: 0,
-    mentality: 'balanced',
-    strength: 'average', /* median league strength — same default used for guest players */
-    recentForm: '',
-    ...overrides,
-  }
-}
+import { makePlayer, ratedPlayer } from './helpers/players'
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
@@ -195,16 +182,16 @@ describe('autoPick — guest has goalkeeper: true', () => {
 
 describe('autoPick — unknownNames count-balance filter', () => {
   it('splits 4 new players evenly (2 per team) in all suggestions', () => {
-    // 6 rated players + 4 new players (all same wprOverride → algorithm needs
+    // 6 rated players + 4 new players (all same rating → algorithm needs
     // count-balance filter to guarantee even split)
     const rated = Array.from({ length: 6 }, (_, i) =>
-      makePlayer(`Rated ${i + 1}`, { wprOverride: 60 })
+      ratedPlayer(`Rated ${i + 1}`, 60)
     )
     const newPlayers = [
-      makePlayer('New1', { wprOverride: 50 }),
-      makePlayer('New2', { wprOverride: 50 }),
-      makePlayer('New3', { wprOverride: 50 }),
-      makePlayer('New4', { wprOverride: 50 }),
+      ratedPlayer('New1', 50),
+      ratedPlayer('New2', 50),
+      ratedPlayer('New3', 50),
+      ratedPlayer('New4', 50),
     ]
     const newPlayerIds = new Set(newPlayers.map((p) => p.playerId))
     const result = autoPick([...rated, ...newPlayers], undefined, newPlayerIds)
@@ -218,10 +205,10 @@ describe('autoPick — unknownNames count-balance filter', () => {
 
   it('splits 5 new players with at most a 1-player count difference per team', () => {
     const rated = Array.from({ length: 5 }, (_, i) =>
-      makePlayer(`Rated ${i + 1}`, { wprOverride: 60 })
+      ratedPlayer(`Rated ${i + 1}`, 60)
     )
     const newPlayers = Array.from({ length: 5 }, (_, i) =>
-      makePlayer(`New ${i + 1}`, { wprOverride: 50 })
+      ratedPlayer(`New ${i + 1}`, 50)
     )
     const newPlayerIds = new Set(newPlayers.map((p) => p.playerId))
     const result = autoPick([...rated, ...newPlayers], undefined, newPlayerIds)
@@ -233,18 +220,18 @@ describe('autoPick — unknownNames count-balance filter', () => {
     }
   })
 
-  it('uses new player wprOverride ratings to find best balance within count constraint', () => {
+  it('uses new player ratings to find best balance within count constraint', () => {
     // Two strong and two weak new players — the algorithm should produce a balanced
     // split (1 strong + 1 weak per team) since the 6 rated players are equal and the
     // count-balance filter ensures exactly 2 new players per team.
     const rated = Array.from({ length: 6 }, (_, i) =>
-      makePlayer(`Rated ${i + 1}`, { wprOverride: 55 })
+      ratedPlayer(`Rated ${i + 1}`, 55)
     )
     const newPlayers = [
-      makePlayer('StrongA', { wprOverride: 80 }),
-      makePlayer('StrongB', { wprOverride: 80 }),
-      makePlayer('WeakA', { wprOverride: 20 }),
-      makePlayer('WeakB', { wprOverride: 20 }),
+      ratedPlayer('StrongA', 80),
+      ratedPlayer('StrongB', 80),
+      ratedPlayer('WeakA', 20),
+      ratedPlayer('WeakB', 20),
     ]
     const newPlayerIds = new Set(newPlayers.map((p) => p.playerId))
 
@@ -278,9 +265,9 @@ describe('autoPick — unknownNames count-balance filter', () => {
     // splits (Rated+New1 vs New2, or Rated+New2 vs New1) so the filter passes —
     // we just verify the function returns suggestions and distributes all players.
     const players = [
-      makePlayer('Rated', { wprOverride: 60 }),
-      makePlayer('New1', { wprOverride: 50 }),
-      makePlayer('New2', { wprOverride: 50 }),
+      ratedPlayer('Rated', 60),
+      ratedPlayer('New1', 50),
+      ratedPlayer('New2', 50),
     ]
     const newPlayerIds = new Set(['known|New1', 'known|New2'])
     const result = autoPick(players, undefined, newPlayerIds)
@@ -302,8 +289,8 @@ describe('autoPick — unknownNames count-balance filter', () => {
       makePlayer('Dave'),
       makePlayer('Alice +1'),
       makePlayer('Alice +2'),
-      makePlayer('New1', { wprOverride: 50 }),
-      makePlayer('New2', { wprOverride: 50 }),
+      ratedPlayer('New1', 50),
+      ratedPlayer('New2', 50),
     ]
     const pairs: Array<[string, string]> = [
       ['Alice +1', 'Alice'],
@@ -552,18 +539,18 @@ describe('autoPick — regression: 7v7 with one Average guest', () => {
     // player ("Lloyd", mid-rated). The remaining 10 outfielders form a spread
     // free pool so the optimizer has variance to balance against.
     //
-    // Guest WPR is the discounted "Average" value (p50 * 0.85 = 51 when p50 = 60).
+    // The guest is rated 51, a little below the regulars.
     // Pair team starts behind (avg pinned ≈ 53.7) vs other team (pinned = 55).
     // To minimise EWTPI diff, the optimizer must give the pair team's 4 free
     // slots a higher mean WPR than the other team's 6 — which is exactly the
     // property we assert.
     const regulars = Array.from({ length: 10 }, (_, i) =>
-      makePlayer(`Regular ${i + 1}`, { wprOverride: 55 + i }),
+      ratedPlayer(`Regular ${i + 1}`, 55 + i),
     )
-    const lloyd = makePlayer('Lloyd', { wprOverride: 55 })
-    const gk1 = makePlayer('GK1', { mentality: 'goalkeeper', wprOverride: 55 })
-    const gk2 = makePlayer('GK2', { mentality: 'goalkeeper', wprOverride: 55 })
-    const guest = makePlayer('Lloyd +1', { wprOverride: 51 })
+    const lloyd = ratedPlayer('Lloyd', 55)
+    const gk1 = ratedPlayer('GK1', 55, { mentality: 'goalkeeper' })
+    const gk2 = ratedPlayer('GK2', 55, { mentality: 'goalkeeper' })
+    const guest = ratedPlayer('Lloyd +1', 51)
 
     const players = [gk1, gk2, lloyd, guest, ...regulars]
     const pairs: Array<[string, string]> = [['Lloyd +1', 'Lloyd']]
@@ -580,7 +567,7 @@ describe('autoPick — regression: 7v7 with one Average guest', () => {
       p.name === 'GK1' || p.name === 'GK2' || p.name === 'Lloyd' || p.name === 'Lloyd +1'
     const meanFreeWpr = (team: Player[]) => {
       const free = team.filter((p) => !isPinned(p))
-      return free.reduce((sum, p) => sum + (p.wprOverride ?? 0), 0) / free.length
+      return free.reduce((sum, p) => sum + wprScore(p), 0) / free.length
     }
 
     expect(meanFreeWpr(pairTeam)).toBeGreaterThan(meanFreeWpr(otherTeam))
