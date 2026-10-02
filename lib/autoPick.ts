@@ -1,5 +1,8 @@
-import type { Player } from './types'
+import type { AutoPickAudit, LineupRatingEntry, Player } from './types'
 import { ewptScoreFromRatings, ewptScoreFromTotals, wprScore } from './utils'
+
+/** Version of the team builder recorded with every saved lineup. Bump when the rating or picker changes. */
+export const TEAM_BUILDER_VERSION = 2
 
 export interface AutoPickSuggestion {
   teamA: Player[]
@@ -448,4 +451,45 @@ function partitionKey(side: Uint8Array, unitOf: number[], keys: PlayerKeys): str
   const a = countA.join(',')
   const b = countA.map((c, cls) => keys.totals[cls] - c).join(',')
   return a < b ? `${a}|${b}` : `${b}|${a}`
+}
+
+const round3 = (x: number) => Math.round(x * 1000) / 1000
+
+/**
+ * The audit block and per-player ratings saved with a lineup, so a lineup can
+ * later be explained: which suggestion was used, whether it was changed by
+ * hand, and the ratings the picker saw.
+ */
+export function buildLineupAudit(params: {
+  teamA: Player[]
+  teamB: Player[]
+  teamARating: number
+  teamBRating: number
+  bestDiff: number
+  suggestionIndex: number
+  suggestionCount: number
+  edited: boolean
+  builtAt: Date
+}): { autoPick: AutoPickAudit; ratings: LineupRatingEntry[] } {
+  const entry = (team: 'A' | 'B') => (p: Player): LineupRatingEntry => ({
+    name: p.name,
+    team,
+    wpr: round3(wprScore(p)),
+    strength: p.strength,
+    played: p.played,
+    gamesMissed: p.gamesMissed ?? 0,
+    kind: p.playerId.startsWith('guest|') ? 'guest' : p.playerId.startsWith('new|') ? 'new' : 'roster',
+  })
+  return {
+    autoPick: {
+      algorithm: TEAM_BUILDER_VERSION,
+      suggestionIndex: params.suggestionIndex,
+      suggestionCount: params.suggestionCount,
+      edited: params.edited,
+      bestDiff: round3(params.bestDiff),
+      savedDiff: round3(Math.abs(params.teamARating - params.teamBRating)),
+      builtAt: params.builtAt.toISOString(),
+    },
+    ratings: [...params.teamA.map(entry('A')), ...params.teamB.map(entry('B'))],
+  }
 }
