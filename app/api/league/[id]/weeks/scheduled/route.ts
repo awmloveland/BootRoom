@@ -13,6 +13,7 @@ export async function GET(
     .select('id, week, date')
     .eq('game_id', id)
     .eq('status', 'scheduled')
+    .order('season', { ascending: true })
     .order('week', { ascending: true })
     .limit(1)
     .maybeSingle()

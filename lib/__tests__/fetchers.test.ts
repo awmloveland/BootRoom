@@ -191,6 +191,26 @@ describe('ensureUnrecordedWeek', () => {
     })
   })
 
+  it('keys a January unrecorded row to week 1 of the new season', async () => {
+    // Friday 8 Jan 2027: Thursday 7 Jan is past its deadline; the last game was in 2026.
+    jest.useFakeTimers().setSystemTime(new Date(2027, 0, 8, 12))
+    const rpc = jest.fn().mockResolvedValue({ data: 'new-id', error: null })
+    ;(createServiceClient as jest.Mock).mockReturnValue({ rpc })
+    const weeks: Week[] = [
+      { id: 'w1', season: '2026', week: 1, date: '01 Jan 2026', status: 'played', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' },
+      { id: 'w52', season: '2026', week: 52, date: '31 Dec 2026', status: 'played', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' },
+    ]
+
+    await ensureUnrecordedWeek(LEAGUE, weeks, 4)
+
+    expect(rpc).toHaveBeenCalledWith('create_unrecorded_week', {
+      p_game_id: LEAGUE,
+      p_season: '2027',
+      p_week: 1,
+      p_date: '07 Jan 2027',
+    })
+  })
+
   it('does nothing when a row already exists for that date', async () => {
     jest.useFakeTimers().setSystemTime(new Date(2026, 3, 10, 12))
     const rpc = jest.fn()

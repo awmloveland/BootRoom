@@ -14,6 +14,23 @@ async function verifyPublicMatchEntry(service: ReturnType<typeof createServiceCl
   return feat?.public_enabled === true
 }
 
+/** True when the (game, season, week) row already holds a result. */
+async function weekHasResult(
+  service: ReturnType<typeof createServiceClient>,
+  gameId: string,
+  season: string,
+  week: number,
+) {
+  const { data: existing } = await service
+    .from('weeks')
+    .select('status')
+    .eq('game_id', gameId)
+    .eq('season', season)
+    .eq('week', week)
+    .maybeSingle()
+  return existing?.status === 'played' || existing?.status === 'dnf'
+}
+
 /**
  * POST — cancel the upcoming game week (creates or updates to 'cancelled').
  * Body: { season, week, date }
@@ -29,6 +46,10 @@ export async function POST(request: Request, { params }: Params) {
 
   const body = await request.json()
   const { season, week, date } = body as { season: string; week: number; date: string }
+
+  if (await weekHasResult(service, id, season, week)) {
+    return NextResponse.json({ error: 'This week already has a result' }, { status: 409 })
+  }
 
   const { data, error } = await service
     .from('weeks')
