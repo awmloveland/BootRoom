@@ -9,7 +9,7 @@ import type { Winner, Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, L
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
 import { X, Share2 } from 'lucide-react'
 import { WinnerBadge } from '@/components/WinnerBadge'
-import { TeamList } from '@/components/TeamList'
+import { FaceOffLineup } from '@/components/TeamList'
 import { AddPlayerModal } from '@/components/AddPlayerModal'
 import { ResultModal } from '@/components/ResultModal'
 import { FormDots } from '@/components/FormDots'
@@ -39,6 +39,8 @@ interface Props {
   leagueName?: string
   /** Whether the lineup_share_image feature is on for this viewer; when false Share sends the plain league link and no signed link is requested. */
   canShareImage?: boolean
+  /** The viewer's linked player, for the YOU tag on the Results lineup. */
+  linkedPlayerName?: string | null
   /**
    * 'overview' renders the idle and lineup states in the Overview tab design and
    * takes its first state from `initialScheduledWeek` instead of fetching, so the
@@ -146,6 +148,7 @@ export function NextMatchCard({
   leagueDayIndex,
   leagueName = '',
   canShareImage = false,
+  linkedPlayerName = null,
   variant = 'results',
   overview,
 }: Props) {
@@ -621,7 +624,7 @@ export function NextMatchCard({
         className="rounded-xl border border-[#223a5c] bg-[#0a1421] px-[18px] py-3 shadow-[0_18px_44px_rgba(0,0,0,.42)]"
         aria-busy="true"
       >
-        <div className="flex h-[22px] items-center">
+        <div className="flex h-5 items-center">
           <Skeleton className="h-3.5 w-20" />
         </div>
         <div className="mt-[3px] flex h-[14px] items-center">
@@ -636,7 +639,13 @@ export function NextMatchCard({
 
   return (
     <>
-      <div className="rounded-xl border border-[#223a5c] bg-[#0a1421] overflow-hidden shadow-[0_18px_44px_rgba(0,0,0,.42)]">
+      <div
+        className={cn(
+          'rounded-xl border border-[#223a5c] bg-[#0a1421] overflow-hidden shadow-[0_18px_44px_rgba(0,0,0,.42)]',
+          // The Results lineup reads as an open match card.
+          !isOverview && cardState === 'lineup' && 'border-[#2c4a72]'
+        )}
+      >
 
         {/* ── IDLE (Overview tab) ── */}
         {isOverview && cardState === 'idle' && (
@@ -653,8 +662,8 @@ export function NextMatchCard({
           canEdit ? (
             <div className="flex items-center justify-between gap-4 px-[18px] py-3">
               <div>
-                <p className="text-[15px] font-bold tracking-[-.02em] text-[#f4f9ff]">Week {nextWeekNum}</p>
-                <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#7f97b5]">{nextDate}</p>
+                <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">Week {nextWeekNum}</p>
+                <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">{nextDate}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -675,8 +684,8 @@ export function NextMatchCard({
             </div>
           ) : (
             <div className="px-[18px] py-3">
-              <p className="text-[15px] font-bold tracking-[-.02em] text-[#f4f9ff]">Week {nextWeekNum}</p>
-              <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#7f97b5]">{nextDate}</p>
+              <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">Week {nextWeekNum}</p>
+              <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">{nextDate}</p>
             </div>
           )
         )}
@@ -688,8 +697,8 @@ export function NextMatchCard({
               {/* Header — matches idle style */}
               <div className="flex items-center justify-between gap-3 px-[18px] py-3 bg-[#0c1728] border-b border-[#1b2c46]">
                 <div>
-                  <p className="text-[15px] font-bold tracking-[-.02em] text-[#f4f9ff]">Week {displayWeek}</p>
-                  <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#7f97b5]">{displayDate}</p>
+                  <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">Week {displayWeek}</p>
+                  <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">{displayDate}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   {squadNames.length > 0 && (() => {
@@ -984,10 +993,10 @@ export function NextMatchCard({
 
         {/* ── LINEUP header ── */}
         {!isOverview && cardState === 'lineup' && scheduledWeek && (
-          <div className="flex items-center justify-between gap-3 px-[18px] py-3 bg-[#0c1728] border-b border-[#1b2c46]">
+          <div className="flex items-center justify-between gap-3 px-[18px] py-3 border-b border-[#1b2c46]">
             <div>
-              <p className="text-[15px] font-bold tracking-[-.02em] text-[#f4f9ff]">Week {displayWeek}</p>
-              <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#7f97b5]">
+              <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">Week {displayWeek}</p>
+              <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">
                 {displayDate}
                 {scheduledWeek.format && <span> · {scheduledWeek.format}</span>}
               </p>
@@ -1010,8 +1019,8 @@ export function NextMatchCard({
           <div className="flex items-center justify-between gap-4 px-[18px] py-3">
             <div className="flex items-center gap-3">
               <div>
-                <p className="text-[15px] font-bold tracking-[-.02em] text-[#f4f9ff]">Week {scheduledWeek.week}</p>
-                <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#7f97b5]">{scheduledWeek.date}</p>
+                <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">Week {scheduledWeek.week}</p>
+                <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">{scheduledWeek.date}</p>
               </div>
               <WinnerBadge winner={null} cancelled />
             </div>
@@ -1031,70 +1040,62 @@ export function NextMatchCard({
         {/* ── LINEUP body ── */}
         {!isOverview && cardState === 'lineup' && scheduledWeek && (
           <div className="px-[18px] py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <TeamList
-                label="Team A"
-                team="A"
-                players={scheduledWeek.teamA}
-                goalkeepers={goalkeepers}
-                rating={scheduledWeek.team_a_rating ?? null}
-              />
-              <TeamList
-                label="Team B"
-                team="B"
-                players={scheduledWeek.teamB}
-                goalkeepers={goalkeepers}
-                rating={scheduledWeek.team_b_rating ?? null}
-              />
-            </div>
-          </div>
-        )}
+            <FaceOffLineup
+              teamA={scheduledWeek.teamA}
+              teamB={scheduledWeek.teamB}
+              teamARating={scheduledWeek.team_a_rating}
+              teamBRating={scheduledWeek.team_b_rating}
+              winner={null}
+              goalkeepers={goalkeepers}
+              linkedPlayerName={linkedPlayerName}
+            />
 
-        {/* ── LINEUP footer ── */}
-        {!isOverview && cardState === 'lineup' && scheduledWeek && scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-2 px-[18px] py-3 border-t border-[#1b2c46] bg-[#0c1728]">
-            {canEdit ? (
-              <button
-                type="button"
-                onClick={() => setShowCancelModal(true)}
-                className="h-8 px-3 rounded border border-[#e2686f]/40 text-[#e2686f] text-xs font-bold whitespace-nowrap hover:bg-[#e2686f]/10 transition-colors"
-              >
-                Cancel Game
-              </button>
-            ) : (
-              <div />
+            {scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-3.5 pt-3.5 border-t border-[#1b2c46]">
+                {canEdit ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowCancelModal(true)}
+                    className="h-8 px-3 rounded border border-[#e2686f]/40 text-[#e2686f] text-xs font-bold whitespace-nowrap hover:bg-[#e2686f]/10 transition-colors"
+                  >
+                    Cancel Game
+                  </button>
+                ) : (
+                  <div />
+                )}
+                <div className="flex items-center gap-2">
+                  {canEdit && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleEditLineup}
+                        className="h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
+                      >
+                        <span className="sm:hidden">Edit</span>
+                        <span className="hidden sm:inline">Edit Lineups</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setError(null); setShowResultModal(true) }}
+                        className="h-8 px-3.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-xs font-bold whitespace-nowrap transition-colors"
+                      >
+                        <span className="sm:hidden">Result</span>
+                        <span className="hidden sm:inline">Result Game</span>
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    aria-label="Share"
+                    className="inline-flex items-center h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
+                  >
+                    <Share2 className="size-[15px] sm:hidden" aria-hidden="true" />
+                    <span className="hidden sm:inline">{copied ? 'Copied!' : 'Share'}</span>
+                  </button>
+                </div>
+              </div>
             )}
-            <div className="flex items-center gap-2">
-              {canEdit && (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleEditLineup}
-                    className="h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
-                  >
-                    <span className="sm:hidden">Edit</span>
-                    <span className="hidden sm:inline">Edit Lineups</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setError(null); setShowResultModal(true) }}
-                    className="h-8 px-3.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-xs font-bold whitespace-nowrap transition-colors"
-                  >
-                    <span className="sm:hidden">Result</span>
-                    <span className="hidden sm:inline">Result Game</span>
-                  </button>
-                </>
-              )}
-              <button
-                type="button"
-                onClick={handleShare}
-                aria-label="Share"
-                className="inline-flex items-center h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
-              >
-                <Share2 className="size-[15px] sm:hidden" aria-hidden="true" />
-                <span className="hidden sm:inline">{copied ? 'Copied!' : 'Share'}</span>
-              </button>
-            </div>
           </div>
         )}
       </div>

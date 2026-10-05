@@ -99,6 +99,7 @@ export function ResultsSection({
             leagueDayIndex={leagueDayIndex}
             leagueName={leagueName}
             canShareImage={canShareImage}
+            linkedPlayerName={linkedPlayerName}
           />
         </div>
       )}

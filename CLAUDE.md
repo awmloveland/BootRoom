@@ -52,7 +52,7 @@ BootRoom/
 │   ├── FeaturePanel.tsx      # Feature flag management UI (admin only)
 │   ├── AdminMemberTable.tsx  # Member management UI (admin only)
 │   ├── MatchCard.tsx         # Collapsible match result card
-│   ├── TeamList.tsx          # Player name list for one team
+│   ├── TeamList.tsx          # FaceOffLineup: both teams' line-ups in one grid
 │   ├── WinnerBadge.tsx       # Result pill badge
 │   └── og/                   # next/og (Satori) image JSX, inline styles only
 ├── lib/
@@ -279,9 +279,12 @@ colons, full stops, or the `·` dot separator.
 - All styling via the `BADGE_CLASSES` / `BADGE_LABELS` lookup objects — add
   new variants there, not inline
 
-### TeamList
+### FaceOffLineup (`TeamList.tsx`)
 
-- Purely presentational — receives `label: string` and `players: string[]`
+- Purely presentational: lays both teams out in one grid, Team A row, row
+  number, Team B row, with ratings on the outer edges
+- Used by every line-up: upcoming, awaiting result, played and DNF weeks.
+  Pass `winner={null}` when there is no result, so neither side dims
 - Team B label is always **"Team B"** throughout the UI
 
 ### FeaturePanel
