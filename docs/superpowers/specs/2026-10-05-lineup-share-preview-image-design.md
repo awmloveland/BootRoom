@@ -34,9 +34,12 @@ Next 16). No new dependencies.
   (a new `canSeeNextLineup(features, tier)` helper in `lib/features.ts`): the
   same rule that decides whether the Results tab shows the next-match
   line-up card for them (league not hidden for their tier, and the week
-  belongs to this league with status `scheduled`, including weeks past the
-  deadline that are awaiting a result, since the card still offers Share). Sharing can never expose more than the
-  sharer can already see.
+  belongs to this league with status `scheduled`). A week past its 20:00
+  deadline (awaiting a result) is only signed for admins or viewers with
+  `match_history` on, because the card goes idle after the deadline and
+  those weeks only appear in match history. Sharing can never expose more
+  than the sharer can already see.
+- `weekId` must be a UUID; anything else is a 400 before any lookup.
 - The endpoint also returns `{ url: null }` when the `lineup_share_image`
   feature is off for the requester's tier (see §4).
 - Response URL: `https://craft-football.com/{slug}?lineup=<token>`.
@@ -121,14 +124,21 @@ Next 16). No new dependencies.
 3. Verify the signature against the current team lists. Mismatch → generic card.
 4. Render the line-ups image.
 
-Every path returns a 200 PNG. The route never returns an error status, so
-previews never break outright.
+Every token outcome returns a 200 PNG, so previews never break outright. The
+one exception is a font-file read failure, which surfaces as an uncached 500
+and is retried on the next request.
 
 **Headers:** `Content-Type: image/png`,
-`Cache-Control: public, max-age=300, s-maxage=3600`. The token changes
-whenever the line-ups do, so a cached image is always the one that link was
-signed for; the short CDN lifetime means an old link falls back to the
-generic card within an hour of the line-ups changing.
+`Cache-Control: public, max-age=300, s-maxage=3600` for a lineup image. The
+token changes whenever the line-ups do, so a cached image is always the one
+that link was signed for; the CDN lifetime means an old link falls back to
+the generic card within an hour of the line-ups changing. The generic card
+gets `public, max-age=60, s-maxage=60`, because a null lookup can come from a
+transient database error and shouldn't be pinned at the CDN.
+
+The page metadata does not set `og:url`: the shared root URL redirects to the
+landing tab, and an `og:url` pointing back at it creates a redirect loop for
+Facebook's scraper.
 
 ### Line-ups image (1200 × 630)
 
