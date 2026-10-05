@@ -50,9 +50,9 @@ export async function POST(
   const teamB: string[] = week?.team_b ?? []
   if (!week || week.status !== 'scheduled' || teamA.length === 0 || teamB.length === 0) return noLink()
 
-  // Public visitors only see the next-lineup card before the week's deadline;
-  // past-deadline weeks appear only in match history.
-  if (tier === 'public' && isPastDeadline(week.date) && !isFeatureEnabled(features, 'match_history', tier)) {
+  // The next-lineup card goes idle once the week is past its deadline, so
+  // non-admins only see such weeks via match history. Admins always see them.
+  if (tier !== 'admin' && isPastDeadline(week.date) && !isFeatureEnabled(features, 'match_history', tier)) {
     return noLink()
   }
 

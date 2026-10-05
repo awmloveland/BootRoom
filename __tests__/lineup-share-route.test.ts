@@ -95,8 +95,21 @@ describe('POST /api/league/[id]/lineup-share', () => {
     expect(typeof (await (await call({ weekId: WEEK_ID })).json()).url).toBe('string')
   })
 
-  it('still signs for members past the deadline', async () => {
+  it('signs for members past the deadline when match history is on for them', async () => {
+    setup({
+      features: [feature('lineup_share_image', true), feature('match_history', true)],
+      week: { ...WEEK, date: '01 Jan 2020' },
+    })
+    expect(typeof (await (await call({ weekId: WEEK_ID })).json()).url).toBe('string')
+  })
+
+  it('returns url null for members past the deadline with only match entry', async () => {
     setup({ week: { ...WEEK, date: '01 Jan 2020' } })
+    await expect((await call({ weekId: WEEK_ID })).json()).resolves.toEqual({ url: null })
+  })
+
+  it('still signs for admins past the deadline', async () => {
+    setup({ role: 'admin', features: [feature('lineup_share_image', false)], week: { ...WEEK, date: '01 Jan 2020' } })
     expect(typeof (await (await call({ weekId: WEEK_ID })).json()).url).toBe('string')
   })
 
