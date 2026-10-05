@@ -53,7 +53,8 @@ BootRoom/
 │   ├── AdminMemberTable.tsx  # Member management UI (admin only)
 │   ├── MatchCard.tsx         # Collapsible match result card
 │   ├── TeamList.tsx          # Player name list for one team
-│   └── WinnerBadge.tsx       # Result pill badge
+│   ├── WinnerBadge.tsx       # Result pill badge
+│   └── og/                   # next/og (Satori) image JSX, inline styles only
 ├── lib/
 │   ├── types.ts              # All shared TypeScript types (canonical)
 │   ├── utils.ts              # cn(), sortWeeks(), getPlayedWeeks(), deriveSeason()
@@ -63,6 +64,7 @@ BootRoom/
 │   └── supabase/             # Supabase client helpers (client, server, service)
 ├── supabase/migrations/      # SQL migrations — run in order via Supabase SQL Editor
 ├── scripts/                  # Data migration and automation scripts
+├── assets/fonts/             # TTFs for next/og generated images (see its README)
 ├── docs/
 │   └── FEATURE_FLAGS.md      # Feature flag development standard
 ├── proxy.ts                  # Auth + routing (Next 16's renamed middleware)
@@ -126,6 +128,11 @@ usage, but components are written by hand using Tailwind classes rather than
 copied wholesale from the shadcn registry. Follow the same patterns already
 established in `components/` when adding new components.
 
+**Exception: `components/og/`.** Those components are rendered to PNG by
+`next/og` (Satori), which only understands inline `style` objects, so they
+use `style` props with the palette's hex values. Keep `style` out of every
+other component.
+
 ---
 
 ## TypeScript types — use these exactly
@@ -138,7 +145,8 @@ export type FeatureKey =
   | 'match_entry'
   | 'player_stats'
   | 'player_comparison'
-  | 'quarter_celebration';
+  | 'quarter_celebration'
+  | 'lineup_share_image';
 
 export interface LeagueFeature {
   feature: FeatureKey;
