@@ -66,7 +66,11 @@ describe('StatsSidebar', () => {
   })
 
   it('shows the previous quarter champion without points', () => {
-    render(<StatsSidebar players={PLAYERS} weeks={WEEKS} leagueDayIndex={4} />)
+    // Q1 needs five games to crown a champion
+    const q1: Week[] = ['15 Jan 2026', '22 Jan 2026', '29 Jan 2026', '05 Feb 2026'].map((date, i) => (
+      { ...WEEKS[0], id: `q1-${i}`, week: 2 + i, date }
+    ))
+    render(<StatsSidebar players={PLAYERS} weeks={[...q1, ...WEEKS]} leagueDayIndex={4} />)
     const box = screen.getByText('Q1 26 Champion').parentElement
     expect(box).toHaveTextContent('Alice')
     expect(box).not.toHaveTextContent('pts')

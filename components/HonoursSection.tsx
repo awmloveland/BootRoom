@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown } from 'lucide-react'
 import { cn, buildQuarterShareText, shareOrCopy, formatGoalDiff, formatPointsPerGame } from '@/lib/utils'
+import { MIN_QUARTER_GAMES } from '@/lib/sidebar-stats'
 import type { QuarterSummary, HonoursYear, QuarterlyTableResult, QuarterStanding } from '@/lib/sidebar-stats'
 import {
   buildQuarterTableRows,
@@ -97,6 +98,8 @@ function CompletedCardBody({
   const [showAll, setShowAll] = useState(false)
   const [copied, setCopied] = useState(false)
   const entries = quarter.entries ?? []
+  // A short quarter shows its table but has no champion row to highlight.
+  const crowned = !quarter.belowMinimum
   const visibleEntries = showAll ? entries : entries.slice(0, PAGE_SIZE)
   const overflowCount = Math.max(0, entries.length - PAGE_SIZE)
 
@@ -111,6 +114,15 @@ function CompletedCardBody({
 
   return (
     <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+      {quarter.belowMinimum && (
+        <div className="border-t border-dashed border-[#223a5c] px-4 py-2.5 flex items-center gap-3">
+          <div className="w-[3px] h-[26px] rounded-sm bg-[#6f88a8] opacity-50 shrink-0" />
+          <p className="font-inter-body text-xs leading-normal text-[#6f88a8]">
+            {quarter.gamesPlayed === 1 ? 'Only 1 game' : `Only ${quarter.gamesPlayed ?? 0} games`} played. A quarter needs {MIN_QUARTER_GAMES} to crown a champion and hand out awards.
+          </p>
+        </div>
+      )}
+
       {quarter.awards && quarter.awards.length > 0 && (
         <div className="flex gap-2 overflow-x-auto border-t border-[#1b2c46] px-3.5 py-3 scrollbar-hide">
           {quarter.awards.map(award => (
@@ -145,18 +157,18 @@ function CompletedCardBody({
               key={e.name}
               className={cn(
                 'flex items-center gap-1 p-1 -mx-1 rounded',
-                i === 0 && 'bg-[#38bdf8]/7'
+                crowned && i === 0 && 'bg-[#38bdf8]/7'
               )}
             >
               <span className={cn(
                 'font-plex text-[10px] font-bold w-4 text-left shrink-0',
-                i === 0 ? 'text-[#38bdf8]' : 'text-[#4f688a]'
+                crowned && i === 0 ? 'text-[#38bdf8]' : 'text-[#4f688a]'
               )}>
                 {i + 1}
               </span>
               <span className={cn(
                 'font-inter-body text-[13px] flex-1 truncate',
-                i === 0 ? 'font-bold text-[#f4f9ff]' : 'font-medium text-[#8ba4c4]'
+                crowned && i === 0 ? 'font-bold text-[#f4f9ff]' : 'font-medium text-[#8ba4c4]'
               )}>
                 {e.name}
               </span>
@@ -168,7 +180,7 @@ function CompletedCardBody({
               <span className="font-plex text-[11px] text-[#6f88a8] w-8 text-center shrink-0">{formatPointsPerGame(e)}</span>
               <span className={cn(
                 'font-plex text-[13px] font-bold w-[30px] text-right shrink-0',
-                i === 0 ? 'text-[#38bdf8]' : 'text-[#dff1ff]'
+                crowned && i === 0 ? 'text-[#38bdf8]' : 'text-[#dff1ff]'
               )}>
                 {e.points}
               </span>
@@ -187,15 +199,17 @@ function CompletedCardBody({
         )}
       </div>
 
-      <div className="border-t border-[#1b2c46] px-4 py-3.5">
-        <button
-          type="button"
-          onClick={handleShare}
-          className="w-full h-[38px] rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-[13px] font-bold transition-colors"
-        >
-          {copied ? 'Copied. Go and brag' : 'Share the glory'}
-        </button>
-      </div>
+      {crowned && (
+        <div className="border-t border-[#1b2c46] px-4 py-3.5">
+          <button
+            type="button"
+            onClick={handleShare}
+            className="w-full h-[38px] rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-[13px] font-bold transition-colors"
+          >
+            {copied ? 'Copied. Go and brag' : 'Share the glory'}
+          </button>
+        </div>
+      )}
     </Collapsible.Content>
   )
 }

@@ -67,11 +67,24 @@ describe('HonoursSection in-progress quarter', () => {
   })
 
   it('keeps the full table and milestones for a completed quarter', () => {
-    const weeks = [played(18, '07 May 2026', TEAM_A, TEAM_B)]
+    const weeks = ['09 Apr 2026', '16 Apr 2026', '23 Apr 2026', '30 Apr 2026', '07 May 2026']
+      .map((date, i) => played(14 + i, date, TEAM_A, TEAM_B))
     renderHonours(weeks, new Date(2026, 6, 2))
     // Q2 is the completed card, open by default.
     expect(screen.getByText('Iron Man')).toBeInTheDocument()
     expect(screen.getByText(/See All \(12\)/)).toBeInTheDocument()
+    expect(screen.getByText('Share the glory')).toBeInTheDocument()
+  })
+
+  it('shows a short completed quarter without a champion, awards or share', () => {
+    const weeks = ['16 Apr 2026', '23 Apr 2026', '30 Apr 2026', '07 May 2026']
+      .map((date, i) => played(15 + i, date, TEAM_A, TEAM_B))
+    const { container } = renderHonours(weeks, new Date(2026, 6, 2))
+    expect(screen.getByText(/Only 4 games played\. A quarter needs 5/)).toBeInTheDocument()
+    expect(screen.getByText('A1')).toBeInTheDocument()
+    expect(screen.queryByText('Iron Man')).not.toBeInTheDocument()
+    expect(screen.queryByText('Share the glory')).not.toBeInTheDocument()
+    expect(container.querySelector('[class*="bg-[#38bdf8]/7"]')).toBeNull()
   })
 
   it('shows points per game on the live and completed tables', () => {

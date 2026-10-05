@@ -439,9 +439,11 @@ export function computeRecords(weeks: Week[], now: Date = new Date()): RecordsDa
 
   // ── Trophy cabinet ──────────────────────────────────────────────────────────
 
+  // Only quarters that crowned a champion: short quarters (under
+  // MIN_QUARTER_GAMES) neither award a title nor count as played.
   const completed = computeAllQuarters(weeks, now)
     .flatMap((y) => y.quarters)
-    .filter((q) => q.status === 'completed' && (q.entries?.length ?? 0) > 0)
+    .filter((q) => q.status === 'completed' && Boolean(q.champion))
     .sort((a, b) => b.year - a.year || b.q - a.q)
 
   const titleMap = new Map<string, { quarters: { label: string; tag?: string }[]; latest: number }>()

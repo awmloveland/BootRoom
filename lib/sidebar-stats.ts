@@ -91,6 +91,13 @@ export function computeInForm(players: Player[], weeks: Week[], now: Date = new 
 
 // ─── computeQuarterlyTable ────────────────────────────────────────────────────
 
+/**
+ * A quarter needs this many played games to count: fewer, and it crowns no
+ * champion, hands out no awards and stays out of the trophy cabinet. Its
+ * games still count towards career records.
+ */
+export const MIN_QUARTER_GAMES = 5
+
 export interface QuarterlyEntry {
   name: string
   played: number
@@ -121,7 +128,7 @@ export interface QuarterlyTableResult {
   lastChampion: string | null
   lastChampionPoints: number | null
   lastQuarterLabel: string | null
-  /** Calendar previous quarter, or null when it has no played games. */
+  /** Calendar previous quarter, or null when it has no champion (fewer than MIN_QUARTER_GAMES played). */
   lastQ: number | null
   lastYear: number | null
   gamesLeft: number
@@ -143,6 +150,7 @@ export interface QuarterSummary {
   entries?: QuarterlyEntry[]
   awards?: QuarterAward[]
   gamesPlayed?: number                             // played-week count; set for completed quarters only
+  belowMinimum?: boolean                           // completed with fewer than MIN_QUARTER_GAMES played: no champion or awards
 }
 
 export interface HonoursYear {
@@ -302,7 +310,8 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gam
   const prevYY = String(prevYear).slice(-2)
   const prevWeeks = weeks.filter(w => weekInQuarter(w, prevQ, prevYear))
   const prevEntries = computeStandings(prevWeeks)
-  const hasPrev = prevEntries.length > 0
+  const prevPlayed = prevWeeks.filter(w => w.status === 'played').length
+  const hasPrev = prevEntries.length > 0 && prevPlayed >= MIN_QUARTER_GAMES
   const lastChampion = hasPrev ? prevEntries[0].name : null
   const lastChampionPoints = hasPrev ? prevEntries[0].points : null
   const lastQuarterLabel = hasPrev ? `Q${prevQ} ${prevYY}` : null
@@ -464,17 +473,23 @@ export function computeAllQuarters(weeks: Week[], now: Date = new Date()): Honou
         weekRange = { from: Math.min(...weekNums), to: Math.max(...weekNums) }
       }
 
-      // Standings (completed only)
+      // Standings (completed only). A short quarter keeps its table but
+      // crowns no champion and hands out no awards.
       let champion: string | undefined
       let entries: QuarterlyEntry[] | undefined
       let awards: QuarterAward[] | undefined
       let gamesPlayed: number | undefined
+      let belowMinimum: boolean | undefined
       if (status === 'completed') {
         const playedWeeks = qWeeks.filter(w => w.status === 'played')
         entries  = computeStandings(playedWeeks)
-        champion = entries[0]?.name
-        awards   = buildQuarterAwards(entries, playedWeeks)
         gamesPlayed = playedWeeks.length
+        if (gamesPlayed >= MIN_QUARTER_GAMES) {
+          champion = entries[0]?.name
+          awards   = buildQuarterAwards(entries, playedWeeks)
+        } else {
+          belowMinimum = true
+        }
       }
 
       const yy = String(year).slice(-2)
@@ -490,6 +505,7 @@ export function computeAllQuarters(weeks: Week[], now: Date = new Date()): Honou
         entries,
         awards,
         gamesPlayed,
+        belowMinimum,
       })
     }
 
