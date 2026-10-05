@@ -7,7 +7,7 @@ import { MonthDivider } from '@/components/MonthDivider'
 import { YearDivider } from '@/components/YearDivider'
 import { NameGuestModal } from '@/components/NameGuestModal'
 import { QuarterCelebration } from '@/components/QuarterCelebration'
-import { startsCelebratedQuarter, type ResultsCelebration } from '@/lib/sidebar-stats'
+import { celebratedQuarterStartingAt, type ResultsCelebration } from '@/lib/sidebar-stats'
 import { getLatestResultWeek, getMonthKey, formatMonthYear } from '@/lib/utils'
 import type { Mentality, Player, Strength, Week } from '@/lib/types'
 
@@ -22,7 +22,7 @@ interface Props {
   allPlayers?: Player[]
   onResultSaved?: () => void
   leagueName?: string
-  celebration?: ResultsCelebration | null   // champion card, rendered above the first result of that quarter
+  celebration?: ResultsCelebration | null   // champion cards, each rendered above the first result of its quarter
   linkedPlayerName?: string | null          // viewer's linked player, for the YOU tag on played weeks
   season?: string                           // only render this season's weeks (Results year tabs)
 }
@@ -114,11 +114,14 @@ export function WeekList({
         const yearChanged = index > 0 && week.season !== visibleWeeks[index - 1].season
         const monthChanged =
           index > 0 && getMonthKey(week.date) !== getMonthKey(visibleWeeks[index - 1].date)
+        const celebratedQuarter = celebration
+          ? celebratedQuarterStartingAt(visibleWeeks, index, celebration.quarters)
+          : null
         return (
           <Fragment key={week.id ?? `${week.season}-${week.week}`}>
-            {celebration && startsCelebratedQuarter(visibleWeeks, index, celebration.quarter) && (
+            {celebration && celebratedQuarter && (
               <QuarterCelebration
-                quarter={celebration.quarter}
+                quarter={celebratedQuarter}
                 leagueName={celebration.leagueName}
                 leagueSlug={celebration.leagueSlug}
                 variant="card"
