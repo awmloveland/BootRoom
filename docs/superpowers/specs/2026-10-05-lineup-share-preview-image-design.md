@@ -30,8 +30,9 @@ Next 16). No new dependencies.
 
 - New endpoint `POST /api/league/[id]/lineup-share`, body `{ weekId }`,
   returns `{ url }`.
-- The endpoint signs only when the requester can currently see that line-up:
-  the same rule that decides whether the Results tab shows the next-match
+- The endpoint signs only when the requester can currently see that line-up
+  (a new `canSeeNextLineup(features, tier)` helper in `lib/features.ts`): the
+  same rule that decides whether the Results tab shows the next-match
   line-up card for them (league not hidden for their tier, and the week
   belongs to this league with status `scheduled`, including weeks past the
   deadline that are awaiting a result, since the card still offers Share). Sharing can never expose more than the
@@ -47,8 +48,9 @@ Next 16). No new dependencies.
 ```
 
 - `signature` = first 12 bytes of
-  `HMAC-SHA256(SHARE_SIGNING_SECRET, "lineup:v1|" + weekId + "|" + teamA.join("\n") + "|" + teamB.join("\n"))`,
-  base64url-encoded.
+  `HMAC-SHA256(SHARE_SIGNING_SECRET, JSON.stringify(["lineup:v1", weekId, teamA, teamB]))`,
+  base64url-encoded. JSON keeps the payload unambiguous whatever characters
+  appear in player names.
 - Team arrays are signed in stored order. Any edit to the line-ups (adding,
   removing, swapping or reordering players) produces a new signature, which
   means:
@@ -94,11 +96,14 @@ Next 16). No new dependencies.
   `searchParams.lineup` through from their `generateMetadata`.
 - When a token is present, the metadata verifies it against the week's
   current teams and adds:
-  - `openGraph.title`: `Week {n} line-ups · {league name}`
+  - `openGraph.title`: `Week {n} lineups · {league name}` ("lineups", matching the app's Edit Lineups and Lineup Lab copy)
   - `openGraph.description`: date, kick-off time and venue where set, joined
-    with ` · ` (e.g. `Tue 7 Oct · 19:00 · Powerleague Shoreditch`)
+    with ` · `, using `formatFixtureDate` like the Overview card (e.g.
+    `Tue 07 Oct · 19:00 · Powerleague Shoreditch`)
   - `openGraph.images`: `[{ url: /api/og/lineup?t=<token>, width: 1200, height: 630 }]`
   - `twitter.card`: `summary_large_image` (Slack and Discord use it to choose the large layout)
+- The token's league must match the page's slug; a token for another league
+  is ignored.
 - With no token or a token that fails verification, metadata is exactly as
   today. The tab title logic is untouched.
 - The page body ignores `?lineup=`; visitors see the normal tab.
@@ -120,8 +125,10 @@ Every path returns a 200 PNG. The route never returns an error status, so
 previews never break outright.
 
 **Headers:** `Content-Type: image/png`,
-`Cache-Control: public, max-age=3600, s-maxage=86400`. This is safe to cache
-because the token changes whenever the content would.
+`Cache-Control: public, max-age=300, s-maxage=3600`. The token changes
+whenever the line-ups do, so a cached image is always the one that link was
+signed for; the short CDN lifetime means an old link falls back to the
+generic card within an hour of the line-ups changing.
 
 ### Line-ups image (1200 × 630)
 
@@ -132,7 +139,8 @@ because the token changes whenever the content would.
   centre divider in `#2c4a72` that fades out at the top and bottom.
 - **Top line** (IBM Plex Mono 700, ~19px, uppercase, letter-spacing .15em,
   `#8ba4c4`): `{League name} · Week {n}` on the left, and
-  `{Ddd D Mmm} · {kick-off}` on the right (kick-off omitted if not set).
+  `{formatFixtureDate(date)} · {kick-off}` on the right, e.g. `Tue 07 Oct · 19:00`
+  (kick-off omitted if not set).
 - **Team columns:** two equal columns, padding 60px left and right, 120px gap.
   - Heading: Space Grotesk 700, ~24px, letter-spacing .06em; "TEAM A" in
     `#7dd3fc`, "TEAM B" in `#c4b5fd`.
