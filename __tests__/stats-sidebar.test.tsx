@@ -49,6 +49,16 @@ describe('StatsSidebar', () => {
     expect(screen.getAllByText('-3')).toHaveLength(2) // Alice, Bob
   })
 
+  it('shows the points per game column', () => {
+    render(<StatsSidebar players={PLAYERS} weeks={WEEKS} leagueDayIndex={4} />)
+    expect(screen.getByText('PPG')).toBeInTheDocument()
+  })
+
+  it('labels every column in the sidebar table', () => {
+    render(<StatsSidebar players={PLAYERS} weeks={WEEKS} leagueDayIndex={4} />)
+    expect(screen.getByText('PPG').parentElement).toHaveTextContent(/^Q2 26PWDLGDPPGPts$/)
+  })
+
   it('shows quarter progress', () => {
     render(<StatsSidebar players={PLAYERS} weeks={WEEKS} leagueDayIndex={4} />)
     expect(screen.getByText(/^1 of \d+ played$/)).toBeInTheDocument()
@@ -116,6 +126,12 @@ describe('QuarterTableRows', () => {
     render(<QuarterTableRows rows={rows} highlightName={null} />)
     expect(screen.getByText('+5')).toBeInTheDocument()
     expect(screen.getByText('-2')).toBeInTheDocument()
+  })
+
+  it('shows each row points per game', () => {
+    render(<QuarterTableRows rows={rows} highlightName={null} />)
+    expect(screen.getByText('3.00')).toBeInTheDocument()
+    expect(screen.getByText('2.00')).toBeInTheDocument()
   })
 
   it('highlights nobody when no name is given', () => {

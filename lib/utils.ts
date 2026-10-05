@@ -70,14 +70,26 @@ export function formatGoalDiff(goalDiff: number): string {
   return goalDiff > 0 ? `+${goalDiff}` : String(goalDiff)
 }
 
+/** Points per game for a standings row, or 0 before any game is played. */
+export function pointsPerGame(entry: Pick<QuarterlyEntry, 'points' | 'played'>): number {
+  return entry.played > 0 ? entry.points / entry.played : 0
+}
+
+/** Points per game for standings tables, to two decimal places, e.g. '2.33'. */
+export function formatPointsPerGame(entry: Pick<QuarterlyEntry, 'points' | 'played'>): string {
+  return pointsPerGame(entry).toFixed(2)
+}
+
 /**
- * Standings order without the alphabetical last resort: points, then GD, then
- * fewer games played, then wins. Negative when `a` ranks above `b`, 0 when the
- * two are level on every key.
+ * Standings order without the alphabetical last resort: points, then PPG, then
+ * GD, then fewer games played, then wins. Negative when `a` ranks above `b`, 0
+ * when the two are level on every key.
  */
 export function compareStandings(a: QuarterlyEntry, b: QuarterlyEntry): number {
   return (
     b.points - a.points ||
+    // PPG compared by cross-multiplying, so float rounding never splits a tie.
+    b.points * a.played - a.points * b.played ||
     b.goalDiff - a.goalDiff ||
     a.played - b.played ||
     b.won - a.won
@@ -87,7 +99,8 @@ export function compareStandings(a: QuarterlyEntry, b: QuarterlyEntry): number {
 /**
  * Ranked standings for a set of weeks (only played weeks count). Used by the
  * sidebar and honours quarter tables and the result share text, so they all
- * agree on order: points, then GD, then fewer games played, then wins, then name.
+ * agree on order: points, then PPG, then GD, then fewer games played, then
+ * wins, then name.
  */
 export function computeStandings(weeks: Week[]): QuarterlyEntry[] {
   const map = new Map<string, QuarterlyEntry>()

@@ -528,6 +528,18 @@ describe('quarter table ranking', () => {
     expect(names.indexOf('Zed')).toBeLessThan(names.indexOf('Alice'))
   })
 
+  it('ranks higher PPG first when points are level, ahead of GD', () => {
+    const weeks: Week[] = [
+      // Zed: 1 game, 3 pts (3.00 PPG), GD +1
+      makeWeek({ week: 1, date: '05 Jan 2026', teamA: ['Zed'], teamB: ['Opp1'], winner: 'teamA', goal_difference: 1 }),
+      // Bob: 2 games, 3 pts (1.50 PPG), GD +5 -1 = +4
+      makeWeek({ week: 2, date: '12 Jan 2026', teamA: ['Bob'], teamB: ['Opp2'], winner: 'teamA', goal_difference: 5 }),
+      makeWeek({ week: 3, date: '19 Jan 2026', teamA: ['Opp3'], teamB: ['Bob'], winner: 'teamA', goal_difference: 1 }),
+    ]
+    const names = order(weeks)
+    expect(names.indexOf('Zed')).toBeLessThan(names.indexOf('Bob'))
+  })
+
   it('ranks fewer games played first when points and GD are level', () => {
     const weeks: Week[] = [
       // Zed: 1 game, 3 pts, GD +2
