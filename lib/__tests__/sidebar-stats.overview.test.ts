@@ -42,12 +42,14 @@ describe('computeQuarterlyTable: Overview fields', () => {
 
   it('reports the previous champion with points and quarter', () => {
     const weeks = [
-      played(6, '12 Feb 2026', ['Alice', 'Bob'], ['Charlie', 'Dave']),
+      // Q1: Alice and Bob win all five, the minimum for a champion
+      ...['15 Jan 2026', '22 Jan 2026', '29 Jan 2026', '05 Feb 2026', '12 Feb 2026'].map((date, i) =>
+        played(2 + i, date, ['Alice', 'Bob'], ['Charlie', 'Dave'])),
       played(18, '07 May 2026', ['Alice', 'Bob'], ['Charlie', 'Dave'], 'teamB'),
     ]
     const result = computeQuarterlyTable(weeks, MID_Q2, 4)
     expect(result.lastChampion).toBe('Alice')
-    expect(result.lastChampionPoints).toBe(3)
+    expect(result.lastChampionPoints).toBe(15)
     expect(result.lastQ).toBe(1)
     expect(result.lastYear).toBe(2026)
   })

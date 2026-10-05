@@ -196,13 +196,23 @@ describe('computeQuarterlyTable', () => {
   })
 
   it('identifies last quarter champion', () => {
-    const weeks: Week[] = [
-      makeWeek({ week: 1, date: '10 Dec 2025', teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }), // Q4 2025
-    ]
+    // Q4 2025: five games, the minimum for a champion
+    const weeks: Week[] = ['12 Nov 2025', '19 Nov 2025', '26 Nov 2025', '03 Dec 2025', '10 Dec 2025'].map((date, i) =>
+      makeWeek({ week: i + 1, date, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    )
     const now = new Date(2026, 0, 22) // Q1 2026 — prev is Q4 2025
     const result = computeQuarterlyTable(weeks, now)
     expect(result.lastChampion).toBe('Alice')
     expect(result.lastQuarterLabel).toBe('Q4 25')
+  })
+
+  it('names no last quarter champion when it had fewer than 5 games', () => {
+    const weeks: Week[] = ['19 Nov 2025', '26 Nov 2025', '03 Dec 2025', '10 Dec 2025'].map((date, i) =>
+      makeWeek({ week: i + 1, date, teamA: ['Alice'], teamB: ['Bob'], winner: 'teamA' }),
+    )
+    const result = computeQuarterlyTable(weeks, new Date(2026, 0, 22))
+    expect(result.lastChampion).toBeNull()
+    expect(result.lastQuarterLabel).toBeNull()
   })
 
   it('returns null lastChampion when no previous quarter data', () => {
@@ -578,6 +588,10 @@ describe('quarter table ranking', () => {
     const weeks: Week[] = [
       makeWeek({ week: 1, date: '10 Jan 2026', teamA: ['Bob'], teamB: ['Opp1'], winner: 'teamA', goal_difference: 1 }),
       makeWeek({ week: 2, date: '17 Jan 2026', teamA: ['Zed'], teamB: ['Opp2'], winner: 'teamA', goal_difference: 5 }),
+      // Opponents trade draws so the quarter reaches five games
+      makeWeek({ week: 3, date: '24 Jan 2026', teamA: ['Opp1'], teamB: ['Opp2'], winner: 'draw', goal_difference: 0 }),
+      makeWeek({ week: 4, date: '31 Jan 2026', teamA: ['Opp1'], teamB: ['Opp2'], winner: 'draw', goal_difference: 0 }),
+      makeWeek({ week: 5, date: '07 Feb 2026', teamA: ['Opp1'], teamB: ['Opp2'], winner: 'draw', goal_difference: 0 }),
     ]
     const q1 = computeAllQuarters(weeks, new Date(2026, 6, 8)) // Q3 2026, so Q1 is completed
       .find(y => y.year === 2026)!
@@ -888,16 +902,31 @@ describe('computeAllQuarters', () => {
   // ── Completed quarter populates champion + entries ─────────────────────────
 
   it('populates champion and entries for a completed quarter', () => {
-    const weeks = [
-      makeWeek({ week: 1, date: '10 Jan 2025', teamA: ['Alice', 'Carol'], teamB: ['Bob', 'Dave'], winner: 'teamA' }),
-      makeWeek({ week: 2, date: '17 Jan 2025', teamA: ['Alice', 'Carol'], teamB: ['Bob', 'Dave'], winner: 'teamA' }),
-    ]
+    const weeks = ['10 Jan 2025', '17 Jan 2025', '24 Jan 2025', '31 Jan 2025', '07 Feb 2025'].map((date, i) =>
+      makeWeek({ week: i + 1, date, teamA: ['Alice', 'Carol'], teamB: ['Bob', 'Dave'], winner: 'teamA' }),
+    )
     const now = new Date(2025, 5, 1)
     const result = computeAllQuarters(weeks, now)
     const q1 = result.find(y => y.year === 2025)!.quarters.find(q => q.q === 1)!
     expect(q1.champion).toBe('Alice')
+    expect(q1.awards!.length).toBeGreaterThan(0)
+    expect(q1.belowMinimum).toBeUndefined()
     expect(q1.entries).toBeDefined()
     expect(q1.entries!.length).toBeGreaterThan(0)
+  })
+
+  it('keeps the table but crowns no champion when a quarter has fewer than 5 games', () => {
+    const weeks = ['10 Jan 2025', '17 Jan 2025', '24 Jan 2025', '31 Jan 2025'].map((date, i) =>
+      makeWeek({ week: i + 1, date, teamA: ['Alice', 'Carol'], teamB: ['Bob', 'Dave'], winner: 'teamA' }),
+    )
+    const q1 = computeAllQuarters(weeks, new Date(2025, 5, 1))
+      .find(y => y.year === 2025)!.quarters.find(q => q.q === 1)!
+    expect(q1.status).toBe('completed')
+    expect(q1.belowMinimum).toBe(true)
+    expect(q1.gamesPlayed).toBe(4)
+    expect(q1.champion).toBeUndefined()
+    expect(q1.awards).toBeUndefined()
+    expect(q1.entries!.map(e => e.name)).toEqual(['Alice', 'Carol', 'Bob', 'Dave'])
   })
 
   it('does not populate champion or entries for an in_progress quarter', () => {
@@ -914,14 +943,16 @@ describe('computeAllQuarters', () => {
     // (24 Sep) is already played, so no game days remain to be settled.
     const now = new Date(2026, 8, 28)
     const weeks = [
-      makeWeek({ week: 1, date: '10 Sep 2026' }),
-      makeWeek({ week: 2, date: '17 Sep 2026' }),
-      makeWeek({ week: 3, date: '24 Sep 2026' }),
+      makeWeek({ week: 1, date: '27 Aug 2026' }),
+      makeWeek({ week: 2, date: '03 Sep 2026' }),
+      makeWeek({ week: 3, date: '10 Sep 2026' }),
+      makeWeek({ week: 4, date: '17 Sep 2026' }),
+      makeWeek({ week: 5, date: '24 Sep 2026' }),
     ]
     const q3 = computeAllQuarters(weeks, now).find(y => y.year === 2026)!.quarters.find(q => q.q === 3)!
     expect(q3.status).toBe('completed')
     expect(q3.champion).toBe('Alice')
-    expect(q3.gamesPlayed).toBe(3)
+    expect(q3.gamesPlayed).toBe(5)
   })
 
   it('keeps the current quarter in_progress while a game day in it still has no state', () => {

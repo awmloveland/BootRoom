@@ -185,17 +185,29 @@ describe('computeRecords: streaks', () => {
 })
 
 describe('computeRecords: trophy cabinet', () => {
+  // Draws between fresh pairs (at most 2 pts each) to bring a quarter up to
+  // the five games it needs to crown a champion, without touching the top.
+  const filler = (dates: string[]) =>
+    dates.map((d, i) => game(d, [`F${2 * Math.floor(i / 2) + 1}`], [`F${2 * Math.floor(i / 2) + 2}`], 'draw'))
+
   it('lists champions, GD deciders and shared quarters', () => {
     const weeks = [
       // Q1 2026: Roy wins outright.
       game('05 Jan 2026', ['Roy'], ['Ian'], 'teamA'),
+      ...filler(['12 Jan 2026', '19 Jan 2026', '26 Jan 2026', '02 Feb 2026']),
       // Q2 2026: Jaff and Joe R both on 3 pts, Jaff ahead on GD.
       game('06 Apr 2026', ['Jaff'], ['Ian'], 'teamA', 4),
       game('13 Apr 2026', ['Joe R'], ['Ian'], 'teamA', 1),
+      ...filler(['20 Apr 2026', '27 Apr 2026', '04 May 2026']),
       // Q3 2026: Luke and Alice level on everything.
       game('06 Jul 2026', ['Luke', 'Alice'], ['Ian'], 'teamA', 2),
+      ...filler(['13 Jul 2026', '20 Jul 2026', '27 Jul 2026', '03 Aug 2026']),
       // Q3 2025: Roy again.
       game('07 Jul 2025', ['Roy'], ['Ian'], 'teamA'),
+      ...filler(['14 Jul 2025', '21 Jul 2025', '28 Jul 2025', '04 Aug 2025']),
+      // Q4 2025: only four games, so Ian's win earns no title.
+      game('06 Oct 2025', ['Ian'], ['Roy'], 'teamA'),
+      ...filler(['13 Oct 2025', '20 Oct 2025', '27 Oct 2025']),
     ]
     const data = computeRecords(weeks, NOW)
     expect(data.quartersPlayed).toBe(4)
