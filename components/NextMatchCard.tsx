@@ -197,7 +197,7 @@ export function NextMatchCard({
   const [shareLink, setShareLink] = useState<{ key: string; url: string | null } | null>(null)
   const shareWeekId = scheduledWeek?.id ?? null
   const shareKey =
-    canShareImage && !isOverview && cardState === 'lineup' && scheduledWeek &&
+    canShareImage && cardState === 'lineup' && scheduledWeek &&
     scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0
       ? JSON.stringify([scheduledWeek.id, scheduledWeek.teamA, scheduledWeek.teamB])
       : null
@@ -988,6 +988,8 @@ export function NextMatchCard({
             canEdit={canEdit && scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0}
             onEditLineups={handleEditLineup}
             onResultGame={() => { setError(null); setShowResultModal(true) }}
+            onShare={scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0 ? handleShare : undefined}
+            copied={copied}
           />
         )}
 

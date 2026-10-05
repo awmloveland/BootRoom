@@ -1,4 +1,4 @@
-import { Calendar, MapPin } from 'lucide-react'
+import { Calendar, MapPin, Share2 } from 'lucide-react'
 import { cn, formatFixtureDate } from '@/lib/utils'
 
 const BADGE_BASE = 'rounded border px-2.5 py-[5px] font-plex text-[9px] font-bold uppercase tracking-[.18em] whitespace-nowrap'
@@ -92,6 +92,10 @@ interface NextGameLineupProps {
   canEdit: boolean
   onEditLineups: () => void
   onResultGame: () => void
+  /** Shares the lineups; omitted while a team is empty. */
+  onShare?: () => void
+  /** True briefly after the share text was copied to the clipboard. */
+  copied?: boolean
 }
 
 /** Overview next game card, lineups set. Renders inside NextMatchCard's card element. */
@@ -108,6 +112,8 @@ export function NextGameLineup({
   canEdit,
   onEditLineups,
   onResultGame,
+  onShare,
+  copied = false,
 }: NextGameLineupProps) {
   const venue = [location, format].filter(Boolean).join(' · ')
   const when = [formatFixtureDate(date), kickoffTime].filter(Boolean).join(' · ')
@@ -146,28 +152,46 @@ export function NextGameLineup({
         </span>
       </div>
 
-      {canEdit && (
+      {(canEdit || onShare) && (
         <div className="flex gap-2 border-t border-[#1b2c46] bg-[#38bdf8]/6 px-4 py-3">
-          <button
-            type="button"
-            onClick={onEditLineups}
-            className={cn(
-              'h-10 flex-1 rounded border border-[#38bdf8] text-[13px] font-bold text-[#7dd3fc] transition-colors hover:bg-[#38bdf8]/12 hover:text-white',
-              FOCUS_RING
-            )}
-          >
-            Edit Lineups
-          </button>
-          <button
-            type="button"
-            onClick={onResultGame}
-            className={cn(
-              'h-10 flex-[1.4] rounded bg-[#38bdf8] text-[13px] font-bold text-[#05101d] shadow-[0_8px_22px_rgba(56,189,248,.25)] transition-colors hover:bg-[#7dd3fc]',
-              FOCUS_RING
-            )}
-          >
-            Result Game
-          </button>
+          {onShare && (
+            <button
+              type="button"
+              onClick={onShare}
+              className={cn(
+                'inline-flex h-10 items-center justify-center gap-1.5 rounded border border-[#223a5c] px-3.5 text-[13px] font-bold text-[#cfe0f4] transition-colors hover:border-[#38bdf8] hover:text-white',
+                !canEdit && 'flex-1',
+                FOCUS_RING
+              )}
+            >
+              <Share2 className="size-[15px] shrink-0" aria-hidden />
+              {copied ? 'Copied!' : 'Share'}
+            </button>
+          )}
+          {canEdit && (
+            <>
+              <button
+                type="button"
+                onClick={onEditLineups}
+                className={cn(
+                  'h-10 flex-1 rounded border border-[#38bdf8] text-[13px] font-bold text-[#7dd3fc] transition-colors hover:bg-[#38bdf8]/12 hover:text-white',
+                  FOCUS_RING
+                )}
+              >
+                Edit Lineups
+              </button>
+              <button
+                type="button"
+                onClick={onResultGame}
+                className={cn(
+                  'h-10 flex-[1.4] rounded bg-[#38bdf8] text-[13px] font-bold text-[#05101d] shadow-[0_8px_22px_rgba(56,189,248,.25)] transition-colors hover:bg-[#7dd3fc]',
+                  FOCUS_RING
+                )}
+              >
+                Result Game
+              </button>
+            </>
+          )}
         </div>
       )}
     </>

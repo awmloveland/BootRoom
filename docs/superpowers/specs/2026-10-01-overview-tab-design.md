@@ -201,7 +201,8 @@ get the read-only card.
 
 - `YOUR TEAM` and `YOU` appear when `linkedPlayerName` is in `teamA` or
   `teamB`. Team B uses the violet variants.
-- No team ratings, no keeper glove, no Share button. Sharing stays on Results.
+- No team ratings and no keeper glove. Share sits in the action row, with the
+  same text and signed lineup link as Results.
 - Footer left: `location · format`. Footer right: weekday and day-month from
   the week date, then ` · kickoff_time`, for example `Thu 08 Apr · 8pm`,
   uppercased by CSS. Any missing part is omitted along with its separator; an
