@@ -3,6 +3,7 @@
  */
 import { render, screen } from '@testing-library/react'
 import { GenericShareImage, LineupImage, OG_SIZE } from '@/components/og/LineupShareImage'
+import { lineupImageFontSize } from '@/lib/utils'
 import type { SharedLineup } from '@/lib/types'
 
 const LINEUP: SharedLineup = {
@@ -38,6 +39,47 @@ describe('LineupImage', () => {
   it('sizes names with lineupImageFontSize', () => {
     render(<LineupImage lineup={LINEUP} />)
     expect(screen.getByText('Marcus Reid').parentElement).toHaveStyle({ fontSize: '40px' })
+  })
+
+  it('shrinks names for a full squad', () => {
+    const base = [
+      'Marcus Reid', 'Callum Shaw', 'Rav Singh', 'Sofia Marsh', 'Sam Okafor', 'Jordan Taylor',
+      'Dylan Carter', 'Nathan Wright', 'Priya Nair', 'Leon Brooks', 'Harry Patel', 'Marcus Reid +1',
+    ]
+    const names = [...base, ...base.slice(0, 6).map((n) => `${n} +2`)]
+    const teamA = names.slice(0, 9)
+    const teamB = names.slice(9, 18)
+    const longest = Math.max(...names.map((n) => n.length))
+    const expected = lineupImageFontSize(9, longest)
+    expect(expected).toBeLessThan(40)
+
+    render(<LineupImage lineup={{ ...LINEUP, teamA, teamB }} />)
+    expect(screen.getAllByText('Marcus Reid')[0].parentElement).toHaveStyle({ fontSize: `${expected}px` })
+  })
+})
+
+describe('Satori constraints', () => {
+  function multiChildElementsWithoutFlex(root: Element): string[] {
+    const bad: string[] = []
+    const walk = (el: Element) => {
+      if (el.tagName.toLowerCase() === 'svg') return
+      if (el.children.length > 1 && (el as HTMLElement).style.display !== 'flex') {
+        bad.push(`${el.tagName.toLowerCase()}: ${el.textContent?.slice(0, 40)}`)
+      }
+      Array.from(el.children).forEach(walk)
+    }
+    walk(root)
+    return bad
+  }
+
+  it('gives every multi-child element in LineupImage display: flex', () => {
+    const { container } = render(<LineupImage lineup={LINEUP} />)
+    expect(multiChildElementsWithoutFlex(container.firstElementChild!)).toEqual([])
+  })
+
+  it('gives every multi-child element in GenericShareImage display: flex', () => {
+    const { container } = render(<GenericShareImage />)
+    expect(multiChildElementsWithoutFlex(container.firstElementChild!)).toEqual([])
   })
 })
 

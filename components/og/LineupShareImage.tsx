@@ -8,6 +8,11 @@ import type { SharedLineup } from '@/lib/types'
 
 export const OG_SIZE = { width: 1200, height: 630 }
 
+const W = OG_SIZE.width
+const H = OG_SIZE.height
+const HALF = W / 2
+const EDGE = 8
+
 // The ball from app/icon.svg (viewBox 4 4 72 72).
 const BALL_PATH =
   'M40.15 31.00L40.15 23.50L49.26 17.64L58.40 24.28L55.65 34.76L48.51 37.08ZM48.61 37.36L55.74 35.04L64.13 41.90L60.63 52.64L49.82 53.26L45.41 47.19ZM45.17 47.37L49.58 53.44L45.65 63.53L34.35 63.53L30.42 53.44L34.83 47.37ZM34.59 47.19L30.18 53.26L19.37 52.64L15.87 41.90L24.26 35.04L31.39 37.36ZM31.49 37.08L24.35 34.76L21.60 24.28L30.74 17.64L39.85 23.50L39.85 31.00Z'
@@ -79,12 +84,13 @@ export function LineupImage({ lineup }: { lineup: SharedLineup }) {
 
   return (
     <div style={ROOT}>
-      <div style={{ position: 'absolute', left: 0, top: 0, width: 600, height: 630, backgroundImage: 'linear-gradient(180deg, rgba(8,47,73,0.7), rgba(8,47,73,0.25))' }} />
-      <div style={{ position: 'absolute', left: 600, top: 0, width: 600, height: 630, backgroundImage: 'linear-gradient(180deg, rgba(46,16,101,0.6), rgba(46,16,101,0.2))' }} />
-      <div style={{ position: 'absolute', left: 0, top: 0, width: 8, height: 630, backgroundColor: '#38bdf8' }} />
-      <div style={{ position: 'absolute', left: 1192, top: 0, width: 8, height: 630, backgroundColor: '#a78bfa' }} />
-      <div style={{ position: 'absolute', left: 599, top: 0, width: 2, height: 630, backgroundImage: 'linear-gradient(180deg, rgba(44,74,114,0), #2c4a72 30%, #2c4a72 70%, rgba(44,74,114,0))' }} />
+      <div style={{ position: 'absolute', left: 0, top: 0, width: HALF, height: H, backgroundImage: 'linear-gradient(180deg, rgba(8,47,73,0.7), rgba(8,47,73,0.25))' }} />
+      <div style={{ position: 'absolute', left: HALF, top: 0, width: HALF, height: H, backgroundImage: 'linear-gradient(180deg, rgba(46,16,101,0.6), rgba(46,16,101,0.2))' }} />
+      <div style={{ position: 'absolute', left: 0, top: 0, width: EDGE, height: H, backgroundColor: '#38bdf8' }} />
+      <div style={{ position: 'absolute', left: W - EDGE, top: 0, width: EDGE, height: H, backgroundColor: '#a78bfa' }} />
+      <div style={{ position: 'absolute', left: HALF - 1, top: 0, width: 2, height: H, backgroundImage: 'linear-gradient(180deg, rgba(44,74,114,0), #2c4a72 30%, #2c4a72 70%, rgba(44,74,114,0))' }} />
 
+      {/* LINEUP_IMAGE.namesHeight and columnWidth in lib/utils.ts assume this padding and spacing. */}
       <div style={{ display: 'flex', flexDirection: 'column', width: '100%', padding: '30px 60px' }}>
         <div
           style={{
@@ -109,7 +115,7 @@ export function LineupImage({ lineup }: { lineup: SharedLineup }) {
         </div>
       </div>
 
-      <div style={{ position: 'absolute', left: 0, bottom: 24, width: 1200, display: 'flex', justifyContent: 'center', opacity: 0.9 }}>
+      <div style={{ position: 'absolute', left: 0, bottom: 24, width: W, display: 'flex', justifyContent: 'center', opacity: 0.9 }}>
         <Wordmark ballSize={28} fontSize={21} />
       </div>
     </div>
