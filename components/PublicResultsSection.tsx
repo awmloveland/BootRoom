@@ -14,6 +14,7 @@ interface Props {
   nextWeek: ScheduledWeek | null
   canEditMatchEntry: boolean
   showMatchHistory: boolean
+  canShareImage: boolean
   celebration: ResultsCelebration | null
 }
 
@@ -26,6 +27,7 @@ export function PublicResultsSection({
   nextWeek,
   canEditMatchEntry,
   showMatchHistory,
+  canShareImage,
   celebration,
 }: Props) {
   const { seasons, year, isDefaultYear, selectYear } = useResultsYear(weeks)
@@ -43,6 +45,7 @@ export function PublicResultsSection({
             initialScheduledWeek={nextWeek}
             canEdit={canEditMatchEntry}
             leagueName={leagueName}
+            canShareImage={canShareImage}
           />
         </div>
       )}

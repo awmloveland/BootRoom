@@ -37,6 +37,8 @@ interface Props {
   leagueDayIndex?: number
   /** Display name of the league — used to build the share text. */
   leagueName?: string
+  /** Whether the lineup_share_image feature is on for this viewer; when false Share sends the plain league link and no signed link is requested. */
+  canShareImage?: boolean
   /**
    * 'overview' renders the idle and lineup states in the Overview tab design and
    * takes its first state from `initialScheduledWeek` instead of fetching, so the
@@ -143,6 +145,7 @@ export function NextMatchCard({
   onBuildStart,
   leagueDayIndex,
   leagueName = '',
+  canShareImage = false,
   variant = 'results',
   overview,
 }: Props) {
@@ -191,7 +194,7 @@ export function NextMatchCard({
   const [shareLink, setShareLink] = useState<{ key: string; url: string | null } | null>(null)
   const shareWeekId = scheduledWeek?.id ?? null
   const shareKey =
-    !isOverview && cardState === 'lineup' && scheduledWeek &&
+    canShareImage && !isOverview && cardState === 'lineup' && scheduledWeek &&
     scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0
       ? JSON.stringify([scheduledWeek.id, scheduledWeek.teamA, scheduledWeek.teamB])
       : null

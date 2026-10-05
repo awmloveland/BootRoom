@@ -40,6 +40,7 @@ function renderSection(props: Partial<React.ComponentProps<typeof PublicResultsS
       nextWeek={nextWeek}
       canEditMatchEntry={false}
       showMatchHistory={true}
+      canShareImage={false}
       celebration={null}
       {...props}
     />

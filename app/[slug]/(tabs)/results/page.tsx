@@ -56,6 +56,7 @@ export default async function LeagueResultsPage({ params }: Props) {
 
   const canSeeMatchHistory = isAdmin || isFeatureEnabled(features, 'match_history', tier)
   const canSeeMatchEntry = isAdmin || isFeatureEnabled(features, 'match_entry', tier)
+  const canShareLineupImage = isFeatureEnabled(features, 'lineup_share_image', tier)
 
   if (isLeagueHidden(features, tier)) {
     return <LeaguePrivateState leagueName={game.name} />
@@ -117,6 +118,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             nextWeek={nextWeek}
             canEditMatchEntry={canSeeMatchEntry}
             showMatchHistory={canSeeMatchHistory}
+            canShareImage={canShareLineupImage}
             celebration={celebration}
           />
           {!isAuthenticated && (
@@ -151,6 +153,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             leagueName={game.name}
             celebration={celebration}
             linkedPlayerName={claim.playerName}
+            canShareImage={canShareLineupImage}
           />
         ) : (
           <div className="py-16 text-center">
