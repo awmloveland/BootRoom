@@ -6,7 +6,7 @@ import { ChevronDown, Pencil } from 'lucide-react'
 import { Week } from '@/lib/types'
 import type { Player, ScheduledWeek, Winner } from '@/lib/types'
 import { ResultChip, WinnerBadge } from './WinnerBadge'
-import { FaceOffLineup, TeamList } from './TeamList'
+import { FaceOffLineup } from './TeamList'
 import {
   cn,
   isPastDeadline,
@@ -163,6 +163,7 @@ interface AwaitingResultCardProps {
   week: Week
   isOpen: boolean
   onToggle: () => void
+  goalkeepers?: string[]
   isAdmin: boolean
   gameId: string
   leagueSlug?: string
@@ -171,6 +172,7 @@ interface AwaitingResultCardProps {
   leagueName?: string
   weeks?: Week[]
   onNameGuest?: (guestName: string) => void
+  linkedPlayerName?: string | null
 }
 
 interface PlayedCardProps {
@@ -196,6 +198,7 @@ interface DnfCardProps {
   week: Week
   isOpen: boolean
   onToggle: () => void
+  goalkeepers?: string[]
   isAdmin: boolean
   gameId: string
   allPlayers: Player[]
@@ -204,12 +207,14 @@ interface DnfCardProps {
   leagueSlug?: string
   isMostRecent: boolean
   onNameGuest?: (guestName: string) => void
+  linkedPlayerName?: string | null
 }
 
 function DnfCard({
   week,
   isOpen,
   onToggle,
+  goalkeepers,
   isAdmin,
   gameId,
   allPlayers,
@@ -218,6 +223,7 @@ function DnfCard({
   leagueSlug,
   isMostRecent,
   onNameGuest,
+  linkedPlayerName,
 }: DnfCardProps) {
   const [showEditModal, setShowEditModal] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -287,22 +293,16 @@ function DnfCard({
           >
             <div className="border-t border-[#1b2c46]">
               <div className="px-[18px] py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <TeamList
-                    label="Team A"
-                    players={week.teamA}
-                    team="A"
-                    rating={week.team_a_rating ?? null}
-                    onNameGuest={onNameGuest}
-                  />
-                  <TeamList
-                    label="Team B"
-                    players={week.teamB}
-                    team="B"
-                    rating={week.team_b_rating ?? null}
-                    onNameGuest={onNameGuest}
-                  />
-                </div>
+                <FaceOffLineup
+                  teamA={week.teamA}
+                  teamB={week.teamB}
+                  teamARating={week.team_a_rating}
+                  teamBRating={week.team_b_rating}
+                  winner={null}
+                  goalkeepers={goalkeepers}
+                  linkedPlayerName={linkedPlayerName}
+                  onNameGuest={onNameGuest}
+                />
                 {week.notes?.trim() && (
                   <div className="border-t border-[#1b2c46] mt-3.5 pt-3.5">
                     <p className="rounded border border-[#1b2c46] bg-[#0c1728] px-3 py-[9px] font-inter-body text-xs italic leading-normal text-[#8ba4c4]">
@@ -349,6 +349,7 @@ function AwaitingResultCard({
   week,
   isOpen,
   onToggle,
+  goalkeepers,
   isAdmin,
   gameId,
   leagueSlug,
@@ -357,6 +358,7 @@ function AwaitingResultCard({
   leagueName,
   weeks,
   onNameGuest,
+  linkedPlayerName,
 }: AwaitingResultCardProps) {
   const [showResultModal, setShowResultModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -420,22 +422,16 @@ function AwaitingResultCard({
           >
             <div className="border-t border-[#1b2c46]">
               <div className="px-[18px] py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <TeamList
-                    label="Team A"
-                    players={week.teamA}
-                    team="A"
-                    rating={week.team_a_rating ?? null}
-                    onNameGuest={onNameGuest}
-                  />
-                  <TeamList
-                    label="Team B"
-                    players={week.teamB}
-                    team="B"
-                    rating={week.team_b_rating ?? null}
-                    onNameGuest={onNameGuest}
-                  />
-                </div>
+                <FaceOffLineup
+                  teamA={week.teamA}
+                  teamB={week.teamB}
+                  teamARating={week.team_a_rating}
+                  teamBRating={week.team_b_rating}
+                  winner={null}
+                  goalkeepers={goalkeepers}
+                  linkedPlayerName={linkedPlayerName}
+                  onNameGuest={onNameGuest}
+                />
                 {isAdmin && (
                   <div className="border-t border-[#1b2c46] mt-3.5 pt-3.5 flex justify-end gap-2">
                     <EditResultButton onClick={() => setShowEditModal(true)} />
@@ -746,6 +742,7 @@ export function MatchCard({
         week={week}
         isOpen={isOpen}
         onToggle={onToggle}
+        goalkeepers={goalkeepers}
         isAdmin={isAdmin}
         gameId={gameId}
         allPlayers={allPlayers}
@@ -754,6 +751,7 @@ export function MatchCard({
         leagueSlug={leagueSlug}
         isMostRecent={isMostRecent}
         onNameGuest={nameGuestHandler}
+        linkedPlayerName={linkedPlayerName}
       />
     )
   }
@@ -764,6 +762,7 @@ export function MatchCard({
         week={week}
         isOpen={isOpen}
         onToggle={onToggle}
+        goalkeepers={goalkeepers}
         isAdmin={isAdmin}
         gameId={gameId}
         leagueSlug={leagueSlug}
@@ -772,6 +771,7 @@ export function MatchCard({
         leagueName={leagueName}
         weeks={weeks}
         onNameGuest={nameGuestHandler}
+        linkedPlayerName={linkedPlayerName}
       />
     )
   }
