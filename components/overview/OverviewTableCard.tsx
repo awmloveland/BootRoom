@@ -88,7 +88,7 @@ export function OverviewTableCard({ table, standing, lastResult }: OverviewTable
         <span className={cn(WIDGET_TITLE_CLASS, 'flex-1 min-w-0 truncate')}>
           League table · Q{table.displayQ} {table.displayYear}
         </span>
-        <QuarterTableColumnLabels />
+        <QuarterTableColumnLabels size="page" />
       </div>
 
       <div className="px-4 py-3">

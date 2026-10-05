@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
 import { Trophy } from 'lucide-react'
-import { cn, formatGoalDiff } from '@/lib/utils'
+import { cn, formatGoalDiff, formatPointsPerGame } from '@/lib/utils'
 import type { QuarterlyEntry, QuarterStanding } from '@/lib/sidebar-stats'
 
 /** 'sidebar' is the 288px stats sidebar; 'page' is the Overview tab content column. */
@@ -8,19 +8,28 @@ export type WidgetSize = 'sidebar' | 'page'
 
 const NUM_CLASS = 'font-plex text-[10.5px] text-[#4f688a] text-center shrink-0'
 
+/** Number column widths. The sidebar packs them tighter to leave names room. */
+const COL_WIDTHS: Record<WidgetSize, { p: string; wdl: string; gd: string; ppg: string; pts: string }> = {
+  sidebar: { p: 'w-4', wdl: 'w-[13px]', gd: 'w-[22px]', ppg: 'w-[26px]', pts: 'w-5' },
+  page: { p: 'w-[22px]', wdl: 'w-[18px]', gd: 'w-[26px]', ppg: 'w-[28px]', pts: 'w-[26px]' },
+}
+
 /**
- * The P / W / D / L / GD / Pts labels. Render inside a flex header row that sets
- * the font and uses gap-1, the same gap as the rows, so the columns line up.
+ * The P / W / D / L / GD / PPG / Pts labels. Render inside a flex header row that sets
+ * the font and uses gap-1, the same gap as the rows, so the columns line up. Pass
+ * the same size as the rows.
  */
-export function QuarterTableColumnLabels() {
+export function QuarterTableColumnLabels({ size = 'sidebar' }: { size?: WidgetSize }) {
+  const w = COL_WIDTHS[size]
   return (
     <>
-      <span className="w-[22px] text-center">P</span>
-      <span className="w-[18px] text-center">W</span>
-      <span className="w-[18px] text-center">D</span>
-      <span className="w-[18px] text-center">L</span>
-      <span className="w-[26px] text-center">GD</span>
-      <span className="w-[26px] text-right text-[#6f88a8]">Pts</span>
+      <span className={cn(w.p, 'text-center')}>P</span>
+      <span className={cn(w.wdl, 'text-center')}>W</span>
+      <span className={cn(w.wdl, 'text-center')}>D</span>
+      <span className={cn(w.wdl, 'text-center')}>L</span>
+      <span className={cn(w.gd, 'text-center')}>GD</span>
+      <span className={cn(w.ppg, 'text-center')}>PPG</span>
+      <span className={cn(w.pts, 'text-right text-[#6f88a8]')}>Pts</span>
     </>
   )
 }
@@ -46,12 +55,13 @@ interface QuarterTableRowsProps {
   rows: QuarterTableRow[]
   /** Name of the row to highlight, or null for none. */
   highlightName: string | null
-  /** 'page' adds the YOU tag to the highlighted row. */
+  /** 'page' adds the YOU tag to the highlighted row and widens the number columns. */
   size?: WidgetSize
 }
 
 export function QuarterTableRows({ rows, highlightName, size = 'sidebar' }: QuarterTableRowsProps) {
   const page = size === 'page'
+  const w = COL_WIDTHS[size]
   return (
     <div className="flex flex-col gap-0.5">
       {rows.map(({ entry: e, rank }, i) => {
@@ -85,13 +95,15 @@ export function QuarterTableRows({ rows, highlightName, size = 'sidebar' }: Quar
                   You
                 </span>
               )}
-              <span className={cn(NUM_CLASS, 'w-[22px]')}>{e.played}</span>
-              <span className={cn(NUM_CLASS, 'w-[18px]')}>{e.won}</span>
-              <span className={cn(NUM_CLASS, 'w-[18px]')}>{e.drew}</span>
-              <span className={cn(NUM_CLASS, 'w-[18px]')}>{e.lost}</span>
-              <span className={cn(NUM_CLASS, 'w-[26px]')}>{formatGoalDiff(e.goalDiff)}</span>
+              <span className={cn(NUM_CLASS, w.p)}>{e.played}</span>
+              <span className={cn(NUM_CLASS, w.wdl)}>{e.won}</span>
+              <span className={cn(NUM_CLASS, w.wdl)}>{e.drew}</span>
+              <span className={cn(NUM_CLASS, w.wdl)}>{e.lost}</span>
+              <span className={cn(NUM_CLASS, w.gd)}>{formatGoalDiff(e.goalDiff)}</span>
+              <span className={cn(NUM_CLASS, w.ppg)}>{formatPointsPerGame(e)}</span>
               <span className={cn(
-                'font-plex text-xs font-bold w-[26px] text-right shrink-0',
+                'font-plex text-xs font-bold text-right shrink-0',
+                w.pts,
                 on ? 'text-[#38bdf8]' : 'text-[#dff1ff]'
               )}>
                 {e.points}

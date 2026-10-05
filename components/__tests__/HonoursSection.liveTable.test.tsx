@@ -73,4 +73,16 @@ describe('HonoursSection in-progress quarter', () => {
     expect(screen.getByText('Iron Man')).toBeInTheDocument()
     expect(screen.getByText(/See All \(12\)/)).toBeInTheDocument()
   })
+
+  it('shows points per game on the live and completed tables', () => {
+    const weeks = [
+      played(14, '02 Apr 2026', TEAM_A, TEAM_B), // completed Q2 by July
+      played(27, '02 Jul 2026', TEAM_A, TEAM_B), // live Q3
+    ]
+    renderHonours(weeks, new Date(2026, 6, 8))
+    expect(screen.getAllByText('PPG')).toHaveLength(2)
+    // Winners on 3.00 PPG, losers on 0.00, in both tables.
+    expect(screen.getAllByText('3.00').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getAllByText('0.00').length).toBeGreaterThanOrEqual(2)
+  })
 })

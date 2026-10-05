@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown } from 'lucide-react'
-import { cn, buildQuarterShareText, shareOrCopy, formatGoalDiff } from '@/lib/utils'
+import { cn, buildQuarterShareText, shareOrCopy, formatGoalDiff, formatPointsPerGame } from '@/lib/utils'
 import type { QuarterSummary, HonoursYear, QuarterlyTableResult, QuarterStanding } from '@/lib/sidebar-stats'
 import {
   buildQuarterTableRows,
@@ -136,6 +136,7 @@ function CompletedCardBody({
           <span className="w-5 text-center">D</span>
           <span className="w-5 text-center">L</span>
           <span className="w-7 text-center">GD</span>
+          <span className="w-8 text-center">PPG</span>
           <span className="w-[30px] text-right text-[#6f88a8]">Pts</span>
         </div>
         <div className="flex flex-col gap-0.5">
@@ -164,6 +165,7 @@ function CompletedCardBody({
               <span className="font-plex text-[11px] text-[#6f88a8] w-5 text-center shrink-0">{e.drew}</span>
               <span className="font-plex text-[11px] text-[#6f88a8] w-5 text-center shrink-0">{e.lost}</span>
               <span className="font-plex text-[11px] text-[#6f88a8] w-7 text-center shrink-0">{formatGoalDiff(e.goalDiff)}</span>
+              <span className="font-plex text-[11px] text-[#6f88a8] w-8 text-center shrink-0">{formatPointsPerGame(e)}</span>
               <span className={cn(
                 'font-plex text-[13px] font-bold w-[30px] text-right shrink-0',
                 i === 0 ? 'text-[#38bdf8]' : 'text-[#dff1ff]'
@@ -222,7 +224,7 @@ function LiveCardBody({
     <div className="border-t border-[#1b2c46] px-4 py-3">
       <div className="flex items-center gap-1 pb-2 mb-1 border-b border-[#17263c] font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#4f688a]">
         <span className="flex-1">Player</span>
-        <QuarterTableColumnLabels />
+        <QuarterTableColumnLabels size="page" />
       </div>
       <QuarterTableRows
         rows={buildQuarterTableRows(table.entries, standing)}
