@@ -21,10 +21,12 @@ import { OverviewTableCard } from '@/components/overview/OverviewTableCard'
 
 interface Props {
   params: Promise<{ slug: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  return leaguePageMetadata((await params).slug, 'overview')
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+  const { lineup } = await searchParams
+  return leaguePageMetadata((await params).slug, 'overview', typeof lineup === 'string' ? lineup : undefined)
 }
 
 export default async function LeagueOverviewPage({ params }: Props) {

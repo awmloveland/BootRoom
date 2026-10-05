@@ -24,6 +24,7 @@ interface Props {
   leagueName?: string
   celebration?: ResultsCelebration | null
   linkedPlayerName?: string | null
+  canShareImage?: boolean
 }
 
 /** Latest result in one season, the card that opens when that season is shown. */
@@ -46,6 +47,7 @@ export function ResultsSection({
   leagueName,
   celebration = null,
   linkedPlayerName = null,
+  canShareImage = false,
 }: Props) {
   const router = useRouter()
   const { seasons, year, isDefaultYear, selectYear } = useResultsYear(weeks)
@@ -96,6 +98,7 @@ export function ResultsSection({
             onBuildStart={handleBuildStart}
             leagueDayIndex={leagueDayIndex}
             leagueName={leagueName}
+            canShareImage={canShareImage}
           />
         </div>
       )}

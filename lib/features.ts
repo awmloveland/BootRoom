@@ -35,3 +35,17 @@ export function isLeagueHidden(features: LeagueFeature[], tier: VisibilityTier):
     !isFeatureEnabled(features, 'player_stats', tier)
   )
 }
+
+/**
+ * Whether a viewer at this tier can see the next match lineup card on the
+ * Results tab. Mirrors the page: the public see the read-only lineup unless
+ * the league is hidden; members need match entry or match history.
+ */
+export function canSeeNextLineup(features: LeagueFeature[], tier: VisibilityTier): boolean {
+  if (tier === 'admin') return true
+  if (tier === 'public') return !isLeagueHidden(features, tier)
+  return (
+    isFeatureEnabled(features, 'match_entry', tier) ||
+    isFeatureEnabled(features, 'match_history', tier)
+  )
+}

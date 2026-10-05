@@ -391,8 +391,10 @@ export function buildShareText(params: {
   teamB: string[]
   teamARating: number
   teamBRating: number
+  /** Signed lineup link from the share endpoint; falls back to the league link. */
+  shareUrl?: string
 }): string {
-  const { leagueName, leagueSlug, week, date, format, teamA, teamB, teamARating, teamBRating } = params
+  const { leagueName, leagueSlug, week, date, format, teamA, teamB, teamARating, teamBRating, shareUrl } = params
   const parsed = parseWeekDate(date)
   const [dd, mmm] = date.split(' ')
   const shortDate = `${DAY_SHORT[parsed.getDay()]} ${dd} ${mmm}`
@@ -410,7 +412,7 @@ export function buildShareText(params: {
     '',
     `📊 ${prediction}`,
     '',
-    `🔗 https://craft-football.com/${leagueSlug}`,
+    `🔗 ${shareUrl ?? `https://craft-football.com/${leagueSlug}`}`,
   ].join('\n')
 }
 
@@ -1120,6 +1122,55 @@ export async function shareOrCopy(text: string): Promise<ShareOutcome> {
     }
   }
   return copy()
+}
+
+/**
+ * Layout numbers for the lineup preview image (components/og). Names sit in
+ * two 480px columns with ~440px of height between the team heading and the
+ * wordmark; charWidth approximates Inter Bold's average glyph width in em.
+ */
+export const LINEUP_IMAGE = {
+  maxFont: 40,
+  minFont: 24,
+  namesHeight: 440,
+  columnWidth: 480,
+  lineHeight: 1.28,
+  charWidth: 0.58,
+} as const
+
+/**
+ * Name size for the lineup preview image: as large as fits both the row count
+ * and the longest name, between minFont and maxFont. Names that still don't
+ * fit at minFont are cut off with an ellipsis by the image itself.
+ */
+export function lineupImageFontSize(rowCount: number, longestNameLength: number): number {
+  const byHeight = LINEUP_IMAGE.namesHeight / (LINEUP_IMAGE.lineHeight * Math.max(rowCount, 1))
+  const byWidth = LINEUP_IMAGE.columnWidth / (LINEUP_IMAGE.charWidth * Math.max(longestNameLength, 1))
+  return Math.max(
+    LINEUP_IMAGE.minFont,
+    Math.min(LINEUP_IMAGE.maxFont, Math.floor(byHeight), Math.floor(byWidth))
+  )
+}
+
+/**
+ * Asks the server for a signed share link for a scheduled lineup. Null when
+ * the server declines (feature off, not visible, not configured) or the
+ * request fails; callers fall back to the plain league link.
+ */
+export async function fetchLineupShareUrl(leagueId: string, weekId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`/api/league/${leagueId}/lineup-share`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ weekId }),
+    })
+    if (!res.ok) return null
+    const body = (await res.json()) as { url?: unknown }
+    return typeof body.url === 'string' ? body.url : null
+  } catch {
+    return null
+  }
 }
 
 /**

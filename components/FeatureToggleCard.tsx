@@ -4,13 +4,16 @@ import { useState } from 'react'
 import { Toggle } from '@/components/ui/toggle'
 import type { LeagueFeature } from '@/lib/types'
 
-interface QuarterCelebrationCardProps {
+interface FeatureToggleCardProps {
   leagueId: string
   feature: LeagueFeature
+  title: string
+  description: string
   onChanged: () => void
 }
 
-export function QuarterCelebrationCard({ leagueId, feature, onChanged }: QuarterCelebrationCardProps) {
+/** Members / Public on-off card for a feature with no extra config. */
+export function FeatureToggleCard({ leagueId, feature, title, description, onChanged }: FeatureToggleCardProps) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -36,11 +39,8 @@ export function QuarterCelebrationCard({ leagueId, feature, onChanged }: Quarter
   return (
     <div className="rounded-xl border border-[#1b2c46] bg-[#0a1421] overflow-hidden mb-3">
       <div className="px-4 py-3 border-b border-[#1b2c46]">
-        <div className="text-sm font-semibold text-[#f4f9ff]">Quarter Celebration</div>
-        <div className="text-xs text-[#6f88a8] mt-0.5">
-          Show the champion + awards card on the Results tab when a quarter wraps.
-          Admins always see it; choose who else does.
-        </div>
+        <div className="text-sm font-semibold text-[#f4f9ff]">{title}</div>
+        <div className="text-xs text-[#6f88a8] mt-0.5">{description}</div>
       </div>
       <div className="rounded-lg overflow-hidden">
         <div className="flex items-center justify-between px-4 py-2.5 bg-[#0c1728] border-b border-[#1b2c46]">

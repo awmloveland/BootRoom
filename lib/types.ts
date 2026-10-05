@@ -92,7 +92,8 @@ export type FeatureKey =
   | 'match_entry'
   | 'player_stats'
   | 'player_comparison'
-  | 'quarter_celebration';
+  | 'quarter_celebration'
+  | 'lineup_share_image';
 
 export interface FeatureConfig {
   max_players?: number | null;
@@ -107,6 +108,19 @@ export interface LeagueFeature {
   config?: FeatureConfig | null;
   public_enabled: boolean;
   public_config?: FeatureConfig | null;
+}
+
+/** A verified shared lineup, as drawn in its link-preview image. */
+export interface SharedLineup {
+  leagueName: string;
+  slug: string;
+  week: number;
+  date: string;               // 'DD MMM YYYY'
+  format: string | null;
+  teamA: string[];
+  teamB: string[];
+  location: string | null;
+  kickoffTime: string | null; // e.g. "19:00"
 }
 
 export interface LeagueMember {

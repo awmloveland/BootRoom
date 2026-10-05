@@ -18,10 +18,12 @@ import type { Week, ScheduledWeek } from '@/lib/types'
 
 interface Props {
   params: Promise<{ slug: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  return leaguePageMetadata((await params).slug, 'results')
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+  const { lineup } = await searchParams
+  return leaguePageMetadata((await params).slug, 'results', typeof lineup === 'string' ? lineup : undefined)
 }
 
 export default async function LeagueResultsPage({ params }: Props) {
@@ -54,6 +56,7 @@ export default async function LeagueResultsPage({ params }: Props) {
 
   const canSeeMatchHistory = isAdmin || isFeatureEnabled(features, 'match_history', tier)
   const canSeeMatchEntry = isAdmin || isFeatureEnabled(features, 'match_entry', tier)
+  const canShareLineupImage = isFeatureEnabled(features, 'lineup_share_image', tier)
 
   if (isLeagueHidden(features, tier)) {
     return <LeaguePrivateState leagueName={game.name} />
@@ -115,6 +118,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             nextWeek={nextWeek}
             canEditMatchEntry={canSeeMatchEntry}
             showMatchHistory={canSeeMatchHistory}
+            canShareImage={canShareLineupImage}
             celebration={celebration}
           />
           {!isAuthenticated && (
@@ -149,6 +153,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             leagueName={game.name}
             celebration={celebration}
             linkedPlayerName={claim.playerName}
+            canShareImage={canShareLineupImage}
           />
         ) : (
           <div className="py-16 text-center">
