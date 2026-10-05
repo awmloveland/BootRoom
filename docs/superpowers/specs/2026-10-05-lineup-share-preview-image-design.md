@@ -60,7 +60,7 @@ Next 16). No new dependencies.
     generic card, never stale teams. Previews already sent in WhatsApp and
     iMessage are unaffected, because those apps store the image in the
     message at send time.
-- Token helpers (`signLineupToken`, `verifyLineupToken`) live in a new
+- Token helpers (`signLineupToken`, `parseLineupToken`, `verifyLineupSignature`; parsing and verifying are split because the week lookup sits between them) live in a new
   server-only module `lib/lineupShare.ts`. Verification uses
   `crypto.timingSafeEqual`.
 - `SHARE_SIGNING_SECRET` is a new server-side environment variable. It must
@@ -212,7 +212,7 @@ the seed by hand if needed.
 
 ### Unit (Jest)
 
-- `signLineupToken` / `verifyLineupToken`:
+- `signLineupToken` / `parseLineupToken` / `verifyLineupSignature`:
   - round-trip passes
   - a tampered signature fails
   - a tampered week ID fails
