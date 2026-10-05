@@ -60,6 +60,7 @@ export default async function LeagueOverviewPage({ params }: Props) {
   const isAdmin = tier === 'admin'
   const canSeeMatchHistory = isAdmin || isFeatureEnabled(features, 'match_history', tier)
   const canSeeMatchEntry = isAdmin || isFeatureEnabled(features, 'match_entry', tier)
+  const canShareLineupImage = isFeatureEnabled(features, 'lineup_share_image', tier)
   const leagueDayIndex = dayNameToIndex(game.day ?? null) ?? undefined
 
   // Overview is the small-screen landing page, so it must keep week numbers and
@@ -108,6 +109,7 @@ export default async function LeagueOverviewPage({ params }: Props) {
           linkedPlayerName={linkedPlayer?.name ?? null}
           location={game.location ?? null}
           kickoffTime={game.kickoff_time ?? null}
+          canShareImage={canShareLineupImage}
         />
 
         {viewerCard === 'your-stats' && linkedPlayer && (

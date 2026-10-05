@@ -41,14 +41,19 @@ describe('NextMatchCard, overview variant', () => {
     expect(createClient).not.toHaveBeenCalled()
   })
 
-  it('leaves out ratings and the share button', () => {
+  it('leaves out ratings but keeps the share button', () => {
     render(<NextMatchCard {...BASE} initialScheduledWeek={{ ...SCHEDULED, team_a_rating: 1.234, team_b_rating: 1.111 }} canEdit />)
     expect(screen.queryByText('1.234')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Share' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument()
   })
 
-  it('is read-only for viewers who cannot edit', () => {
+  it('only offers Share to viewers who cannot edit', () => {
     render(<NextMatchCard {...BASE} initialScheduledWeek={SCHEDULED} canEdit={false} />)
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Share'])
+  })
+
+  it('hides Share while a team is empty', () => {
+    render(<NextMatchCard {...BASE} initialScheduledWeek={{ ...SCHEDULED, teamB: [] }} canEdit={false} />)
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
 

@@ -77,6 +77,19 @@ describe('NextGameLineup', () => {
     expect(onResultGame).toHaveBeenCalledTimes(1)
   })
 
+  it('offers Share to everyone, alongside the editor buttons', () => {
+    const onShare = jest.fn()
+    const { rerender } = render(<NextGameLineup {...LINEUP} onShare={onShare} />)
+    expect(screen.getAllByRole('button')).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Share' }))
+    expect(onShare).toHaveBeenCalledTimes(1)
+
+    rerender(<NextGameLineup {...LINEUP} canEdit onShare={onShare} copied />)
+    expect(screen.getByRole('button', { name: 'Copied!' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Edit Lineups' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Result Game' })).toBeInTheDocument()
+  })
+
   it('swaps the badge once the deadline has passed', () => {
     render(<NextGameLineup {...LINEUP} awaitingResult />)
     expect(screen.getByText('Awaiting Result')).toBeInTheDocument()

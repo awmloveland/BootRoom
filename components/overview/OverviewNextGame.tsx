@@ -20,6 +20,8 @@ interface OverviewNextGameProps {
   linkedPlayerName: string | null
   location: string | null
   kickoffTime: string | null
+  /** lineup_share_image is on for this viewer, so Share sends a signed link with a picture. */
+  canShareImage: boolean
 }
 
 /**
@@ -39,6 +41,7 @@ export function OverviewNextGame({
   linkedPlayerName,
   location,
   kickoffTime,
+  canShareImage,
 }: OverviewNextGameProps) {
   const router = useRouter()
 
@@ -56,6 +59,7 @@ export function OverviewNextGame({
       publicMode={publicMode}
       canAutoPick={true}
       leagueDayIndex={leagueDayIndex}
+      canShareImage={canShareImage}
       onResultSaved={() => (publicMode ? window.location.reload() : router.refresh())}
     />
   )
