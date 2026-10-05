@@ -6,7 +6,6 @@ jest.mock('fs/promises', () => ({ readFile: (...args: unknown[]) => mockReadFile
 function load(): Promise<OgFont[]> {
   let loadOgFonts!: () => Promise<OgFont[]>
   jest.isolateModules(() => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     loadOgFonts = require('@/lib/ogFonts').loadOgFonts
   })
   return loadOgFonts()
