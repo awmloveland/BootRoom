@@ -12,10 +12,16 @@ import { GET } from '@/app/api/og/lineup/route'
 
 const FONTS = [{ name: 'Inter', data: new ArrayBuffer(1), weight: 700, style: 'normal' }]
 const LINEUP = { leagueName: 'The Boot Room', week: 13 } as SharedLineup
+const SENTINEL = { sentinel: true }
+const LINEUP_CACHE = 'public, max-age=300, s-maxage=3600'
+const GENERIC_CACHE = 'public, max-age=60, s-maxage=60'
 
 beforeEach(() => {
   jest.resetAllMocks()
   ;(loadOgFonts as jest.Mock).mockResolvedValue(FONTS)
+  ;(ImageResponse as unknown as jest.Mock).mockImplementation(function () {
+    return SENTINEL
+  })
 })
 
 function lastRender() {
@@ -26,7 +32,8 @@ function lastRender() {
 describe('GET /api/og/lineup', () => {
   it('renders the lineup for a valid token', async () => {
     ;(loadSharedLineup as jest.Mock).mockResolvedValue(LINEUP)
-    await GET(new Request('http://localhost/api/og/lineup?t=abc.def'))
+    const res = await GET(new Request('http://localhost/api/og/lineup?t=abc.def'))
+    expect(res).toBe(SENTINEL)
     expect(loadSharedLineup).toHaveBeenCalledWith('abc.def')
     const { element, options } = lastRender()
     expect(element.type).toBe(LineupImage)
@@ -35,20 +42,25 @@ describe('GET /api/og/lineup', () => {
       width: 1200,
       height: 630,
       fonts: FONTS,
-      headers: { 'Cache-Control': 'public, max-age=300, s-maxage=3600' },
+      headers: { 'Cache-Control': LINEUP_CACHE },
     }))
   })
 
   it('renders the generic card when the token does not resolve', async () => {
     ;(loadSharedLineup as jest.Mock).mockResolvedValue(null)
-    await GET(new Request('http://localhost/api/og/lineup?t=bad'))
-    expect(lastRender().element.type).toBe(GenericShareImage)
+    const res = await GET(new Request('http://localhost/api/og/lineup?t=bad'))
+    expect(res).toBe(SENTINEL)
+    const { element, options } = lastRender()
+    expect(element.type).toBe(GenericShareImage)
+    expect(options.headers).toEqual({ 'Cache-Control': GENERIC_CACHE })
   })
 
   it('renders the generic card with no token', async () => {
     ;(loadSharedLineup as jest.Mock).mockResolvedValue(null)
     await GET(new Request('http://localhost/api/og/lineup'))
     expect(loadSharedLineup).toHaveBeenCalledWith(null)
-    expect(lastRender().element.type).toBe(GenericShareImage)
+    const { element, options } = lastRender()
+    expect(element.type).toBe(GenericShareImage)
+    expect(options.headers).toEqual({ 'Cache-Control': GENERIC_CACHE })
   })
 })
