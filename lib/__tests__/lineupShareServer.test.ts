@@ -19,17 +19,23 @@ const WEEK_ROW = {
 const GAME_ROW = { name: 'The Boot Room', slug: 'the-boot-room', location: 'Powerleague Shoreditch', kickoff_time: '19:00' }
 const TOKEN = signLineupToken(SECRET, WEEK_ID, { teamA: WEEK_ROW.team_a, teamB: WEEK_ROW.team_b })
 
-/** Service client whose `from(table)…maybeSingle()` resolves to rows[table]. */
+/**
+ * Service client whose `from(table)…maybeSingle()` resolves to rows[table].
+ * Returns `from` plus the chains created per table, so tests can assert on
+ * the arguments each query used.
+ */
 function mockTables(rows: Record<string, unknown>) {
+  const chains: Record<string, Record<string, jest.Mock>> = {}
   const from = jest.fn((table: string) => {
     const chain: Record<string, jest.Mock> = {}
     chain.select = jest.fn(() => chain)
     chain.eq = jest.fn(() => chain)
     chain.maybeSingle = jest.fn().mockResolvedValue({ data: rows[table] ?? null, error: null })
+    chains[table] = chain
     return chain
   })
   ;(createServiceClient as jest.Mock).mockReturnValue({ from })
-  return from
+  return Object.assign(from, { chains })
 }
 
 beforeEach(() => {
@@ -42,7 +48,7 @@ afterAll(() => {
 
 describe('loadSharedLineup', () => {
   it('returns the lineup for a valid token', async () => {
-    mockTables({ weeks: WEEK_ROW, games: GAME_ROW })
+    const from = mockTables({ weeks: WEEK_ROW, games: GAME_ROW })
     await expect(loadSharedLineup(TOKEN)).resolves.toEqual({
       leagueName: 'The Boot Room',
       slug: 'the-boot-room',
@@ -54,11 +60,15 @@ describe('loadSharedLineup', () => {
       location: 'Powerleague Shoreditch',
       kickoffTime: '19:00',
     })
+    expect(from.chains.weeks.eq).toHaveBeenCalledWith('id', WEEK_ID)
+    expect(from.chains.games.eq).toHaveBeenCalledWith('id', 'game-1')
   })
 
   it('returns null once the lineups have changed', async () => {
-    mockTables({ weeks: { ...WEEK_ROW, team_a: ['Marcus Reid', 'Leon Brooks'] }, games: GAME_ROW })
+    const from = mockTables({ weeks: { ...WEEK_ROW, team_a: ['Marcus Reid', 'Leon Brooks'] }, games: GAME_ROW })
     await expect(loadSharedLineup(TOKEN)).resolves.toBeNull()
+    // Nothing about the league is fetched before the signature verifies.
+    expect(from.mock.calls.map(([table]) => table)).toEqual(['weeks'])
   })
 
   it('returns null without touching the database when signing is not configured', async () => {
@@ -76,6 +86,11 @@ describe('loadSharedLineup', () => {
 
   it('returns null when the week no longer exists', async () => {
     mockTables({ games: GAME_ROW })
+    await expect(loadSharedLineup(TOKEN)).resolves.toBeNull()
+  })
+
+  it('returns null when the league no longer exists', async () => {
+    mockTables({ weeks: WEEK_ROW })
     await expect(loadSharedLineup(TOKEN)).resolves.toBeNull()
   })
 
