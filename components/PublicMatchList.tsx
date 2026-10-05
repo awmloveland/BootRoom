@@ -5,13 +5,13 @@ import { MatchCard } from '@/components/MatchCard'
 import { MonthDivider } from '@/components/MonthDivider'
 import { YearDivider } from '@/components/YearDivider'
 import { QuarterCelebration } from '@/components/QuarterCelebration'
-import { startsCelebratedQuarter, type ResultsCelebration } from '@/lib/sidebar-stats'
+import { celebratedQuarterStartingAt, type ResultsCelebration } from '@/lib/sidebar-stats'
 import { getLatestResultWeek, getMonthKey, formatMonthYear, getPlayedWeeks, sortWeeks } from '@/lib/utils'
 import type { Week } from '@/lib/types'
 
 interface PublicMatchListProps {
   weeks: Week[]
-  celebration?: ResultsCelebration | null   // champion card, rendered above the first result of that quarter
+  celebration?: ResultsCelebration | null   // champion cards, each rendered above the first result of its quarter
   leagueName?: string                       // with leagueSlug, enables Share on the most recent result
   leagueSlug?: string
   season?: string                           // only render this season's weeks (Results year tabs)
@@ -41,11 +41,14 @@ export function PublicMatchList({ weeks, celebration = null, leagueName, leagueS
         const monthChanged =
           index > 0 &&
           getMonthKey(week.date) !== getMonthKey(visibleWeeks[index - 1].date)
+        const celebratedQuarter = celebration
+          ? celebratedQuarterStartingAt(visibleWeeks, index, celebration.quarters)
+          : null
         return (
           <Fragment key={week.id ?? `${week.season}-${week.week}`}>
-            {celebration && startsCelebratedQuarter(visibleWeeks, index, celebration.quarter) && (
+            {celebration && celebratedQuarter && (
               <QuarterCelebration
-                quarter={celebration.quarter}
+                quarter={celebratedQuarter}
                 leagueName={celebration.leagueName}
                 leagueSlug={celebration.leagueSlug}
                 variant="card"

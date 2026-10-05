@@ -1,4 +1,4 @@
-import { findNewlyCompletedQuarter, getCelebratedQuarter, weekInQuarter } from '../sidebar-stats'
+import { findNewlyCompletedQuarter, getCelebratedQuarters, weekInQuarter } from '../sidebar-stats'
 import type { Week, WeekStatus } from '../types'
 
 function makeWeek(weekNum: number, date: string, status: WeekStatus): Week {
@@ -62,16 +62,14 @@ describe('findNewlyCompletedQuarter', () => {
   })
 })
 
-describe('getCelebratedQuarter', () => {
+describe('getCelebratedQuarters', () => {
   const now = new Date(2026, 6, 15) // Wed 15 Jul 2026, Q3
 
   it('returns the most recently completed quarter', () => {
     const weeks: Week[] = playedWeeks(Q2_FRIDAYS)
-    const result = getCelebratedQuarter(weeks, now)
-    expect(result).not.toBeNull()
-    expect(result!.q).toBe(2)
-    expect(result!.year).toBe(2026)
-    expect(result!.champion).toBeTruthy()
+    const result = getCelebratedQuarters(weeks, now)
+    expect(result.map(s => [s.q, s.year])).toEqual([[2, 2026]])
+    expect(result[0].champion).toBeTruthy()
   })
 
   it('does not expire as results come in for the next quarter', () => {
@@ -80,9 +78,7 @@ describe('getCelebratedQuarter', () => {
       makeWeek(6, '3 Jul 2026', 'played'),
       makeWeek(7, '10 Jul 2026', 'played'),
     ]
-    const result = getCelebratedQuarter(weeks, now)
-    expect(result).not.toBeNull()
-    expect(result!.q).toBe(2)
+    expect(getCelebratedQuarters(weeks, now).map(s => s.q)).toEqual([2])
   })
 
   it('returns the current calendar quarter as soon as its final game day is settled', () => {
@@ -94,41 +90,37 @@ describe('getCelebratedQuarter', () => {
       '7 Sep 2026', '14 Sep 2026', '21 Sep 2026', '28 Sep 2026',
     ]
     const weeks: Week[] = mondays.map((d, i) => makeWeek(27 + i, d, 'played'))
-    const result = getCelebratedQuarter(weeks, new Date(2026, 8, 30))
-    expect(result).not.toBeNull()
-    expect(result!.q).toBe(3)
-    expect(result!.year).toBe(2026)
-    expect(result!.champion).toBeTruthy()
+    const result = getCelebratedQuarters(weeks, new Date(2026, 8, 30))
+    expect(result.map(s => [s.q, s.year])).toEqual([[3, 2026]])
+    expect(result[0].champion).toBeTruthy()
   })
 
-  it('prefers the newest completed quarter when several are complete', () => {
+  it('returns every completed quarter, newest first', () => {
     const weeks: Week[] = [...playedWeeks(Q1_FRIDAYS), ...playedWeeks(Q2_FRIDAYS, 6)]
-    expect(getCelebratedQuarter(weeks, now)!.q).toBe(2)
+    expect(getCelebratedQuarters(weeks, now).map(s => s.q)).toEqual([2, 1])
   })
 
   it('still returns an older quarter for a dormant league', () => {
     const weeks: Week[] = playedWeeks(Q1_FRIDAYS)
-    const result = getCelebratedQuarter(weeks, now)
-    expect(result).not.toBeNull()
-    expect(result!.q).toBe(1)
+    expect(getCelebratedQuarters(weeks, now).map(s => s.q)).toEqual([1])
   })
 
-  it('skips a newer quarter that finished with fewer than 5 games', () => {
+  it('skips a quarter that finished with fewer than 5 games', () => {
     const weeks: Week[] = [...playedWeeks(Q1_FRIDAYS), ...playedWeeks(Q2_FRIDAYS.slice(0, 4), 6)]
-    expect(getCelebratedQuarter(weeks, now)!.q).toBe(1)
+    expect(getCelebratedQuarters(weeks, now).map(s => s.q)).toEqual([1])
   })
 
-  it('returns null while the only quarter with games is still in progress', () => {
+  it('returns nothing while the only quarter with games is still in progress', () => {
     const weeks: Week[] = [
       makeWeek(27, '6 Jul 2026', 'played'),
       makeWeek(28, '13 Jul 2026', 'played'),
     ]
-    expect(getCelebratedQuarter(weeks, now)).toBeNull()
+    expect(getCelebratedQuarters(weeks, now)).toEqual([])
   })
 
-  it('returns null when no completed quarter has a champion', () => {
+  it('returns nothing when no completed quarter has a champion', () => {
     const weeks: Week[] = [makeWeek(1, '17 Apr 2026', 'cancelled')]
-    expect(getCelebratedQuarter(weeks, now)).toBeNull()
+    expect(getCelebratedQuarters(weeks, now)).toEqual([])
   })
 })
 

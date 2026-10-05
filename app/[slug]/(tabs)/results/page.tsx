@@ -13,7 +13,7 @@ import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { ResultsSection } from '@/components/ResultsSection'
 import { BfcacheRefresh } from '@/components/BfcacheRefresh'
 import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
-import { getCelebratedQuarter, type ResultsCelebration } from '@/lib/sidebar-stats'
+import { getCelebratedQuarters, type ResultsCelebration } from '@/lib/sidebar-stats'
 import type { Week, ScheduledWeek } from '@/lib/types'
 
 interface Props {
@@ -92,14 +92,14 @@ export default async function LeagueResultsPage({ params }: Props) {
     }
   }
 
-  // Champion card for the latest completed quarter. The match lists render it
-  // above that quarter's first result, so it sits below the next match.
-  const celebratedQuarter = getCelebratedQuarter(weeks)
+  // Champion card for every completed quarter. The match lists render each
+  // above that quarter's first result, so the latest sits below the next match.
+  const celebratedQuarters = getCelebratedQuarters(weeks)
   const canSeeCelebration =
     isAdmin || isFeatureEnabled(features, 'quarter_celebration', tier)
   const celebration: ResultsCelebration | null =
-    celebratedQuarter && canSeeCelebration
-      ? { quarter: celebratedQuarter, leagueName: game.name, leagueSlug: slug }
+    celebratedQuarters.length > 0 && canSeeCelebration
+      ? { quarters: celebratedQuarters, leagueName: game.name, leagueSlug: slug }
       : null
 
   const goalkeepers = players.filter((p) => p.mentality === 'goalkeeper').map((p) => p.name)
