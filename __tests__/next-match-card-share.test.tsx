@@ -45,7 +45,10 @@ function mockNavigatorShare() {
   return share
 }
 
+const ORIGINAL_FETCH = global.fetch
+
 afterEach(() => {
+  global.fetch = ORIGINAL_FETCH
   Object.defineProperty(window.navigator, 'share', { value: undefined, configurable: true })
 })
 
@@ -76,5 +79,29 @@ describe('NextMatchCard share', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Share' }))
     await waitFor(() => expect(share).toHaveBeenCalled())
     expect(share.mock.calls[0][0].text).toMatch(/🔗 https:\/\/craft-football\.com\/the-boot-room$/)
+  })
+
+  it('never reuses the old signed link after the lineup is edited', async () => {
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ url: 'https://craft-football.com/the-boot-room?lineup=old.sig' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ url: 'https://craft-football.com/the-boot-room?lineup=new.sig' }) }) as unknown as typeof fetch
+    const share = mockNavigatorShare()
+    const { rerender } = render(<NextMatchCard {...PROPS} />)
+    await waitFor(() => expect(shareEndpointCalls()).toHaveLength(1))
+    await flushPromises()
+
+    const edited: ScheduledWeek = { ...SCHEDULED, teamA: ['Leon Brooks', 'Rav Singh'] }
+    rerender(<NextMatchCard {...PROPS} initialScheduledWeek={edited} />)
+    await waitFor(() => expect(shareEndpointCalls()).toHaveLength(2))
+
+    // The new link has not landed yet: the old one must not be used.
+    fireEvent.click(screen.getByRole('button', { name: 'Share' }))
+    await waitFor(() => expect(share).toHaveBeenCalledTimes(1))
+    expect(share.mock.calls[0][0].text).toMatch(/🔗 https:\/\/craft-football\.com\/the-boot-room$/)
+
+    await flushPromises()
+    fireEvent.click(screen.getByRole('button', { name: 'Share' }))
+    await waitFor(() => expect(share).toHaveBeenCalledTimes(2))
+    expect(share.mock.calls[1][0].text).toMatch(/🔗 https:\/\/craft-football\.com\/the-boot-room\?lineup=new\.sig$/)
   })
 })
