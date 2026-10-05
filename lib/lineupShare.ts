@@ -12,6 +12,7 @@ const SIG_BYTES = 12
 const ENCODED_ID_RE = /^[A-Za-z0-9_-]{22}$/
 const ENCODED_SIG_RE = /^[A-Za-z0-9_-]{16}$/
 const UUID_HEX_RE = /^[0-9a-f]{32}$/
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export interface LineupTeams {
   teamA: string[]
@@ -36,7 +37,9 @@ function decodeWeekId(encoded: string): string | null {
   if (!ENCODED_ID_RE.test(encoded)) return null
   const hex = Buffer.from(encoded, 'base64url').toString('hex')
   if (!UUID_HEX_RE.test(hex)) return null
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+  const uuid = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+  // The last char has spare bits, so only the canonical encoding is accepted.
+  return encodeWeekId(uuid) === encoded ? uuid : null
 }
 
 function sign(secret: string, weekId: string, { teamA, teamB }: LineupTeams): Buffer {
@@ -47,11 +50,13 @@ function sign(secret: string, weekId: string, { teamA, teamB }: LineupTeams): Bu
 }
 
 export function signLineupToken(secret: string, weekId: string, teams: LineupTeams): string {
+  if (!UUID_RE.test(weekId)) throw new Error('signLineupToken: weekId must be a UUID')
   return `${encodeWeekId(weekId)}.${sign(secret, weekId, teams).toString('base64url')}`
 }
 
 /** Splits a token into its week id and signature. Null when malformed. */
-export function parseLineupToken(token: string): ParsedLineupToken | null {
+export function parseLineupToken(token: unknown): ParsedLineupToken | null {
+  if (typeof token !== 'string') return null
   const parts = token.split('.')
   if (parts.length !== 2 || !ENCODED_SIG_RE.test(parts[1])) return null
   const weekId = decodeWeekId(parts[0])
@@ -76,7 +81,7 @@ export function buildLineupShareMetadata(lineup: SharedLineup, token: string): M
     .join(' · ')
   const image = { url: `/api/og/lineup?t=${token}`, width: 1200, height: 630, alt: title }
   return {
-    openGraph: { title, description, images: [image], siteName: 'Craft Football', type: 'website' },
+    openGraph: { title, description, url: lineupShareUrl(lineup.slug, token), images: [image], siteName: 'Craft Football', type: 'website' },
     twitter: { card: 'summary_large_image', title, description, images: [image.url] },
   }
 }

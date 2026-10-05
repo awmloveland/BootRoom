@@ -58,6 +58,28 @@ describe('lineup share tokens', () => {
     expect(verify(signLineupToken(SECRET, WEEK, TEAMS), TEAMS, 'other-secret')).toBe(false)
   })
 
+  it('throws when the week id is not a UUID', () => {
+    expect(() => signLineupToken(SECRET, 'not-a-uuid', TEAMS)).toThrow('signLineupToken: weekId must be a UUID')
+  })
+
+  it('returns null for non-string tokens', () => {
+    expect(parseLineupToken(['a', 'b'])).toBeNull()
+    expect(parseLineupToken(undefined)).toBeNull()
+    expect(parseLineupToken(null)).toBeNull()
+  })
+
+  it('rejects a non-canonical week id that decodes to the same bytes', () => {
+    const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+    const [id, sig] = signLineupToken(SECRET, WEEK, TEAMS).split('.')
+    // The last char carries 2 data bits and 4 spare bits, so the canonical char
+    // has an index that is a multiple of 16; index + 1 sets a spare bit only.
+    const last = id[id.length - 1]
+    expect(ALPHABET.indexOf(last) % 16).toBe(0)
+    const sibling = id.slice(0, -1) + ALPHABET[ALPHABET.indexOf(last) + 1]
+    expect(Buffer.from(sibling, 'base64url')).toEqual(Buffer.from(id, 'base64url'))
+    expect(parseLineupToken(`${sibling}.${sig}`)).toBeNull()
+  })
+
   it.each([
     '',
     'nope',
@@ -116,6 +138,7 @@ describe('buildLineupShareMetadata', () => {
     expect(meta.openGraph?.images).toEqual([
       { url: '/api/og/lineup?t=tok.sig', width: 1200, height: 630, alt: 'Week 13 lineups · The Boot Room' },
     ])
+    expect(meta.openGraph?.url).toBe('https://craft-football.com/the-boot-room?lineup=tok.sig')
     expect(meta.twitter).toEqual(expect.objectContaining({ card: 'summary_large_image' }))
   })
 
