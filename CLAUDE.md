@@ -7,7 +7,7 @@ Read it in full before writing or editing any code.
 
 ## Project overview
 
-**BootRoom** is a private, invite-only league management platform for 5-a-side to 7-a-side football leagues called *The Boot Room*. It is a dark-mode-first web app built with Next.js 14 and Supabase. Members can view match history, player statistics, and league tables. Admins can manage invites, record game results, and control which features are visible to members and the public.
+**BootRoom** is a private, invite-only league management platform for 5-a-side to 7-a-side football leagues called *The Boot Room*. It is a dark-mode-first web app built with Next.js 16 and Supabase. Members can view match history, player statistics, and league tables. Admins can manage invites, record game results, and control which features are visible to members and the public.
 
 Deployed on a single domain: `craft-football.com` — public marketing pages, public league pages, and the authenticated member app all live here. `m.craft-football.com` redirects to `craft-football.com`.
 
@@ -17,9 +17,9 @@ Deployed on a single domain: `craft-football.com` — public marketing pages, pu
 
 | Concern | Choice |
 |---|---|
-| Framework | Next.js 14 (App Router) |
+| Framework | Next.js 16 (App Router), React 19 |
 | Language | TypeScript (strict) |
-| Styling | Tailwind CSS v3 |
+| Styling | Tailwind CSS v4 (CSS-first config in `app/globals.css`, no `tailwind.config`) |
 | Components | shadcn/ui conventions + Radix UI primitives |
 | Icons | `lucide-react` |
 | Class utility | `clsx` + `tailwind-merge` via `cn()` in `lib/utils.ts` |
@@ -46,7 +46,7 @@ BootRoom/
 │   │   └── add-game/         # Create a new league
 │   ├── invite/               # Invite accept page (consumes ?token=)
 │   ├── api/                  # API routes
-│   └── globals.css           # Tailwind base import only
+│   └── globals.css           # Tailwind import, theme tokens, font utilities
 ├── components/
 │   ├── ui/                   # Base UI primitives (button, input, navbar…)
 │   ├── FeaturePanel.tsx      # Feature flag management UI (admin only)
@@ -65,9 +65,9 @@ BootRoom/
 ├── scripts/                  # Data migration and automation scripts
 ├── docs/
 │   └── FEATURE_FLAGS.md      # Feature flag development standard
-├── middleware.ts              # Auth + host-based routing
+├── proxy.ts                  # Auth + routing (Next 16's renamed middleware)
 ├── CLAUDE.md                 # This file
-└── next.config.js            # Plain .js — Next.js 14.x does not support .ts config
+└── next.config.js            # Plain .js config (see Key decisions)
 ```
 
 New components go in `components/`. New utility functions go in `lib/utils.ts`.
@@ -104,8 +104,8 @@ See **`docs/FEATURE_FLAGS.md`** for the full step-by-step guide.
 
 **All styling is done exclusively with Tailwind CSS utility classes.**
 
-- Do not create `.css` or `.module.css` files (beyond the existing `globals.css`
-  which contains only the three Tailwind base directives)
+- Do not create `.css` or `.module.css` files (beyond the existing `globals.css`,
+  which holds the Tailwind import, `@theme` tokens and the font utilities)
 - Do not use CSS-in-JS (no `style` props for layout/colour, no styled-components)
 - Do not add any third-party component libraries (no MUI, Chakra, Ant Design, etc.)
 - Conditional or merged classes must use the `cn()` helper from `lib/utils.ts`,
@@ -137,7 +137,8 @@ export type FeatureKey =
   | 'match_history'
   | 'match_entry'
   | 'player_stats'
-  | 'player_comparison';
+  | 'player_comparison'
+  | 'quarter_celebration';
 
 export interface LeagueFeature {
   feature: FeatureKey;
@@ -163,7 +164,7 @@ export interface LeagueMember {
 
 ## Auth and access model
 
-- **Middleware** (`middleware.ts`) handles host-based routing and session/profile checks
+- **Proxy** (`proxy.ts`, Next 16's name for middleware) handles routing and session/profile checks
 - All `/app/*` routes require a valid Supabase session with a `profiles` row
 - Unauthenticated → redirect to `/sign-in?redirect=...`
 - Authenticated but no profile → redirect to `/profile-required`
@@ -172,6 +173,26 @@ export interface LeagueMember {
   - `creator` and `admin` → admin visibility tier
   - `member` → member visibility tier
   - Not a member / unauthenticated → public visibility tier
+
+---
+
+## Environment variables
+
+Set in `.env.local` for local dev (which points at the production Supabase
+project) and in Vercel → Project → Settings → Environment Variables for
+deploys. `.env.example` lists them with placeholders. Never commit real values.
+
+| Variable | Scope | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Public | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public | Supabase client key (either name works) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server only | Service-role client (`lib/supabase/service`) and data scripts |
+| `RESEND_API_KEY` | Server only | Transactional email |
+| `APP_ACCESS_KEY` / `NEXT_PUBLIC_ACCESS_KEY_MODE` | Mixed | Optional production lock behind a secret URL key |
+| `SHARE_SIGNING_SECRET` | Server only | HMAC key for signed line-up share links and their preview images (see `docs/superpowers/specs/2026-10-05-lineup-share-preview-image-design.md`). Missing → Share falls back to the plain league link and previews render the generic card. Rotating it invalidates every previously shared preview. |
+
+Server-only variables must never be prefixed `NEXT_PUBLIC_` or read in client
+components.
 
 ---
 
@@ -267,8 +288,9 @@ colons, full stops, or the `·` dot separator.
 ## Key decisions (do not relitigate)
 
 - **Supabase** for auth and data. No alternative auth providers. No ORMs.
-- **`next.config.js` not `.ts`** — Next.js 14.2.x does not support a TypeScript
-  config file; using `.js` with a JSDoc `@type` annotation.
+- **`next.config.js` not `.ts`** — chosen when the app was on Next.js 14.2.x,
+  which did not support a TypeScript config file. Next 16 does, but keep the
+  `.js` file with its JSDoc `@type` annotation; there is no need to convert it.
 - **Feature flags** — all new features start at `admin_only`. Promote via the UI, not code.
 - **No player profile pages** — player detail views are not in scope yet.
 - **Max-width `max-w-2xl`** — do not widen the content column.
