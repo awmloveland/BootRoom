@@ -12,7 +12,7 @@ const SIG_BYTES = 12
 const ENCODED_ID_RE = /^[A-Za-z0-9_-]{22}$/
 const ENCODED_SIG_RE = /^[A-Za-z0-9_-]{16}$/
 const UUID_HEX_RE = /^[0-9a-f]{32}$/
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export interface LineupTeams {
   teamA: string[]

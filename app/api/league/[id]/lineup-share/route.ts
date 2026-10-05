@@ -3,7 +3,8 @@ import { getAuthAndRole, getFeatures, getGame } from '@/lib/fetchers'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { canSeeNextLineup, isFeatureEnabled } from '@/lib/features'
-import { getShareSecret, lineupShareUrl, signLineupToken } from '@/lib/lineupShare'
+import { UUID_RE, getShareSecret, lineupShareUrl, signLineupToken } from '@/lib/lineupShare'
+import { isPastDeadline } from '@/lib/utils'
 
 function noLink() {
   return NextResponse.json({ url: null })
@@ -22,7 +23,7 @@ export async function POST(
   const { id } = await params
   const body = (await request.json().catch(() => null)) as { weekId?: unknown } | null
   const weekId = typeof body?.weekId === 'string' ? body.weekId : ''
-  if (!weekId) return NextResponse.json({ error: 'weekId is required' }, { status: 400 })
+  if (!UUID_RE.test(weekId)) return NextResponse.json({ error: 'weekId is required' }, { status: 400 })
 
   const secret = getShareSecret()
   if (!secret) return noLink()
@@ -41,13 +42,19 @@ export async function POST(
 
   const { data: week } = await createServiceClient()
     .from('weeks')
-    .select('id, status, team_a, team_b')
+    .select('id, status, date, team_a, team_b')
     .eq('id', weekId)
     .eq('game_id', id)
     .maybeSingle()
   const teamA: string[] = week?.team_a ?? []
   const teamB: string[] = week?.team_b ?? []
   if (!week || week.status !== 'scheduled' || teamA.length === 0 || teamB.length === 0) return noLink()
+
+  // Public visitors only see the next-lineup card before the week's deadline;
+  // past-deadline weeks appear only in match history.
+  if (tier === 'public' && isPastDeadline(week.date) && !isFeatureEnabled(features, 'match_history', tier)) {
+    return noLink()
+  }
 
   const token = signLineupToken(secret, week.id, { teamA, teamB })
   return NextResponse.json({ url: lineupShareUrl(game.slug, token) })
