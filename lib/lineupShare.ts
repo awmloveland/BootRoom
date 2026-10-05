@@ -81,7 +81,7 @@ export function buildLineupShareMetadata(lineup: SharedLineup, token: string): M
     .join(' · ')
   const image = { url: `/api/og/lineup?t=${token}`, width: 1200, height: 630, alt: title }
   return {
-    openGraph: { title, description, url: lineupShareUrl(lineup.slug, token), images: [image], siteName: 'Craft Football', type: 'website' },
+    openGraph: { title, description, images: [image], siteName: 'Craft Football', type: 'website' },
     twitter: { card: 'summary_large_image', title, description, images: [image.url] },
   }
 }

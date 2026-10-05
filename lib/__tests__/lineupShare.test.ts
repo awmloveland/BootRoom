@@ -138,7 +138,8 @@ describe('buildLineupShareMetadata', () => {
     expect(meta.openGraph?.images).toEqual([
       { url: '/api/og/lineup?t=tok.sig', width: 1200, height: 630, alt: 'Week 13 lineups · The Boot Room' },
     ])
-    expect(meta.openGraph?.url).toBe('https://craft-football.com/the-boot-room?lineup=tok.sig')
+    // The root URL redirects to /results?lineup=..., so og:url would loop scrapers.
+    expect(meta.openGraph).not.toHaveProperty('url')
     expect(meta.twitter).toEqual(expect.objectContaining({ card: 'summary_large_image' }))
   })
 

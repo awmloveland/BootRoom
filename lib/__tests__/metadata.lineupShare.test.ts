@@ -43,11 +43,13 @@ describe('leaguePageMetadata with a lineup token', () => {
   })
 
   it('adds the preview tags for a valid token', async () => {
+    const plain = await leaguePageMetadata('the-boot-room', 'results')
     ;(loadSharedLineup as jest.Mock).mockResolvedValue(LINEUP)
     const meta = await leaguePageMetadata('the-boot-room', 'results', 'tok.sig')
     expect(loadSharedLineup).toHaveBeenCalledWith('tok.sig')
-    expect(meta.title).toBeDefined()
+    expect(meta.title).toEqual(plain.title)
     expect(meta.openGraph?.title).toBe('Week 13 lineups · The Boot Room')
+    expect(meta.openGraph?.description).toBe('Tue 06 Oct · 19:00')
     expect(meta.openGraph?.images).toEqual([expect.objectContaining({ url: '/api/og/lineup?t=tok.sig' })])
     expect(meta.twitter).toEqual(expect.objectContaining({ card: 'summary_large_image' }))
   })
