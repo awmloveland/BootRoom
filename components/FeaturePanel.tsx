@@ -1,7 +1,7 @@
 'use client'
 
 import { PlayerStatsCard } from '@/components/PlayerStatsCard'
-import { QuarterCelebrationCard } from '@/components/QuarterCelebrationCard'
+import { FeatureToggleCard } from '@/components/FeatureToggleCard'
 import type { FeatureKey, LeagueFeature } from '@/lib/types'
 
 interface FeaturePanelProps {
@@ -36,9 +36,18 @@ export function FeaturePanel({ leagueId, features, onChanged }: FeaturePanelProp
         feature={getFeature(features, 'player_stats')}
         onChanged={onChanged}
       />
-      <QuarterCelebrationCard
+      <FeatureToggleCard
         leagueId={leagueId}
         feature={getFeature(features, 'quarter_celebration')}
+        title="Quarter Celebration"
+        description="Show the champion + awards card on the Results tab when a quarter wraps. Admins always see it; choose who else does."
+        onChanged={onChanged}
+      />
+      <FeatureToggleCard
+        leagueId={leagueId}
+        feature={getFeature(features, 'lineup_share_image')}
+        title="Lineup Share Image"
+        description="Add a picture of both teams to shared lineup links in WhatsApp, iMessage, Slack and Discord. Admins always get it; choose who else does."
         onChanged={onChanged}
       />
     </div>
