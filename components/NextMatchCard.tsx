@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, wprScore, leagueWprPercentiles, parseWeekDate, hintToWpr } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, fetchLineupShareUrl, wprScore, leagueWprPercentiles, parseWeekDate, hintToWpr } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality, Strength } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
@@ -183,6 +183,27 @@ export function NextMatchCard({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+
+  // Signed share link for the saved lineup, fetched before the tap: iOS
+  // Safari drops navigator.share if it awaits a request after the click.
+  // Keyed on the week and teams so an edit fetches a fresh link and a stale
+  // one is never used.
+  const [shareLink, setShareLink] = useState<{ key: string; url: string | null } | null>(null)
+  const shareWeekId = scheduledWeek?.id ?? null
+  const shareKey =
+    !isOverview && cardState === 'lineup' && scheduledWeek &&
+    scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0
+      ? JSON.stringify([scheduledWeek.id, scheduledWeek.teamA, scheduledWeek.teamB])
+      : null
+  useEffect(() => {
+    if (!shareKey || !shareWeekId) return
+    let cancelled = false
+    fetchLineupShareUrl(gameId, shareWeekId).then((url) => {
+      if (!cancelled) setShareLink({ key: shareKey, url })
+    })
+    return () => { cancelled = true }
+  }, [gameId, shareKey, shareWeekId])
+  const signedShareUrl = shareLink?.key === shareKey ? shareLink.url : null
 
   // Players sorted A–Z for selection list
   const sortedPlayers = useMemo(
@@ -468,6 +489,7 @@ export function NextMatchCard({
       teamB: scheduledWeek.teamB,
       teamARating: scheduledWeek.team_a_rating ?? 0,
       teamBRating: scheduledWeek.team_b_rating ?? 0,
+      shareUrl: signedShareUrl ?? undefined,
     })
     if (navigator.share) {
       try {
