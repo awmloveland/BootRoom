@@ -101,6 +101,23 @@ export interface FeatureConfig {
   show_mentality?: boolean; // show ATT/BAL/DEF/GK badge on player cards (default true)
 }
 
+/** All-time winning margin stats. Built by computeMargins in lib/sidebar-stats.ts. */
+export interface MarginStats {
+  /** Mean margin of wins with a recorded margin. Draws excluded. */
+  avgWinMargin: number | null;
+  biggestWin: number | null;
+  /** Eight counts: draws, then margins 1, 2, 3, 4, 5, 6, and 7+. */
+  buckets: number[];
+  /** Most common win margin (1–7, 7 meaning 7+). Ties go to the smaller margin. */
+  modeMargin: number | null;
+  /** (wins by 1 + draws) / counted, as a rounded whole percentage. */
+  closeGamePct: number | null;
+  /** Draws plus wins with a recorded margin. */
+  counted: number;
+  /** Wins with a recorded margin. Compared against MIN_MARGIN_WINS. */
+  winCount: number;
+}
+
 export interface LeagueFeature {
   feature: FeatureKey;
   available: boolean;             // whether this feature is globally available (from feature_experiments)

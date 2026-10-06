@@ -1,4 +1,4 @@
-import { computeInForm, computeQuarterlyTable, computeTeamAB, computeAllQuarters } from '@/lib/sidebar-stats'
+import { computeInForm, computeQuarterlyTable, computeTeamAB, computeAllQuarters, computeMargins } from '@/lib/sidebar-stats'
 import type { Player, Week } from '@/lib/types'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -1025,5 +1025,106 @@ describe('YourStatsWidget player lookup', () => {
   it('formats win rate from winRate field', () => {
     const alice = players.find(p => p.name === 'Alice')!
     expect(Math.round(alice.winRate)).toBe(60)
+  })
+})
+
+// ─── computeMargins ───────────────────────────────────────────────────────────
+
+describe('computeMargins', () => {
+  const win = (week: number, margin: number | null, winner: 'teamA' | 'teamB' = 'teamA') =>
+    makeWeek({ week, winner, goal_difference: margin })
+  const draw = (week: number, margin: number | null = 0) =>
+    makeWeek({ week, winner: 'draw', goal_difference: margin })
+
+  it('returns zeros and nulls for no weeks', () => {
+    expect(computeMargins([])).toEqual({
+      avgWinMargin: null,
+      biggestWin: null,
+      buckets: [0, 0, 0, 0, 0, 0, 0, 0],
+      modeMargin: null,
+      closeGamePct: null,
+      counted: 0,
+      winCount: 0,
+    })
+  })
+
+  it('ignores weeks that were not played', () => {
+    const r = computeMargins([
+      makeWeek({ week: 1, status: 'cancelled', winner: null, goal_difference: null }),
+      makeWeek({ week: 2, status: 'dnf', winner: null, goal_difference: null }),
+      makeWeek({ week: 3, status: 'scheduled', winner: null }),
+    ])
+    expect(r.counted).toBe(0)
+  })
+
+  it('counts a draw as margin 0 even when no margin was saved', () => {
+    const r = computeMargins([draw(1, null), draw(2, 0)])
+    expect(r.buckets[0]).toBe(2)
+    expect(r.counted).toBe(2)
+    expect(r.winCount).toBe(0)
+  })
+
+  it('skips wins with no recorded margin', () => {
+    const r = computeMargins([win(1, null), win(2, 3)])
+    expect(r.winCount).toBe(1)
+    expect(r.counted).toBe(1)
+    expect(r.avgWinMargin).toBe(3)
+  })
+
+  it('puts margins of 7 and above in the 7+ bucket', () => {
+    const r = computeMargins([win(1, 7), win(2, 9, 'teamB'), win(3, 12)])
+    expect(r.buckets).toEqual([0, 0, 0, 0, 0, 0, 0, 3])
+    expect(r.biggestWin).toBe(12)
+    expect(r.modeMargin).toBe(7)
+  })
+
+  it('breaks a tie for most common margin towards the smaller margin', () => {
+    const r = computeMargins([win(1, 3), win(2, 3), win(3, 2), win(4, 2), win(5, 5)])
+    expect(r.modeMargin).toBe(2)
+  })
+
+  it('never makes draws the most common margin', () => {
+    const r = computeMargins([draw(1), draw(2), draw(3), win(4, 4)])
+    expect(r.modeMargin).toBe(4)
+  })
+
+  it('averages wins only, and counts draws as close games', () => {
+    // wins 1, 1, 4 → avg 2; close = (2 one-goal + 1 draw) / 4 = 75%
+    const r = computeMargins([win(1, 1), win(2, 1, 'teamB'), win(3, 4), draw(4)])
+    expect(r.avgWinMargin).toBe(2)
+    expect(r.closeGamePct).toBe(75)
+  })
+
+  it('rounds close games to a whole percentage', () => {
+    // 1 one-goal win of 3 counted → 33.33…%
+    const r = computeMargins([win(1, 1), win(2, 2), win(3, 3)])
+    expect(r.closeGamePct).toBe(33)
+  })
+
+  it('handles a league of only draws', () => {
+    const r = computeMargins([draw(1), draw(2)])
+    expect(r.avgWinMargin).toBeNull()
+    expect(r.biggestWin).toBeNull()
+    expect(r.modeMargin).toBeNull()
+    expect(r.closeGamePct).toBe(100)
+  })
+
+  it('matches the craft-football reference numbers', () => {
+    // buckets [7, 11, 10, 10, 4, 3, 5, 1] from the spec
+    const margins = [
+      ...Array(11).fill(1), ...Array(10).fill(2), ...Array(10).fill(3),
+      ...Array(4).fill(4), ...Array(3).fill(5), ...Array(5).fill(6), 7,
+    ]
+    const weeks = [
+      ...margins.map((m, i) => win(i + 1, m)),
+      ...Array.from({ length: 7 }, (_, i) => draw(100 + i, i < 4 ? 0 : null)),
+    ]
+    const r = computeMargins(weeks)
+    expect(r.buckets).toEqual([7, 11, 10, 10, 4, 3, 5, 1])
+    expect(r.avgWinMargin!.toFixed(1)).toBe('2.9')
+    expect(r.biggestWin).toBe(7)
+    expect(r.modeMargin).toBe(1)
+    expect(r.closeGamePct).toBe(35)
+    expect(r.winCount).toBe(44)
   })
 })
