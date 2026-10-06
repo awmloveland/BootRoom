@@ -3,7 +3,7 @@
 
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { cn, buildResultShareText, buildDnfShareText, buildResultHeadline, resolveTeamRatingForResult } from '@/lib/utils'
+import { cn, buildResultShareText, buildDnfShareText, buildResultHeadline, fetchShareLink, resolveTeamRatingForResult, withShareLink } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality, Week, Strength } from '@/lib/types'
 import { findNewlyCompletedQuarter } from '@/lib/sidebar-stats'
@@ -95,6 +95,11 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
     | { dnf: true; shareText: string }
   const [shareData, setShareData] = useState<ShareData | null>(null)
   const [shareCopied, setShareCopied] = useState(false)
+  // Signed links fetched in the background once the result is saved. Safari
+  // drops navigator.share if it awaits a request after the tap, so they must
+  // be ready before Share is pressed; until then the plain link is shared.
+  const [resultShareUrl, setResultShareUrl] = useState<string | null>(null)
+  const [quarterShareUrl, setQuarterShareUrl] = useState<string | null>(null)
   const [celebrateQuarter, setCelebrateQuarter] = useState<QuarterSummary | null>(null)
 
   const [guestStates, setGuestStates] = useState<GuestReviewState[]>(
@@ -156,7 +161,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
 
   async function handleShareClick() {
     if (!shareData) return
-    const text = shareData.shareText
+    const text = shareData.dnf ? shareData.shareText : withShareLink(shareData.shareText, resultShareUrl)
     if (typeof navigator !== 'undefined' && navigator.share && window.innerWidth < 768) {
       try {
         await navigator.share({ text })
@@ -180,6 +185,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   function routeAfterSave(weeksAfter: Week[]) {
     const clinched = findNewlyCompletedQuarter(weeks, weeksAfter, new Date())
     if (clinched) {
+      void fetchShareLink(gameId, { kind: 'quarter', year: clinched.year, q: clinched.q }).then(setQuarterShareUrl)
       setCelebrateQuarter(clinched)
       setStep('celebrate')
     } else {
@@ -379,6 +385,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         }
       }
 
+      void fetchShareLink(gameId, { kind: 'result', weekId: scheduledWeek.id }).then(setResultShareUrl)
       setShareData({ dnf: false, winner, goalDifference, shareText, highlightsText })
       const weeksAfter = weeks.some(w => w.id === scheduledWeek.id)
         ? weeks.map(w => (w.id === scheduledWeek.id ? syntheticWeek : w))
@@ -768,6 +775,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                   leagueName={leagueName}
                   leagueSlug={leagueSlug}
                   variant="modal"
+                  shareUrl={quarterShareUrl}
                 />
               </div>
               <div className="px-4 pb-[18px]">
