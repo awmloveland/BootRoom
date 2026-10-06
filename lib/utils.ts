@@ -1260,25 +1260,99 @@ export function lineupImageFontSize(rowCount: number, longestNameLength: number)
   )
 }
 
+async function postForShareUrl(path: string, body: unknown): Promise<string | null> {
+  try {
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) return null
+    const json = (await res.json()) as { url?: unknown }
+    return typeof json.url === 'string' ? json.url : null
+  } catch {
+    return null
+  }
+}
+
 /**
  * Asks the server for a signed share link for a scheduled lineup. Null when
  * the server declines (feature off, not visible, not configured) or the
  * request fails; callers fall back to the plain league link.
  */
-export async function fetchLineupShareUrl(leagueId: string, weekId: string): Promise<string | null> {
-  try {
-    const res = await fetch(`/api/league/${leagueId}/lineup-share`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ weekId }),
-    })
-    if (!res.ok) return null
-    const body = (await res.json()) as { url?: unknown }
-    return typeof body.url === 'string' ? body.url : null
-  } catch {
-    return null
-  }
+export function fetchLineupShareUrl(leagueId: string, weekId: string): Promise<string | null> {
+  return postForShareUrl(`/api/league/${leagueId}/lineup-share`, { weekId })
+}
+
+export type ShareLinkRequest =
+  | { kind: 'result'; weekId: string }
+  | { kind: 'quarter'; year: number; q: number }
+
+/** Signed result or quarter link for something just saved in the browser. Null when declined or failed. */
+export function fetchShareLink(leagueId: string, request: ShareLinkRequest): Promise<string | null> {
+  return postForShareUrl(`/api/league/${leagueId}/share-link`, request)
+}
+
+/**
+ * Swaps the final "🔗 <url>" line of a share message for a signed link. Every
+ * share text builder ends with that line. Unchanged without a URL.
+ */
+export function withShareLink(text: string, url: string | null | undefined): string {
+  if (!url) return text
+  const lines = text.split('\n')
+  const last = lines.length - 1
+  if (!lines[last].startsWith('🔗 ')) return text
+  lines[last] = `🔗 ${url}`
+  return lines.join('\n')
+}
+
+/** The page being viewed, carrying a signed league token instead of any other share token. */
+export function leagueShareHref(href: string, token: string): string {
+  const url = new URL(href)
+  for (const key of ['lineup', 'result', 'quarter', 'league', 'open_join']) url.searchParams.delete(key)
+  url.searchParams.set('league', token)
+  url.hash = ''
+  return url.toString()
+}
+
+/**
+ * Largest font size (px) at which `length` characters fit `width`, between
+ * `min` and `max`. `charWidth` approximates Space Grotesk Bold's average glyph
+ * width in em. Text that still doesn't fit is cut off by the image.
+ */
+export function fitFontSize(length: number, width: number, max: number, min: number, charWidth = 0.6): number {
+  const fit = Math.floor(width / (Math.max(length, 1) * charWidth))
+  return Math.max(min, Math.min(max, fit))
+}
+
+/** Key for a quarter in share URL maps: '2026-3'. Matches the Seasons card keys. */
+export function quarterShareKey(quarter: { year: number; q: number }): string {
+  return `${quarter.year}-${quarter.q}`
+}
+
+/** '07 Jul – 29 Sep · 12 games': the quarter's dates without the year. */
+export function quarterRangeLabel(dateRange: { from: string; to: string }, gamesPlayed: number): string {
+  const stripYear = (d: string) => d.split(' ').slice(0, 2).join(' ')
+  const games = gamesPlayed === 1 ? '1 game' : `${gamesPlayed} games`
+  return `${stripYear(dateRange.from)} – ${stripYear(dateRange.to)} · ${games}`
+}
+
+/**
+ * The league's next game, as the Overview next game card picks it: the
+ * earliest scheduled week before its deadline, otherwise the next date from
+ * the league's game day. Null when neither exists.
+ */
+export function nextLeagueGame(
+  weeks: Week[],
+  league: { day: string | null; kickoff_time: string | null; location: string | null }
+): { date: string; kickoffTime: string | null; location: string | null } | null {
+  const scheduled = weeks
+    .filter((w) => w.status === 'scheduled' && !isPastDeadline(w.date))
+    .sort((a, b) => parseWeekDate(a.date).getTime() - parseWeekDate(b.date).getTime())[0]
+  const dayIndex = dayNameToIndex(league.day)
+  const date = scheduled?.date ?? (dayIndex !== null ? getNextMatchDate(weeks, dayIndex) : null)
+  return date ? { date, kickoffTime: league.kickoff_time, location: league.location } : null
 }
 
 /**
@@ -1293,14 +1367,10 @@ export function buildQuarterShareText(params: {
   const { leagueName, leagueSlug, quarter } = params
   const { q, year, seasonName, dateRange, entries = [], awards = [], gamesPlayed = 0 } = quarter
 
-  // dateRange strings are 'DD MMM YYYY'; the year already appears in the headline
-  const stripYear = (d: string) => d.split(' ').slice(0, 2).join(' ')
-  const gamesLabel = gamesPlayed === 1 ? '1 game' : `${gamesPlayed} games`
-
   const parts: string[] = [
     `🏁 That's a wrap on Q${q} ${year}!`,
     `⚽ ${leagueName} — ${seasonName} quarter`,
-    `📅 ${stripYear(dateRange.from)} – ${stripYear(dateRange.to)} · ${gamesLabel}`,
+    `📅 ${quarterRangeLabel(dateRange, gamesPlayed)}`,
   ]
 
   const champion = entries[0]?.name
