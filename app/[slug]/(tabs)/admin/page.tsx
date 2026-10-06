@@ -6,8 +6,9 @@ import { notFound } from 'next/navigation'
 import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { getGameBySlug, getAuthAndRole, getWeeks } from '@/lib/fetchers'
-import { parseFeeRange } from '@/lib/fees'
+import { isoDate, parseFeeRange } from '@/lib/fees'
 import { getFeeRows } from '@/lib/feesServer'
+import { AdminMoneyView } from '@/components/admin/AdminMoneyView'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -36,7 +37,18 @@ export default async function AdminPage({ params, searchParams }: Props) {
   if (resolveVisibilityTier(userRole) !== 'admin') notFound()
 
   const { defaultFee, fees, payments } = await getFeeRows(leagueId)
-  const range = parseFeeRange(query)
 
-  return null
+  return (
+    <AdminMoneyView
+      leagueId={leagueId}
+      leagueName={game.name}
+      // Only played and cancelled weeks carry fees or show in Games.
+      weeks={weeks.filter((w) => w.status === 'played' || w.status === 'cancelled')}
+      defaultFee={defaultFee}
+      fees={fees}
+      payments={payments}
+      initialRange={parseFeeRange({})}
+      today={isoDate(new Date())}
+    />
+  )
 }

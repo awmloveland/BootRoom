@@ -79,13 +79,15 @@ export function parseFeeRange(params: { range?: string | null; from?: string | n
   return { preset: preset?.preset ?? DEFAULT_FEE_PRESET }
 }
 
-function toIso(date: Date): string {
+/** Local date → 'YYYY-MM-DD', the format the range URL and date inputs use. */
+export function isoDate(date: Date): string {
   const m = String(date.getMonth() + 1).padStart(2, '0')
   const d = String(date.getDate()).padStart(2, '0')
   return `${date.getFullYear()}-${m}-${d}`
 }
 
-function fromIso(iso: string): Date {
+/** 'YYYY-MM-DD' → local midnight. */
+export function fromIsoDate(iso: string): Date {
   const [y, m, d] = iso.split('-').map(Number)
   return new Date(y, m - 1, d)
 }
@@ -112,17 +114,17 @@ export function resolveFeeRange(input: FeeRangeInput, today: Date = new Date()):
 } {
   const end = startOfDay(today)
   if (input.preset === 'custom') {
-    let lo = input.from ? fromIso(input.from) : addDays(end, -30)
-    let hi = input.to ? fromIso(input.to) : end
+    let lo = input.from ? fromIsoDate(input.from) : addDays(end, -30)
+    let hi = input.to ? fromIsoDate(input.to) : end
     if (lo > hi) [lo, hi] = [hi, lo]
-    return { range: { preset: 'custom', from: toIso(lo), to: toIso(hi), label: CUSTOM_RANGE_LABEL }, lo, hi }
+    return { range: { preset: 'custom', from: isoDate(lo), to: isoDate(hi), label: CUSTOM_RANGE_LABEL }, lo, hi }
   }
   const preset = FEE_PRESETS.find((p) => p.preset === input.preset) ?? FEE_PRESETS[0]
   if (preset.days === null) {
     return { range: { preset: preset.preset, from: '', to: '', label: preset.label }, lo: null, hi: null }
   }
   const lo = addDays(end, -preset.days)
-  return { range: { preset: preset.preset, from: toIso(lo), to: toIso(end), label: preset.label }, lo, hi: end }
+  return { range: { preset: preset.preset, from: isoDate(lo), to: isoDate(end), label: preset.label }, lo, hi: end }
 }
 
 /** Played and cancelled weeks inside the bounds, newest first. Only these carry fees. */
@@ -275,11 +277,15 @@ export function computeFees(
   }
 }
 
-/** Each fixed preset's span (without the year) and played-game count, for the range menu. */
-export function presetSummaries(
-  weeks: Week[],
-  today: Date = new Date(),
-): { preset: Exclude<FeePreset, 'custom'>; label: string; span: string; games: number }[] {
+export interface PresetSummary {
+  preset: Exclude<FeePreset, 'custom'>
+  label: string
+  span: string    // without the year, e.g. '6 Sep – 1 Oct'
+  games: number   // played games
+}
+
+/** Each fixed preset's span and played-game count, for the range menu. */
+export function presetSummaries(weeks: Week[], today: Date = new Date()): PresetSummary[] {
   return FEE_PRESETS.map(({ preset, label }) => {
     const { lo, hi } = resolveFeeRange({ preset }, today)
     const inRange = weeksInRange(weeks, lo, hi)
