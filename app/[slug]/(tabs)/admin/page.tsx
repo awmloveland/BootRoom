@@ -8,6 +8,7 @@ import { resolveVisibilityTier } from '@/lib/roles'
 import { getGameBySlug, getAuthAndRole, getWeeks } from '@/lib/fetchers'
 import { isChargeable, isoDate, parseFeeRange } from '@/lib/fees'
 import { getFeeRows } from '@/lib/feesServer'
+import { HonoursLoginPrompt } from '@/components/HonoursLoginPrompt'
 import { AdminMoneyView } from '@/components/admin/AdminMoneyView'
 
 interface Props {
@@ -20,8 +21,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * Admin tab: pitch fees, who has paid and who owes. Admins only; for anyone
- * else the tab does not exist, so the route 404s rather than prompting a login.
+ * Admin tab: pitch fees, who has paid and who owes. Admins only. Signed-out
+ * visitors get a sign-in prompt (they may be an admin on a shared link);
+ * signed-in non-admins get a 404, as the tab does not exist for them.
  */
 export default async function AdminPage({ params, searchParams }: Props) {
   const { slug } = await params
@@ -29,11 +31,12 @@ export default async function AdminPage({ params, searchParams }: Props) {
   if (!game) notFound()
   const leagueId = game.id
 
-  const [{ userRole }, weeks, query] = await Promise.all([
+  const [{ userRole, isAuthenticated }, weeks, query] = await Promise.all([
     getAuthAndRole(leagueId),
     getWeeks(leagueId),
     searchParams,
   ])
+  if (!isAuthenticated) return <HonoursLoginPrompt leagueSlug={slug} leagueName={game.name} tab="admin" />
   if (resolveVisibilityTier(userRole) !== 'admin') notFound()
 
   const { defaultFee, fees, payments } = await getFeeRows(leagueId)
