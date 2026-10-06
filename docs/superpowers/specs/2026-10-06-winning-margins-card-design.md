@@ -61,7 +61,7 @@ buckets `[7, 11, 10, 10, 4, 3, 5, 1]`, mode 1, close games 35%.
 
 ## Card layout
 
-Uses the existing `WidgetShell`, `AllTimeChip` and `EmptyState` from
+Uses the existing `WidgetShell` and `AllTimeChip` from
 `components/StatsSidebar.tsx`, with the `sidebar` and `page` sizes.
 
 - **Header:** title "Winning Margins", `AllTimeChip` on the right.
@@ -84,12 +84,13 @@ Uses the existing `WidgetShell`, `AllTimeChip` and `EmptyState` from
   `#f4f9ff`.
 - **Meta label style:** `font-plex text-[8.5px] uppercase tracking-[.14em]
   text-[#6f88a8]`, written in normal case in JSX.
-- **Empty:** `counted === 0` renders `EmptyState` "No results yet".
+- **Empty:** there is no "No results yet" state. With no counted games the
+  win count is 0, so only admins can see the card, and they get the hint.
 - **Admin hint:** when the card is shown below the threshold (admins only),
   a meta line sits under the footer in `#4f688a`:
   "Visible to non-admins after 10 wins · **4** so far", with the count bold in
-  `#8ba4c4`. It also replaces `EmptyState` when `counted === 0`, reading
-  "0 so far".
+  `#8ba4c4`. When `counted === 0` the hint is the only body content,
+  reading "0 so far".
 
 Bar heights use an inline `style={{ height }}`, the same data-driven exception
 Head to Head already uses for its split bar widths. Everything else is
@@ -114,9 +115,11 @@ Follows `docs/FEATURE_FLAGS.md`.
 1. Add `'margin_stats'` to `FeatureKey` in `lib/types.ts`.
 2. Add a `DEFAULT_FEATURES` entry in `lib/defaults.ts`:
    `enabled: false, public_enabled: false`.
-3. Add a `FeaturePanel` row, label "Winning margins", with a short
-   description: "Average margin, biggest win and close games, in the sidebar
-   and on Overview."
+3. Add a `FeaturePanel` row (`FeatureToggleCard`), title "Winning Margins",
+   description: "Show the average winning margin, biggest win and close games
+   under Head to Head, once the league has 10 wins. Admins always see it;
+   choose who else does." Also add the label to `FEATURE_LABELS` in
+   `app/experiments/page.tsx` (a `Record<FeatureKey, string>`).
 4. Migration `supabase/migrations/20261006000002_seed_margin_stats.sql`,
    matching `20261005000001_seed_lineup_share_image.sql`: insert into
    `feature_experiments` and seed `league_features` for every game.
@@ -151,7 +154,7 @@ hand in the Supabase SQL Editor before admins see the card.
 
 `__tests__/stats-sidebar.test.tsx`:
 - `MarginsWidget` renders the average, biggest win, axis labels and footer.
-- empty state renders "No results yet".
+- with no counted games, an admin sees only the hint.
 - below 10 wins: renders nothing for a non-admin; renders with the hint
   "Visible to non-admins after 10 wins · N so far" for an admin.
 - at exactly 10 wins: renders for a non-admin, with no hint for an admin.
