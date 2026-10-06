@@ -4,6 +4,7 @@ import { resolveVisibilityTier } from '@/lib/roles'
 import { isLeagueHidden } from '@/lib/features'
 import { dayNameToIndex, getSeasonPlayedWeekCount, getHeaderSeason } from '@/lib/utils'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
+import { leagueShareTokenFor } from '@/lib/shareLinksServer'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { LeagueHeaderSkeleton, LeagueSidebarSkeleton } from '@/components/LeagueTabSkeleton'
 import { StatsSidebar } from '@/components/StatsSidebar'
@@ -71,6 +72,9 @@ async function LeagueHeader({ slug }: { slug: string }) {
   const tier = resolveVisibilityTier(userRole)
   if (isLeagueHidden(features, tier)) return null
 
+  // Only members and admins see Share, so only they get a signed token.
+  const shareToken = tier === 'public' ? null : leagueShareTokenFor(leagueId)
+
   const playedCount = getSeasonPlayedWeekCount(weeks)
   const details: LeagueDetails = {
     location: game.location ?? null,
@@ -93,6 +97,7 @@ async function LeagueHeader({ slug }: { slug: string }) {
       details={details}
       joinStatus={joinStatus}
       pendingRequestCount={pendingRequestCount}
+      shareToken={shareToken}
     />
   )
 }

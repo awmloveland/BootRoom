@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Trophy } from 'lucide-react'
-import { cn, buildQuarterShareText, shareOrCopy } from '@/lib/utils'
+import { cn, buildQuarterShareText, shareOrCopy, withShareLink } from '@/lib/utils'
 import type { QuarterSummary } from '@/lib/sidebar-stats'
 
 interface QuarterCelebrationProps {
@@ -11,16 +11,18 @@ interface QuarterCelebrationProps {
   leagueName: string
   leagueSlug: string
   variant: 'modal' | 'card'
+  /** Signed link to this quarter; shares the plain Seasons link when absent. */
+  shareUrl?: string | null
 }
 
-export function QuarterCelebration({ quarter, leagueName, leagueSlug, variant }: QuarterCelebrationProps) {
+export function QuarterCelebration({ quarter, leagueName, leagueSlug, variant, shareUrl }: QuarterCelebrationProps) {
   const [copied, setCopied] = useState(false)
 
   const champion = quarter.entries?.[0]
   const medals = (quarter.awards ?? []).filter(a => a.key !== 'champion')
 
   async function handleShare() {
-    const text = buildQuarterShareText({ leagueName, leagueSlug, quarter })
+    const text = withShareLink(buildQuarterShareText({ leagueName, leagueSlug, quarter }), shareUrl)
     const result = await shareOrCopy(text)
     if (result === 'copied') {
       setCopied(true)

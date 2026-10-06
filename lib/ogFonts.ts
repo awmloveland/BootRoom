@@ -18,8 +18,8 @@ let loaded: Promise<OgFont[]> | null = null
 
 /**
  * The TTFs in assets/fonts, read once per server instance. next/og can't use
- * the WOFF2 files next/font serves. next.config.js traces them into the
- * /api/og/lineup bundle.
+ * the WOFF2 files next/font serves. next.config.js traces them into each
+ * /api/og/* bundle.
  */
 export function loadOgFonts(): Promise<OgFont[]> {
   loaded ??= Promise.all(

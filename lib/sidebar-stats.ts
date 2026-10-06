@@ -566,7 +566,12 @@ export function findNewlyCompletedQuarter(
  * the next match and slides down the page as new results come in.
  */
 export function getCelebratedQuarters(weeks: Week[], now: Date = new Date()): QuarterSummary[] {
-  return computeAllQuarters(weeks, now)
+  return celebratedFrom(computeAllQuarters(weeks, now))
+}
+
+/** Completed quarters with a champion, newest first. */
+export function celebratedFrom(years: HonoursYear[]): QuarterSummary[] {
+  return years
     .flatMap(y => y.quarters)
     .filter(s => s.status === 'completed' && Boolean(s.champion))
     .sort((a, b) => b.year - a.year || b.q - a.q)
@@ -577,6 +582,8 @@ export interface ResultsCelebration {
   quarters: QuarterSummary[]
   leagueName: string
   leagueSlug: string
+  /** Signed share links keyed by quarterShareKey; missing keys share the plain link. */
+  shareUrls?: Record<string, string>
 }
 
 /**

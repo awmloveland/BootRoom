@@ -49,3 +49,17 @@ export function canSeeNextLineup(features: LeagueFeature[], tier: VisibilityTier
     isFeatureEnabled(features, 'match_history', tier)
   )
 }
+
+/** Whether a viewer at this tier can see played results (match history). */
+export function canSeeResults(features: LeagueFeature[], tier: VisibilityTier): boolean {
+  return tier === 'admin' || isFeatureEnabled(features, 'match_history', tier)
+}
+
+/**
+ * Whether a viewer at this tier can see a completed quarter's champion:
+ * members and admins on Seasons, the public on the Results champion cards.
+ */
+export function canSeeQuarterChampion(features: LeagueFeature[], tier: VisibilityTier): boolean {
+  if (tier !== 'public') return true
+  return isFeatureEnabled(features, 'match_history', tier) && isFeatureEnabled(features, 'quarter_celebration', tier)
+}

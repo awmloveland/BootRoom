@@ -5,8 +5,9 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { isFeatureEnabled, isLeagueHidden } from '@/lib/features'
-import { dayNameToIndex, isPastDeadline, parseWeekDate } from '@/lib/utils'
+import { canSeeQuarterChampion, canSeeResults, isFeatureEnabled, isLeagueHidden } from '@/lib/features'
+import { dayNameToIndex, getLatestResultWeek, isPastDeadline, parseWeekDate } from '@/lib/utils'
+import { quarterShareUrls, resultShareUrlFor } from '@/lib/shareLinksServer'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
 import { PublicResultsSection } from '@/components/PublicResultsSection'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
@@ -22,8 +23,7 @@ interface Props {
 }
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
-  const { lineup } = await searchParams
-  return leaguePageMetadata((await params).slug, 'results', typeof lineup === 'string' ? lineup : undefined)
+  return leaguePageMetadata((await params).slug, 'results', await searchParams)
 }
 
 export default async function LeagueResultsPage({ params }: Props) {
@@ -99,8 +99,17 @@ export default async function LeagueResultsPage({ params }: Props) {
     isAdmin || isFeatureEnabled(features, 'quarter_celebration', tier)
   const celebration: ResultsCelebration | null =
     celebratedQuarters.length > 0 && canSeeCelebration
-      ? { quarters: celebratedQuarters, leagueName: game.name, leagueSlug: slug }
+      ? {
+          quarters: celebratedQuarters,
+          leagueName: game.name,
+          leagueSlug: slug,
+          shareUrls: canSeeQuarterChampion(features, tier) ? quarterShareUrls(slug, leagueId, celebratedQuarters) : {},
+        }
       : null
+
+  // Signed link for the Share button on the latest result. The lists only
+  // show results to viewers who can see match history.
+  const resultShareUrl = canSeeResults(features, tier) ? resultShareUrlFor(slug, getLatestResultWeek(weeks)) : null
 
   const goalkeepers = players.filter((p) => p.mentality === 'goalkeeper').map((p) => p.name)
 
@@ -120,6 +129,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             showMatchHistory={canSeeMatchHistory}
             canShareImage={canShareLineupImage}
             celebration={celebration}
+            resultShareUrl={resultShareUrl}
           />
           {!isAuthenticated && (
             <p className="pt-2 font-plex text-[9px] uppercase tracking-[.14em] text-[#4f688a] text-center">
@@ -154,6 +164,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             celebration={celebration}
             linkedPlayerName={claim.playerName}
             canShareImage={canShareLineupImage}
+            resultShareUrl={resultShareUrl}
           />
         ) : (
           <div className="py-16 text-center">

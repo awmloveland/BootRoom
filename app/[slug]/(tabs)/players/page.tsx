@@ -13,10 +13,11 @@ import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
 
 interface Props {
   params: Promise<{ slug: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  return leaguePageMetadata((await params).slug, 'players')
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+  return leaguePageMetadata((await params).slug, 'players', await searchParams)
 }
 
 export default async function LeaguePlayersPage({ params }: Props) {

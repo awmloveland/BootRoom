@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { LeagueDetails, Player, PlayerClaimStatus, ScheduledWeek, Strength, Week, Winner, YearStats } from './types'
+import { HighlightPlayer, LeagueDetails, Player, PlayerClaimStatus, ResultHighlightItem, ResultHighlights, ResultImageHighlight, ScheduledWeek, ShareLinkRequest, Strength, Week, Winner, YearStats } from './types'
 import type { VisibilityTier } from './roles'
 import { strengthToRating } from './strength'
 import type { QuarterSummary, QuarterlyEntry } from './sidebar-stats'
@@ -725,6 +725,19 @@ export function formatFixtureDate(date: string): string {
   return `${DAY_SHORT[parseWeekDate(date).getDay()]} ${day.padStart(2, '0')} ${month}`
 }
 
+/** The site tagline, used by the root metadata and the preview images. */
+export const SITE_TAGLINE = 'Results, stats and fair teams for your weekly game.'
+
+/** "1 player", "38 players": a count with its regular plural. */
+export function pluralise(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? '' : 's'}`
+}
+
+/** "1 game played", "142 games played". */
+export function gamesPlayedLabel(n: number): string {
+  return `${n} ${n === 1 ? 'game' : 'games'} played`
+}
+
 /**
  * The week the next match card should start from, derived on the server so the
  * Overview tab can render the card in its first paint.
@@ -942,6 +955,97 @@ function currentUnbeatenStreak(playerName: string, weeks: Week[]): number {
 }
 
 /**
+ * Everything worth calling out about a result. `weeks` must include the
+ * result itself, in any order; it is matched on its date. `players` are the
+ * stats from before it. Shared by the share text and the result preview image.
+ */
+export function computeResultHighlights(params: {
+  date: string           // 'DD MMM YYYY'
+  teamA: string[]
+  teamB: string[]
+  winner: Winner
+  teamARating: number
+  teamBRating: number
+  players: HighlightPlayer[]
+  weeks: Week[]
+}): ResultHighlights {
+  const { date, teamA, teamB, winner, teamARating, teamBRating, players, weeks } = params
+  const items: ResultHighlightItem[] = []
+
+  if (winner !== 'draw') {
+    // Win streaks (winning team only)
+    for (const name of winner === 'teamA' ? teamA : teamB) {
+      const count = currentWinStreak(name, weeks)
+      if (count >= 3) items.push({ kind: 'win_streak', player: name, count })
+    }
+    // Unbeaten streaks broken (losing team only), from the weeks before tonight
+    const priorWeeks = weeks.filter((w) => w.date !== date)
+    for (const name of winner === 'teamA' ? teamB : teamA) {
+      const count = currentUnbeatenStreak(name, priorWeeks)
+      if (count >= 5) items.push({ kind: 'unbeaten_ended', player: name, count })
+    }
+    // Upset: the winners were weaker on paper
+    const upset =
+      (winner === 'teamA' && teamBRating > teamARating) ||
+      (winner === 'teamB' && teamARating > teamBRating)
+    if (upset) {
+      const [strongRating, weakRating] =
+        winner === 'teamA'
+          ? [teamBRating.toFixed(1), teamARating.toFixed(1)]
+          : [teamARating.toFixed(1), teamBRating.toFixed(1)]
+      items.push({ kind: 'upset', strongerTeam: winner === 'teamA' ? 'Team B' : 'Team A', strongRating, weakRating })
+    }
+  }
+
+  // Milestones
+  for (const name of [...teamA, ...teamB]) {
+    const player = players.find((p) => p.name === name)
+    if (!player) continue
+    const games = player.played + 1
+    if (isMilestone(games)) items.push({ kind: 'milestone', player: name, games })
+  }
+
+  // Quarter table top 5: the quarter of the result, not of today
+  const parsed = parseWeekDate(date)
+  const q = Math.floor(parsed.getMonth() / 3) + 1
+  const year = parsed.getFullYear()
+  const qWeeks = weeks.filter((w) => {
+    const d = parseWeekDate(w.date)
+    return Math.floor(d.getMonth() / 3) + 1 === q && d.getFullYear() === year
+  })
+  const entries = computeStandings(qWeeks).slice(0, 5)
+  const table = entries.length > 0 ? { q, year, entries } : null
+
+  // In form: best recent PPG among tonight's players
+  const tonight = new Set([...teamA, ...teamB])
+  const inForm = players
+    .filter((p) => tonight.has(p.name) && p.played >= 5)
+    .map((p) => {
+      const chars = p.recentForm.split('').filter((c) => c !== '-')
+      if (chars.length === 0) return { name: p.name, ppg: 0 }
+      const pts = chars.reduce((acc, c) => acc + (c === 'W' ? 3 : c === 'D' ? 1 : 0), 0)
+      return { name: p.name, ppg: pts / chars.length }
+    })
+    .filter((e) => e.ppg >= 1.5)
+    .sort((a, b) => b.ppg - a.ppg)[0] ?? null
+
+  return { items, table, inForm }
+}
+
+function highlightLine(item: ResultHighlightItem): string {
+  switch (item.kind) {
+    case 'win_streak':
+      return `🔥 ${item.player} on a ${item.count}-game winning streak`
+    case 'unbeaten_ended':
+      return `💔 ${item.player}'s ${item.count}-game unbeaten run is over`
+    case 'upset':
+      return `😱 Upset! ${item.strongerTeam} were stronger on paper (${item.strongRating} vs ${item.weakRating})`
+    case 'milestone':
+      return `🎖️ ${item.player} played their ${ordinal(item.games)} game tonight`
+  }
+}
+
+/**
  * Builds a formatted plain-text share message for a saved result.
  * Returns { shareText, highlightsText } — shareText is the full message;
  * highlightsText is just the highlights block, rendered separately in the share step.
@@ -960,11 +1064,13 @@ export function buildResultShareText(params: {
   teamBRating: number
   players: Player[]
   weeks: Week[]          // includes the synthetic week for tonight
+  recordLines?: string[] // from findRecordBreaks, shown first in the highlights
 }): { shareText: string; highlightsText: string } {
   const {
     leagueName, leagueSlug, week, date, format,
     teamA, teamB, winner, goalDifference,
     teamARating, teamBRating, players, weeks,
+    recordLines = [],
   } = params
 
   const parsed = parseWeekDate(date)
@@ -980,94 +1086,14 @@ export function buildResultShareText(params: {
         : `🏆 Team B win! (+${goalDifference} goals)`
 
   // ── Highlights ───────────────────────────────────────────────────────────
-  const highlights: string[] = []
-
-  // Win streaks (winning team only)
-  if (winner !== 'draw') {
-    const winners = winner === 'teamA' ? teamA : teamB
-    for (const name of winners) {
-      const streak = currentWinStreak(name, weeks)
-      if (streak >= 3) {
-        highlights.push(`🔥 ${name} on a ${streak}-game winning streak`)
-      }
-    }
-  }
-
-  // Unbeaten streaks broken (losing team only, non-draw)
-  if (winner !== 'draw') {
-    const losers = winner === 'teamA' ? teamB : teamA
-    // Compute streak from weeks BEFORE tonight (exclude last entry which is tonight)
-    const priorWeeks = weeks.slice(0, -1)
-    for (const name of losers) {
-      const streak = currentUnbeatenStreak(name, priorWeeks)
-      if (streak >= 5) {
-        highlights.push(`💔 ${name}'s ${streak}-game unbeaten run is over`)
-      }
-    }
-  }
-
-  // Upset flag
-  if (winner !== 'draw') {
-    const upset =
-      (winner === 'teamA' && teamBRating > teamARating) ||
-      (winner === 'teamB' && teamARating > teamBRating)
-    if (upset) {
-      const [strongRating, weakRating] =
-        winner === 'teamA'
-          ? [teamBRating.toFixed(1), teamARating.toFixed(1)]
-          : [teamARating.toFixed(1), teamBRating.toFixed(1)]
-      const strongTeam = winner === 'teamA' ? 'Team B' : 'Team A'
-      highlights.push(`😱 Upset! ${strongTeam} were stronger on paper (${strongRating} vs ${weakRating})`)
-    }
-  }
-
-  // Milestones
-  const allPlayers = [...teamA, ...teamB]
-  for (const name of allPlayers) {
-    const player = players.find(p => p.name === name)
-    if (!player) continue
-    const newPlayed = player.played + 1
-    if (isMilestone(newPlayed)) {
-      highlights.push(`🎖️ ${name} played their ${ordinal(newPlayed)} game tonight`)
-    }
-  }
-
-  // ── Quarter table top 5 ──────────────────────────────────────────────────
-  const tableLines: string[] = []
-  // The quarter of the result being shared, not of today
-  const q = Math.floor(parsed.getMonth() / 3) + 1
-  const year = parsed.getFullYear()
-  const qWeeks = weeks.filter(w => {
-    const d = parseWeekDate(w.date)
-    return Math.floor(d.getMonth() / 3) + 1 === q && d.getFullYear() === year
+  const { items, table, inForm } = computeResultHighlights({
+    date, teamA, teamB, winner, teamARating, teamBRating, players, weeks,
   })
-  const tableEntries = computeStandings(qWeeks).slice(0, 5)
-  if (tableEntries.length > 0) {
-    const qLabel = `Q${q} ${year}`
-    tableLines.push(`📊 ${qLabel} standings`)
-    tableEntries.forEach((e, i) => {
-      tableLines.push(`${i + 1}. ${e.name} — ${e.points}pts`)
-    })
-  }
-
-  // ── In-form ──────────────────────────────────────────────────────────────
-  const inFormLines: string[] = []
-  // Inline in-form: PPG from recentForm for players who played tonight
-  const tonight = new Set([...teamA, ...teamB])
-  const inFormEntries = players
-    .filter(p => tonight.has(p.name) && p.played >= 5)
-    .map(p => {
-      const chars = p.recentForm.split('').filter(c => c !== '-')
-      if (chars.length === 0) return { name: p.name, ppg: 0 }
-      const pts = chars.reduce((acc, c) => acc + (c === 'W' ? 3 : c === 'D' ? 1 : 0), 0)
-      return { name: p.name, ppg: pts / chars.length }
-    })
-    .filter(e => e.ppg >= 1.5)
-    .sort((a, b) => b.ppg - a.ppg)
-  if (inFormEntries.length > 0) {
-    const top = inFormEntries[0]
-    inFormLines.push(`⚡ In form: ${top.name} (${top.ppg.toFixed(1)} PPG)`)
-  }
+  const highlights = [...recordLines, ...items.map(highlightLine)]
+  const tableLines = table
+    ? [`📊 Q${table.q} ${table.year} standings`, ...table.entries.map((e, i) => `${i + 1}. ${e.name} — ${e.points}pts`)]
+    : []
+  const inFormLines = inForm ? [`⚡ In form: ${inForm.name} (${inForm.ppg.toFixed(1)} PPG)`] : []
 
   // ── Assemble highlightsText (no header, no teams, no URL) ────────────────
   // Each individual highlight and each block gets its own \n\n-separated entry
@@ -1085,13 +1111,10 @@ export function buildResultShareText(params: {
     `📅 ${shortDate}${format ? ` · ${format}` : ''}`,
     '',
     resultLine,
-    '',
-    '🔵 Team A',
-    teamA.join(', '),
-    '',
-    '🟣 Team B',
-    teamB.join(', '),
   ]
+  // Winners only; a draw has no losers, so both teams stay
+  if (winner !== 'teamB') parts.push('', '🔵 Team A', teamA.join(', '))
+  if (winner !== 'teamA') parts.push('', '🟣 Team B', teamB.join(', '))
 
   if (highlightsText.length > 0) {
     parts.push('')
@@ -1102,6 +1125,65 @@ export function buildResultShareText(params: {
   parts.push(`🔗 https://craft-football.com/${leagueSlug}`)
 
   return { shareText: parts.join('\n'), highlightsText }
+}
+
+/**
+ * The result image's highlight lines: up to three, in priority order (streaks,
+ * ended runs, upset, milestones, in form, quarter leader), with short copy.
+ */
+export function resultImageHighlights(h: ResultHighlights): ResultImageHighlight[] {
+  const out: ResultImageHighlight[] = h.items.map((item): ResultImageHighlight => {
+    switch (item.kind) {
+      case 'win_streak':
+        return { icon: 'flame', text: `${item.player} · ${item.count}-game win streak` }
+      case 'unbeaten_ended':
+        return { icon: 'heart-crack', text: `${item.player}'s ${item.count}-game unbeaten run is over` }
+      case 'upset':
+        return { icon: 'zap', text: `Upset · ${item.strongerTeam} stronger on paper` }
+      case 'milestone':
+        return { icon: 'award', text: `${item.player}'s ${ordinal(item.games)} game` }
+    }
+  })
+  if (h.inForm) out.push({ icon: 'trending-up', text: `In form · ${h.inForm.name} · ${h.inForm.ppg.toFixed(1)} PPG` })
+  const leader = h.table?.entries[0]
+  if (h.table && leader) out.push({ icon: 'crown', text: `Q${h.table.q} leader · ${leader.name} · ${leader.points} pts` })
+  return out.slice(0, 3)
+}
+
+function byDateThenWeek(a: Week, b: Week): number {
+  return parseWeekDate(a.date).getTime() - parseWeekDate(b.date).getTime() || a.week - b.week
+}
+
+/** Weeks up to and including the one with `targetId`, oldest first; empty when it is missing. */
+export function weeksUpTo(weeks: Week[], targetId: string): Week[] {
+  const ordered = [...weeks].sort(byDateThenWeek)
+  const index = ordered.findIndex((w) => w.id === targetId)
+  return index === -1 ? [] : ordered.slice(0, index + 1)
+}
+
+/**
+ * Games played and last five results (newest first, like Player.recentForm)
+ * per player, from played weeks with a winner only. Stands in for the stored
+ * player stats when highlights must be worked out as of an earlier game.
+ */
+export function playerStatsAsOf(weeks: Week[]): HighlightPlayer[] {
+  const stats = new Map<string, { name: string; played: number; results: string[] }>()
+  for (const w of [...weeks].filter((x) => x.status === 'played' && x.winner).sort(byDateThenWeek)) {
+    for (const name of [...w.teamA, ...w.teamB]) {
+      const onTeamA = w.teamA.includes(name)
+      const result = w.winner === 'draw' ? 'D'
+        : (w.winner === 'teamA') === onTeamA ? 'W' : 'L'
+      const entry = stats.get(name) ?? { name, played: 0, results: [] }
+      entry.played++
+      entry.results.push(result)
+      stats.set(name, entry)
+    }
+  }
+  return Array.from(stats.values()).map(({ name, played, results }) => ({
+    name,
+    played,
+    recentForm: results.slice(-5).reverse().join(''),
+  }))
 }
 
 export type ShareOutcome = 'shared' | 'copied' | 'failed'
@@ -1165,25 +1247,105 @@ export function lineupImageFontSize(rowCount: number, longestNameLength: number)
   )
 }
 
+async function postForShareUrl(path: string, body: unknown): Promise<string | null> {
+  try {
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) return null
+    const json = (await res.json()) as { url?: unknown }
+    return typeof json.url === 'string' ? json.url : null
+  } catch {
+    return null
+  }
+}
+
 /**
  * Asks the server for a signed share link for a scheduled lineup. Null when
  * the server declines (feature off, not visible, not configured) or the
  * request fails; callers fall back to the plain league link.
  */
-export async function fetchLineupShareUrl(leagueId: string, weekId: string): Promise<string | null> {
-  try {
-    const res = await fetch(`/api/league/${leagueId}/lineup-share`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ weekId }),
-    })
-    if (!res.ok) return null
-    const body = (await res.json()) as { url?: unknown }
-    return typeof body.url === 'string' ? body.url : null
-  } catch {
-    return null
+export function fetchLineupShareUrl(leagueId: string, weekId: string): Promise<string | null> {
+  return postForShareUrl(`/api/league/${leagueId}/lineup-share`, { weekId })
+}
+
+/** Signed result or quarter link for something just saved in the browser. Null when declined or failed. */
+export function fetchShareLink(leagueId: string, request: ShareLinkRequest): Promise<string | null> {
+  return postForShareUrl(`/api/league/${leagueId}/share-link`, request)
+}
+
+/**
+ * Swaps the final "🔗 <url>" line of a share message for a signed link. Every
+ * share text builder ends with that line. Unchanged without a URL.
+ */
+export function withShareLink(text: string, url: string | null | undefined): string {
+  if (!url) return text
+  const lines = text.split('\n')
+  const last = lines.length - 1
+  if (!lines[last].startsWith('🔗 ')) return text
+  lines[last] = `🔗 ${url}`
+  return lines.join('\n')
+}
+
+/** The page being viewed, carrying a signed league token instead of any other share token. */
+export function leagueShareHref(href: string, token: string): string {
+  const url = new URL(href)
+  for (const key of ['lineup', 'result', 'quarter', 'league', 'open_join']) url.searchParams.delete(key)
+  url.searchParams.set('league', token)
+  url.hash = ''
+  return url.toString()
+}
+
+/**
+ * Largest font size (px) at which `length` characters fit `width`, between
+ * `min` and `max`. `charWidth` approximates Space Grotesk Bold's average glyph
+ * width in em. Text that still doesn't fit is cut off by the image.
+ */
+export function fitFontSize(length: number, width: number, max: number, min: number, charWidth = 0.6): number {
+  const fit = Math.floor(width / (Math.max(length, 1) * charWidth))
+  return Math.max(min, Math.min(max, fit))
+}
+
+/** Key for a quarter in share URL maps: '2026-3'. Matches the Seasons card keys. */
+export function quarterShareKey(quarter: { year: number; q: number }): string {
+  return `${quarter.year}-${quarter.q}`
+}
+
+/** '07 Jul – 29 Sep · 12 games': the quarter's dates without the year. */
+export function quarterRangeLabel(dateRange: { from: string; to: string }, gamesPlayed: number): string {
+  const stripYear = (d: string) => d.split(' ').slice(0, 2).join(' ')
+  const games = gamesPlayed === 1 ? '1 game' : `${gamesPlayed} games`
+  return `${stripYear(dateRange.from)} – ${stripYear(dateRange.to)} · ${games}`
+}
+
+/**
+ * The league's next game, as the Overview next game card picks it: the
+ * earliest scheduled week before its deadline, otherwise the next date from
+ * the league's game day, skipping any date that is cancelled. Null when
+ * neither exists.
+ */
+export function nextLeagueGame(
+  weeks: Week[],
+  league: { day: string | null; kickoff_time: string | null; location: string | null }
+): { date: string; kickoffTime: string | null; location: string | null } | null {
+  const scheduled = weeks
+    .filter((w) => w.status === 'scheduled' && !isPastDeadline(w.date))
+    .sort((a, b) => parseWeekDate(a.date).getTime() - parseWeekDate(b.date).getTime())[0]
+  const dayIndex = dayNameToIndex(league.day)
+  let date = scheduled?.date ?? (dayIndex !== null ? getNextMatchDate(weeks, dayIndex) : null)
+  if (date && !scheduled) {
+    // Never announce a game day that has been cancelled: step on a week at a time.
+    const cancelled = new Set(weeks.filter((w) => w.status === 'cancelled').map((w) => w.date))
+    for (let i = 0; i < 8 && cancelled.has(date); i++) {
+      const next = parseWeekDate(date)
+      next.setDate(next.getDate() + 7)
+      date = formatWeekDate(next)
+    }
   }
+  return date ? { date, kickoffTime: league.kickoff_time, location: league.location } : null
 }
 
 /**
@@ -1198,14 +1360,10 @@ export function buildQuarterShareText(params: {
   const { leagueName, leagueSlug, quarter } = params
   const { q, year, seasonName, dateRange, entries = [], awards = [], gamesPlayed = 0 } = quarter
 
-  // dateRange strings are 'DD MMM YYYY'; the year already appears in the headline
-  const stripYear = (d: string) => d.split(' ').slice(0, 2).join(' ')
-  const gamesLabel = gamesPlayed === 1 ? '1 game' : `${gamesPlayed} games`
-
   const parts: string[] = [
     `🏁 That's a wrap on Q${q} ${year}!`,
     `⚽ ${leagueName} — ${seasonName} quarter`,
-    `📅 ${stripYear(dateRange.from)} – ${stripYear(dateRange.to)} · ${gamesLabel}`,
+    `📅 ${quarterRangeLabel(dateRange, gamesPlayed)}`,
   ]
 
   const champion = entries[0]?.name

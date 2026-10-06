@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, fetchLineupShareUrl, wprScore, leagueWprPercentiles, parseWeekDate, hintToWpr } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, shareOrCopy, fetchLineupShareUrl, wprScore, leagueWprPercentiles, parseWeekDate, hintToWpr } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality, Strength } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
@@ -497,30 +497,9 @@ export function NextMatchCard({
       teamBRating: scheduledWeek.team_b_rating ?? 0,
       shareUrl: signedShareUrl ?? undefined,
     })
-    if (navigator.share) {
-      try {
-        await navigator.share({ text })
-      } catch (err) {
-        if (err instanceof DOMException && err.name !== 'AbortError') {
-          // Share API failed — fall back to clipboard
-          try {
-            await navigator.clipboard.writeText(text)
-            setCopied(true)
-            setTimeout(() => setCopied(false), 2000)
-          } catch {
-            // clipboard unavailable — nothing to do
-          }
-        }
-        // AbortError = user cancelled — do nothing
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(text)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      } catch {
-        // clipboard unavailable — nothing to do
-      }
+    if (await shareOrCopy(text) === 'copied') {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     }
   }
 

@@ -1,3 +1,5 @@
+import type { QuarterlyEntry } from './sidebar-stats';
+
 export type Winner = 'teamA' | 'teamB' | 'draw' | null;
 export type WeekStatus = 'played' | 'cancelled' | 'unrecorded' | 'scheduled' | 'dnf';
 
@@ -138,6 +140,54 @@ export interface SharedLineup {
   teamB: string[];
   location: string | null;
   kickoffTime: string | null; // e.g. "19:00"
+}
+
+/** Icon next to a highlight line in the result preview image. */
+export type ResultHighlightIcon = 'flame' | 'heart-crack' | 'zap' | 'award' | 'trending-up' | 'crown';
+
+export interface ResultImageHighlight {
+  icon: ResultHighlightIcon;
+  text: string;
+}
+
+/** A played result, as drawn in its link-preview image. */
+export interface SharedResult {
+  leagueName: string;
+  slug: string;
+  week: number;
+  date: string;               // 'DD MMM YYYY'
+  winner: NonNullable<Winner>;
+  goalDifference: number;
+  teamA: string[];
+  teamB: string[];
+  highlights: ResultImageHighlight[]; // at most three, as of that game
+}
+
+/** A completed quarter with a champion, as drawn in its link-preview image. */
+export interface SharedQuarter {
+  leagueName: string;
+  slug: string;
+  year: number;
+  q: number;
+  seasonName: string;
+  dateRange: { from: string; to: string }; // 'DD MMM YYYY'
+  gamesPlayed: number;
+  /** Top three of the final table; the first is the champion. Never empty. */
+  podium: { name: string; points: number; won: number; drew: number }[];
+}
+
+/** A league card, as drawn in its link-preview image. */
+export interface SharedLeague {
+  leagueName: string;
+  slug: string;
+  gamesPlayed: number;
+  playerCount: number;
+  nextGame: { date: string; kickoffTime: string | null; location: string | null } | null;
+}
+
+/** An open invite, as drawn in its link-preview image. Never the role or email. */
+export interface SharedInvite {
+  leagueName: string;
 }
 
 export interface LeagueMember {
@@ -362,3 +412,25 @@ export interface AdminMoneyData {
   settled: PlayerBalance[]            // owed === 0 with ≥1 game, sorted by name
   totals: { owed: number; collected: number; expected: number; playedGames: number }
 }
+
+export type ResultHighlightItem =
+  | { kind: 'win_streak'; player: string; count: number }
+  | { kind: 'unbeaten_ended'; player: string; count: number }
+  | { kind: 'upset'; strongerTeam: 'Team A' | 'Team B'; strongRating: string; weakRating: string }
+  | { kind: 'milestone'; player: string; games: number };
+
+export interface ResultHighlights {
+  /** Win streaks, ended unbeaten runs, the upset, then milestones. */
+  items: ResultHighlightItem[];
+  /** Top five of the result's quarter, or null when nobody has played in it. */
+  table: { q: number; year: number; entries: QuarterlyEntry[] } | null;
+  inForm: { name: string; ppg: number } | null;
+}
+
+/** The player stats highlights need, as they stood before the game. */
+export type HighlightPlayer = Pick<Player, 'name' | 'played' | 'recentForm'>;
+
+/** What the browser can ask the share-link endpoint to sign. */
+export type ShareLinkRequest =
+  | { kind: 'result'; weekId: string }
+  | { kind: 'quarter'; year: number; q: number };

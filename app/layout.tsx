@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { IBM_Plex_Mono, Inter, Space_Grotesk } from 'next/font/google'
 import { Navbar } from '@/components/ui/navbar'
 import { ViewportCookie } from '@/components/ViewportCookie'
+import { SITE_TAGLINE } from '@/lib/utils'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -16,13 +17,17 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://craft-football.com'),
   // Pages set their own tab title; league pages override it in full (lib/metadata.ts).
   title: { default: 'Craft Football', template: '%s · Craft Football' },
-  description: 'Results, stats and fair teams for your weekly game.',
+  description: SITE_TAGLINE,
+  // The default preview for every page without its own. Child metadata that
+  // sets openGraph replaces this object, so share previews set their own image.
   openGraph: {
     title: 'Craft Football',
-    description: 'Results, stats and fair teams for your weekly game.',
+    description: SITE_TAGLINE,
     url: 'https://craft-football.com',
     siteName: 'Craft Football',
+    images: [{ url: '/api/og/default', width: 1200, height: 630, alt: 'Craft Football' }],
   },
+  twitter: { card: 'summary_large_image', images: ['/api/og/default'] },
 }
 
 export const viewport: Viewport = {
