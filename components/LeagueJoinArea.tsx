@@ -7,6 +7,7 @@ import { SlidersHorizontal, Link as LinkIcon, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { JoinRequestDialog } from '@/components/JoinRequestDialog'
 import { AuthDialog } from '@/components/AuthDialog'
+import { leagueShareHref } from '@/lib/utils'
 import type { JoinRequestStatus } from '@/lib/types'
 
 interface LeagueJoinAreaProps {
@@ -16,6 +17,8 @@ interface LeagueJoinAreaProps {
   joinStatus: JoinRequestStatus | 'member' | 'not-member' | null
   isAdmin: boolean
   pendingRequestCount?: number
+  /** Signed league token for members, so the copied link unfurls with the league card. */
+  shareToken?: string | null
 }
 
 function isMemberStatus(s: JoinRequestStatus | 'member' | 'not-member' | null): boolean {
@@ -52,7 +55,7 @@ function SearchParamsReader({
   return null
 }
 
-export function LeagueJoinArea({ leagueId, leagueSlug, leagueName, joinStatus, isAdmin, pendingRequestCount = 0 }: LeagueJoinAreaProps) {
+export function LeagueJoinArea({ leagueId, leagueSlug, leagueName, joinStatus, isAdmin, pendingRequestCount = 0, shareToken = null }: LeagueJoinAreaProps) {
   const [showToast, setShowToast] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
@@ -66,7 +69,8 @@ export function LeagueJoinArea({ leagueId, leagueSlug, leagueName, joinStatus, i
   }, [showToast])
 
   function handleShareClick() {
-    navigator.clipboard.writeText(window.location.href).catch(() => {})
+    const href = shareToken ? leagueShareHref(window.location.href, shareToken) : window.location.href
+    navigator.clipboard.writeText(href).catch(() => {})
     setShowToast(true)
   }
 

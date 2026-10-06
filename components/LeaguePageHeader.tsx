@@ -16,6 +16,8 @@ interface LeaguePageHeaderProps {
   details?: LeagueDetails | null
   joinStatus?: JoinRequestStatus | 'member' | 'not-member' | null
   pendingRequestCount?: number
+  /** Signed league token for the Share button; null for the public. */
+  shareToken?: string | null
 }
 
 export function LeaguePageHeader({
@@ -30,6 +32,7 @@ export function LeaguePageHeader({
   details,
   joinStatus = null,
   pendingRequestCount = 0,
+  shareToken = null,
 }: LeaguePageHeaderProps) {
   return (
     <div className="mb-[18px]">
@@ -52,6 +55,7 @@ export function LeaguePageHeader({
             joinStatus={joinStatus}
             isAdmin={isAdmin}
             pendingRequestCount={pendingRequestCount}
+            shareToken={shareToken}
           />
         </div>
       </div>
