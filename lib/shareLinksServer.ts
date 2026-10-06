@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { getShareSecret, parseLineupToken, verifyLineupSignature } from '@/lib/lineupShare'
+import { getShareSecret, parseLineupToken, verifyLineupSignature } from '@/lib/shareLinks'
 import type { SharedLineup } from '@/lib/types'
 
 /**

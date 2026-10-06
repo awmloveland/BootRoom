@@ -140,6 +140,54 @@ export interface SharedLineup {
   kickoffTime: string | null; // e.g. "19:00"
 }
 
+/** Icon next to a highlight line in the result preview image. */
+export type ResultHighlightIcon = 'flame' | 'heart-crack' | 'zap' | 'award' | 'trending-up' | 'crown';
+
+export interface ResultImageHighlight {
+  icon: ResultHighlightIcon;
+  text: string;
+}
+
+/** A played result, as drawn in its link-preview image. */
+export interface SharedResult {
+  leagueName: string;
+  slug: string;
+  week: number;
+  date: string;               // 'DD MMM YYYY'
+  winner: 'teamA' | 'teamB' | 'draw';
+  goalDifference: number;
+  teamA: string[];
+  teamB: string[];
+  highlights: ResultImageHighlight[]; // at most three, as of that game
+}
+
+/** A completed quarter with a champion, as drawn in its link-preview image. */
+export interface SharedQuarter {
+  leagueName: string;
+  slug: string;
+  year: number;
+  q: number;
+  seasonName: string;
+  dateRange: { from: string; to: string }; // 'DD MMM YYYY'
+  gamesPlayed: number;
+  /** Top three of the final table; the first is the champion. Never empty. */
+  podium: { name: string; points: number; won: number; drew: number }[];
+}
+
+/** A league card, as drawn in its link-preview image. */
+export interface SharedLeague {
+  leagueName: string;
+  slug: string;
+  gamesPlayed: number;
+  playerCount: number;
+  nextGame: { date: string; kickoffTime: string | null; location: string | null } | null;
+}
+
+/** An open invite, as drawn in its link-preview image. Never the role or email. */
+export interface SharedInvite {
+  leagueName: string;
+}
+
 export interface LeagueMember {
   user_id: string;
   email: string;

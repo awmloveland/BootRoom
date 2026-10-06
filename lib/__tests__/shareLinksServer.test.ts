@@ -1,10 +1,10 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { signLineupToken } from '@/lib/lineupShare'
+import { signLineupToken } from '@/lib/shareLinks'
 
 jest.mock('@/lib/supabase/service', () => ({ createServiceClient: jest.fn() }))
 
 // Import after the mock is registered.
-import { loadSharedLineup } from '@/lib/lineupShareServer'
+import { loadSharedLineup } from '@/lib/shareLinksServer'
 
 const SECRET = 'test-secret'
 const WEEK_ID = '3f2b8c1e-9a4d-4e6f-8b7a-1c2d3e4f5a6b'

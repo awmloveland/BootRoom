@@ -4,8 +4,8 @@ import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled, isLeagueHidden } from '@/lib/features'
 import { buildLeagueTitle, dayNameToIndex, getLeagueTitleStatus } from '@/lib/utils'
 import { getGameBySlug, getAuthAndRole, getFeatures, getWeeks, getPendingBadgeCount } from '@/lib/fetchers'
-import { buildLineupShareMetadata } from '@/lib/lineupShare'
-import { loadSharedLineup } from '@/lib/lineupShareServer'
+import { buildLineupShareMetadata } from '@/lib/shareLinks'
+import { loadSharedLineup } from '@/lib/shareLinksServer'
 
 // Matches the labels in LeagueTabNav (a client module, so not importable here).
 const PAGE_LABELS = {

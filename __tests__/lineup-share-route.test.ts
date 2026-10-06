@@ -1,6 +1,6 @@
 import { getAuthAndRole, getFeatures, getGame } from '@/lib/fetchers'
 import { createServiceClient } from '@/lib/supabase/service'
-import { parseLineupToken, verifyLineupSignature } from '@/lib/lineupShare'
+import { parseLineupToken, verifyLineupSignature } from '@/lib/shareLinks'
 import type { FeatureKey, GameRole, LeagueFeature } from '@/lib/types'
 
 jest.mock('@/lib/fetchers', () => ({ getAuthAndRole: jest.fn(), getFeatures: jest.fn(), getGame: jest.fn() }))

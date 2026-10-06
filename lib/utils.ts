@@ -725,6 +725,14 @@ export function formatFixtureDate(date: string): string {
   return `${DAY_SHORT[parseWeekDate(date).getDay()]} ${day.padStart(2, '0')} ${month}`
 }
 
+/** The site tagline, used by the root metadata and the preview images. */
+export const SITE_TAGLINE = 'Results, stats and fair teams for your weekly game.'
+
+/** "1 game played", "142 games played". */
+export function gamesPlayedLabel(n: number): string {
+  return `${n} ${n === 1 ? 'game' : 'games'} played`
+}
+
 /**
  * The week the next match card should start from, derived on the server so the
  * Overview tab can render the card in its first paint.

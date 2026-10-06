@@ -1,5 +1,5 @@
 import { getAuthAndRole, getFeatures, getGameBySlug, getPendingBadgeCount, getWeeks } from '@/lib/fetchers'
-import { loadSharedLineup } from '@/lib/lineupShareServer'
+import { loadSharedLineup } from '@/lib/shareLinksServer'
 import type { SharedLineup } from '@/lib/types'
 
 jest.mock('@/lib/fetchers', () => ({
@@ -9,7 +9,7 @@ jest.mock('@/lib/fetchers', () => ({
   getWeeks: jest.fn(),
   getPendingBadgeCount: jest.fn(),
 }))
-jest.mock('@/lib/lineupShareServer', () => ({ loadSharedLineup: jest.fn() }))
+jest.mock('@/lib/shareLinksServer', () => ({ loadSharedLineup: jest.fn() }))
 
 import { leaguePageMetadata } from '@/lib/metadata'
 

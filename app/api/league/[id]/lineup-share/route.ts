@@ -3,7 +3,7 @@ import { getAuthAndRole, getFeatures, getGame } from '@/lib/fetchers'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { canSeeNextLineup, isFeatureEnabled } from '@/lib/features'
-import { UUID_RE, getShareSecret, lineupShareUrl, signLineupToken } from '@/lib/lineupShare'
+import { UUID_RE, getShareSecret, lineupShareUrl, signLineupToken } from '@/lib/shareLinks'
 import { isPastDeadline } from '@/lib/utils'
 
 function noLink() {

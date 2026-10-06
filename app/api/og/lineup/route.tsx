@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og'
-import { loadSharedLineup } from '@/lib/lineupShareServer'
+import { loadSharedLineup } from '@/lib/shareLinksServer'
 import { loadOgFonts } from '@/lib/ogFonts'
 import { GenericShareImage, LineupImage, OG_SIZE } from '@/components/og/LineupShareImage'
 

@@ -1,11 +1,11 @@
 import { ImageResponse } from 'next/og'
-import { loadSharedLineup } from '@/lib/lineupShareServer'
+import { loadSharedLineup } from '@/lib/shareLinksServer'
 import { loadOgFonts } from '@/lib/ogFonts'
 import { GenericShareImage, LineupImage } from '@/components/og/LineupShareImage'
 import type { SharedLineup } from '@/lib/types'
 
 jest.mock('next/og', () => ({ ImageResponse: jest.fn() }))
-jest.mock('@/lib/lineupShareServer', () => ({ loadSharedLineup: jest.fn() }))
+jest.mock('@/lib/shareLinksServer', () => ({ loadSharedLineup: jest.fn() }))
 jest.mock('@/lib/ogFonts', () => ({ loadOgFonts: jest.fn() }))
 
 import { GET } from '@/app/api/og/lineup/route'
