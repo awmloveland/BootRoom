@@ -577,6 +577,8 @@ export interface ResultsCelebration {
   quarters: QuarterSummary[]
   leagueName: string
   leagueSlug: string
+  /** Signed share links keyed by quarterShareKey; missing keys share the plain link. */
+  shareUrls?: Record<string, string>
 }
 
 /**
