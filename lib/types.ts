@@ -290,3 +290,58 @@ export interface RecordsData {
   biggestWin: BiggestWin | null
   teamAB: { teamA: number; teamB: number; draws: number }
 }
+
+// ── Pitch fees (Admin tab) ────────────────────────────────────────────────────
+
+/** Date range presets on the Admin tab. Numbers are days back from today. */
+export type FeePreset = '30' | '90' | '180' | 'all' | 'custom'
+
+/** One person's fee for one played week: a player's own game, or a guest they brought. */
+export interface FeeEntry {
+  key: string           // `${weekId}|${payer}`, also the week_payments key
+  weekId: string
+  payer: string         // who the payment row is keyed by: the player, or the guest's name ('Alice +1')
+  date: string          // 'DD MMM YYYY'
+  week: number
+  cost: number          // pounds
+  paid: boolean
+  guest: boolean        // true for a +1 owed via this player
+}
+
+export interface PlayerBalance {
+  name: string
+  games: number         // own appearances in range
+  guests: number        // +1s brought in range
+  owed: number          // sum of unpaid entry costs
+  entries: FeeEntry[]   // own games + guests' games, unpaid first, then newest first
+}
+
+export interface WeekFeeRow {
+  weekId: string
+  date: string          // 'DD MMM YYYY'
+  week: number
+  status: WeekStatus
+  players: number       // own players (guests excluded)
+  guests: number
+  paid: number          // paid count
+  payers: number        // players + guests
+  cost: number          // per player, pounds
+  overridden: boolean   // true when week_fees has a row for this week
+}
+
+export interface FeeRange {
+  preset: FeePreset
+  from: string          // 'YYYY-MM-DD', '' when unbounded (All time)
+  to: string            // 'YYYY-MM-DD', '' when unbounded
+  label: string         // 'Last 30 days', 'Custom range'
+}
+
+export interface AdminMoneyData {
+  range: FeeRange
+  span: string                        // '6 Sep – 1 Oct 2026', or 'No games'
+  defaultFee: number
+  games: WeekFeeRow[]                 // newest first, cancelled weeks included (dimmed)
+  debtors: PlayerBalance[]            // owed > 0, sorted owed desc then name
+  settled: PlayerBalance[]            // owed === 0 with ≥1 game, sorted by name
+  totals: { owed: number; collected: number; expected: number; playedGames: number }
+}
