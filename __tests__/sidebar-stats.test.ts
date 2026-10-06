@@ -1050,10 +1050,22 @@ describe('computeMargins', () => {
 
   it('ignores weeks that were not played', () => {
     const r = computeMargins([
-      makeWeek({ week: 1, status: 'cancelled', winner: null, goal_difference: null }),
-      makeWeek({ week: 2, status: 'dnf', winner: null, goal_difference: null }),
-      makeWeek({ week: 3, status: 'scheduled', winner: null }),
+      makeWeek({ week: 1, status: 'cancelled', winner: 'teamA', goal_difference: 3 }),
+      makeWeek({ week: 2, status: 'dnf', winner: 'draw', goal_difference: 0 }),
+      makeWeek({ week: 3, status: 'unrecorded', winner: 'teamB', goal_difference: 2 }),
     ])
+    expect(r.counted).toBe(0)
+    expect(r.winCount).toBe(0)
+  })
+
+  it('ignores a win recorded with a margin of 0', () => {
+    const r = computeMargins([win(1, 0)])
+    expect(r.winCount).toBe(0)
+    expect(r.counted).toBe(0)
+  })
+
+  it('ignores a played week with no winner', () => {
+    const r = computeMargins([makeWeek({ week: 1, winner: null, goal_difference: 2 })])
     expect(r.counted).toBe(0)
   })
 
