@@ -5,7 +5,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { canSeeQuarterChampion, isFeatureEnabled, isLeagueHidden } from '@/lib/features'
+import { canSeeQuarterChampion, canSeeResults, isFeatureEnabled, isLeagueHidden } from '@/lib/features'
 import { dayNameToIndex, getLatestResultWeek, isPastDeadline, parseWeekDate } from '@/lib/utils'
 import { quarterShareUrls, resultShareUrlFor } from '@/lib/shareLinksServer'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
@@ -109,7 +109,7 @@ export default async function LeagueResultsPage({ params }: Props) {
 
   // Signed link for the Share button on the latest result. The lists only
   // show results to viewers who can see match history.
-  const resultShareUrl = canSeeMatchHistory ? resultShareUrlFor(slug, getLatestResultWeek(weeks)) : null
+  const resultShareUrl = canSeeResults(features, tier) ? resultShareUrlFor(slug, getLatestResultWeek(weeks)) : null
 
   const goalkeepers = players.filter((p) => p.mentality === 'goalkeeper').map((p) => p.name)
 

@@ -54,4 +54,9 @@ describe('resultHeadline', () => {
   it('names the winner and margin', () => {
     expect(resultHeadline({ winner: 'teamB', goalDifference: 1 })).toEqual(['Team B', 'win by 1'])
   })
+
+  it('drops the margin when a win has no positive goal difference', () => {
+    expect(resultHeadline({ winner: 'teamA', goalDifference: 0 })).toEqual(['Team A', 'win'])
+    expect(resultHeadline({ winner: 'teamB', goalDifference: -1 })).toEqual(['Team B', 'win'])
+  })
 })

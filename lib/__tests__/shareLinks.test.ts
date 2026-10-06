@@ -38,6 +38,10 @@ describe('lineup share tokens', () => {
     expect(signLineupToken(SECRET, WEEK, TEAMS)).toMatch(/^[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{16}$/)
   })
 
+  it('keeps the exact bytes of the original token so links already shared still verify', () => {
+    expect(signLineupToken(SECRET, WEEK, TEAMS)).toBe('PyuMHppNTm-LehwtPk9aaw.7fZAQ83ce0ODN4zj')
+  })
+
   it('round-trips the week id and verifies', () => {
     const token = signLineupToken(SECRET, WEEK, TEAMS)
     expect(parseLineupToken(token)?.weekId).toBe(WEEK)

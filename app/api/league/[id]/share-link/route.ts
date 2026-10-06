@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getAuthAndRole, getFeatures, getGame, getWeeks } from '@/lib/fetchers'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { canSeeQuarterChampion, canSeeResults } from '@/lib/features'
-import { UUID_RE, getShareSecret } from '@/lib/shareLinks'
+import { UUID_RE, getShareSecret, isValidQuarter } from '@/lib/shareLinks'
 import { quarterShareUrls, resultShareUrlFor } from '@/lib/shareLinksServer'
 import { getCelebratedQuarters } from '@/lib/sidebar-stats'
 import { quarterShareKey } from '@/lib/utils'
@@ -20,9 +20,7 @@ function parseRequest(body: unknown): ShareLinkRequest | null {
   }
   if (b.kind === 'quarter') {
     const { year, q } = b
-    const validYear = typeof year === 'number' && Number.isInteger(year) && year >= 1000 && year <= 9999
-    const validQ = typeof q === 'number' && Number.isInteger(q) && q >= 1 && q <= 4
-    return validYear && validQ ? { kind: 'quarter', year, q } : null
+    return typeof year === 'number' && typeof q === 'number' && isValidQuarter(year, q) ? { kind: 'quarter', year, q } : null
   }
   return null
 }

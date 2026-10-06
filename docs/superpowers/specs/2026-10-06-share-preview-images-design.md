@@ -121,7 +121,7 @@ server already has the data, so it passes each URL down as a prop:
   admins only. At copy time `LeagueJoinArea` copies
   `leagueShareHref(location.href, token)`. That keeps the current path and
   any other query params, strips other share tokens (`lineup`, `result`,
-  `quarter`, `open_join`) and the hash, then sets `league=<token>`, so the link
+  `quarter`, `league`, `open_join`) and the hash, then sets `league=<token>`, so the link
   still points at the tab being viewed.
 
 After an edit, `router.refresh()` re-renders the page, which re-signs.
@@ -327,8 +327,8 @@ night's streaks, so the image never uses current totals:
   - Podium line, Inter 700 ~22px, `#8ba4c4` with the position in `#f4f9ff`:
     `2 Sam Okafor · 21    3 Kit Marsh · 19`. Omitted entries when the table
     is shorter.
-- **Data:** `computeAllQuarters(weeks, now)` for the token's league, picking
-  the matching `year` and `q`. If that quarter is not complete or has no
+- **Data:** `getCelebratedQuarters(weeks)` for the token's league (completed
+  quarters with a champion), picking the matching `year` and `q`. If that quarter is not complete or has no
   champion, the generic card.
 
 ### League (layout C)

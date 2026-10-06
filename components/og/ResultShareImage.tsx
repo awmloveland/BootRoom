@@ -19,7 +19,9 @@ const NAMES: CSSProperties = { display: 'block', lineClamp: 3, fontFamily: 'Inte
 /** The two headline lines: "Team A" / "win by 3", or "Honours" / "even". */
 export function resultHeadline(result: Pick<SharedResult, 'winner' | 'goalDifference'>): [string, string] {
   if (result.winner === 'draw') return ['Honours', 'even']
-  return [result.winner === 'teamA' ? 'Team A' : 'Team B', `win by ${result.goalDifference}`]
+  const team = result.winner === 'teamA' ? 'Team A' : 'Team B'
+  // A win with no recorded margin has no number to show.
+  return [team, result.goalDifference > 0 ? `win by ${result.goalDifference}` : 'win']
 }
 
 export function ResultImage({ result }: { result: SharedResult }) {

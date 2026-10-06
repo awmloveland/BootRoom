@@ -177,10 +177,20 @@ function quarterPayload(gameId: string, year: number, q: number): unknown[] {
   return ['quarter:v1', gameId.toLowerCase(), year, q]
 }
 
+/** A four-digit integer year and a quarter from 1 to 4. */
+export function isValidQuarter(year: number, q: number): boolean {
+  return Number.isInteger(year) && year >= 1000 && year <= 9999 && Number.isInteger(q) && q >= 1 && q <= 4
+}
+
 export function signQuarterToken(secret: string, gameId: string, year: number, q: number): string {
   requireUuid('signQuarterToken', 'gameId', gameId)
-  if (!Number.isInteger(year) || year < 1000 || year > 9999) throw new Error('signQuarterToken: year must be four digits')
-  if (!Number.isInteger(q) || q < 1 || q > 4) throw new Error('signQuarterToken: q must be 1 to 4')
+  if (!isValidQuarter(year, q)) {
+    throw new Error(
+      Number.isInteger(year) && year >= 1000 && year <= 9999
+        ? 'signQuarterToken: q must be 1 to 4'
+        : 'signQuarterToken: year must be four digits'
+    )
+  }
   const sig = sign(secret, quarterPayload(gameId, year, q)).toString('base64url')
   return `${encodeId(gameId)}.${year}${q}.${sig}`
 }

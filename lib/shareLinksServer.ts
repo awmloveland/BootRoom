@@ -11,6 +11,7 @@ import {
 } from '@/lib/utils'
 import {
   getShareSecret,
+  isValidQuarter,
   parseLeagueToken,
   parseLineupToken,
   parseQuarterToken,
@@ -217,7 +218,7 @@ export function quarterShareUrls(
   if (!secret || !UUID_RE.test(gameId)) return {}
   return Object.fromEntries(
     quarters
-      .filter(({ year, q }) => Number.isInteger(year) && year >= 1000 && year <= 9999 && Number.isInteger(q) && q >= 1 && q <= 4)
+      .filter(({ year, q }) => isValidQuarter(year, q))
       .map((q) => [quarterShareKey(q), quarterShareUrl(slug, signQuarterToken(secret, gameId, q.year, q.q), q.year, q.q)])
   )
 }
