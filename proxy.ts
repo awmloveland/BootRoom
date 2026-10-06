@@ -55,9 +55,9 @@ export async function proxy(request: NextRequest) {
 
   const user = await getSessionUser(supabase)
   if (!user) {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = SIGN_IN_PATH
-    redirectUrl.searchParams.set('redirect', pathname)
+    // Keep the query (e.g. ?tab=members) so the visitor lands where they were heading.
+    const redirectUrl = new URL(SIGN_IN_PATH, request.url)
+    redirectUrl.searchParams.set('redirect', pathname + request.nextUrl.search)
     return NextResponse.redirect(redirectUrl)
   }
 
@@ -67,9 +67,7 @@ export async function proxy(request: NextRequest) {
     .eq('id', user.id)
     .maybeSingle()
   if (!profile) {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = '/profile-required'
-    return NextResponse.redirect(redirectUrl)
+    return NextResponse.redirect(new URL('/profile-required', request.url))
   }
 
   return response
