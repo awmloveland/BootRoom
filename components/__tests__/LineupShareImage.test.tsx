@@ -2,7 +2,8 @@
  * @jest-environment jsdom
  */
 import { render, screen } from '@testing-library/react'
-import { GenericShareImage, LineupImage, OG_SIZE } from '@/components/og/LineupShareImage'
+import { LineupImage } from '@/components/og/LineupShareImage'
+import { GenericShareImage, OG_SIZE } from '@/components/og/frame'
 import { lineupImageFontSize } from '@/lib/utils'
 import type { SharedLineup } from '@/lib/types'
 
