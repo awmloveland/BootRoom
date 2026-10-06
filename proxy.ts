@@ -64,9 +64,9 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = SIGN_IN_PATH
-    redirectUrl.searchParams.set('redirect', pathname)
+    // Keep the query (e.g. ?tab=members) so the visitor lands where they were heading.
+    const redirectUrl = new URL(SIGN_IN_PATH, request.url)
+    redirectUrl.searchParams.set('redirect', pathname + request.nextUrl.search)
     return NextResponse.redirect(redirectUrl)
   }
 
