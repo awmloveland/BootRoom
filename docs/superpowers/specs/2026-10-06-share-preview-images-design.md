@@ -1,7 +1,7 @@
 # Share Preview Images (Result, Quarter, League, Invite, Default) — Design
 
 **Date:** 2026-10-06
-**Status:** Draft, awaiting review
+**Status:** Approved
 
 ## Summary
 
@@ -109,21 +109,25 @@ iOS Safari rejects `navigator.share` and `clipboard.writeText` if the page
 awaits a network request after the tap, so every signed URL is ready in
 advance. Two routes:
 
-**Signed on the server while rendering (no extra request).** The server
-already has the data, so it signs and passes the URL down as a prop:
+**Signed on the server while rendering (no extra request).** The Results
+page, the Seasons page and the tabs layout sign links while rendering. The
+server already has the data, so it passes each URL down as a prop:
 
 - Results page: the latest played week's result URL (to `MatchCard` via
   `WeekList` / `PublicMatchList`) and each completed quarter's URL (to the
   `QuarterCelebration` champion cards).
 - Seasons page: each completed quarter's URL (to `HonoursSection`).
 - Tabs layout: the league URL token (to `LeagueJoinArea`), for members and
-  admins only. The client appends `?league=<token>` to the current path at
-  copy time, so the link still points at the tab being viewed.
+  admins only. At copy time `LeagueJoinArea` copies
+  `leagueShareHref(location.href, token)`. That keeps the current path and
+  any other query params, strips other share tokens (`lineup`, `result`,
+  `quarter`, `open_join`) and the hash, then sets `league=<token>`, so the link
+  still points at the tab being viewed.
 
 After an edit, `router.refresh()` re-renders the page, which re-signs.
 
-**Fetched by the client, for things created in the browser.** The result
-modal has just saved a result the server never rendered, so it asks for the
+**Fetched by the client, for things created in the browser.** Only the result
+modal calls the endpoint below. It has just saved a result the server never rendered, so it asks for the
 link:
 
 - New endpoint `POST /api/league/[id]/share-link`, body
@@ -139,11 +143,11 @@ link:
 missing, not allowed), every share uses today's link exactly. Sharing never
 breaks.
 
-**Text builders.** `buildResultShareText` and `buildQuarterShareText` gain an
-optional `shareUrl?: string` that replaces the final link line, as
-`buildShareText` did for line-ups. All other lines are unchanged.
-`LeagueJoinArea` copies `${location.pathname}?league=<token>` (with the
-origin) when it has a token, otherwise `window.location.href` as today.
+**Text builders.** Share text builders are unchanged. A
+`withShareLink(text, url)` helper in `lib/utils.ts` swaps the final `🔗` line
+for the signed URL at tap time, falling back to the text as built.
+`LeagueJoinArea` copies `leagueShareHref(location.href, token)` (see above)
+when it has a token, otherwise `window.location.href` as today.
 
 ## 3. Page metadata
 
@@ -232,6 +236,14 @@ the centred wordmark 24px from the bottom. Half-size HTML mockups were reviewed
 in the brainstorm session (kept locally in the gitignored `.superpowers/brainstorm/`);
 this section is the source of truth.
 
+### Overflow
+
+Long names never clip. Names clamp with an ellipsis using Satori's `lineClamp`:
+winners get 3 lines, and draw rows and highlights get 2. Hero names (quarter
+champion, league name, invite league name) use fit-to-width sizing first, then
+an ellipsis at the floor size. Content is vertically centred between the meta
+line and the wordmark.
+
 ### Shared pieces (`components/og/`)
 
 `LineupShareImage.tsx` is split so the new images share its parts:
@@ -257,8 +269,8 @@ this section is the source of truth.
     `win by 1` for a one-goal margin). A draw is `Honours` / `even` in
     `#8ba4c4`.
   - Winners' names below in Inter 700 ~24px, `#dff1ff` (Team A) or `#efeaff`
-    (Team B), comma-separated, wrapping to at most three lines then
-    ellipsised. For a draw, both teams, each prefixed with its label.
+    (Team B), comma-separated, wrapping to at most three lines, then
+    clamped with an ellipsis. For a draw, both teams, each prefixed with its label.
 - **Right column (~45%), left hairline `#17263c`:**
   - `Highlights` label.
   - Up to three lines, Inter 700 ~24px, each with a 24px icon. The first line
@@ -302,9 +314,9 @@ night's streaks, so the image never uses current totals:
 - **Background:** the champion sheen from `QuarterCelebration`: radial lime
   `rgba(190,242,100,.16)` at the top left and sky `rgba(56,189,248,.14)` at
   the top right.
-- **Meta line:** league name left; `{from} – {to} · {n} games` right (dates
-  without the year, e.g. `Jul – Sep` when the range spans whole months,
-  otherwise `03 Jul – 25 Sep`).
+- **Meta line:** league name left; `{from} – {to} · {n} games` right, with the year
+  dropped from each date, matching the share text (e.g.
+  `07 Jul – 29 Sep · 12 games`).
 - **Centred stack:**
   - Trophy icon, 52px, `#bef264`.
   - `Q{q} {year} · {Season} champion`, Plex Mono 700 ~20px, `.2em`, `#bef264`.
@@ -321,7 +333,7 @@ night's streaks, so the image never uses current totals:
 
 ### League (layout C)
 
-- **Background:** the app's dot field (`#16283f` dots on a 24px grid, fading
+- **Background:** the app's dot field (`#223a5c` dots on a 24px grid, fading
   out down the image).
 - **Meta line:** league name left, `{n} games played` right (played weeks
   only).
@@ -335,7 +347,8 @@ night's streaks, so the image never uses current totals:
     the league's game day. Kick-off and venue come from the league settings
     and are omitted when not set.
   - With neither a scheduled week nor a game day, the panel is replaced by a
-    stat line: `{n} games · {m} players` (players with at least one game).
+    stat line: `{m} players` (players with at least one game). The games count is
+    left out because the meta line already shows games played.
 
 ### Invite
 

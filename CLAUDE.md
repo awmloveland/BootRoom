@@ -207,7 +207,7 @@ deploys. `.env.example` lists them with placeholders. Never commit real values.
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only | Service-role client (`lib/supabase/service`) and data scripts |
 | `RESEND_API_KEY` | Server only | Transactional email |
 | `APP_ACCESS_KEY` / `NEXT_PUBLIC_ACCESS_KEY_MODE` | Mixed | Optional production lock behind a secret URL key |
-| `SHARE_SIGNING_SECRET` | Server only | HMAC key for signed line-up share links and their preview images (see `docs/superpowers/specs/2026-10-05-lineup-share-preview-image-design.md`). Missing → Share falls back to the plain league link and previews render the generic card. Rotating it invalidates every previously shared preview. |
+| `SHARE_SIGNING_SECRET` | Server only | HMAC key for signed share links (line-ups, results, quarters, league) and their preview images (see `docs/superpowers/specs/2026-10-05-lineup-share-preview-image-design.md` and `2026-10-06-share-preview-images-design.md`). Missing → Share falls back to plain links and previews render the generic card. Rotating it invalidates every previously shared preview. |
 
 Server-only variables must never be prefixed `NEXT_PUBLIC_` or read in client
 components.
