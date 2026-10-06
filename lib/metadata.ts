@@ -15,6 +15,7 @@ const PAGE_LABELS = {
   honours: 'Seasons',
   records: 'Records',
   'lineup-lab': 'Lineup Lab',
+  admin: 'Admin',
   settings: 'Settings',
 } as const
 

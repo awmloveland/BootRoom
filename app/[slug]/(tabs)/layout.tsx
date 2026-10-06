@@ -8,6 +8,7 @@ import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { LeagueHeaderSkeleton, LeagueSidebarSkeleton } from '@/components/LeagueTabSkeleton'
 import { StatsSidebar } from '@/components/StatsSidebar'
 import { SidebarSticky } from '@/components/SidebarSticky'
+import { LeagueSidebarSwitch, SidebarSlotProvider } from '@/components/SidebarSlot'
 import type { LeagueDetails } from '@/lib/types'
 
 interface Props {
@@ -26,23 +27,29 @@ const TOTAL_WEEKS = 52
  *
  * The header and sidebar each sit in their own Suspense boundary so the tab
  * content can stream in without waiting on them on a full page load.
+ *
+ * The Admin tab swaps the stats sidebar for its own widgets (see SidebarSlot).
  */
 export default async function LeagueTabsLayout({ children, params }: Props) {
   const { slug } = await params
 
   return (
     <main className="px-4 sm:px-6 pt-5 pb-14">
-      <div className="flex justify-center gap-6 items-start">
-        <div className="w-full max-w-xl shrink-0">
-          <Suspense fallback={<LeagueHeaderSkeleton leagueSlug={slug} />}>
-            <LeagueHeader slug={slug} />
-          </Suspense>
-          {children}
+      <SidebarSlotProvider>
+        <div className="flex justify-center gap-6 items-start">
+          <div className="w-full max-w-xl shrink-0">
+            <Suspense fallback={<LeagueHeaderSkeleton leagueSlug={slug} />}>
+              <LeagueHeader slug={slug} />
+            </Suspense>
+            {children}
+          </div>
+          <LeagueSidebarSwitch>
+            <Suspense fallback={<LeagueSidebarSkeleton />}>
+              <LeagueSidebar slug={slug} />
+            </Suspense>
+          </LeagueSidebarSwitch>
         </div>
-        <Suspense fallback={<LeagueSidebarSkeleton />}>
-          <LeagueSidebar slug={slug} />
-        </Suspense>
-      </div>
+      </SidebarSlotProvider>
     </main>
   )
 }

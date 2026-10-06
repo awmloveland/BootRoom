@@ -65,4 +65,20 @@ describe('LeagueTabNav', () => {
     offsetWidth.mockRestore()
     clientWidth.mockRestore()
   })
+
+  it('hides the Admin tab from members and the public', () => {
+    segment.mockReturnValue('results')
+    render(<LeagueTabNav leagueSlug="the-boot-room" isAdmin={false} />)
+    expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument()
+  })
+
+  it('shows admins the Admin tab last', () => {
+    segment.mockReturnValue('admin')
+    render(<LeagueTabNav leagueSlug="the-boot-room" isAdmin />)
+    const links = screen.getAllByRole('link')
+    expect(links.map((l) => l.textContent)).toEqual(['Overview', 'Results', 'Players', 'Seasons', 'Records', 'Lineup Lab', 'Admin'])
+    const admin = screen.getByRole('link', { name: 'Admin' })
+    expect(admin).toHaveAttribute('href', '/the-boot-room/admin')
+    expect(admin).toHaveAttribute('aria-current', 'page')
+  })
 })

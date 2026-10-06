@@ -2,19 +2,21 @@
 
 import Link from 'next/link'
 import { useSelectedLayoutSegment } from 'next/navigation'
-import { LayoutGrid, ClipboardList, Users, Calendar, Award, FlaskConical, type LucideIcon } from 'lucide-react'
+import { LayoutGrid, ClipboardList, Users, Calendar, Award, FlaskConical, Shield, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ScrollTabIntoView } from '@/components/ScrollTabIntoView'
 
 // Overview stands in for the stats sidebar, so it only exists below lg.
 // Seasons keeps the /honours route so shared quarter links still work.
-const TABS: { key: string; label: string; icon: LucideIcon; className?: string }[] = [
+// Admin (pitch fees) only exists for league admins.
+const TABS: { key: string; label: string; icon: LucideIcon; className?: string; adminOnly?: boolean }[] = [
   { key: 'overview', label: 'Overview', icon: LayoutGrid, className: 'lg:hidden' },
   { key: 'results', label: 'Results', icon: ClipboardList },
   { key: 'players', label: 'Players', icon: Users },
   { key: 'honours', label: 'Seasons', icon: Calendar },
   { key: 'records', label: 'Records', icon: Award },
   { key: 'lineup-lab', label: 'Lineup Lab', icon: FlaskConical },
+  { key: 'admin', label: 'Admin', icon: Shield, adminOnly: true },
 ]
 
 /**
@@ -22,12 +24,13 @@ const TABS: { key: string; label: string; icon: LucideIcon; className?: string }
  * active tab from the URL rather than a prop: the underline moves the moment
  * a tab is clicked, while the page below is still loading.
  */
-export function LeagueTabNav({ leagueSlug }: { leagueSlug: string }) {
+export function LeagueTabNav({ leagueSlug, isAdmin = false }: { leagueSlug: string; isAdmin?: boolean }) {
   const currentTab = useSelectedLayoutSegment()
+  const tabs = isAdmin ? TABS : TABS.filter((t) => !t.adminOnly)
 
   return (
     <nav className="relative flex gap-1 overflow-x-auto border-b border-[#17263c] mt-5 -mx-4 px-4 sm:mx-0 sm:px-0 touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {TABS.map(({ key, label, icon: Icon, className }) => (
+      {tabs.map(({ key, label, icon: Icon, className }) => (
         <Link
           key={key}
           href={`/${leagueSlug}/${key}`}

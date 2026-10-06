@@ -58,7 +58,7 @@ export function LeaguePageHeader({
       <div className="mt-3.5">
         <LeagueInfoBar details={details} leagueSlug={leagueSlug} isAdmin={isAdmin} />
       </div>
-      <LeagueTabNav leagueSlug={leagueSlug} />
+      <LeagueTabNav leagueSlug={leagueSlug} isAdmin={isAdmin} />
     </div>
   )
 }
