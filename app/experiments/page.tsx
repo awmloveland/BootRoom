@@ -14,6 +14,7 @@ const FEATURE_LABELS: Record<FeatureKey, string> = {
   player_comparison:   'Player Comparison',
   quarter_celebration: 'Quarter Celebration',
   lineup_share_image:  'Lineup Share Image',
+  margin_stats:        'Winning Margins',
 }
 
 interface Experiment {

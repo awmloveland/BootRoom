@@ -50,6 +50,13 @@ export function FeaturePanel({ leagueId, features, onChanged }: FeaturePanelProp
         description="Add a picture of both teams to shared lineup links in WhatsApp, iMessage, Slack and Discord. Admins always get it; choose who else does."
         onChanged={onChanged}
       />
+      <FeatureToggleCard
+        leagueId={leagueId}
+        feature={getFeature(features, 'margin_stats')}
+        title="Winning Margins"
+        description="Show the average winning margin, biggest win and close games under Head to Head, once the league has 10 wins. Admins always see it; choose who else does."
+        onChanged={onChanged}
+      />
     </div>
   )
 }
