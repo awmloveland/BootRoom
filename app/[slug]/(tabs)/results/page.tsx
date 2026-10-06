@@ -6,7 +6,8 @@ import { notFound } from 'next/navigation'
 import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isFeatureEnabled, isLeagueHidden } from '@/lib/features'
-import { dayNameToIndex, isPastDeadline, parseWeekDate } from '@/lib/utils'
+import { dayNameToIndex, getLatestResultWeek, isPastDeadline, parseWeekDate } from '@/lib/utils'
+import { quarterShareUrls, resultShareUrlFor } from '@/lib/shareLinksServer'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
 import { PublicResultsSection } from '@/components/PublicResultsSection'
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
@@ -98,8 +99,17 @@ export default async function LeagueResultsPage({ params }: Props) {
     isAdmin || isFeatureEnabled(features, 'quarter_celebration', tier)
   const celebration: ResultsCelebration | null =
     celebratedQuarters.length > 0 && canSeeCelebration
-      ? { quarters: celebratedQuarters, leagueName: game.name, leagueSlug: slug }
+      ? {
+          quarters: celebratedQuarters,
+          leagueName: game.name,
+          leagueSlug: slug,
+          shareUrls: quarterShareUrls(slug, leagueId, celebratedQuarters),
+        }
       : null
+
+  // Signed link for the Share button on the latest result. The lists only
+  // show results to viewers who can see match history.
+  const resultShareUrl = canSeeMatchHistory ? resultShareUrlFor(slug, getLatestResultWeek(weeks)) : null
 
   const goalkeepers = players.filter((p) => p.mentality === 'goalkeeper').map((p) => p.name)
 
@@ -119,6 +129,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             showMatchHistory={canSeeMatchHistory}
             canShareImage={canShareLineupImage}
             celebration={celebration}
+            resultShareUrl={resultShareUrl}
           />
           {!isAuthenticated && (
             <p className="pt-2 font-plex text-[9px] uppercase tracking-[.14em] text-[#4f688a] text-center">
@@ -153,6 +164,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             celebration={celebration}
             linkedPlayerName={claim.playerName}
             canShareImage={canShareLineupImage}
+            resultShareUrl={resultShareUrl}
           />
         ) : (
           <div className="py-16 text-center">

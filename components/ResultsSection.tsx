@@ -25,6 +25,7 @@ interface Props {
   celebration?: ResultsCelebration | null
   linkedPlayerName?: string | null
   canShareImage?: boolean
+  resultShareUrl?: string | null    // signed link for the most recent result's Share button
 }
 
 /** Latest result in one season, the card that opens when that season is shown. */
@@ -48,6 +49,7 @@ export function ResultsSection({
   celebration = null,
   linkedPlayerName = null,
   canShareImage = false,
+  resultShareUrl = null,
 }: Props) {
   const router = useRouter()
   const { seasons, year, isDefaultYear, selectYear } = useResultsYear(weeks)
@@ -119,6 +121,7 @@ export function ResultsSection({
           leagueName={leagueName}
           celebration={celebration}
           linkedPlayerName={linkedPlayerName}
+          resultShareUrl={resultShareUrl}
         />
       )}
     </div>

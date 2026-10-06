@@ -15,6 +15,7 @@ import {
   shareOrCopy,
   getMarginBarWidth,
   getMarginCaption,
+  withShareLink,
 } from '@/lib/utils'
 import { findRecordBreaks } from '@/lib/records'
 import { ResultModal } from '@/components/ResultModal'
@@ -36,6 +37,8 @@ interface MatchCardProps {
   onNameGuest?: (week: Week, guestName: string) => void
   /** The viewer's linked player, for the YOU tag and caption on played weeks. */
   linkedPlayerName?: string | null
+  /** Signed link for the most recent result; shares the plain league link when absent. */
+  shareUrl?: string | null
 }
 
 // ── Edit button helpers ───────────────────────────────────────────────────────
@@ -191,6 +194,8 @@ interface PlayedCardProps {
   isMostRecent: boolean
   onNameGuest?: (guestName: string) => void
   linkedPlayerName?: string | null
+  /** Signed link for the most recent result; shares the plain league link when absent. */
+  shareUrl?: string | null
 }
 
 // ── DnfCard ───────────────────────────────────────────────────────────────────
@@ -552,6 +557,7 @@ function PlayedCard({
   isMostRecent,
   onNameGuest,
   linkedPlayerName,
+  shareUrl,
 }: PlayedCardProps) {
   const [showEditModal, setShowEditModal] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -580,7 +586,7 @@ function PlayedCard({
         weeks,
         recordLines: findRecordBreaks(weeks, week),
       })
-      if (await shareOrCopy(shareText) === 'copied') {
+      if (await shareOrCopy(withShareLink(shareText, shareUrl)) === 'copied') {
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       }
@@ -710,6 +716,7 @@ export function MatchCard({
   isMostRecent = false,
   onNameGuest,
   linkedPlayerName = null,
+  shareUrl,
 }: MatchCardProps) {
   const nameGuestHandler =
     isAdmin && week.id && onNameGuest
@@ -793,6 +800,7 @@ export function MatchCard({
       isMostRecent={isMostRecent}
       onNameGuest={nameGuestHandler}
       linkedPlayerName={linkedPlayerName}
+      shareUrl={shareUrl}
     />
   )
 }

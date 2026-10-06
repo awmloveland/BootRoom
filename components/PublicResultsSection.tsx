@@ -16,6 +16,7 @@ interface Props {
   showMatchHistory: boolean
   canShareImage: boolean
   celebration: ResultsCelebration | null
+  resultShareUrl: string | null     // signed link for the most recent result's Share button
 }
 
 /** Public results: year tabs, the next match on the current year, then the selected year's results. */
@@ -29,6 +30,7 @@ export function PublicResultsSection({
   showMatchHistory,
   canShareImage,
   celebration,
+  resultShareUrl,
 }: Props) {
   const { seasons, year, isDefaultYear, selectYear } = useResultsYear(weeks)
 
@@ -59,6 +61,7 @@ export function PublicResultsSection({
             celebration={celebration}
             leagueName={leagueName}
             leagueSlug={leagueSlug}
+            resultShareUrl={resultShareUrl}
           />
         </section>
       )}

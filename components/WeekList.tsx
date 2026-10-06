@@ -8,7 +8,7 @@ import { YearDivider } from '@/components/YearDivider'
 import { NameGuestModal } from '@/components/NameGuestModal'
 import { QuarterCelebration } from '@/components/QuarterCelebration'
 import { celebratedQuarterStartingAt, type ResultsCelebration } from '@/lib/sidebar-stats'
-import { getLatestResultWeek, getMonthKey, formatMonthYear } from '@/lib/utils'
+import { getLatestResultWeek, getMonthKey, formatMonthYear, quarterShareKey } from '@/lib/utils'
 import type { Mentality, Player, Strength, Week } from '@/lib/types'
 
 interface Props {
@@ -25,6 +25,7 @@ interface Props {
   celebration?: ResultsCelebration | null   // champion cards, each rendered above the first result of its quarter
   linkedPlayerName?: string | null          // viewer's linked player, for the YOU tag on played weeks
   season?: string                           // only render this season's weeks (Results year tabs)
+  resultShareUrl?: string | null            // signed link for the most recent result
 }
 
 interface NameGuestTarget {
@@ -46,6 +47,7 @@ export function WeekList({
   celebration = null,
   linkedPlayerName = null,
   season,
+  resultShareUrl = null,
 }: Props) {
   const router = useRouter()
   // Cards render for one season when the year tabs are in play; cards still get
@@ -117,6 +119,7 @@ export function WeekList({
         const celebratedQuarter = celebration
           ? celebratedQuarterStartingAt(visibleWeeks, index, celebration.quarters)
           : null
+        const isMostRecent = week.season === mostRecent?.season && week.week === mostRecent?.week
         return (
           <Fragment key={week.id ?? `${week.season}-${week.week}`}>
             {celebration && celebratedQuarter && (
@@ -125,6 +128,7 @@ export function WeekList({
                 leagueName={celebration.leagueName}
                 leagueSlug={celebration.leagueSlug}
                 variant="card"
+                shareUrl={celebration.shareUrls?.[quarterShareKey(celebratedQuarter)]}
               />
             )}
             {yearChanged && <YearDivider year={week.season} />}
@@ -143,7 +147,8 @@ export function WeekList({
                 leagueName={leagueName}
                 leagueSlug={leagueSlug}
                 weeks={weeks}
-                isMostRecent={week.season === mostRecent?.season && week.week === mostRecent?.week}
+                isMostRecent={isMostRecent}
+                shareUrl={isMostRecent ? resultShareUrl : null}
                 onNameGuest={handleNameGuestRequest}
                 linkedPlayerName={linkedPlayerName}
               />

@@ -6,7 +6,7 @@ import { MonthDivider } from '@/components/MonthDivider'
 import { YearDivider } from '@/components/YearDivider'
 import { QuarterCelebration } from '@/components/QuarterCelebration'
 import { celebratedQuarterStartingAt, type ResultsCelebration } from '@/lib/sidebar-stats'
-import { getLatestResultWeek, getMonthKey, formatMonthYear, getPlayedWeeks, sortWeeks } from '@/lib/utils'
+import { getLatestResultWeek, getMonthKey, formatMonthYear, getPlayedWeeks, quarterShareKey, sortWeeks } from '@/lib/utils'
 import type { Week } from '@/lib/types'
 
 interface PublicMatchListProps {
@@ -15,9 +15,10 @@ interface PublicMatchListProps {
   leagueName?: string                       // with leagueSlug, enables Share on the most recent result
   leagueSlug?: string
   season?: string                           // only render this season's weeks (Results year tabs)
+  resultShareUrl?: string | null            // signed link for the most recent result
 }
 
-export function PublicMatchList({ weeks, celebration = null, leagueName, leagueSlug, season }: PublicMatchListProps) {
+export function PublicMatchList({ weeks, celebration = null, leagueName, leagueSlug, season, resultShareUrl }: PublicMatchListProps) {
   // Cards render for one season when the year tabs are in play; cards still get
   // the full history for share text.
   const visibleWeeks = season ? weeks.filter((w) => w.season === season) : weeks
@@ -44,6 +45,10 @@ export function PublicMatchList({ weeks, celebration = null, leagueName, leagueS
         const celebratedQuarter = celebration
           ? celebratedQuarterStartingAt(visibleWeeks, index, celebration.quarters)
           : null
+        const isMostRecent =
+          week.status === 'played' &&
+          week.season === mostRecentResult?.season &&
+          week.week === mostRecentResult?.week
         return (
           <Fragment key={week.id ?? `${week.season}-${week.week}`}>
             {celebration && celebratedQuarter && (
@@ -52,6 +57,7 @@ export function PublicMatchList({ weeks, celebration = null, leagueName, leagueS
                 leagueName={celebration.leagueName}
                 leagueSlug={celebration.leagueSlug}
                 variant="card"
+                shareUrl={celebration.shareUrls?.[quarterShareKey(celebratedQuarter)]}
               />
             )}
             {yearChanged && <YearDivider year={week.season} />}
@@ -63,11 +69,8 @@ export function PublicMatchList({ weeks, celebration = null, leagueName, leagueS
               leagueName={leagueName}
               leagueSlug={leagueSlug}
               weeks={weeks}
-              isMostRecent={
-                week.status === 'played' &&
-                week.season === mostRecentResult?.season &&
-                week.week === mostRecentResult?.week
-              }
+              isMostRecent={isMostRecent}
+              shareUrl={isMostRecent ? resultShareUrl : null}
             />
           </Fragment>
         )
