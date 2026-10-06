@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-06-winning-margins-card-design.md`
 
+> **Update 2026-10-06:** the `margin_stats` flag (Task 3, and the `canSeeMargins` wiring in Task 4) was built and then removed at the user's request. The card renders unconditionally; the 10-win threshold is the only gate. The spec reflects the final design.
+
 ---
 
 ## File map

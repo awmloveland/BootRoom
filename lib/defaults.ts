@@ -14,5 +14,4 @@ export const DEFAULT_FEATURES: {
   { feature: 'player_comparison', enabled: false, config: null, public_enabled: false, public_config: null },
   { feature: 'quarter_celebration', enabled: false, config: null, public_enabled: false, public_config: null },
   { feature: 'lineup_share_image', enabled: false, config: null, public_enabled: false, public_config: null },
-  { feature: 'margin_stats', enabled: false, config: null, public_enabled: false, public_config: null },
 ]

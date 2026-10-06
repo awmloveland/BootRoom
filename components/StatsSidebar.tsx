@@ -16,8 +16,6 @@ interface StatsSidebarProps {
   weeks: Week[]
   leagueDayIndex?: number
   linkedPlayerName?: string | null
-  /** margin_stats flag, resolved for the viewer's tier. */
-  canSeeMargins?: boolean
   isAdmin?: boolean
 }
 
@@ -390,7 +388,7 @@ export function MarginsWidget({
 
 // ─── StatsSidebar ─────────────────────────────────────────────────────────────
 
-export function StatsSidebar({ players, weeks, leagueDayIndex, linkedPlayerName, canSeeMargins = false, isAdmin = false }: StatsSidebarProps) {
+export function StatsSidebar({ players, weeks, leagueDayIndex, linkedPlayerName, isAdmin = false }: StatsSidebarProps) {
   return (
     <div className="flex flex-col gap-3">
       <YourStatsWidget players={players} linkedPlayerName={linkedPlayerName} />
@@ -398,7 +396,7 @@ export function StatsSidebar({ players, weeks, leagueDayIndex, linkedPlayerName,
       <QuarterlyTableWidget weeks={weeks} leagueDayIndex={leagueDayIndex} />
       <InFormWidget    players={players} weeks={weeks} />
       <TeamABWidget    weeks={weeks} />
-      {canSeeMargins && <MarginsWidget weeks={weeks} isAdmin={isAdmin} />}
+      <MarginsWidget   weeks={weeks} isAdmin={isAdmin} />
     </div>
   )
 }

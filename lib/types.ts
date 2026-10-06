@@ -93,8 +93,7 @@ export type FeatureKey =
   | 'player_stats'
   | 'player_comparison'
   | 'quarter_celebration'
-  | 'lineup_share_image'
-  | 'margin_stats';
+  | 'lineup_share_image';
 
 export interface FeatureConfig {
   max_players?: number | null;

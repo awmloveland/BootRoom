@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { isFeatureEnabled, isLeagueHidden } from '@/lib/features'
+import { isLeagueHidden } from '@/lib/features'
 import { dayNameToIndex, getSeasonPlayedWeekCount, getHeaderSeason } from '@/lib/utils'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
@@ -121,7 +121,6 @@ async function LeagueSidebar({ slug }: { slug: string }) {
         weeks={weeks}
         leagueDayIndex={dayNameToIndex(game.day ?? null) ?? undefined}
         linkedPlayerName={claim.playerName}
-        canSeeMargins={isFeatureEnabled(features, 'margin_stats', tier)}
         isAdmin={tier === 'admin'}
       />
     </SidebarSticky>

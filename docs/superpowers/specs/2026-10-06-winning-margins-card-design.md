@@ -12,7 +12,7 @@ A new stats card, **Winning Margins**, that answers "by how much do games
 usually get won?". It shows the average winning margin, the biggest win, a
 chart of how often each margin happens (draws included) and the share of close
 games. It sits directly under Head to Head in the desktop sidebar and on the
-Overview tab, behind a new `margin_stats` feature flag.
+Overview tab. There is no feature flag; the 10-win threshold is the only gate.
 
 ## Decisions (settled during brainstorming)
 
@@ -22,8 +22,11 @@ Overview tab, behind a new `margin_stats` feature flag.
    No per-team split in the chart.
 3. **All time only**, matching Head to Head. No quarter view; the Records tab
    already covers biggest wins in depth.
-4. **Behind a feature flag**, per the feature development standard:
-   `margin_stats`, seeded `enabled: false, public_enabled: false`.
+4. **No feature flag.** Ships to everyone who can see the league, like the
+   rest of the stats sidebar and the Overview tab. This is a deliberate
+   exception to the feature flag standard, agreed on 2026-10-06 (a
+   `margin_stats` flag was built first and then removed). No migration, no
+   `FeaturePanel` row.
 5. **Hidden until the league has 10 wins.** Ten counted wins
    (`MIN_MARGIN_WINS = 10`) is where the average settles to within about half
    a goal and the chart has a real shape. Draws do not count towards it.
@@ -99,38 +102,15 @@ Tailwind.
 ## Where it renders
 
 - **Sidebar:** `StatsSidebar` renders `<MarginsWidget weeks={weeks}
-  isAdmin={isAdmin} />` after `TeamABWidget`, only when the new
-  `canSeeMargins` prop is true. `StatsSidebar` also gains an `isAdmin` prop.
+  isAdmin={isAdmin} />` after `TeamABWidget`. `StatsSidebar` gains an
+  `isAdmin` prop, which `LeagueSidebar` in `app/[slug]/(tabs)/layout.tsx`
+  sets to `resolveVisibilityTier(userRole) === 'admin'`.
 - **Overview:** `app/[slug]/(tabs)/overview/page.tsx` renders
   `<MarginsWidget weeks={weeks} size="page" isAdmin={isAdmin} />` after
-  `TeamABWidget`, only when `canSeeMargins` is true.
+  `TeamABWidget`, using the page's existing `isAdmin`.
 - **Threshold:** `MarginsWidget` returns `null` when
   `winCount < MIN_MARGIN_WINS` and `isAdmin` is false. When `isAdmin` is true
   it always renders, adding the admin hint below the threshold.
-
-## Feature flag wiring
-
-Follows `docs/FEATURE_FLAGS.md`.
-
-1. Add `'margin_stats'` to `FeatureKey` in `lib/types.ts`.
-2. Add a `DEFAULT_FEATURES` entry in `lib/defaults.ts`:
-   `enabled: false, public_enabled: false`.
-3. Add a `FeaturePanel` row (`FeatureToggleCard`), title "Winning Margins",
-   description: "Show the average winning margin, biggest win and close games
-   under Head to Head, once the league has 10 wins. Admins always see it;
-   choose who else does." Also add the label to `FEATURE_LABELS` in
-   `app/experiments/page.tsx` (a `Record<FeatureKey, string>`).
-4. Migration `supabase/migrations/20261006000002_seed_margin_stats.sql`,
-   matching `20261005000001_seed_lineup_share_image.sql`: insert into
-   `feature_experiments` and seed `league_features` for every game.
-5. `LeagueSidebar` in `app/[slug]/(tabs)/layout.tsx` already loads `features`
-   and `userRole`; it computes
-   `isFeatureEnabled(features, 'margin_stats', resolveVisibilityTier(userRole))`
-   and passes `canSeeMargins` to `StatsSidebar`. The Overview page computes the
-   same value from its existing `features` and `tier`.
-
-Production migrations can lag behind `main`, so the seed may need applying by
-hand in the Supabase SQL Editor before admins see the card.
 
 ## Code units
 
@@ -158,5 +138,5 @@ hand in the Supabase SQL Editor before admins see the card.
 - below 10 wins: renders nothing for a non-admin; renders with the hint
   "Visible to non-admins after 10 wins · N so far" for an admin.
 - at exactly 10 wins: renders for a non-admin, with no hint for an admin.
-- `StatsSidebar` hides the card when `canSeeMargins` is false and shows it
-  when true.
+- `StatsSidebar` shows the card once the league has 10 wins, and passes
+  `isAdmin` through so admins see it earlier.

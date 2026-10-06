@@ -2,7 +2,6 @@
 
 import { PlayerStatsCard } from '@/components/PlayerStatsCard'
 import { FeatureToggleCard } from '@/components/FeatureToggleCard'
-import { MIN_MARGIN_WINS } from '@/lib/sidebar-stats'
 import type { FeatureKey, LeagueFeature } from '@/lib/types'
 
 interface FeaturePanelProps {
@@ -49,13 +48,6 @@ export function FeaturePanel({ leagueId, features, onChanged }: FeaturePanelProp
         feature={getFeature(features, 'lineup_share_image')}
         title="Lineup Share Image"
         description="Add a picture of both teams to shared lineup links in WhatsApp, iMessage, Slack and Discord. Admins always get it; choose who else does."
-        onChanged={onChanged}
-      />
-      <FeatureToggleCard
-        leagueId={leagueId}
-        feature={getFeature(features, 'margin_stats')}
-        title="Winning Margins"
-        description={`Show the average winning margin, biggest win and close games under Head to Head, once the league has ${MIN_MARGIN_WINS} wins. Admins always see it; choose who else does.`}
         onChanged={onChanged}
       />
     </div>

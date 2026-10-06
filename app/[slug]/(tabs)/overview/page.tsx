@@ -61,7 +61,6 @@ export default async function LeagueOverviewPage({ params }: Props) {
   const canSeeMatchHistory = isAdmin || isFeatureEnabled(features, 'match_history', tier)
   const canSeeMatchEntry = isAdmin || isFeatureEnabled(features, 'match_entry', tier)
   const canShareLineupImage = isFeatureEnabled(features, 'lineup_share_image', tier)
-  const canSeeMargins = isFeatureEnabled(features, 'margin_stats', tier)
   const leagueDayIndex = dayNameToIndex(game.day ?? null) ?? undefined
 
   // Overview is the small-screen landing page, so it must keep week numbers and
@@ -127,7 +126,7 @@ export default async function LeagueOverviewPage({ params }: Props) {
         <OverviewTableCard table={table} standing={standing} lastResult={lastResult} />
         <InFormWidget players={players} weeks={weeks} size="page" showWindowTag />
         <TeamABWidget weeks={weeks} size="page" linkedPlayer={linkedPlayer} />
-        {canSeeMargins && <MarginsWidget weeks={weeks} size="page" isAdmin={isAdmin} />}
+        <MarginsWidget weeks={weeks} size="page" isAdmin={isAdmin} />
       </div>
     </>
   )
