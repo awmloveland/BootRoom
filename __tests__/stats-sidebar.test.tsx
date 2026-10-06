@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { StatsSidebar, InFormWidget, TeamABWidget, MarginsWidget } from '@/components/StatsSidebar'
 import { QuarterTableRows, ChampionBox } from '@/components/QuarterTable'
 import type { Player, Week } from '@/lib/types'
@@ -133,8 +133,9 @@ describe('MarginsWidget', () => {
     expect(screen.getByText('Avg goals per win')).toBeInTheDocument()
     expect(screen.getByText('+9')).toBeInTheDocument()
     expect(screen.getByText('Biggest')).toBeInTheDocument()
+    const labelRow = container.querySelector('[role="img"] + [aria-hidden="true"]') as HTMLElement
     for (const label of ['D', '1', '2', '3', '4', '5', '6', '7+']) {
-      expect(screen.getByText(label)).toBeInTheDocument()
+      expect(within(labelRow).getByText(label)).toBeInTheDocument()
     }
     expect(container).toHaveTextContent('Close games · 36% · 1 goal or a draw')
     expect(container).not.toHaveTextContent('Visible to non-admins')
@@ -151,13 +152,19 @@ describe('MarginsWidget', () => {
   it('describes the chart for screen readers', () => {
     render(<MarginsWidget weeks={TEN_WINS} />)
     expect(screen.getByRole('img')).toHaveAccessibleName(
-      'Draws 1, 1 goal 3, 2 goals 2, 3 goals 2, 4 goals 1, 5 goals 0, 6 goals 1, 7+ goals 1',
+      'Winning margins: Draws 1, 1 goal 3, 2 goals 2, 3 goals 2, 4 goals 1, 5 goals 0, 6 goals 1, 7+ goals 1',
     )
   })
 
   it('renders nothing for a non-admin below 10 wins', () => {
     const { container } = render(<MarginsWidget weeks={TEN_WINS.slice(1)} />)
     expect(container).toBeEmptyDOMElement()
+  })
+
+  it('shows an admin no hint once the league has 10 wins', () => {
+    const { container } = render(<MarginsWidget weeks={TEN_WINS} isAdmin />)
+    expect(screen.getByText('Winning Margins')).toBeInTheDocument()
+    expect(container).not.toHaveTextContent('Visible to non-admins')
   })
 
   it('shows an admin the card with a progress hint below 10 wins', () => {

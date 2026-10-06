@@ -350,7 +350,7 @@ export function MarginsWidget({
           {/* Margin chart: draws, then 1 to 7+ */}
           <div
             role="img"
-            aria-label={buckets.map((count, i) => `${marginBucketName(i)} ${count}`).join(', ')}
+            aria-label={'Winning margins: ' + buckets.map((count, i) => `${marginBucketName(i)} ${count}`).join(', ')}
             className="flex items-end gap-[5px] h-14"
           >
             {buckets.map((count, i) => (
@@ -359,7 +359,7 @@ export function MarginsWidget({
                   <div
                     data-bucket={MARGIN_LABELS[i]}
                     className={cn(
-                      'w-full rounded-t-[2px]',
+                      'w-full min-h-[2px] rounded-t-[2px]',
                       i === 0 ? 'bg-[#2c4a72]' : i === modeMargin ? 'bg-[#38bdf8]' : 'bg-[#223a5c]',
                     )}
                     style={{ height: `${(count / maxCount) * 100}%` }}
