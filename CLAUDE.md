@@ -146,7 +146,8 @@ export type FeatureKey =
   | 'player_stats'
   | 'player_comparison'
   | 'quarter_celebration'
-  | 'lineup_share_image';
+  | 'lineup_share_image'
+  | 'margin_stats';
 
 export interface LeagueFeature {
   feature: FeatureKey;
