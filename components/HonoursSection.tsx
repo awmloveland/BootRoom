@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown } from 'lucide-react'
-import { cn, buildQuarterShareText, shareOrCopy, formatGoalDiff, formatPointsPerGame } from '@/lib/utils'
+import { cn, buildQuarterShareText, shareOrCopy, withShareLink, formatGoalDiff, formatPointsPerGame } from '@/lib/utils'
 import { MIN_QUARTER_GAMES } from '@/lib/sidebar-stats'
 import type { QuarterSummary, HonoursYear, QuarterlyTableResult, QuarterStanding } from '@/lib/sidebar-stats'
 import {
@@ -21,6 +21,8 @@ interface HonoursSectionProps {
   liveTable?: QuarterlyTableResult | null
   /** The linked viewer's place in the live table, or null for unlinked viewers. */
   standing?: QuarterStanding | null
+  /** Signed share links for completed quarters, keyed '2026-3'. */
+  shareUrls?: Record<string, string>
 }
 
 const PAGE_SIZE = 10
@@ -90,10 +92,12 @@ function CompletedCardBody({
   quarter,
   leagueName,
   leagueSlug,
+  shareUrl,
 }: {
   quarter: QuarterSummary
   leagueName: string
   leagueSlug: string
+  shareUrl?: string
 }) {
   const [showAll, setShowAll] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -104,7 +108,7 @@ function CompletedCardBody({
   const overflowCount = Math.max(0, entries.length - PAGE_SIZE)
 
   async function handleShare() {
-    const text = buildQuarterShareText({ leagueName, leagueSlug, quarter })
+    const text = withShareLink(buildQuarterShareText({ leagueName, leagueSlug, quarter }), shareUrl)
     const result = await shareOrCopy(text)
     if (result === 'copied') {
       setCopied(true)
@@ -261,6 +265,7 @@ function QuarterCard({
   leagueSlug,
   liveTable,
   standing,
+  shareUrl,
 }: {
   quarter: QuarterSummary
   anchorId: string
@@ -270,6 +275,7 @@ function QuarterCard({
   leagueSlug: string
   liveTable: QuarterlyTableResult | null
   standing: QuarterStanding | null
+  shareUrl?: string
 }) {
   const { status, q, seasonName, champion } = quarter
   const subtitle = quarterSubtitle(quarter)
@@ -334,7 +340,7 @@ function QuarterCard({
             )} />
           </button>
         </Collapsible.Trigger>
-        <CompletedCardBody quarter={quarter} leagueName={leagueName} leagueSlug={leagueSlug} />
+        <CompletedCardBody quarter={quarter} leagueName={leagueName} leagueSlug={leagueSlug} shareUrl={shareUrl} />
       </div>
     </Collapsible.Root>
   )
@@ -342,7 +348,7 @@ function QuarterCard({
 
 // ── Section ───────────────────────────────────────────────────────────────────
 
-export function HonoursSection({ data, leagueName, leagueSlug, liveTable = null, standing = null }: HonoursSectionProps) {
+export function HonoursSection({ data, leagueName, leagueSlug, liveTable = null, standing = null, shareUrls = {} }: HonoursSectionProps) {
   const [openKey, setOpenKey] = useState<string | null>(() => {
     for (const yearGroup of data) {
       for (const q of yearGroup.quarters) {
@@ -405,6 +411,7 @@ export function HonoursSection({ data, leagueName, leagueSlug, liveTable = null,
                   leagueSlug={leagueSlug}
                   liveTable={liveTable}
                   standing={standing}
+                  shareUrl={shareUrls[key]}
                 />
               )
             })}

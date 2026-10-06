@@ -7,7 +7,8 @@ import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { getGameBySlug, getAuthAndRole, getWeeks, getMyClaimInfo } from '@/lib/fetchers'
 import { dayNameToIndex } from '@/lib/utils'
-import { computeAllQuarters, computeQuarterlyTable, getQuarterStanding } from '@/lib/sidebar-stats'
+import { computeAllQuarters, computeQuarterlyTable, getCelebratedQuarters, getQuarterStanding } from '@/lib/sidebar-stats'
+import { quarterShareUrls } from '@/lib/shareLinksServer'
 import { HonoursSection } from '@/components/HonoursSection'
 import { HonoursLoginPrompt } from '@/components/HonoursLoginPrompt'
 import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
@@ -58,6 +59,7 @@ export default async function HonoursPage({ params }: Props) {
           standing={standing}
           leagueName={game.name}
           leagueSlug={slug}
+          shareUrls={quarterShareUrls(slug, leagueId, getCelebratedQuarters(weeks, now))}
         />
       )}
     </>
