@@ -24,6 +24,12 @@ Overview tab, behind a new `margin_stats` feature flag.
    already covers biggest wins in depth.
 4. **Behind a feature flag**, per the feature development standard:
    `margin_stats`, seeded `enabled: false, public_enabled: false`.
+5. **Hidden until the league has 10 wins.** Ten counted wins
+   (`MIN_MARGIN_WINS = 10`) is where the average settles to within about half
+   a goal and the chart has a real shape. Draws do not count towards it.
+   Below the threshold the card is hidden from members and the public; admins
+   still see it, with a hint line showing progress. The threshold is a
+   constant in code, not an admin setting.
 
 ## Data model constraint
 
@@ -45,6 +51,7 @@ Input: all weeks. Only `status === 'played'` weeks count.
 | `modeMargin` | The win margin (1 to 7, where 7 means the 7+ bucket) with the highest count. Ties go to the smaller margin. Draws are never the mode. `null` when there are no counted wins. |
 | `closeGamePct` | `(wins by exactly 1 + draws) / counted games`, as a whole percentage rounded to nearest. `null` when there are no counted games. |
 | `counted` | Number of counted games. |
+| `winCount` | Number of counted wins (excludes draws). Compared against `MIN_MARGIN_WINS`. |
 
 A margin of 0 recorded on a week whose `winner` is not `'draw'` cannot happen
 (the UI enforces 1 to 20 for wins) and is ignored if it does.
@@ -78,6 +85,11 @@ Uses the existing `WidgetShell`, `AllTimeChip` and `EmptyState` from
 - **Meta label style:** `font-plex text-[8.5px] uppercase tracking-[.14em]
   text-[#6f88a8]`, written in normal case in JSX.
 - **Empty:** `counted === 0` renders `EmptyState` "No results yet".
+- **Admin hint:** when the card is shown below the threshold (admins only),
+  a meta line sits under the footer in `#4f688a`:
+  "Shows to everyone after 10 wins · **4** so far", with the count bold in
+  `#8ba4c4`. It also replaces `EmptyState` when `counted === 0`, reading
+  "0 so far".
 
 Bar heights use an inline `style={{ height }}`, the same data-driven exception
 Head to Head already uses for its split bar widths. Everything else is
@@ -85,11 +97,15 @@ Tailwind.
 
 ## Where it renders
 
-- **Sidebar:** `StatsSidebar` renders `<MarginsWidget weeks={weeks} />` after
-  `TeamABWidget`, only when the new `canSeeMargins` prop is true.
+- **Sidebar:** `StatsSidebar` renders `<MarginsWidget weeks={weeks}
+  isAdmin={isAdmin} />` after `TeamABWidget`, only when the new
+  `canSeeMargins` prop is true. `StatsSidebar` also gains an `isAdmin` prop.
 - **Overview:** `app/[slug]/(tabs)/overview/page.tsx` renders
-  `<MarginsWidget weeks={weeks} size="page" />` after `TeamABWidget`, only
-  when `canSeeMargins` is true.
+  `<MarginsWidget weeks={weeks} size="page" isAdmin={isAdmin} />` after
+  `TeamABWidget`, only when `canSeeMargins` is true.
+- **Threshold:** `MarginsWidget` returns `null` when
+  `winCount < MIN_MARGIN_WINS` and `isAdmin` is false. When `isAdmin` is true
+  it always renders, adding the admin hint below the threshold.
 
 ## Feature flag wiring
 
@@ -117,7 +133,9 @@ hand in the Supabase SQL Editor before admins see the card.
 
 - `computeMargins(weeks: Week[]): MarginStats` in `lib/sidebar-stats.ts`, next
   to `computeTeamAB`. `MarginStats` is added to `lib/types.ts`.
-- `MarginsWidget({ weeks, size })` exported from `components/StatsSidebar.tsx`.
+- `MIN_MARGIN_WINS = 10` exported from `lib/sidebar-stats.ts`.
+- `MarginsWidget({ weeks, size, isAdmin })` exported from
+  `components/StatsSidebar.tsx`.
 
 ## Testing
 
@@ -129,9 +147,13 @@ hand in the Supabase SQL Editor before admins see the card.
 - a tie for most common margin goes to the smaller margin.
 - `avgWinMargin` excludes draws; `closeGamePct` includes them.
 - only draws: average, biggest and mode are null; close games is 100%.
+- `winCount` excludes draws and wins with a null margin.
 
 `__tests__/stats-sidebar.test.tsx`:
 - `MarginsWidget` renders the average, biggest win, axis labels and footer.
 - empty state renders "No results yet".
+- below 10 wins: renders nothing for a non-admin; renders with the hint
+  "Shows to everyone after 10 wins · N so far" for an admin.
+- at exactly 10 wins: renders for a non-admin, with no hint for an admin.
 - `StatsSidebar` hides the card when `canSeeMargins` is false and shows it
   when true.
