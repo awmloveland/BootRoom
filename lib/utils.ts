@@ -967,9 +967,9 @@ export interface ResultHighlights {
 export type HighlightPlayer = Pick<Player, 'name' | 'played' | 'recentForm'>
 
 /**
- * Everything worth calling out about a result. `weeks` must end with the
- * result itself; `players` are the stats from before it. Shared by the share
- * text and the result preview image.
+ * Everything worth calling out about a result. `weeks` must include the
+ * result itself, in any order; it is matched on its date. `players` are the
+ * stats from before it. Shared by the share text and the result preview image.
  */
 export function computeResultHighlights(params: {
   date: string           // 'DD MMM YYYY'
@@ -991,7 +991,7 @@ export function computeResultHighlights(params: {
       if (count >= 3) items.push({ kind: 'win_streak', player: name, count })
     }
     // Unbeaten streaks broken (losing team only), from the weeks before tonight
-    const priorWeeks = weeks.slice(0, -1)
+    const priorWeeks = weeks.filter((w) => w.date !== date)
     for (const name of winner === 'teamA' ? teamB : teamA) {
       const count = currentUnbeatenStreak(name, priorWeeks)
       if (count >= 5) items.push({ kind: 'unbeaten_ended', player: name, count })
@@ -1076,11 +1076,13 @@ export function buildResultShareText(params: {
   teamBRating: number
   players: Player[]
   weeks: Week[]          // includes the synthetic week for tonight
+  recordLines?: string[] // from findRecordBreaks, shown first in the highlights
 }): { shareText: string; highlightsText: string } {
   const {
     leagueName, leagueSlug, week, date, format,
     teamA, teamB, winner, goalDifference,
     teamARating, teamBRating, players, weeks,
+    recordLines = [],
   } = params
 
   const parsed = parseWeekDate(date)
@@ -1099,7 +1101,7 @@ export function buildResultShareText(params: {
   const { items, table, inForm } = computeResultHighlights({
     date, teamA, teamB, winner, teamARating, teamBRating, players, weeks,
   })
-  const highlights = items.map(highlightLine)
+  const highlights = [...recordLines, ...items.map(highlightLine)]
   const tableLines = table
     ? [`📊 Q${table.q} ${table.year} standings`, ...table.entries.map((e, i) => `${i + 1}. ${e.name} — ${e.points}pts`)]
     : []
@@ -1121,13 +1123,10 @@ export function buildResultShareText(params: {
     `📅 ${shortDate}${format ? ` · ${format}` : ''}`,
     '',
     resultLine,
-    '',
-    '🔵 Team A',
-    teamA.join(', '),
-    '',
-    '🟣 Team B',
-    teamB.join(', '),
   ]
+  // Winners only; a draw has no losers, so both teams stay
+  if (winner !== 'teamB') parts.push('', '🔵 Team A', teamA.join(', '))
+  if (winner !== 'teamA') parts.push('', '🟣 Team B', teamB.join(', '))
 
   if (highlightsText.length > 0) {
     parts.push('')

@@ -581,3 +581,73 @@ export function computeRecords(weeks: Week[], now: Date = new Date()): RecordsDa
     teamAB: { teamA, teamB, draws },
   }
 }
+
+// ── Record breaks ─────────────────────────────────────────────────────────────
+
+/** Records a result share can announce. Rates are left out: they change hands
+ *  when someone reaches the minimum games, not because of tonight's game. */
+const SHARE_RECORD_KEYS = [
+  'most_appearances',
+  'most_wins',
+  'most_points',
+  'longest_win_streak',
+  'longest_unbeaten_run',
+  'most_consecutive_appearances',
+  'most_games_as_teammates',
+]
+
+/**
+ * Share lines for records that changed hands with `tonight`'s game: a player
+ * (or teammate pair) who played tonight now holds a record alone, or has drawn
+ * level with it. Holders extending their own record say nothing, and neither
+ * does a record nobody held before tonight. `weeks` includes tonight, in any
+ * order; tonight is matched on date and week number.
+ */
+export function findRecordBreaks(weeks: Week[], tonight: Week): string[] {
+  const isTonight = (w: Week) => w.date === tonight.date && w.week === tonight.week
+  const before = computeRecords(weeks.filter((w) => !isTonight(w)))
+  const after = computeRecords(weeks)
+
+  const played = new Set([...tonight.teamA, ...tonight.teamB])
+  const teammates = new Set(
+    [tonight.teamA, tonight.teamB].flatMap((team) =>
+      team.flatMap((a, i) => team.slice(i + 1).map((b) => pairOf(a, b).join(' & ')))
+    )
+  )
+
+  const lines: string[] = []
+  const beforeByKey = new Map([...before.career, ...before.streaks, ...before.duos].map((r) => [r.key, r]))
+  const afterByKey = new Map([...after.career, ...after.streaks, ...after.duos].map((r) => [r.key, r]))
+
+  for (const key of SHARE_RECORD_KEYS) {
+    const prev = beforeByKey.get(key)
+    const next = afterByKey.get(key)
+    if (!prev || !next || prev.holders.length === 0) continue
+    const isPair = key === 'most_games_as_teammates'
+    const inTonight = (name: string) => (isPair ? teammates.has(name) : played.has(name))
+    const sameHolders =
+      prev.holders.length === next.holders.length && next.holders.every((h) => prev.holders.includes(h))
+    if (sameHolders) continue
+
+    const raised = Number(next.value) > Number(prev.value)
+    const names = next.holders.filter((h) => inTonight(h) && (raised || !prev.holders.includes(h)))
+    if (names.length === 0) continue
+    const plural = isPair || names.length > 1
+    const who = isPair ? names.join(' and ') : joinNames(names)
+    const verb = raised ? (plural ? 'take' : 'takes') : (plural ? 'equal' : 'equals')
+    lines.push(`👑 ${who} ${verb} the ${next.label.toLowerCase()} record (${next.value})`)
+  }
+
+  const margin = tonight.goal_difference ?? 0
+  const biggest = before.biggestWin
+  if ((tonight.winner === 'teamA' || tonight.winner === 'teamB') && biggest && margin >= biggest.margin) {
+    const team = tonight.winner === 'teamA' ? 'Team A' : 'Team B'
+    lines.push(
+      margin > biggest.margin
+        ? `👑 ${team}'s ${margin}-goal win is the biggest in league history`
+        : `👑 ${team}'s ${margin}-goal win equals the biggest winning margin`
+    )
+  }
+
+  return lines
+}

@@ -35,12 +35,13 @@ const PARAMS = {
   players: PLAYERS, weeks: [...HISTORY, TONIGHT],
 }
 
-// Captured from buildResultShareText before the refactor. Must not change.
+// Captured from buildResultShareText before the refactor, less the losing
+// team's line-up (the share now lists winners only).
 const GOLDEN_HIGHLIGHTS = '🔥 Ava Stone on a 3-game winning streak\n\n🔥 Ben Hale on a 3-game winning streak\n\n😱 Upset! Team B were stronger on paper (4.6 vs 4.1)\n\n🎖️ Ava Stone played their 10th game tonight\n\n🎖️ Ben Hale played their 25th game tonight\n\n📊 Q3 2026 standings\n1. Ava Stone — 13pts\n2. Ben Hale — 13pts\n3. Cal Reed — 10pts\n4. Dan Moss — 10pts\n\n⚡ In form: Ava Stone (2.6 PPG)'
-const GOLDEN_TEXT = `⚽ Test FC — Week 8\n📅 Tue 25 Aug · 5-a-side\n\n🏆 Team A win! (+3 goals)\n\n🔵 Team A\nAva Stone, Ben Hale\n\n🟣 Team B\nCal Reed, Dan Moss\n\n${GOLDEN_HIGHLIGHTS}\n\n🔗 https://craft-football.com/test-fc`
+const GOLDEN_TEXT = `⚽ Test FC — Week 8\n📅 Tue 25 Aug · 5-a-side\n\n🏆 Team A win! (+3 goals)\n\n🔵 Team A\nAva Stone, Ben Hale\n\n${GOLDEN_HIGHLIGHTS}\n\n🔗 https://craft-football.com/test-fc`
 
 describe('buildResultShareText', () => {
-  it('is byte-identical to the pre-refactor output', () => {
+  it('matches the golden output', () => {
     expect(buildResultShareText(PARAMS)).toEqual({ shareText: GOLDEN_TEXT, highlightsText: GOLDEN_HIGHLIGHTS })
   })
 })

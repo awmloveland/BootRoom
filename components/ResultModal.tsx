@@ -7,6 +7,7 @@ import { cn, buildResultShareText, buildDnfShareText, buildResultHeadline, resol
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality, Week, Strength } from '@/lib/types'
 import { findNewlyCompletedQuarter } from '@/lib/sidebar-stats'
+import { findRecordBreaks } from '@/lib/records'
 import type { QuarterSummary } from '@/lib/sidebar-stats'
 import { QuarterCelebration } from '@/components/QuarterCelebration'
 import { strengthToRating } from '@/lib/strength'
@@ -324,6 +325,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         teamBRating: teamBScore,
         players: allPlayers,
         weeks: weeksWithResult,
+        recordLines: findRecordBreaks(weeksWithResult, syntheticWeek),
       })
 
       if (publicMode) {

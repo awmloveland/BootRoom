@@ -192,10 +192,37 @@ describe('buildResultShareText', () => {
     expect(shareText).not.toContain('goals)')
   })
 
-  it('includes both team lineups', () => {
+  it('lists only the winning team on a win', () => {
     const { shareText } = buildResultShareText(BASE_PARAMS)
-    expect(shareText).toContain('Dave, Tom')
-    expect(shareText).toContain('Jordan, Lee')
+    expect(shareText).toContain('🔵 Team A\nDave, Tom')
+    expect(shareText).not.toContain('Team B\n')
+    expect(shareText).not.toContain('Jordan, Lee')
+  })
+
+  it('lists only Team B when Team B win', () => {
+    const { shareText } = buildResultShareText({ ...BASE_PARAMS, winner: 'teamB' })
+    expect(shareText).toContain('🟣 Team B\nJordan, Lee')
+    expect(shareText).not.toContain('Dave, Tom')
+  })
+
+  it('lists both teams on a draw', () => {
+    const { shareText } = buildResultShareText({ ...BASE_PARAMS, winner: 'draw', goalDifference: 0 })
+    expect(shareText).toContain('🔵 Team A\nDave, Tom')
+    expect(shareText).toContain('🟣 Team B\nJordan, Lee')
+  })
+
+  // ── records ──
+
+  it('puts record lines first in the highlights', () => {
+    const weeks = [
+      makeWeek({ week: 10, date: '27 Mar 2026', teamA: ['Dave', 'Tom'], teamB: ['Jordan', 'Lee'], winner: 'teamA' }),
+      makeWeek({ week: 11, date: '03 Apr 2026', teamA: ['Dave', 'Tom'], teamB: ['Jordan', 'Lee'], winner: 'teamA' }),
+      makeWeek({ week: 12, date: '10 Apr 2026', teamA: ['Dave', 'Tom'], teamB: ['Jordan', 'Lee'], winner: 'teamA', goal_difference: 2 }),
+    ]
+    const recordLines = ['👑 Dave takes the most wins record (3)']
+    const { shareText, highlightsText } = buildResultShareText({ ...BASE_PARAMS, weeks, recordLines })
+    expect(highlightsText.startsWith('👑 Dave takes the most wins record (3)\n\n🔥 Dave')).toBe(true)
+    expect(shareText).toContain('👑 Dave takes the most wins record (3)')
   })
 
   it('includes the public URL', () => {
@@ -274,6 +301,20 @@ describe('buildResultShareText', () => {
     const { shareText } = buildResultShareText({ ...BASE_PARAMS, weeks })
     expect(shareText).toContain("💔 Jordan")
     expect(shareText).toContain("5-game unbeaten run is over")
+  })
+
+  it('emits unbeaten streak broken when weeks are newest first', () => {
+    // MatchCard passes the league's weeks sorted newest first
+    const weeks = [
+      makeWeek({ week: 12, date: '10 Apr 2026', teamA: ['Dave', 'Tom'], teamB: ['Jordan', 'Lee'], winner: 'teamA', goal_difference: 2 }),
+      makeWeek({ week: 11, date: '07 Apr 2026', teamA: ['Jordan'], teamB: ['Dave'],  winner: 'teamA' }),
+      makeWeek({ week: 10, date: '03 Apr 2026', teamA: ['Jordan'], teamB: ['Dave'],  winner: 'teamA' }),
+      makeWeek({ week: 9,  date: '27 Mar 2026', teamA: ['Jordan'], teamB: ['Dave'],  winner: 'draw' }),
+      makeWeek({ week: 8,  date: '20 Mar 2026', teamA: ['Jordan'], teamB: ['Dave'],  winner: 'teamA' }),
+      makeWeek({ week: 7,  date: '13 Mar 2026', teamA: ['Dave'], teamB: ['Jordan'], winner: 'teamB' }),
+    ]
+    const { shareText } = buildResultShareText({ ...BASE_PARAMS, weeks })
+    expect(shareText).toContain("💔 Jordan's 5-game unbeaten run is over")
   })
 
   it('does not emit unbeaten streak broken at 4 games', () => {

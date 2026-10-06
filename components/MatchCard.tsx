@@ -16,6 +16,7 @@ import {
   getMarginBarWidth,
   getMarginCaption,
 } from '@/lib/utils'
+import { findRecordBreaks } from '@/lib/records'
 import { ResultModal } from '@/components/ResultModal'
 import { EditWeekModal } from '@/components/EditWeekModal'
 
@@ -577,6 +578,7 @@ function PlayedCard({
         teamBRating: week.team_b_rating ?? 0,
         players: allPlayers,
         weeks,
+        recordLines: findRecordBreaks(weeks, week),
       })
       if (await shareOrCopy(shareText) === 'copied') {
         setCopied(true)

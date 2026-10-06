@@ -1,4 +1,4 @@
-import { computeRecords, joinNames } from '../records'
+import { computeRecords, findRecordBreaks, joinNames } from '../records'
 import type { LeagueRecord, Week, Winner } from '../types'
 
 // Fixed "now" in Q4 2026 so every quarter below is completed.
@@ -271,5 +271,79 @@ describe('computeRecords: milestones and match records', () => {
   it('keeps the first biggest win and the all-time team split', () => {
     expect(data.biggestWin).toEqual({ margin: 6, date: d[4], season: '2026', week: weeks[4].week })
     expect(data.teamAB).toEqual({ teamA: 8, teamB: 4, draws: 0 })
+  })
+})
+
+describe('findRecordBreaks', () => {
+  const d = mondays(8)
+  // Bob wins his three games against Opp1; Sam wins his against Opp2.
+  const bob = [0, 1, 2].map((i) => game(d[i], ['Bob'], ['Opp1'], 'teamA', 2))
+  const sam = [3, 4, 5, 6].map((i) => game(d[i], ['Sam'], ['Opp2'], 'teamA', 2))
+
+  it('says nothing for the first game a league plays', () => {
+    expect(findRecordBreaks([bob[0]], bob[0])).toEqual([])
+  })
+
+  it('says nothing when the holders just extend their own records', () => {
+    const tonight = game(d[3], ['Bob'], ['Opp1'], 'teamA', 1)
+    expect(findRecordBreaks([...bob, tonight], tonight)).toEqual([])
+  })
+
+  it('announces a player drawing level with a record', () => {
+    const weeks = [...bob, ...sam.slice(0, 3)]
+    const lines = findRecordBreaks(weeks, sam[2])
+    expect(lines).toContain('👑 Sam equals the longest winning streak record (3)')
+    expect(lines).toContain('👑 Sam equals the most wins record (3)')
+    expect(lines).toContain('👑 Opp2 & Sam equal the most appearances record (3)')
+  })
+
+  it('announces a joint holder pulling clear', () => {
+    const weeks = [...bob, ...sam]
+    const lines = findRecordBreaks(weeks, sam[3])
+    expect(lines).toContain('👑 Sam takes the longest winning streak record (4)')
+    expect(lines).toContain('👑 Opp2 & Sam take the most appearances record (4)')
+  })
+
+  it('only counts the game being shared, whatever order weeks are in', () => {
+    const weeks = [...bob, ...sam].reverse()
+    expect(findRecordBreaks(weeks, sam[3])).toContain('👑 Sam takes the longest winning streak record (4)')
+  })
+
+  it('announces teammates drawing level with the most games together', () => {
+    const weeks = [
+      game(d[0], ['Ann', 'Bob'], ['Opp1', 'Opp2'], 'teamA'),
+      game(d[1], ['Ann', 'Bob'], ['Opp3', 'Opp4'], 'teamB'),
+      game(d[2], ['Sam', 'Tom'], ['Opp5', 'Opp6'], 'draw'),
+      game(d[3], ['Sam', 'Tom'], ['Opp7', 'Opp8'], 'draw'),
+    ]
+    expect(findRecordBreaks(weeks, weeks[3])).toContain('👑 Sam & Tom equal the most games as teammates record (2)')
+  })
+
+  it('leaves out rate records and the wait for a win', () => {
+    const lines = findRecordBreaks([...bob, ...sam], sam[3])
+    expect(lines.join('\n')).not.toMatch(/win rate|points per game|best duo|wait for a win/)
+  })
+
+  describe('biggest winning margin', () => {
+    const prior = game(d[0], ['Bob'], ['Opp1'], 'teamA', 3)
+
+    it('announces a new biggest win', () => {
+      const tonight = game(d[1], ['Opp2'], ['Sam'], 'teamB', 5)
+      expect(findRecordBreaks([prior, tonight], tonight)).toContain("👑 Team B's 5-goal win is the biggest in league history")
+    })
+
+    it('announces a win equalling the biggest margin', () => {
+      const tonight = game(d[1], ['Sam'], ['Opp2'], 'teamA', 3)
+      expect(findRecordBreaks([prior, tonight], tonight)).toContain("👑 Team A's 3-goal win equals the biggest winning margin")
+    })
+
+    it('says nothing for a smaller win, a draw or the first win', () => {
+      const smaller = game(d[1], ['Sam'], ['Opp2'], 'teamA', 2)
+      const draw = game(d[1], ['Sam'], ['Opp2'], 'draw')
+      const margin = (lines: string[]) => lines.filter((l) => l.includes('-goal win'))
+      expect(margin(findRecordBreaks([prior, smaller], smaller))).toEqual([])
+      expect(margin(findRecordBreaks([prior, draw], draw))).toEqual([])
+      expect(margin(findRecordBreaks([prior], prior))).toEqual([])
+    })
   })
 })
