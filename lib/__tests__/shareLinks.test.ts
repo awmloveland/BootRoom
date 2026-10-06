@@ -11,6 +11,7 @@ import {
   parseQuarterToken,
   parseResultToken,
   quarterShareUrl,
+  resultFieldsOf,
   resultShareUrl,
   signLeagueToken,
   signLineupToken,
@@ -200,6 +201,18 @@ describe('result share tokens', () => {
   })
 })
 
+describe('resultFieldsOf', () => {
+  it('maps a week and counts a missing margin as 0', () => {
+    expect(resultFieldsOf({ winner: 'teamA', goal_difference: null, ...TEAMS }))
+      .toEqual({ winner: 'teamA', goalDifference: 0, ...TEAMS })
+    expect(resultFieldsOf({ winner: 'teamB', goal_difference: 4, ...TEAMS })?.goalDifference).toBe(4)
+  })
+
+  it('is null without a winner', () => {
+    expect(resultFieldsOf({ winner: null, ...TEAMS })).toBeNull()
+  })
+})
+
 describe('league share tokens', () => {
   function verifyLeague(token: string, secret = SECRET): boolean {
     const parsed = parseLeagueToken(token)
@@ -294,6 +307,11 @@ describe('share metadata builders', () => {
     ])
     expect(meta.openGraph).not.toHaveProperty('url')
     expect(meta.twitter).toEqual(expect.objectContaining({ card: 'summary_large_image' }))
+  })
+
+  it('does not say "won by 0" for a win without a margin', () => {
+    const meta = buildResultShareMetadata({ ...RESULT_SHARE, winner: 'teamB', goalDifference: 0 }, 'tok')
+    expect(meta.openGraph?.description).toBe('Team B won · Tue 06 Oct')
   })
 
   it('describes a draw', () => {

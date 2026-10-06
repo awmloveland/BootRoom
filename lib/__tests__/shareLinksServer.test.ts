@@ -179,6 +179,23 @@ describe('resultShareUrlFor', () => {
     expect(url).toMatch(/^https:\/\/craft-football\.com\/the-boot-room\?result=[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{16}$/)
   })
 
+  it('never throws on a week id that is not a UUID', () => {
+    expect(resultShareUrlFor('the-boot-room', { ...WEEK, id: 'w1' })).toBeNull()
+  })
+
+  it('signs a played week with no margin, and the link then loads', async () => {
+    const A = ['Marcus Reid']
+    const B = ['Callum Shaw']
+    const week = { ...played(WEEK_ID, 3, '21 Jul 2026', A, B, 'teamA'), goal_difference: null }
+    const url = resultShareUrlFor('the-boot-room', week)!
+    expect(url).not.toBeNull()
+    ;(getGame as jest.Mock).mockResolvedValue(GAME)
+    ;(getWeeks as jest.Mock).mockResolvedValue([week])
+    mockTables({ weeks: { game_id: GAME_ID, status: 'played', winner: 'teamA', goal_difference: null, team_a: A, team_b: B } })
+    const loaded = await loadSharedResult(url.split('?result=')[1])
+    expect(loaded).toEqual(expect.objectContaining({ week: 3, winner: 'teamA', goalDifference: 0 }))
+  })
+
   it('is null for a DNF week, a missing week or no secret', () => {
     expect(resultShareUrlFor('the-boot-room', { ...WEEK, status: 'dnf' })).toBeNull()
     expect(resultShareUrlFor('the-boot-room', null)).toBeNull()
@@ -217,6 +234,12 @@ describe('loadSharedQuarter', () => {
     expect(getWeeks).not.toHaveBeenCalled()
   })
 
+  it('never throws on a bad game id or quarter', () => {
+    expect(quarterShareUrls('the-boot-room', 'not-a-uuid', [{ year: 2026, q: 3 }])).toEqual({})
+    const urls = quarterShareUrls('the-boot-room', GAME_ID, [{ year: 2026, q: 5 }, { year: 26, q: 3 }, { year: 2026, q: 3 }])
+    expect(Object.keys(urls)).toEqual(['2026-3'])
+  })
+
   it('signs every quarter it is given', () => {
     const urls = quarterShareUrls('the-boot-room', GAME_ID, [{ year: 2026, q: 3 }])
     expect(Object.keys(urls)).toEqual(['2026-3'])
@@ -248,6 +271,7 @@ describe('loadSharedLeague', () => {
 
   it('signs a league token only when configured', () => {
     expect(leagueShareTokenFor(GAME_ID)).toMatch(/^[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{16}$/)
+    expect(leagueShareTokenFor('not-a-uuid')).toBeNull()
     delete process.env.SHARE_SIGNING_SECRET
     expect(leagueShareTokenFor(GAME_ID)).toBeNull()
   })
@@ -260,6 +284,12 @@ describe('loadInvitePreview', () => {
     const service = mockTables({}, [{ league_name: 'The Boot Room', league_slug: 'the-boot-room', role: 'admin', target_email: 'x@y.z' }])
     await expect(loadInvitePreview(TOKEN)).resolves.toEqual({ leagueName: 'The Boot Room' })
     expect(service.rpc).toHaveBeenCalledWith('preview_invite', { invite_token: TOKEN })
+  })
+
+  it('returns null when the RPC throws', async () => {
+    const service = mockTables({})
+    service.rpc.mockRejectedValue(new Error('boom'))
+    await expect(loadInvitePreview(TOKEN)).resolves.toBeNull()
   })
 
   it('returns null for an unknown or malformed invite', async () => {

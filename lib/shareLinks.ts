@@ -13,7 +13,7 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import type { Metadata } from 'next'
 import { formatFixtureDate, gamesPlayedLabel, SITE_TAGLINE } from '@/lib/utils'
-import type { SharedInvite, SharedLeague, SharedLineup, SharedQuarter, SharedResult } from '@/lib/types'
+import type { SharedInvite, SharedLeague, SharedLineup, SharedQuarter, SharedResult, Week, Winner } from '@/lib/types'
 
 const SIG_BYTES = 12
 const ENCODED_ID_RE = /^[A-Za-z0-9_-]{22}$/
@@ -29,8 +29,20 @@ export interface LineupTeams {
 }
 
 export interface ResultFields extends LineupTeams {
-  winner: 'teamA' | 'teamB' | 'draw'
+  winner: NonNullable<Winner>
   goalDifference: number
+}
+
+/**
+ * The result fields a token signs, from a week or a database row. Null when
+ * there is no winner. A missing margin counts as 0, so signing and loading
+ * agree for results saved without one.
+ */
+export function resultFieldsOf(
+  week: Pick<Week, 'winner' | 'goal_difference' | 'teamA' | 'teamB'>
+): ResultFields | null {
+  if (!week.winner) return null
+  return { winner: week.winner, goalDifference: week.goal_difference ?? 0, teamA: week.teamA, teamB: week.teamB }
 }
 
 export interface ParsedLineupToken {
@@ -215,9 +227,10 @@ export function buildLineupShareMetadata(lineup: SharedLineup, token: string): M
 }
 
 export function buildResultShareMetadata(result: SharedResult, token: string): Metadata {
+  const team = result.winner === 'teamA' ? 'Team A' : 'Team B'
   const outcome = result.winner === 'draw'
     ? 'Draw'
-    : `${result.winner === 'teamA' ? 'Team A' : 'Team B'} won by ${result.goalDifference}`
+    : result.goalDifference > 0 ? `${team} won by ${result.goalDifference}` : `${team} won`
   return shareMetadata(
     `Week ${result.week} result · ${result.leagueName}`,
     `${outcome} · ${formatFixtureDate(result.date)}`,

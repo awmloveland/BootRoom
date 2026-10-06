@@ -24,7 +24,8 @@ import {
   verifyLineupSignature,
   verifyQuarterSignature,
   verifyResultSignature,
-  type ResultFields,
+  resultFieldsOf,
+  UUID_RE,
 } from '@/lib/shareLinks'
 import type { SharedInvite, SharedLeague, SharedLineup, SharedQuarter, SharedResult, Week } from '@/lib/types'
 
@@ -89,12 +90,13 @@ export async function loadSharedResult(token: string | null | undefined): Promis
       .maybeSingle()
     if (!row || row.status !== 'played' || !row.winner) return null
 
-    const fields: ResultFields = {
+    const fields = resultFieldsOf({
       winner: row.winner,
-      goalDifference: row.goal_difference ?? 0,
+      goal_difference: row.goal_difference,
       teamA: row.team_a ?? [],
       teamB: row.team_b ?? [],
-    }
+    })
+    if (!fields) return null
     if (!verifyResultSignature(secret, parsed, fields)) return null
 
     const [game, weeks] = await Promise.all([getGame(row.game_id), getWeeks(row.game_id)])
@@ -197,34 +199,31 @@ export async function loadInvitePreview(token: string | null | undefined): Promi
 
 // ── Signing for server-rendered pages ─────────────────────────────────────────
 
-/** Signed link for a played result, or null (not played, no winner, not configured). */
+/** Signed link for a played result, or null (not played, no winner, not configured). Never throws. */
 export function resultShareUrlFor(slug: string, week: Week | null | undefined): string | null {
   const secret = getShareSecret()
-  if (!secret || !week?.id || week.status !== 'played' || !week.winner) return null
-  const token = signResultToken(secret, week.id, {
-    winner: week.winner,
-    goalDifference: week.goal_difference ?? 0,
-    teamA: week.teamA,
-    teamB: week.teamB,
-  })
-  return resultShareUrl(slug, token)
+  if (!secret || !week?.id || !UUID_RE.test(week.id) || week.status !== 'played') return null
+  const fields = resultFieldsOf(week)
+  return fields ? resultShareUrl(slug, signResultToken(secret, week.id, fields)) : null
 }
 
-/** Signed links for completed quarters, keyed by quarterShareKey. Empty when not configured. */
+/** Signed links for completed quarters, keyed by quarterShareKey. Empty when not configured. Never throws. */
 export function quarterShareUrls(
   slug: string,
   gameId: string,
   quarters: { year: number; q: number }[]
 ): Record<string, string> {
   const secret = getShareSecret()
-  if (!secret) return {}
+  if (!secret || !UUID_RE.test(gameId)) return {}
   return Object.fromEntries(
-    quarters.map((q) => [quarterShareKey(q), quarterShareUrl(slug, signQuarterToken(secret, gameId, q.year, q.q), q.year, q.q)])
+    quarters
+      .filter(({ year, q }) => Number.isInteger(year) && year >= 1000 && year <= 9999 && Number.isInteger(q) && q >= 1 && q <= 4)
+      .map((q) => [quarterShareKey(q), quarterShareUrl(slug, signQuarterToken(secret, gameId, q.year, q.q), q.year, q.q)])
   )
 }
 
-/** The league's share token, or null when signing is not configured. */
+/** The league's share token, or null when signing is not configured or the id is not a UUID. */
 export function leagueShareTokenFor(gameId: string): string | null {
   const secret = getShareSecret()
-  return secret ? signLeagueToken(secret, gameId) : null
+  return secret && UUID_RE.test(gameId) ? signLeagueToken(secret, gameId) : null
 }

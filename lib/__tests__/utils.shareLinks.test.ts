@@ -4,6 +4,7 @@ import {
   fitFontSize,
   leagueShareHref,
   nextLeagueGame,
+  parseWeekDate,
   quarterRangeLabel,
   quarterShareKey,
   withShareLink,
@@ -86,11 +87,23 @@ describe('nextLeagueGame', () => {
     const next = nextLeagueGame([], { ...LEAGUE, day: 'Tuesday' })
     expect(next?.date).toMatch(/^\d{2} \w{3} \d{4}$/)
   })
+
+  it('skips a game day that has been cancelled', () => {
+    const first = nextLeagueGame([], { ...LEAGUE, day: 'Tuesday' })!.date
+    const cancelled = (date: string, week: number): Week =>
+      ({ id: `c${week}`, season: '2026', week, date, status: 'cancelled', teamA: [], teamB: [], winner: null })
+    const second = nextLeagueGame([cancelled(first, 1)], { ...LEAGUE, day: 'Tuesday' })!.date
+    expect(second).not.toBe(first)
+    expect(parseWeekDate(second).getTime() - parseWeekDate(first).getTime()).toBe(7 * 24 * 60 * 60 * 1000)
+    const third = nextLeagueGame([cancelled(first, 1), cancelled(second, 2)], { ...LEAGUE, day: 'Tuesday' })!.date
+    expect(parseWeekDate(third).getTime() - parseWeekDate(second).getTime()).toBe(7 * 24 * 60 * 60 * 1000)
+  })
 })
 
 describe('fetchShareLink', () => {
+  const originalFetch = global.fetch
   afterEach(() => {
-    ;(global as { fetch?: unknown }).fetch = undefined
+    global.fetch = originalFetch
   })
 
   it('posts the request and returns the url', async () => {

@@ -119,12 +119,24 @@ describe('weeksUpTo', () => {
   it('is empty when the target is missing', () => {
     expect(weeksUpTo(HISTORY, 'nope')).toEqual([])
   })
+
+  it('breaks a same-date tie by week number', () => {
+    const later = wk(10, '01 Sep 2026', A, B, 'teamA')
+    const earlier = wk(9, '01 Sep 2026', B, A, 'teamB')
+    expect(weeksUpTo([later, earlier], 'w10').map((w) => w.id)).toEqual(['w9', 'w10'])
+    expect(weeksUpTo([later, earlier], 'w9').map((w) => w.id)).toEqual(['w9'])
+  })
 })
 
 describe('playerStatsAsOf', () => {
-  it('counts games and the last five results from played weeks only', () => {
+  it('counts games and the last five results, newest first, from played weeks only', () => {
     const stats = playerStatsAsOf([...HISTORY, { ...wk(9, '01 Sep 2026', A, B, null), status: 'scheduled' }])
-    expect(stats.find((p) => p.name === 'Ava Stone')).toEqual({ name: 'Ava Stone', played: 7, recentForm: 'DLLWW' })
-    expect(stats.find((p) => p.name === 'Cal Reed')).toEqual({ name: 'Cal Reed', played: 7, recentForm: 'DWWLL' })
+    expect(stats.find((p) => p.name === 'Ava Stone')).toEqual({ name: 'Ava Stone', played: 7, recentForm: 'WWLLD' })
+    expect(stats.find((p) => p.name === 'Cal Reed')).toEqual({ name: 'Cal Reed', played: 7, recentForm: 'LLWWD' })
+  })
+
+  it('skips a played week with no winner', () => {
+    const stats = playerStatsAsOf([wk(1, '07 Jul 2026', A, B, 'teamA'), wk(2, '14 Jul 2026', A, B, null)])
+    expect(stats.find((p) => p.name === 'Cal Reed')).toEqual({ name: 'Cal Reed', played: 1, recentForm: 'L' })
   })
 })

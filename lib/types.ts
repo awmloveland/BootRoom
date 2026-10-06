@@ -1,3 +1,5 @@
+import type { QuarterlyEntry } from './sidebar-stats';
+
 export type Winner = 'teamA' | 'teamB' | 'draw' | null;
 export type WeekStatus = 'played' | 'cancelled' | 'unrecorded' | 'scheduled' | 'dnf';
 
@@ -154,7 +156,7 @@ export interface SharedResult {
   slug: string;
   week: number;
   date: string;               // 'DD MMM YYYY'
-  winner: 'teamA' | 'teamB' | 'draw';
+  winner: NonNullable<Winner>;
   goalDifference: number;
   teamA: string[];
   teamB: string[];
@@ -410,3 +412,25 @@ export interface AdminMoneyData {
   settled: PlayerBalance[]            // owed === 0 with ≥1 game, sorted by name
   totals: { owed: number; collected: number; expected: number; playedGames: number }
 }
+
+export type ResultHighlightItem =
+  | { kind: 'win_streak'; player: string; count: number }
+  | { kind: 'unbeaten_ended'; player: string; count: number }
+  | { kind: 'upset'; strongerTeam: 'Team A' | 'Team B'; strongRating: string; weakRating: string }
+  | { kind: 'milestone'; player: string; games: number };
+
+export interface ResultHighlights {
+  /** Win streaks, ended unbeaten runs, the upset, then milestones. */
+  items: ResultHighlightItem[];
+  /** Top five of the result's quarter, or null when nobody has played in it. */
+  table: { q: number; year: number; entries: QuarterlyEntry[] } | null;
+  inForm: { name: string; ppg: number } | null;
+}
+
+/** The player stats highlights need, as they stood before the game. */
+export type HighlightPlayer = Pick<Player, 'name' | 'played' | 'recentForm'>;
+
+/** What the browser can ask the share-link endpoint to sign. */
+export type ShareLinkRequest =
+  | { kind: 'result'; weekId: string }
+  | { kind: 'quarter'; year: number; q: number };

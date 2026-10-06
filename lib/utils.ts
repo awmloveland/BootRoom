@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { LeagueDetails, Player, PlayerClaimStatus, ResultImageHighlight, ScheduledWeek, Strength, Week, Winner, YearStats } from './types'
+import { HighlightPlayer, LeagueDetails, Player, PlayerClaimStatus, ResultHighlightItem, ResultHighlights, ResultImageHighlight, ScheduledWeek, ShareLinkRequest, Strength, Week, Winner, YearStats } from './types'
 import type { VisibilityTier } from './roles'
 import { strengthToRating } from './strength'
 import type { QuarterSummary, QuarterlyEntry } from './sidebar-stats'
@@ -949,23 +949,6 @@ function currentUnbeatenStreak(playerName: string, weeks: Week[]): number {
   return count
 }
 
-export type ResultHighlightItem =
-  | { kind: 'win_streak'; player: string; count: number }
-  | { kind: 'unbeaten_ended'; player: string; count: number }
-  | { kind: 'upset'; strongerTeam: 'Team A' | 'Team B'; strongRating: string; weakRating: string }
-  | { kind: 'milestone'; player: string; games: number }
-
-export interface ResultHighlights {
-  /** Win streaks, ended unbeaten runs, the upset, then milestones. */
-  items: ResultHighlightItem[]
-  /** Top five of the result's quarter, or null when nobody has played in it. */
-  table: { q: number; year: number; entries: QuarterlyEntry[] } | null
-  inForm: { name: string; ppg: number } | null
-}
-
-/** The player stats highlights need, as they stood before the game. */
-export type HighlightPlayer = Pick<Player, 'name' | 'played' | 'recentForm'>
-
 /**
  * Everything worth calling out about a result. `weeks` must include the
  * result itself, in any order; it is matched on its date. `players` are the
@@ -1174,13 +1157,13 @@ export function weeksUpTo(weeks: Week[], targetId: string): Week[] {
 }
 
 /**
- * Games played and last five results (oldest first) per player, from played
- * weeks only. Stands in for the stored player stats when highlights must be
- * worked out as of an earlier game.
+ * Games played and last five results (newest first, like Player.recentForm)
+ * per player, from played weeks with a winner only. Stands in for the stored
+ * player stats when highlights must be worked out as of an earlier game.
  */
 export function playerStatsAsOf(weeks: Week[]): HighlightPlayer[] {
   const stats = new Map<string, { name: string; played: number; results: string[] }>()
-  for (const w of [...weeks].filter((x) => x.status === 'played').sort(byDateThenWeek)) {
+  for (const w of [...weeks].filter((x) => x.status === 'played' && x.winner).sort(byDateThenWeek)) {
     for (const name of [...w.teamA, ...w.teamB]) {
       const onTeamA = w.teamA.includes(name)
       const result = w.winner === 'draw' ? 'D'
@@ -1194,7 +1177,7 @@ export function playerStatsAsOf(weeks: Week[]): HighlightPlayer[] {
   return Array.from(stats.values()).map(({ name, played, results }) => ({
     name,
     played,
-    recentForm: results.slice(-5).join(''),
+    recentForm: results.slice(-5).reverse().join(''),
   }))
 }
 
@@ -1284,10 +1267,6 @@ export function fetchLineupShareUrl(leagueId: string, weekId: string): Promise<s
   return postForShareUrl(`/api/league/${leagueId}/lineup-share`, { weekId })
 }
 
-export type ShareLinkRequest =
-  | { kind: 'result'; weekId: string }
-  | { kind: 'quarter'; year: number; q: number }
-
 /** Signed result or quarter link for something just saved in the browser. Null when declined or failed. */
 export function fetchShareLink(leagueId: string, request: ShareLinkRequest): Promise<string | null> {
   return postForShareUrl(`/api/league/${leagueId}/share-link`, request)
@@ -1340,7 +1319,8 @@ export function quarterRangeLabel(dateRange: { from: string; to: string }, games
 /**
  * The league's next game, as the Overview next game card picks it: the
  * earliest scheduled week before its deadline, otherwise the next date from
- * the league's game day. Null when neither exists.
+ * the league's game day, skipping any date that is cancelled. Null when
+ * neither exists.
  */
 export function nextLeagueGame(
   weeks: Week[],
@@ -1350,7 +1330,16 @@ export function nextLeagueGame(
     .filter((w) => w.status === 'scheduled' && !isPastDeadline(w.date))
     .sort((a, b) => parseWeekDate(a.date).getTime() - parseWeekDate(b.date).getTime())[0]
   const dayIndex = dayNameToIndex(league.day)
-  const date = scheduled?.date ?? (dayIndex !== null ? getNextMatchDate(weeks, dayIndex) : null)
+  let date = scheduled?.date ?? (dayIndex !== null ? getNextMatchDate(weeks, dayIndex) : null)
+  if (date && !scheduled) {
+    // Never announce a game day that has been cancelled: step on a week at a time.
+    const cancelled = new Set(weeks.filter((w) => w.status === 'cancelled').map((w) => w.date))
+    for (let i = 0; i < 8 && cancelled.has(date); i++) {
+      const next = parseWeekDate(date)
+      next.setDate(next.getDate() + 7)
+      date = formatWeekDate(next)
+    }
+  }
   return date ? { date, kickoffTime: league.kickoff_time, location: league.location } : null
 }
 
