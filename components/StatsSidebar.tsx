@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { computeInForm, computeQuarterlyTable, computeTeamAB, computeTeammates } from '@/lib/sidebar-stats'
+import { computeInForm, computeMargins, computeQuarterlyTable, computeTeamAB, computeTeammates, MIN_MARGIN_WINS } from '@/lib/sidebar-stats'
 import { FormDots } from '@/components/FormDots'
 import { TeammatesChart } from '@/components/TeammatesChart'
 import {
@@ -16,6 +16,7 @@ interface StatsSidebarProps {
   weeks: Week[]
   leagueDayIndex?: number
   linkedPlayerName?: string | null
+  isAdmin?: boolean
 }
 
 export const WIDGET_CLASS = 'rounded-xl border border-[#1b2c46] bg-[#0a1421] overflow-hidden shadow-[0_18px_44px_rgba(0,0,0,.42)]'
@@ -296,9 +297,98 @@ export function TeamABWidget({
   )
 }
 
+// ─── Widget 4: Winning Margins ────────────────────────────────────────────
+
+const MARGIN_LABELS = ['D', '1', '2', '3', '4', '5', '6', '7+']
+const MARGIN_META_CLASS = 'font-plex text-[8.5px] uppercase tracking-[.14em] text-[#6f88a8]'
+
+function marginBucketName(index: number): string {
+  if (index === 0) return 'Draws'
+  return index === 1 ? '1 goal' : `${MARGIN_LABELS[index]} goals`
+}
+
+export function MarginsWidget({
+  weeks,
+  size = 'sidebar',
+  isAdmin = false,
+}: {
+  weeks: Week[]
+  size?: WidgetSize
+  /** Admins see the card before the league reaches MIN_MARGIN_WINS, with a hint. */
+  isAdmin?: boolean
+}) {
+  const { avgWinMargin, biggestWin, buckets, modeMargin, closeGamePct, counted, winCount } = computeMargins(weeks)
+  const belowThreshold = winCount < MIN_MARGIN_WINS
+  if (belowThreshold && !isAdmin) return null
+
+  const maxCount = Math.max(...buckets)
+  const hint = belowThreshold && (
+    <p className={cn(MARGIN_META_CLASS, 'text-[#4f688a]', counted > 0 && 'mt-2')}>
+      Visible to non-admins after {MIN_MARGIN_WINS} wins ·{' '}
+      <span className="font-bold text-[#8ba4c4]">{winCount}</span> so far
+    </p>
+  )
+
+  return (
+    <WidgetShell title="Winning Margins" size={size} headerRight={<AllTimeChip />}>
+      {counted === 0 ? hint : (
+        <>
+          <div className="flex items-end justify-between mb-3.5">
+            <div>
+              <div className="font-grotesk text-[34px] font-bold leading-none text-[#f4f9ff]">
+                {avgWinMargin === null ? '-' : avgWinMargin.toFixed(1)}
+              </div>
+              <div className={cn(MARGIN_META_CLASS, 'mt-1.5')}>Avg goals per win</div>
+            </div>
+            {biggestWin !== null && (
+              <div className="text-right">
+                <div className="font-grotesk text-[15px] font-bold text-[#bef264]">+{biggestWin}</div>
+                <div className={cn(MARGIN_META_CLASS, 'mt-1')}>Biggest</div>
+              </div>
+            )}
+          </div>
+
+          {/* Margin chart: draws, then 1 to 7+ */}
+          <div
+            role="img"
+            aria-label={'Winning margins: ' + buckets.map((count, i) => `${marginBucketName(i)} ${count}`).join(', ')}
+            className="flex items-end gap-[5px] h-14"
+          >
+            {buckets.map((count, i) => (
+              <div key={MARGIN_LABELS[i]} className="flex-1 h-full flex items-end">
+                {count > 0 && (
+                  <div
+                    data-bucket={MARGIN_LABELS[i]}
+                    className={cn(
+                      'w-full min-h-[2px] rounded-t-[2px]',
+                      i === 0 ? 'bg-[#2c4a72]' : i === modeMargin ? 'bg-[#38bdf8]' : 'bg-[#223a5c]',
+                    )}
+                    style={{ height: `${(count / maxCount) * 100}%` }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-[5px] mt-[5px]" aria-hidden="true">
+            {MARGIN_LABELS.map((label) => (
+              <span key={label} className="flex-1 text-center font-plex text-[8.5px] text-[#4f688a]">{label}</span>
+            ))}
+          </div>
+
+          <div className="h-px bg-[#17263c] mt-3 mb-2.5" />
+          <p className={MARGIN_META_CLASS}>
+            Close games · <span className="font-bold text-[#f4f9ff]">{closeGamePct}%</span> · 1 goal or a draw
+          </p>
+          {hint}
+        </>
+      )}
+    </WidgetShell>
+  )
+}
+
 // ─── StatsSidebar ─────────────────────────────────────────────────────────────
 
-export function StatsSidebar({ players, weeks, leagueDayIndex, linkedPlayerName }: StatsSidebarProps) {
+export function StatsSidebar({ players, weeks, leagueDayIndex, linkedPlayerName, isAdmin = false }: StatsSidebarProps) {
   return (
     <div className="flex flex-col gap-3">
       <YourStatsWidget players={players} linkedPlayerName={linkedPlayerName} />
@@ -306,6 +396,7 @@ export function StatsSidebar({ players, weeks, leagueDayIndex, linkedPlayerName 
       <QuarterlyTableWidget weeks={weeks} leagueDayIndex={leagueDayIndex} />
       <InFormWidget    players={players} weeks={weeks} />
       <TeamABWidget    weeks={weeks} />
+      <MarginsWidget   weeks={weeks} isAdmin={isAdmin} />
     </div>
   )
 }

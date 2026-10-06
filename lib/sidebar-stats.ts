@@ -1,6 +1,6 @@
 import { compareStandings, computeStandings, parseWeekDate } from '@/lib/utils'
 import { isGuestName } from '@/lib/guestName'
-import type { Player, Week } from '@/lib/types'
+import type { MarginStats, Player, Week } from '@/lib/types'
 
 // ─── gamesLeftInQuarter ───────────────────────────────────────────────────────
 
@@ -627,6 +627,53 @@ export function computeTeamAB(weeks: Week[]): TeamABResult {
   }
 
   return { teamAWins, draws, teamBWins, total: played.length, streakTeam, streakLength }
+}
+
+// ─── computeMargins ───────────────────────────────────────────────────────────
+
+/** Wins a league needs before non-admins see the Winning Margins card. */
+export const MIN_MARGIN_WINS = 10
+
+/**
+ * All-time winning margins from played weeks. A draw always counts as margin 0;
+ * a win with no recorded margin is skipped. Buckets run draws, 1–6, then 7+.
+ */
+export function computeMargins(weeks: Week[]): MarginStats {
+  const buckets = [0, 0, 0, 0, 0, 0, 0, 0]
+  let winCount = 0
+  let winTotal = 0
+  let biggest = 0
+
+  for (const w of weeks) {
+    if (w.status !== 'played') continue
+    if (w.winner === 'draw') {
+      buckets[0]++
+      continue
+    }
+    if (w.winner !== 'teamA' && w.winner !== 'teamB') continue
+    const margin = w.goal_difference
+    if (margin == null || margin < 1) continue
+    buckets[Math.min(margin, 7)]++
+    winCount++
+    winTotal += margin
+    biggest = Math.max(biggest, margin)
+  }
+
+  let modeMargin: number | null = null
+  for (let m = 1; m <= 7; m++) {
+    if (buckets[m] > 0 && (modeMargin === null || buckets[m] > buckets[modeMargin])) modeMargin = m
+  }
+
+  const counted = buckets[0] + winCount
+  return {
+    avgWinMargin: winCount > 0 ? winTotal / winCount : null,
+    biggestWin: winCount > 0 ? biggest : null,
+    buckets,
+    modeMargin,
+    closeGamePct: counted > 0 ? Math.round(((buckets[0] + buckets[1]) / counted) * 100) : null,
+    counted,
+    winCount,
+  }
 }
 
 // ─── computeTeammates ─────────────────────────────────────────────────────────

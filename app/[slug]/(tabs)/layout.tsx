@@ -110,7 +110,8 @@ async function LeagueSidebar({ slug }: { slug: string }) {
     getMyClaimInfo(leagueId), // 'none' for non-members, no query
   ])
 
-  if (isLeagueHidden(features, resolveVisibilityTier(userRole))) return null
+  const tier = resolveVisibilityTier(userRole)
+  if (isLeagueHidden(features, tier)) return null
 
   // Large screens only. Below lg these stats live on the Overview tab.
   return (
@@ -120,6 +121,7 @@ async function LeagueSidebar({ slug }: { slug: string }) {
         weeks={weeks}
         leagueDayIndex={dayNameToIndex(game.day ?? null) ?? undefined}
         linkedPlayerName={claim.playerName}
+        isAdmin={tier === 'admin'}
       />
     </SidebarSticky>
   )
