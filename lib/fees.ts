@@ -28,6 +28,9 @@ export interface FeeRangeInput {
 
 export const DEFAULT_FEE_PRESET: FeePreset = '30'
 
+/** League default cost per player per game, in pounds. Matches the games.fee_per_player column default. */
+export const DEFAULT_FEE_PER_PLAYER = 7
+
 /** The fixed presets, newest window first. `days` is how far back from today. */
 export const FEE_PRESETS: { preset: Exclude<FeePreset, 'custom'>; label: string; days: number | null }[] = [
   { preset: '30', label: 'Last 30 days', days: 30 },

@@ -94,6 +94,12 @@ describe('GET /api/league/[id]/fees', () => {
     expect(data.defaultFee).toBe(6)
     expect(data.totals).toEqual({ owed: 33, collected: 6, expected: 39, playedGames: 3 })
   })
+  it('falls back to the £7 league default when no fee has been read', async () => {
+    setup({ tables: { games: query({ data: null }) } })
+    const data = await (await getFees(new Request('http://localhost/api?range=all'), league)).json()
+    expect(data.defaultFee).toBe(7)
+    expect(data.totals.expected).toBe(7 * 7)
+  })
 })
 
 describe('PATCH /api/league/[id]/fees', () => {

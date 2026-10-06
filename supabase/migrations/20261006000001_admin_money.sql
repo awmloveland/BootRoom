@@ -9,7 +9,8 @@
 -- a join. The insert/update policies check that the week belongs to that game.
 
 -- ── League default ────────────────────────────────────────────────────────────
-ALTER TABLE games ADD COLUMN IF NOT EXISTS fee_per_player numeric(6,2) NOT NULL DEFAULT 0
+-- £7 per player per game for existing and new leagues; admins change it on the Admin tab.
+ALTER TABLE games ADD COLUMN IF NOT EXISTS fee_per_player numeric(6,2) NOT NULL DEFAULT 7
   CHECK (fee_per_player >= 0);
 
 -- ── Per-week override (absent = use the league default) ──────────────────────

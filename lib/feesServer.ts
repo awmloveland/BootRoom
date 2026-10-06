@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { feeEntryKey, type PaymentMap, type WeekFeeMap } from '@/lib/fees'
+import { DEFAULT_FEE_PER_PLAYER, feeEntryKey, type PaymentMap, type WeekFeeMap } from '@/lib/fees'
 
 /** Largest value numeric(6,2) holds. */
 export const MAX_FEE = 9999.99
@@ -46,7 +46,7 @@ export async function getFeeRows(leagueId: string): Promise<{
     getAllPayments(leagueId),
   ])
   return {
-    defaultFee: Number(game.data?.fee_per_player ?? 0),
+    defaultFee: Number(game.data?.fee_per_player ?? DEFAULT_FEE_PER_PLAYER),
     fees: Object.fromEntries(
       ((fees.data ?? []) as { week_id: string; fee_per_player: number | string }[]).map((r) => [
         r.week_id,
