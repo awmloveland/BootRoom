@@ -77,11 +77,21 @@ New types go in `lib/types.ts`. Do not create `src/` directories.
 
 ---
 
-## Feature Development Standard
+## Feature flags: ask, don't assume
 
-**All new features must be built behind an admin-controlled feature flag.**
+**Feature flags are optional, and most changes ship without one.** Before
+designing a new feature, ask the user whether it should be flagged, and give a
+recommendation.
 
-Each feature has two independent toggles controlled by the admin:
+A flag is usually worth suggesting when the feature:
+- writes data or changes an existing workflow (e.g. match entry)
+- shows members or the public something they could not see before
+- is experimental and may need pulling back quickly
+
+A flag is usually not needed for read-only views of existing data (stats
+cards, new tabs), visual changes, share text or link previews, and bug fixes.
+
+When a feature is flagged, it has two independent toggles controlled by the admin:
 
 | Toggle | Column | Who it affects |
 |---|---|---|
@@ -91,11 +101,11 @@ Each feature has two independent toggles controlled by the admin:
 Admins always bypass feature flag checks — they see every feature regardless of either toggle.
 
 **Rules:**
-1. Every new feature starts with `enabled: false, public_enabled: false`. Admins see it immediately; members and public do not.
+1. Every flagged feature starts with `enabled: false, public_enabled: false`. Admins see it immediately; members and public do not.
 2. Promote to members by toggling **enabled** on in Settings → Features → Members tab.
 3. Promote to public by toggling **public_enabled** on in Settings → Features → Public tab.
 4. Each tier can have independent config (e.g. different visible stat columns for public vs members).
-5. To add a new feature: add a `FeatureKey` to `lib/types.ts`, add a `DEFAULT_FEATURES` entry in `app/api/league/[id]/features/route.ts`, wire it into `FeaturePanel.tsx`, and write a migration to seed the row.
+5. To add a new flag: add a `FeatureKey` to `lib/types.ts`, add a `DEFAULT_FEATURES` entry in `app/api/league/[id]/features/route.ts`, wire it into `FeaturePanel.tsx`, and write a migration to seed the row.
 6. Use `isFeatureEnabled(features, key, resolveVisibilityTier(userRole))` from `lib/features.ts` to gate UI.
 
 See **`docs/FEATURE_FLAGS.md`** for the full step-by-step guide.
@@ -302,7 +312,7 @@ colons, full stops, or the `·` dot separator.
 - **`next.config.js` not `.ts`** — chosen when the app was on Next.js 14.2.x,
   which did not support a TypeScript config file. Next 16 does, but keep the
   `.js` file with its JSDoc `@type` annotation; there is no need to convert it.
-- **Feature flags** — all new features start at `admin_only`. Promote via the UI, not code.
+- **Feature flags** — optional; ask before adding one. Flagged features start at `admin_only` and are promoted via the UI, not code.
 - **No player profile pages** — player detail views are not in scope yet.
 - **Max-width `max-w-2xl`** — do not widen the content column.
 - **Single domain** — everything runs on `craft-football.com`. `m.craft-football.com` permanently redirects there via `vercel.json`.

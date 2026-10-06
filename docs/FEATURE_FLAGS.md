@@ -1,8 +1,11 @@
 # Feature Flag Development Standard
 
-All new features in BootRoom are built behind an admin-controlled feature flag.
+Some features in BootRoom are built behind an admin-controlled feature flag.
 This lets us ship safely: admins test first, then roll out to members, then
 optionally open to the public — all without a code deploy.
+
+Flags are optional. Most changes ship without one; see "Feature flags: ask,
+don't assume" in `CLAUDE.md` for when a flag is worth suggesting.
 
 ---
 
