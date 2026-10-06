@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatMoney, longWeekDate } from '@/lib/fees'
+import { formatMoney, isChargeable, longWeekDate } from '@/lib/fees'
 import { MoneyGroup, plural } from '@/components/admin/MoneyGroup'
 import { WIDGET_CLASS, WIDGET_TITLE_CLASS } from '@/components/StatsSidebar'
 import type { WeekFeeRow } from '@/lib/types'
@@ -15,14 +15,18 @@ interface GamesListProps {
 }
 
 export function gamesMeta(games: WeekFeeRow[]): string {
-  const played = games.filter((g) => g.status === 'played').length
+  const played = games.filter((g) => isChargeable(g.status)).length
   const cancelled = games.length - played
   return `${played} played` + (cancelled > 0 ? ` · ${cancelled} cancelled` : '')
 }
 
 function gameSub(g: WeekFeeRow): string {
-  if (g.status !== 'played') return `Week ${g.week} · cancelled`
-  return `Week ${g.week} · ${plural(g.players, 'player')}` + (g.guests > 0 ? ` + ${plural(g.guests, 'guest')}` : '')
+  if (!isChargeable(g.status)) return `Week ${g.week} · cancelled`
+  return (
+    `Week ${g.week} · ${plural(g.players, 'player')}` +
+    (g.guests > 0 ? ` + ${plural(g.guests, 'guest')}` : '') +
+    (g.status === 'dnf' ? ' · DNF' : '')
+  )
 }
 
 function paidTone(g: WeekFeeRow) {
@@ -122,7 +126,7 @@ export function GamesWidget({ games, onCostChange }: GamesListProps) {
           <p className="px-3.5 py-4 text-center font-inter-body text-xs text-[#6f88a8]">No games in this range.</p>
         )}
         {games.map((g, i) => {
-          const played = g.status === 'played'
+          const played = isChargeable(g.status)
           const tone = paidTone(g)
           return (
             <div
@@ -170,7 +174,7 @@ export function GamesColumn({ games, onCostChange }: GamesListProps) {
         <p className="px-3.5 py-4 text-center font-inter-body text-xs text-[#6f88a8]">No games in this range.</p>
       )}
       {games.map((g, i) => {
-        const played = g.status === 'played'
+        const played = isChargeable(g.status)
         const tone = paidTone(g)
         return (
           <div

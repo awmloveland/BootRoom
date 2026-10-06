@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation'
 import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { getGameBySlug, getAuthAndRole, getWeeks } from '@/lib/fetchers'
-import { isoDate, parseFeeRange } from '@/lib/fees'
+import { isChargeable, isoDate, parseFeeRange } from '@/lib/fees'
 import { getFeeRows } from '@/lib/feesServer'
 import { AdminMoneyView } from '@/components/admin/AdminMoneyView'
 
@@ -42,8 +42,8 @@ export default async function AdminPage({ params, searchParams }: Props) {
     <AdminMoneyView
       leagueId={leagueId}
       leagueName={game.name}
-      // Only played and cancelled weeks carry fees or show in Games.
-      weeks={weeks.filter((w) => w.status === 'played' || w.status === 'cancelled')}
+      // Only played, DNF and cancelled weeks carry fees or show in Games.
+      weeks={weeks.filter((w) => isChargeable(w.status) || w.status === 'cancelled')}
       defaultFee={defaultFee}
       fees={fees}
       payments={payments}

@@ -63,6 +63,11 @@ describe('weekPayers', () => {
     expect(weekPayers(w)).toEqual([{ payer: 'Alice', owedBy: 'Alice', guest: false }])
   })
 
+  it('includes a DNF week', () => {
+    const w = week('w1', '01 Oct 2026', ['Alice'], ['Bob'], { status: 'dnf' })
+    expect(weekPayers(w).map((p) => p.payer)).toEqual(['Alice', 'Bob'])
+  })
+
   it('returns nothing for a cancelled week', () => {
     expect(weekPayers(week('w1', '01 Oct 2026', [], [], { status: 'cancelled' }))).toEqual([])
   })
@@ -83,15 +88,20 @@ describe('computeFees', () => {
     expect(data.totals.playedGames).toBe(1)
   })
 
-  it('ignores scheduled, unrecorded and DNF weeks', () => {
+  it('charges DNF weeks like played ones, and ignores scheduled and unrecorded weeks', () => {
     const weeks = [
       week('w1', '01 Oct 2026', ['Alice']),
-      week('w2', '24 Sep 2026', ['Alice'], [], { status: 'dnf' }),
+      week('w2', '24 Sep 2026', ['Alice'], ['Bob'], { status: 'dnf' }),
       week('w3', '17 Sep 2026', [], [], { status: 'unrecorded' }),
       week('w4', '08 Oct 2026', ['Alice'], [], { status: 'scheduled' }),
     ]
-    const data = computeFees(weeks, {}, {}, 6, ALL, TODAY)
-    expect(data.games.map((g) => g.weekId)).toEqual(['w1'])
+    const data = computeFees(weeks, { w2: 5 }, {}, 6, ALL, TODAY)
+    expect(data.games.map((g) => [g.weekId, g.status, g.payers, g.cost, g.overridden])).toEqual([
+      ['w1', 'played', 1, 6, false],
+      ['w2', 'dnf', 2, 5, true],
+    ])
+    expect(data.totals).toEqual({ owed: 16, collected: 0, expected: 16, playedGames: 2 })
+    expect(data.debtors.find((p) => p.name === 'Alice')).toMatchObject({ games: 2, owed: 11 })
   })
 
   it('attaches guests to their associated player', () => {

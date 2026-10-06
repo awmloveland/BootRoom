@@ -25,7 +25,7 @@ import type { FeeEntry, PlayerBalance, Week } from '@/lib/types'
 interface AdminMoneyViewProps {
   leagueId: string
   leagueName: string
-  /** Played and cancelled weeks; the view filters them to the chosen range. */
+  /** Played, DNF and cancelled weeks; the view filters them to the chosen range. */
   weeks: Week[]
   defaultFee: number
   fees: WeekFeeMap

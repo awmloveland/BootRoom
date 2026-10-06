@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { isChargeable } from '@/lib/fees'
 import { parseFee, requireLeagueAdmin } from '@/lib/feesServer'
 
 type Params = { params: Promise<{ id: string; weekId: string }> }
 
-/** PUT — admin-only. Overrides the fee per player for one played week. Body: { fee: number } */
+/** PUT — admin-only. Overrides the fee per player for one played or DNF week. Body: { fee: number } */
 export async function PUT(req: Request, { params }: Params) {
   const { id, weekId } = await params
   const auth = await requireLeagueAdmin(id)
@@ -28,7 +29,7 @@ export async function PUT(req: Request, { params }: Params) {
     .eq('game_id', id)
     .maybeSingle()
   if (!week) return NextResponse.json({ error: 'Week not found' }, { status: 404 })
-  if (week.status !== 'played') return NextResponse.json({ error: 'Only played weeks have a fee' }, { status: 400 })
+  if (!isChargeable(week.status)) return NextResponse.json({ error: 'Only played or DNF weeks have a fee' }, { status: 400 })
 
   const { error } = await service
     .from('week_fees')

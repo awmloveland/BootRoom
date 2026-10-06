@@ -5,7 +5,7 @@ import { weekPayers } from '@/lib/fees'
 import { requireLeagueAdmin } from '@/lib/feesServer'
 
 /**
- * PUT — admin-only. Ticks or unticks one payer for one played week.
+ * PUT — admin-only. Ticks or unticks one payer for one played or DNF week.
  * Body: { payer: string, paid: boolean }. The payer must be in that week's
  * line-up: a player, or a guest by their guest name ('Alice +1').
  */

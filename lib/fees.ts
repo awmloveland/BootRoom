@@ -11,6 +11,7 @@ import type {
   PlayerBalance,
   Week,
   WeekFeeRow,
+  WeekStatus,
 } from '@/lib/types'
 
 /** Week id → per-player fee override, from week_fees. */
@@ -38,6 +39,11 @@ export const FEE_PRESETS: { preset: Exclude<FeePreset, 'custom'>; label: string;
 export const CUSTOM_RANGE_LABEL = 'Custom range'
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+
+/** Weeks that charge a fee: played games, and games that kicked off but did not finish. */
+export function isChargeable(status: WeekStatus): boolean {
+  return status === 'played' || status === 'dnf'
+}
 
 export function feeEntryKey(weekId: string, payer: string): string {
   return `${weekId}|${payer}`
@@ -127,10 +133,10 @@ export function resolveFeeRange(input: FeeRangeInput, today: Date = new Date()):
   return { range: { preset: preset.preset, from: isoDate(lo), to: isoDate(end), label: preset.label }, lo, hi: end }
 }
 
-/** Played and cancelled weeks inside the bounds, newest first. Only these carry fees. */
+/** Chargeable and cancelled weeks inside the bounds, newest first. */
 function weeksInRange(weeks: Week[], lo: Date | null, hi: Date | null): Week[] {
   return weeks
-    .filter((w) => w.id && (w.status === 'played' || w.status === 'cancelled'))
+    .filter((w) => w.id && (isChargeable(w.status) || w.status === 'cancelled'))
     .map((w) => ({ w, t: parseWeekDate(w.date).getTime() }))
     .filter(({ t }) => (!lo || t >= lo.getTime()) && (!hi || t <= hi.getTime()))
     .sort((a, b) => b.t - a.t || b.w.week - a.w.week)
@@ -158,13 +164,13 @@ export interface WeekPayer {
 const GUEST_SUFFIX = /\s\+\d+$/
 
 /**
- * Everyone who owes a fee for a played week. Guests sit in the team arrays
+ * Everyone who owes a fee for a played (or unfinished) week. Guests sit in the team arrays
  * under their guest name ('Alice +1'), so each name there is either a player
  * or a guest owed through `associatedPlayer`. Older weeks without line-up
  * metadata fall back to the name itself ('Alice +1' → 'Alice').
  */
 export function weekPayers(week: Week): WeekPayer[] {
-  if (week.status !== 'played') return []
+  if (!isChargeable(week.status)) return []
   const guests = new Map((week.lineupMetadata?.guests ?? []).map((g) => [g.name, g.associatedPlayer]))
   const names = Array.from(new Set([...week.teamA, ...week.teamB]))
   return names.map((name) => {
@@ -190,7 +196,7 @@ export function settlePayers(weeks: Week[], player: string, weekIds: string[]): 
 // ── Computation ───────────────────────────────────────────────────────────────
 
 /**
- * One pass over the weeks in range. Only played weeks produce entries;
+ * One pass over the weeks in range. Only played and DNF weeks produce entries;
  * cancelled weeks still appear in `games` with no payers or cost.
  * Money is summed in pence so totals reconcile exactly.
  */
@@ -232,7 +238,8 @@ export function computeFees(
       balances.set(owedBy, balance)
     }
 
-    if (w.status === 'played') playedGames++
+    const chargeable = isChargeable(w.status)
+    if (chargeable) playedGames++
     const guestCount = payers.filter((p) => p.guest).length
     games.push({
       weekId,
@@ -243,8 +250,8 @@ export function computeFees(
       guests: guestCount,
       paid: paidCount,
       payers: payers.length,
-      cost: w.status === 'played' ? cost : 0,
-      overridden: w.status === 'played' && overridden,
+      cost: chargeable ? cost : 0,
+      overridden: chargeable && overridden,
     })
   }
 
@@ -293,7 +300,7 @@ export function presetSummaries(weeks: Week[], today: Date = new Date()): Preset
       preset,
       label,
       span: spanOf(inRange).replace(/ \d{4}$/, ''),
-      games: inRange.filter((w) => w.status === 'played').length,
+      games: inRange.filter((w) => isChargeable(w.status)).length,
     }
   })
 }
@@ -321,7 +328,7 @@ export function buildShareText(data: AdminMoneyData, leagueName: string): string
   }
 
   // Name the one cost when every game shares it; otherwise lead with the default.
-  const costs = new Set(data.games.filter((g) => g.status === 'played').map((g) => toPence(g.cost)))
+  const costs = new Set(data.games.filter((g) => isChargeable(g.status)).map((g) => toPence(g.cost)))
   const perGame =
     costs.size === 1
       ? `${formatMoney([...costs][0] / 100)} per player per game`

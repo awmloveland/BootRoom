@@ -123,6 +123,13 @@ describe('PUT /api/league/[id]/weeks/[weekId]/fee', () => {
     )
   })
 
+  it('accepts a DNF week and refuses a cancelled one', async () => {
+    setup({ tables: { weeks: query({ data: { id: 'w1', status: 'dnf' } }) } })
+    expect((await putFee(json('PUT', { fee: 5 }), leagueWeek('w1'))).status).toBe(200)
+    setup({ tables: { weeks: query({ data: { id: 'w1', status: 'cancelled' } }) } })
+    expect((await putFee(json('PUT', { fee: 5 }), leagueWeek('w1'))).status).toBe(400)
+  })
+
   it('404s for a week outside the league', async () => {
     setup({ tables: { weeks: query({ data: null }) } })
     expect((await putFee(json('PUT', { fee: 5 }), leagueWeek('other'))).status).toBe(404)
