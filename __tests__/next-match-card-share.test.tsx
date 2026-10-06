@@ -46,10 +46,21 @@ function mockNavigatorShare() {
   return share
 }
 
+function setInnerWidth(width: number) {
+  Object.defineProperty(window, 'innerWidth', { value: width, configurable: true })
+}
+
 const ORIGINAL_FETCH = global.fetch
+const ORIGINAL_WIDTH = window.innerWidth
+
+beforeEach(() => {
+  // The native share sheet is only used on small screens.
+  setInnerWidth(390)
+})
 
 afterEach(() => {
   global.fetch = ORIGINAL_FETCH
+  setInnerWidth(ORIGINAL_WIDTH)
   Object.defineProperty(window.navigator, 'share', { value: undefined, configurable: true })
 })
 
@@ -116,5 +127,22 @@ describe('NextMatchCard share', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Share' }))
     await waitFor(() => expect(share).toHaveBeenCalledTimes(2))
     expect(share.mock.calls[1][0].text).toMatch(/🔗 https:\/\/craft-football\.com\/the-boot-room\?lineup=new\.sig$/)
+  })
+
+  it('copies straight to the clipboard on desktop widths, without the share sheet', async () => {
+    setInnerWidth(1280)
+    mockShareEndpoint('https://craft-football.com/the-boot-room?lineup=tok.sig')
+    const share = mockNavigatorShare()
+    const writeText = jest.fn().mockResolvedValue(undefined)
+    Object.defineProperty(window.navigator, 'clipboard', { value: { writeText }, configurable: true })
+    render(<NextMatchCard {...PROPS} />)
+    await waitFor(() => expect(shareEndpointCalls()).toHaveLength(1))
+    await flushPromises()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Share' }))
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
+    expect(writeText.mock.calls[0][0]).toMatch(/🔗 https:\/\/craft-football\.com\/the-boot-room\?lineup=tok\.sig$/)
+    expect(share).not.toHaveBeenCalled()
+    expect(await screen.findByText('Copied!')).toBeInTheDocument()
   })
 })
