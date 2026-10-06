@@ -7,7 +7,7 @@ import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { getGameBySlug, getAuthAndRole, getWeeks, getMyClaimInfo } from '@/lib/fetchers'
 import { dayNameToIndex } from '@/lib/utils'
-import { computeAllQuarters, computeQuarterlyTable, getCelebratedQuarters, getQuarterStanding } from '@/lib/sidebar-stats'
+import { computeAllQuarters, computeQuarterlyTable, getQuarterStanding } from '@/lib/sidebar-stats'
 import { quarterShareUrls } from '@/lib/shareLinksServer'
 import { HonoursSection } from '@/components/HonoursSection'
 import { HonoursLoginPrompt } from '@/components/HonoursLoginPrompt'
@@ -47,6 +47,8 @@ export default async function HonoursPage({ params }: Props) {
   // claim.playerName is only set for an approved claim.
   const standing = getQuarterStanding(liveTable.allEntries, claim.playerName)
 
+  const data = computeAllQuarters(weeks, now)
+
   return (
     <>
       {showClaimBanner && <ClaimOnboardingBanner leagueId={leagueId} />}
@@ -54,12 +56,16 @@ export default async function HonoursPage({ params }: Props) {
         <HonoursLoginPrompt leagueSlug={slug} leagueName={game.name} />
       ) : (
         <HonoursSection
-          data={computeAllQuarters(weeks, now)}
+          data={data}
           liveTable={liveTable}
           standing={standing}
           leagueName={game.name}
           leagueSlug={slug}
-          shareUrls={quarterShareUrls(slug, leagueId, getCelebratedQuarters(weeks, now))}
+          shareUrls={quarterShareUrls(
+            slug,
+            leagueId,
+            data.flatMap((y) => y.quarters).filter((q) => q.status === 'completed' && q.champion)
+          )}
         />
       )}
     </>

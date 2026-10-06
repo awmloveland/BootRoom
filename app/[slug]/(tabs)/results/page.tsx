@@ -5,7 +5,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { isFeatureEnabled, isLeagueHidden } from '@/lib/features'
+import { canSeeQuarterChampion, isFeatureEnabled, isLeagueHidden } from '@/lib/features'
 import { dayNameToIndex, getLatestResultWeek, isPastDeadline, parseWeekDate } from '@/lib/utils'
 import { quarterShareUrls, resultShareUrlFor } from '@/lib/shareLinksServer'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
@@ -103,7 +103,7 @@ export default async function LeagueResultsPage({ params }: Props) {
           quarters: celebratedQuarters,
           leagueName: game.name,
           leagueSlug: slug,
-          shareUrls: quarterShareUrls(slug, leagueId, celebratedQuarters),
+          shareUrls: canSeeQuarterChampion(features, tier) ? quarterShareUrls(slug, leagueId, celebratedQuarters) : {},
         }
       : null
 

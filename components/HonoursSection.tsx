@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown } from 'lucide-react'
-import { cn, buildQuarterShareText, shareOrCopy, withShareLink, formatGoalDiff, formatPointsPerGame } from '@/lib/utils'
+import { cn, buildQuarterShareText, shareOrCopy, withShareLink, quarterShareKey, formatGoalDiff, formatPointsPerGame } from '@/lib/utils'
 import { MIN_QUARTER_GAMES } from '@/lib/sidebar-stats'
 import type { QuarterSummary, HonoursYear, QuarterlyTableResult, QuarterStanding } from '@/lib/sidebar-stats'
 import {
@@ -399,7 +399,7 @@ export function HonoursSection({ data, leagueName, leagueSlug, liveTable = null,
 
           <div className="flex flex-col gap-2">
             {yearGroup.quarters.map((quarter) => {
-              const key = `${quarter.year}-${quarter.q}`
+              const key = quarterShareKey(quarter)
               return (
                 <QuarterCard
                   key={key}
