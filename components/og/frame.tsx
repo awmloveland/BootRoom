@@ -2,8 +2,8 @@
 // by next/og (Satori) in app/api/og/*. Satori only understands inline style
 // objects, so this folder is the one place in the app that styles with
 // `style`. Every element with more than one child needs display: 'flex'.
-import type { CSSProperties } from 'react'
-import { SITE_TAGLINE } from '@/lib/utils'
+import type { CSSProperties, ReactNode } from 'react'
+import { fitFontSize, SITE_TAGLINE } from '@/lib/utils'
 import type { ResultHighlightIcon } from '@/lib/types'
 
 export const OG_SIZE = { width: 1200, height: 630 }
@@ -25,6 +25,31 @@ export const ROOT: CSSProperties = {
 }
 
 const FULL: CSSProperties = { position: 'absolute', left: 0, top: 0, width: OG_W, height: OG_H }
+
+/** Plex Mono bold caps, the label style used across the images. `em` is the letter spacing. */
+export function monoCaps(fontSize: number, em = 0.15): CSSProperties {
+  return { fontFamily: 'IBM Plex Mono', fontSize, fontWeight: 700, letterSpacing: em * fontSize, textTransform: 'uppercase' }
+}
+
+/** Meta line on top; children centred between it and the footer wordmark. */
+export function OgBody({ meta, children, align = 'stretch' }: { meta: ReactNode; children: ReactNode; align?: CSSProperties['alignItems'] }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, width: '100%', padding: '30px 60px 76px' }}>
+      {meta}
+      <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'center', alignItems: align }}>{children}</div>
+    </div>
+  )
+}
+
+/** A big single-line name, sized to fit `width` and ellipsised if it still doesn't. */
+export function HeroName({ text, width, max, min }: { text: string; width: number; max: number; min: number }) {
+  const size = fitFontSize(text.length, width, max, min)
+  return (
+    <div style={{ maxWidth: width, fontSize: size, fontWeight: 700, letterSpacing: -0.035 * size, lineHeight: 1.05, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      {text}
+    </div>
+  )
+}
 
 export function Wordmark({ ballSize, fontSize }: { ballSize: number; fontSize: number }) {
   return (
@@ -56,11 +81,7 @@ export function MetaLine({ left, right }: { left: string; right?: string }) {
       style={{
         display: 'flex',
         justifyContent: 'space-between',
-        fontFamily: 'IBM Plex Mono',
-        fontSize: 19,
-        fontWeight: 700,
-        letterSpacing: 2.85,
-        textTransform: 'uppercase',
+        ...monoCaps(19),
         color: '#8ba4c4',
       }}
     >
@@ -74,13 +95,13 @@ export function MetaLine({ left, right }: { left: string; right?: string }) {
 export function DotField() {
   return (
     <div style={{ ...FULL, display: 'flex' }}>
-      <div style={{ ...FULL, backgroundImage: 'radial-gradient(circle, #16283f 2px, rgba(22,40,63,0) 2.5px)', backgroundSize: '24px 24px' }} />
+      <div style={{ ...FULL, backgroundImage: 'radial-gradient(circle closest-side, #223a5c 0%, #223a5c 18%, rgba(34,58,92,0) 24%)', backgroundSize: '24px 24px' }} />
       <div style={{ ...FULL, backgroundImage: 'linear-gradient(180deg, rgba(6,11,20,0) 0%, rgba(6,11,20,0.6) 55%, #060b14 100%)' }} />
     </div>
   )
 }
 
-/** A soft radial glow, e.g. the winner's colour behind a result. */
+/** A soft radial glow, e.g. the winner's colour behind a result. `size` is where the glow fades out. */
 export function Glow({ at, color, size = '55%' }: { at: string; color: string; size?: string }) {
   return <div style={{ ...FULL, backgroundImage: `radial-gradient(circle at ${at}, ${color}, rgba(6,11,20,0) ${size})` }} />
 }

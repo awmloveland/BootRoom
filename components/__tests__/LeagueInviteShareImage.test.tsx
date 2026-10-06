@@ -27,7 +27,13 @@ describe('LeagueImage', () => {
   it('shows a stat line when there is no next game', () => {
     render(<LeagueImage league={{ ...LEAGUE, nextGame: null }} />)
     expect(screen.queryByText('Next game')).not.toBeInTheDocument()
-    expect(screen.getByText('142 games · 38 players')).toBeInTheDocument()
+    expect(screen.getByText('38 players')).toBeInTheDocument()
+    expect(screen.queryByText(/142 games$/)).not.toBeInTheDocument()
+  })
+
+  it('uses the singular for one player', () => {
+    render(<LeagueImage league={{ ...LEAGUE, nextGame: null, playerCount: 1 }} />)
+    expect(screen.getByText('1 player')).toBeInTheDocument()
   })
 })
 

@@ -728,6 +728,11 @@ export function formatFixtureDate(date: string): string {
 /** The site tagline, used by the root metadata and the preview images. */
 export const SITE_TAGLINE = 'Results, stats and fair teams for your weekly game.'
 
+/** "1 player", "38 players": a count with its regular plural. */
+export function pluralise(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? '' : 's'}`
+}
+
 /** "1 game played", "142 games played". */
 export function gamesPlayedLabel(n: number): string {
   return `${n} ${n === 1 ? 'game' : 'games'} played`
