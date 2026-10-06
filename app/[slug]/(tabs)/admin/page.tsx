@@ -17,8 +17,8 @@ interface Props {
   searchParams: Promise<{ range?: string; from?: string; to?: string }>
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  return leaguePageMetadata((await params).slug, 'admin')
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+  return leaguePageMetadata((await params).slug, 'admin', await searchParams)
 }
 
 /**

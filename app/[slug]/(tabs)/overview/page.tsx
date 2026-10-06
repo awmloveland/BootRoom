@@ -25,8 +25,7 @@ interface Props {
 }
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
-  const { lineup } = await searchParams
-  return leaguePageMetadata((await params).slug, 'overview', typeof lineup === 'string' ? lineup : undefined)
+  return leaguePageMetadata((await params).slug, 'overview', await searchParams)
 }
 
 export default async function LeagueOverviewPage({ params }: Props) {
