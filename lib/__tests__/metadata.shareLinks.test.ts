@@ -39,7 +39,9 @@ describe('leaguePageMetadata with a lineup token', () => {
     const meta = await leaguePageMetadata('the-boot-room', 'results')
     expect(meta.openGraph).toBeUndefined()
     expect(meta.title).toBeDefined()
-    expect(loadSharedLineup).not.toHaveBeenCalled()
+    for (const loader of [loadSharedLineup, loadSharedResult, loadSharedQuarter, loadSharedLeague]) {
+      expect(loader).not.toHaveBeenCalled()
+    }
   })
 
   it('adds the preview tags for a valid token', async () => {
@@ -97,6 +99,8 @@ describe('leaguePageMetadata with other share tokens', () => {
       const meta = await leaguePageMetadata('the-boot-room', page, { result: 'r.tok' })
       expect(meta.openGraph?.title).toBe('Week 41 result · The Boot Room')
       expect(meta.openGraph?.images).toEqual([expect.objectContaining({ url: '/api/og/result?t=r.tok' })])
+      expect(meta.openGraph?.description).toBe('Team B won by 2 · Tue 06 Oct')
+      expect(meta.twitter).toEqual(expect.objectContaining({ card: 'summary_large_image' }))
     }
   })
 
@@ -104,6 +108,8 @@ describe('leaguePageMetadata with other share tokens', () => {
     ;(loadSharedQuarter as jest.Mock).mockResolvedValue(QUARTER)
     const honours = await leaguePageMetadata('the-boot-room', 'honours', { quarter: 'q.tok' })
     expect(honours.openGraph?.title).toBe('Q3 2026 champion · The Boot Room')
+    expect(honours.openGraph?.description).toBe('Jordan Hale wins the Summer quarter with 24 pts')
+    expect(honours.openGraph?.images).toEqual([expect.objectContaining({ url: '/api/og/quarter?t=q.tok' })])
     const results = await leaguePageMetadata('the-boot-room', 'results', { quarter: 'q.tok' })
     expect(results.openGraph).toBeUndefined()
   })
@@ -123,6 +129,20 @@ describe('leaguePageMetadata with other share tokens', () => {
     expect(all.openGraph?.title).toBe('Week 13 lineups · The Boot Room')
     const noLineup = await leaguePageMetadata('the-boot-room', 'results', { result: 'b', league: 'c' })
     expect(noLineup.openGraph?.title).toBe('Week 41 result · The Boot Room')
+  })
+
+  it('falls through to a valid result when the lineup is for another league', async () => {
+    ;(loadSharedLineup as jest.Mock).mockResolvedValue({ ...LINEUP, slug: 'other' })
+    ;(loadSharedResult as jest.Mock).mockResolvedValue(RESULT)
+    const meta = await leaguePageMetadata('the-boot-room', 'results', { lineup: 'a', result: 'b' })
+    expect(meta.openGraph?.title).toBe('Week 41 result · The Boot Room')
+  })
+
+  it('prefers a quarter over a league on Seasons', async () => {
+    ;(loadSharedQuarter as jest.Mock).mockResolvedValue(QUARTER)
+    ;(loadSharedLeague as jest.Mock).mockResolvedValue(LEAGUE)
+    const meta = await leaguePageMetadata('the-boot-room', 'honours', { quarter: 'q', league: 'l' })
+    expect(meta.openGraph?.title).toBe('Q3 2026 champion · The Boot Room')
   })
 
   it('ignores tokens for another league and array params', async () => {

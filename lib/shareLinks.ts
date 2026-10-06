@@ -223,7 +223,7 @@ export function buildLineupShareMetadata(lineup: SharedLineup, token: string): M
   const description = [formatFixtureDate(lineup.date), lineup.kickoffTime, lineup.location]
     .filter(Boolean)
     .join(' · ')
-  return shareMetadata(`Week ${lineup.week} lineups · ${lineup.leagueName}`, description, `/api/og/lineup?t=${token}`)
+  return shareMetadata(`Week ${lineup.week} lineups · ${lineup.leagueName}`, description, `/api/og/lineup?t=${encodeURIComponent(token)}`)
 }
 
 export function buildResultShareMetadata(result: SharedResult, token: string): Metadata {
@@ -234,7 +234,7 @@ export function buildResultShareMetadata(result: SharedResult, token: string): M
   return shareMetadata(
     `Week ${result.week} result · ${result.leagueName}`,
     `${outcome} · ${formatFixtureDate(result.date)}`,
-    `/api/og/result?t=${token}`
+    `/api/og/result?t=${encodeURIComponent(token)}`
   )
 }
 
@@ -243,7 +243,7 @@ export function buildQuarterShareMetadata(quarter: SharedQuarter, token: string)
   return shareMetadata(
     `Q${quarter.q} ${quarter.year} champion · ${quarter.leagueName}`,
     `${champion.name} wins the ${quarter.seasonName} quarter with ${champion.points} pts`,
-    `/api/og/quarter?t=${token}`
+    `/api/og/quarter?t=${encodeURIComponent(token)}`
   )
 }
 
@@ -252,7 +252,7 @@ export function buildLeagueShareMetadata(league: SharedLeague, token: string): M
   const description = next
     ? `Next game ${[formatFixtureDate(next.date), next.kickoffTime, next.location].filter(Boolean).join(' · ')}`
     : gamesPlayedLabel(league.gamesPlayed)
-  return shareMetadata(league.leagueName, description, `/api/og/league?t=${token}`)
+  return shareMetadata(league.leagueName, description, `/api/og/league?t=${encodeURIComponent(token)}`)
 }
 
 export function buildInviteShareMetadata(invite: SharedInvite, token: string): Metadata {

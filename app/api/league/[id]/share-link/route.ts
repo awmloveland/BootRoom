@@ -40,7 +40,7 @@ export async function POST(
   const { id } = await params
   const req = parseRequest(await request.json().catch(() => null))
   if (!req) return NextResponse.json({ error: 'Invalid share link request' }, { status: 400 })
-  if (!getShareSecret()) return noLink()
+  if (!getShareSecret() || !UUID_RE.test(id)) return noLink()
 
   const [game, { userRole }, features] = await Promise.all([getGame(id), getAuthAndRole(id), getFeatures(id)])
   if (!game?.slug) return noLink()

@@ -20,6 +20,18 @@ describe('invite page metadata', () => {
     expect(meta.openGraph?.images).toEqual([expect.objectContaining({ url: '/api/og/invite?token=abc' })])
   })
 
+  it('uses the trimmed token', async () => {
+    ;(loadInvitePreview as jest.Mock).mockResolvedValue({ leagueName: 'The Boot Room' })
+    const meta = await call({ token: '  abc ' })
+    expect(loadInvitePreview).toHaveBeenCalledWith('  abc ')
+    expect(meta.openGraph?.images).toEqual([expect.objectContaining({ url: '/api/og/invite?token=abc' })])
+  })
+
+  it('ignores an array token', async () => {
+    expect(await call({ token: ['a', 'b'] })).toEqual({})
+    expect(loadInvitePreview).not.toHaveBeenCalled()
+  })
+
   it('adds nothing for a dead or missing invite', async () => {
     ;(loadInvitePreview as jest.Mock).mockResolvedValue(null)
     expect(await call({ token: 'abc' })).toEqual({})

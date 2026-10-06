@@ -34,14 +34,14 @@ function setup({ role = 'member' as GameRole | null, features = [feature('match_
   ;(getWeeks as jest.Mock).mockResolvedValue(WEEKS)
 }
 
-function call(body: unknown) {
+function call(body: unknown, id = GAME_ID) {
   return POST(
-    new Request(`http://localhost/api/league/${GAME_ID}/share-link`, {
+    new Request(`http://localhost/api/league/${id}/share-link`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ id: GAME_ID }) }
+    { params: Promise.resolve({ id }) }
   )
 }
 
@@ -86,9 +86,52 @@ describe('POST /api/league/[id]/share-link', () => {
     expect(verifyQuarterSignature(SECRET, parsed)).toBe(true)
   })
 
-  it('declines a quarter without a champion', async () => {
+  it('declines a quarter with no games', async () => {
     setup()
     expect(await (await call({ kind: 'quarter', year: 2026, q: 2 })).json()).toEqual({ url: null })
+  })
+
+  it('declines a completed quarter with too few games for a champion', async () => {
+    setup()
+    ;(getWeeks as jest.Mock).mockResolvedValue([
+      ...WEEKS,
+      played('00000000-0000-4000-8000-000000000011', 1, '06 Jan 2026'),
+      played('00000000-0000-4000-8000-000000000012', 2, '13 Jan 2026'),
+      played('00000000-0000-4000-8000-000000000013', 3, '20 Jan 2026'),
+    ])
+    expect(await (await call({ kind: 'quarter', year: 2026, q: 1 })).json()).toEqual({ url: null })
+  })
+
+  it('signs a quarter for the public only with match history and quarter celebration on', async () => {
+    setup({ role: null, features: [feature('match_history', true, true), feature('quarter_celebration', true, false)] })
+    expect(await (await call({ kind: 'quarter', year: 2026, q: 3 })).json()).toEqual({ url: null })
+
+    setup({ role: null, features: [feature('match_history', true, true), feature('quarter_celebration', true, true)] })
+    const { url } = await (await call({ kind: 'quarter', year: 2026, q: 3 })).json()
+    expect(url).toMatch(/\/the-boot-room\/honours\?quarter=/)
+  })
+
+  it('always signs a result for an admin, whatever the features', async () => {
+    setup({ role: 'admin', features: [] })
+    const { url } = await (await call({ kind: 'result', weekId: WEEK_ID })).json()
+    expect(url).toMatch(/\?result=/)
+  })
+
+  it('declines a week that is scheduled, not played', async () => {
+    setup()
+    const SCHEDULED = '00000000-0000-4000-8000-0000000000aa'
+    ;(getWeeks as jest.Mock).mockResolvedValue([
+      ...WEEKS,
+      { ...played(SCHEDULED, 6, '11 Aug 2026'), status: 'scheduled', winner: null, goal_difference: null },
+    ])
+    expect(await (await call({ kind: 'result', weekId: SCHEDULED })).json()).toEqual({ url: null })
+  })
+
+  it('does no database work for a junk league id', async () => {
+    setup()
+    expect(await (await call({ kind: 'result', weekId: WEEK_ID }, 'not-a-uuid')).json()).toEqual({ url: null })
+    expect(getGame).not.toHaveBeenCalled()
+    expect(getWeeks).not.toHaveBeenCalled()
   })
 
   it('declines when signing is not configured', async () => {
@@ -106,5 +149,6 @@ describe('POST /api/league/[id]/share-link', () => {
   ])('rejects bad input %p with a 400', async (body) => {
     setup()
     expect((await call(body)).status).toBe(400)
+    expect(getGame).not.toHaveBeenCalled()
   })
 })

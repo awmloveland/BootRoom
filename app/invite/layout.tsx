@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-// The invite page is a client component, so its tab title is set here.
+// The tab title for /invite; page.tsx adds the preview tags for live invites.
 export const metadata: Metadata = {
   title: 'League invite',
 }

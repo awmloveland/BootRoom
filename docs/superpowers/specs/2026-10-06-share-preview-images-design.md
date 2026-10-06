@@ -95,8 +95,9 @@ already see.
   tier. Guests on public leagues can already share the latest result, so
   they get the image too.
 - **Quarter:** the quarter is complete and has a champion, and the viewer can
-  see a champion card for it: a signed-in member or admin (Seasons), or any
-  tier with `match_history` on (Results champion cards).
+  see a champion card for it: a signed-in member or admin (Seasons), or the
+  public with both `match_history` and `quarter_celebration` on (Results
+  champion cards).
 - **League:** the viewer is a member or admin of the league (the only people
   who see the header Share button).
 - **Invite:** no new signing. The invite token is already an unguessable
