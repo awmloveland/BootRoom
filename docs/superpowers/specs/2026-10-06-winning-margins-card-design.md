@@ -87,7 +87,7 @@ Uses the existing `WidgetShell`, `AllTimeChip` and `EmptyState` from
 - **Empty:** `counted === 0` renders `EmptyState` "No results yet".
 - **Admin hint:** when the card is shown below the threshold (admins only),
   a meta line sits under the footer in `#4f688a`:
-  "Shows to everyone after 10 wins · **4** so far", with the count bold in
+  "Visible to non-admins after 10 wins · **4** so far", with the count bold in
   `#8ba4c4`. It also replaces `EmptyState` when `counted === 0`, reading
   "0 so far".
 
@@ -153,7 +153,7 @@ hand in the Supabase SQL Editor before admins see the card.
 - `MarginsWidget` renders the average, biggest win, axis labels and footer.
 - empty state renders "No results yet".
 - below 10 wins: renders nothing for a non-admin; renders with the hint
-  "Shows to everyone after 10 wins · N so far" for an admin.
+  "Visible to non-admins after 10 wins · N so far" for an admin.
 - at exactly 10 wins: renders for a non-admin, with no hint for an admin.
 - `StatsSidebar` hides the card when `canSeeMargins` is false and shows it
   when true.
