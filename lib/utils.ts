@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { LeagueDetails, Player, PlayerClaimStatus, ScheduledWeek, Strength, Week, Winner, YearStats } from './types'
+import { LeagueDetails, Player, PlayerClaimStatus, ResultImageHighlight, ScheduledWeek, Strength, Week, Winner, YearStats } from './types'
 import type { VisibilityTier } from './roles'
 import { strengthToRating } from './strength'
 import type { QuarterSummary, QuarterlyEntry } from './sidebar-stats'
@@ -949,6 +949,114 @@ function currentUnbeatenStreak(playerName: string, weeks: Week[]): number {
   return count
 }
 
+export type ResultHighlightItem =
+  | { kind: 'win_streak'; player: string; count: number }
+  | { kind: 'unbeaten_ended'; player: string; count: number }
+  | { kind: 'upset'; strongerTeam: 'Team A' | 'Team B'; strongRating: string; weakRating: string }
+  | { kind: 'milestone'; player: string; games: number }
+
+export interface ResultHighlights {
+  /** Win streaks, ended unbeaten runs, the upset, then milestones. */
+  items: ResultHighlightItem[]
+  /** Top five of the result's quarter, or null when nobody has played in it. */
+  table: { q: number; year: number; entries: QuarterlyEntry[] } | null
+  inForm: { name: string; ppg: number } | null
+}
+
+/** The player stats highlights need, as they stood before the game. */
+export type HighlightPlayer = Pick<Player, 'name' | 'played' | 'recentForm'>
+
+/**
+ * Everything worth calling out about a result. `weeks` must end with the
+ * result itself; `players` are the stats from before it. Shared by the share
+ * text and the result preview image.
+ */
+export function computeResultHighlights(params: {
+  date: string           // 'DD MMM YYYY'
+  teamA: string[]
+  teamB: string[]
+  winner: Winner
+  teamARating: number
+  teamBRating: number
+  players: HighlightPlayer[]
+  weeks: Week[]
+}): ResultHighlights {
+  const { date, teamA, teamB, winner, teamARating, teamBRating, players, weeks } = params
+  const items: ResultHighlightItem[] = []
+
+  if (winner !== 'draw') {
+    // Win streaks (winning team only)
+    for (const name of winner === 'teamA' ? teamA : teamB) {
+      const count = currentWinStreak(name, weeks)
+      if (count >= 3) items.push({ kind: 'win_streak', player: name, count })
+    }
+    // Unbeaten streaks broken (losing team only), from the weeks before tonight
+    const priorWeeks = weeks.slice(0, -1)
+    for (const name of winner === 'teamA' ? teamB : teamA) {
+      const count = currentUnbeatenStreak(name, priorWeeks)
+      if (count >= 5) items.push({ kind: 'unbeaten_ended', player: name, count })
+    }
+    // Upset: the winners were weaker on paper
+    const upset =
+      (winner === 'teamA' && teamBRating > teamARating) ||
+      (winner === 'teamB' && teamARating > teamBRating)
+    if (upset) {
+      const [strongRating, weakRating] =
+        winner === 'teamA'
+          ? [teamBRating.toFixed(1), teamARating.toFixed(1)]
+          : [teamARating.toFixed(1), teamBRating.toFixed(1)]
+      items.push({ kind: 'upset', strongerTeam: winner === 'teamA' ? 'Team B' : 'Team A', strongRating, weakRating })
+    }
+  }
+
+  // Milestones
+  for (const name of [...teamA, ...teamB]) {
+    const player = players.find((p) => p.name === name)
+    if (!player) continue
+    const games = player.played + 1
+    if (isMilestone(games)) items.push({ kind: 'milestone', player: name, games })
+  }
+
+  // Quarter table top 5: the quarter of the result, not of today
+  const parsed = parseWeekDate(date)
+  const q = Math.floor(parsed.getMonth() / 3) + 1
+  const year = parsed.getFullYear()
+  const qWeeks = weeks.filter((w) => {
+    const d = parseWeekDate(w.date)
+    return Math.floor(d.getMonth() / 3) + 1 === q && d.getFullYear() === year
+  })
+  const entries = computeStandings(qWeeks).slice(0, 5)
+  const table = entries.length > 0 ? { q, year, entries } : null
+
+  // In form: best recent PPG among tonight's players
+  const tonight = new Set([...teamA, ...teamB])
+  const inForm = players
+    .filter((p) => tonight.has(p.name) && p.played >= 5)
+    .map((p) => {
+      const chars = p.recentForm.split('').filter((c) => c !== '-')
+      if (chars.length === 0) return { name: p.name, ppg: 0 }
+      const pts = chars.reduce((acc, c) => acc + (c === 'W' ? 3 : c === 'D' ? 1 : 0), 0)
+      return { name: p.name, ppg: pts / chars.length }
+    })
+    .filter((e) => e.ppg >= 1.5)
+    .sort((a, b) => b.ppg - a.ppg)[0] ?? null
+
+  return { items, table, inForm }
+}
+
+function highlightLine(item: ResultHighlightItem): string {
+  switch (item.kind) {
+    case 'win_streak':
+      return `🔥 ${item.player} on a ${item.count}-game winning streak`
+    case 'unbeaten_ended':
+      return `💔 ${item.player}'s ${item.count}-game unbeaten run is over`
+    case 'upset':
+      return `😱 Upset! ${item.strongerTeam} were stronger on paper (${item.strongRating} vs ${item.weakRating})`
+    case 'milestone':
+      return `🎖️ ${item.player} played their ${ordinal(item.games)} game tonight`
+  }
+}
+
 /**
  * Builds a formatted plain-text share message for a saved result.
  * Returns { shareText, highlightsText } — shareText is the full message;
@@ -988,94 +1096,14 @@ export function buildResultShareText(params: {
         : `🏆 Team B win! (+${goalDifference} goals)`
 
   // ── Highlights ───────────────────────────────────────────────────────────
-  const highlights: string[] = []
-
-  // Win streaks (winning team only)
-  if (winner !== 'draw') {
-    const winners = winner === 'teamA' ? teamA : teamB
-    for (const name of winners) {
-      const streak = currentWinStreak(name, weeks)
-      if (streak >= 3) {
-        highlights.push(`🔥 ${name} on a ${streak}-game winning streak`)
-      }
-    }
-  }
-
-  // Unbeaten streaks broken (losing team only, non-draw)
-  if (winner !== 'draw') {
-    const losers = winner === 'teamA' ? teamB : teamA
-    // Compute streak from weeks BEFORE tonight (exclude last entry which is tonight)
-    const priorWeeks = weeks.slice(0, -1)
-    for (const name of losers) {
-      const streak = currentUnbeatenStreak(name, priorWeeks)
-      if (streak >= 5) {
-        highlights.push(`💔 ${name}'s ${streak}-game unbeaten run is over`)
-      }
-    }
-  }
-
-  // Upset flag
-  if (winner !== 'draw') {
-    const upset =
-      (winner === 'teamA' && teamBRating > teamARating) ||
-      (winner === 'teamB' && teamARating > teamBRating)
-    if (upset) {
-      const [strongRating, weakRating] =
-        winner === 'teamA'
-          ? [teamBRating.toFixed(1), teamARating.toFixed(1)]
-          : [teamARating.toFixed(1), teamBRating.toFixed(1)]
-      const strongTeam = winner === 'teamA' ? 'Team B' : 'Team A'
-      highlights.push(`😱 Upset! ${strongTeam} were stronger on paper (${strongRating} vs ${weakRating})`)
-    }
-  }
-
-  // Milestones
-  const allPlayers = [...teamA, ...teamB]
-  for (const name of allPlayers) {
-    const player = players.find(p => p.name === name)
-    if (!player) continue
-    const newPlayed = player.played + 1
-    if (isMilestone(newPlayed)) {
-      highlights.push(`🎖️ ${name} played their ${ordinal(newPlayed)} game tonight`)
-    }
-  }
-
-  // ── Quarter table top 5 ──────────────────────────────────────────────────
-  const tableLines: string[] = []
-  // The quarter of the result being shared, not of today
-  const q = Math.floor(parsed.getMonth() / 3) + 1
-  const year = parsed.getFullYear()
-  const qWeeks = weeks.filter(w => {
-    const d = parseWeekDate(w.date)
-    return Math.floor(d.getMonth() / 3) + 1 === q && d.getFullYear() === year
+  const { items, table, inForm } = computeResultHighlights({
+    date, teamA, teamB, winner, teamARating, teamBRating, players, weeks,
   })
-  const tableEntries = computeStandings(qWeeks).slice(0, 5)
-  if (tableEntries.length > 0) {
-    const qLabel = `Q${q} ${year}`
-    tableLines.push(`📊 ${qLabel} standings`)
-    tableEntries.forEach((e, i) => {
-      tableLines.push(`${i + 1}. ${e.name} — ${e.points}pts`)
-    })
-  }
-
-  // ── In-form ──────────────────────────────────────────────────────────────
-  const inFormLines: string[] = []
-  // Inline in-form: PPG from recentForm for players who played tonight
-  const tonight = new Set([...teamA, ...teamB])
-  const inFormEntries = players
-    .filter(p => tonight.has(p.name) && p.played >= 5)
-    .map(p => {
-      const chars = p.recentForm.split('').filter(c => c !== '-')
-      if (chars.length === 0) return { name: p.name, ppg: 0 }
-      const pts = chars.reduce((acc, c) => acc + (c === 'W' ? 3 : c === 'D' ? 1 : 0), 0)
-      return { name: p.name, ppg: pts / chars.length }
-    })
-    .filter(e => e.ppg >= 1.5)
-    .sort((a, b) => b.ppg - a.ppg)
-  if (inFormEntries.length > 0) {
-    const top = inFormEntries[0]
-    inFormLines.push(`⚡ In form: ${top.name} (${top.ppg.toFixed(1)} PPG)`)
-  }
+  const highlights = items.map(highlightLine)
+  const tableLines = table
+    ? [`📊 Q${table.q} ${table.year} standings`, ...table.entries.map((e, i) => `${i + 1}. ${e.name} — ${e.points}pts`)]
+    : []
+  const inFormLines = inForm ? [`⚡ In form: ${inForm.name} (${inForm.ppg.toFixed(1)} PPG)`] : []
 
   // ── Assemble highlightsText (no header, no teams, no URL) ────────────────
   // Each individual highlight and each block gets its own \n\n-separated entry
@@ -1110,6 +1138,65 @@ export function buildResultShareText(params: {
   parts.push(`🔗 https://craft-football.com/${leagueSlug}`)
 
   return { shareText: parts.join('\n'), highlightsText }
+}
+
+/**
+ * The result image's highlight lines: up to three, in priority order (streaks,
+ * ended runs, upset, milestones, in form, quarter leader), with short copy.
+ */
+export function resultImageHighlights(h: ResultHighlights): ResultImageHighlight[] {
+  const out: ResultImageHighlight[] = h.items.map((item): ResultImageHighlight => {
+    switch (item.kind) {
+      case 'win_streak':
+        return { icon: 'flame', text: `${item.player} · ${item.count}-game win streak` }
+      case 'unbeaten_ended':
+        return { icon: 'heart-crack', text: `${item.player}'s ${item.count}-game unbeaten run is over` }
+      case 'upset':
+        return { icon: 'zap', text: `Upset · ${item.strongerTeam} stronger on paper` }
+      case 'milestone':
+        return { icon: 'award', text: `${item.player}'s ${ordinal(item.games)} game` }
+    }
+  })
+  if (h.inForm) out.push({ icon: 'trending-up', text: `In form · ${h.inForm.name} · ${h.inForm.ppg.toFixed(1)} PPG` })
+  const leader = h.table?.entries[0]
+  if (h.table && leader) out.push({ icon: 'crown', text: `Q${h.table.q} leader · ${leader.name} · ${leader.points} pts` })
+  return out.slice(0, 3)
+}
+
+function byDateThenWeek(a: Week, b: Week): number {
+  return parseWeekDate(a.date).getTime() - parseWeekDate(b.date).getTime() || a.week - b.week
+}
+
+/** Weeks up to and including the one with `targetId`, oldest first; empty when it is missing. */
+export function weeksUpTo(weeks: Week[], targetId: string): Week[] {
+  const ordered = [...weeks].sort(byDateThenWeek)
+  const index = ordered.findIndex((w) => w.id === targetId)
+  return index === -1 ? [] : ordered.slice(0, index + 1)
+}
+
+/**
+ * Games played and last five results (oldest first) per player, from played
+ * weeks only. Stands in for the stored player stats when highlights must be
+ * worked out as of an earlier game.
+ */
+export function playerStatsAsOf(weeks: Week[]): HighlightPlayer[] {
+  const stats = new Map<string, { name: string; played: number; results: string[] }>()
+  for (const w of [...weeks].filter((x) => x.status === 'played').sort(byDateThenWeek)) {
+    for (const name of [...w.teamA, ...w.teamB]) {
+      const onTeamA = w.teamA.includes(name)
+      const result = w.winner === 'draw' ? 'D'
+        : (w.winner === 'teamA') === onTeamA ? 'W' : 'L'
+      const entry = stats.get(name) ?? { name, played: 0, results: [] }
+      entry.played++
+      entry.results.push(result)
+      stats.set(name, entry)
+    }
+  }
+  return Array.from(stats.values()).map(({ name, played, results }) => ({
+    name,
+    played,
+    recentForm: results.slice(-5).join(''),
+  }))
 }
 
 export type ShareOutcome = 'shared' | 'copied' | 'failed'
