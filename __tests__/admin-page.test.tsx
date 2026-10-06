@@ -14,6 +14,7 @@ jest.mock('@/lib/metadata', () => ({ leaguePageMetadata: jest.fn() }))
 
 import AdminPage from '@/app/[slug]/(tabs)/admin/page'
 import { HonoursLoginPrompt } from '@/components/HonoursLoginPrompt'
+import { NoAccessState } from '@/components/NoAccessState'
 
 function setup(role: GameRole | null, isAuthenticated = role !== null) {
   ;(getGameBySlug as jest.Mock).mockResolvedValue({ id: 'game-1', name: 'The Boot Room', slug: 'the-boot-room' })
@@ -37,11 +38,19 @@ describe('/[slug]/admin', () => {
     expect(getFeeRows).not.toHaveBeenCalled()
   })
 
-  it.each([['member' as const], [null]])('404s for signed-in %s viewers without reading any fees', async (role) => {
+  it.each([['member' as const], [null]])('tells signed-in %s viewers they have no access, without reading any fees', async (role) => {
     setup(role, true)
-    await expect(render()).rejects.toThrow('NEXT_NOT_FOUND')
-    expect(notFound).toHaveBeenCalled()
+    const page = (await render()) as React.ReactElement<{ leagueSlug: string; page: string }>
+    expect(page.type).toBe(NoAccessState)
+    expect(page.props).toMatchObject({ leagueSlug: 'the-boot-room', page: 'Admin' })
+    expect(notFound).not.toHaveBeenCalled()
     expect(getFeeRows).not.toHaveBeenCalled()
+  })
+
+  it('404s for a league that does not exist', async () => {
+    setup('admin')
+    ;(getGameBySlug as jest.Mock).mockResolvedValue(null)
+    await expect(render()).rejects.toThrow('NEXT_NOT_FOUND')
   })
 
   it.each([['admin' as const], ['creator' as const]])('renders for a league %s', async (role) => {

@@ -9,6 +9,7 @@ import { getGameBySlug, getAuthAndRole, getWeeks } from '@/lib/fetchers'
 import { isChargeable, isoDate, parseFeeRange } from '@/lib/fees'
 import { getFeeRows } from '@/lib/feesServer'
 import { HonoursLoginPrompt } from '@/components/HonoursLoginPrompt'
+import { NoAccessState } from '@/components/NoAccessState'
 import { AdminMoneyView } from '@/components/admin/AdminMoneyView'
 
 interface Props {
@@ -23,7 +24,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /**
  * Admin tab: pitch fees, who has paid and who owes. Admins only. Signed-out
  * visitors get a sign-in prompt (they may be an admin on a shared link);
- * signed-in non-admins get a 404, as the tab does not exist for them.
+ * signed-in non-admins are told they have no access, with a way back.
+ * Nothing about fees is read for either.
  */
 export default async function AdminPage({ params, searchParams }: Props) {
   const { slug } = await params
@@ -37,7 +39,9 @@ export default async function AdminPage({ params, searchParams }: Props) {
     searchParams,
   ])
   if (!isAuthenticated) return <HonoursLoginPrompt leagueSlug={slug} leagueName={game.name} tab="admin" />
-  if (resolveVisibilityTier(userRole) !== 'admin') notFound()
+  if (resolveVisibilityTier(userRole) !== 'admin') {
+    return <NoAccessState leagueSlug={slug} leagueName={game.name} page="Admin" />
+  }
 
   const { defaultFee, fees, payments } = await getFeeRows(leagueId)
 
