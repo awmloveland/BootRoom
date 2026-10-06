@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { isLeagueHidden } from '@/lib/features'
+import { isFeatureEnabled, isLeagueHidden } from '@/lib/features'
 import { dayNameToIndex, getSeasonPlayedWeekCount, getHeaderSeason } from '@/lib/utils'
 import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
@@ -110,7 +110,8 @@ async function LeagueSidebar({ slug }: { slug: string }) {
     getMyClaimInfo(leagueId), // 'none' for non-members, no query
   ])
 
-  if (isLeagueHidden(features, resolveVisibilityTier(userRole))) return null
+  const tier = resolveVisibilityTier(userRole)
+  if (isLeagueHidden(features, tier)) return null
 
   // Large screens only. Below lg these stats live on the Overview tab.
   return (
@@ -120,6 +121,8 @@ async function LeagueSidebar({ slug }: { slug: string }) {
         weeks={weeks}
         leagueDayIndex={dayNameToIndex(game.day ?? null) ?? undefined}
         linkedPlayerName={claim.playerName}
+        canSeeMargins={isFeatureEnabled(features, 'margin_stats', tier)}
+        isAdmin={tier === 'admin'}
       />
     </SidebarSticky>
   )

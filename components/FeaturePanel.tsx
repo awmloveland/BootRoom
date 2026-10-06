@@ -2,6 +2,7 @@
 
 import { PlayerStatsCard } from '@/components/PlayerStatsCard'
 import { FeatureToggleCard } from '@/components/FeatureToggleCard'
+import { MIN_MARGIN_WINS } from '@/lib/sidebar-stats'
 import type { FeatureKey, LeagueFeature } from '@/lib/types'
 
 interface FeaturePanelProps {
@@ -54,7 +55,7 @@ export function FeaturePanel({ leagueId, features, onChanged }: FeaturePanelProp
         leagueId={leagueId}
         feature={getFeature(features, 'margin_stats')}
         title="Winning Margins"
-        description="Show the average winning margin, biggest win and close games under Head to Head, once the league has 10 wins. Admins always see it; choose who else does."
+        description={`Show the average winning margin, biggest win and close games under Head to Head, once the league has ${MIN_MARGIN_WINS} wins. Admins always see it; choose who else does.`}
         onChanged={onChanged}
       />
     </div>

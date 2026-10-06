@@ -103,6 +103,21 @@ describe('StatsSidebar', () => {
     rerender(<StatsSidebar players={PLAYERS} weeks={WEEKS} leagueDayIndex={4} linkedPlayerName="Alice" />)
     expect(screen.getByText('Your Stats')).toBeInTheDocument()
   })
+
+  it('shows Winning Margins only when the flag allows it', () => {
+    const { rerender } = render(<StatsSidebar players={PLAYERS} weeks={TEN_WINS} leagueDayIndex={4} />)
+    expect(screen.queryByText('Winning Margins')).not.toBeInTheDocument()
+    rerender(<StatsSidebar players={PLAYERS} weeks={TEN_WINS} leagueDayIndex={4} canSeeMargins />)
+    expect(screen.getByText('Winning Margins')).toBeInTheDocument()
+  })
+
+  it('passes admin status through to Winning Margins', () => {
+    const nine = TEN_WINS.slice(1)
+    const { rerender } = render(<StatsSidebar players={PLAYERS} weeks={nine} leagueDayIndex={4} canSeeMargins />)
+    expect(screen.queryByText('Winning Margins')).not.toBeInTheDocument()
+    rerender(<StatsSidebar players={PLAYERS} weeks={nine} leagueDayIndex={4} canSeeMargins isAdmin />)
+    expect(screen.getByText('Winning Margins')).toBeInTheDocument()
+  })
 })
 
 describe('InFormWidget', () => {

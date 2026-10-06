@@ -12,7 +12,7 @@ import { computeQuarterlyTable, getQuarterStanding, getLastResult } from '@/lib/
 import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { LeagueTabSkeleton } from '@/components/LeagueTabSkeleton'
 import { BfcacheRefresh } from '@/components/BfcacheRefresh'
-import { InFormWidget, TeamABWidget } from '@/components/StatsSidebar'
+import { InFormWidget, MarginsWidget, TeamABWidget } from '@/components/StatsSidebar'
 import { OverviewDesktopRedirect } from '@/components/overview/OverviewDesktopRedirect'
 import { OverviewNextGame } from '@/components/overview/OverviewNextGame'
 import { OverviewYourStats } from '@/components/overview/OverviewYourStats'
@@ -61,6 +61,7 @@ export default async function LeagueOverviewPage({ params }: Props) {
   const canSeeMatchHistory = isAdmin || isFeatureEnabled(features, 'match_history', tier)
   const canSeeMatchEntry = isAdmin || isFeatureEnabled(features, 'match_entry', tier)
   const canShareLineupImage = isFeatureEnabled(features, 'lineup_share_image', tier)
+  const canSeeMargins = isFeatureEnabled(features, 'margin_stats', tier)
   const leagueDayIndex = dayNameToIndex(game.day ?? null) ?? undefined
 
   // Overview is the small-screen landing page, so it must keep week numbers and
@@ -126,6 +127,7 @@ export default async function LeagueOverviewPage({ params }: Props) {
         <OverviewTableCard table={table} standing={standing} lastResult={lastResult} />
         <InFormWidget players={players} weeks={weeks} size="page" showWindowTag />
         <TeamABWidget weeks={weeks} size="page" linkedPlayer={linkedPlayer} />
+        {canSeeMargins && <MarginsWidget weeks={weeks} size="page" isAdmin={isAdmin} />}
       </div>
     </>
   )
