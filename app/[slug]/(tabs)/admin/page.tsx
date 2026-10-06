@@ -47,7 +47,7 @@ export default async function AdminPage({ params, searchParams }: Props) {
       defaultFee={defaultFee}
       fees={fees}
       payments={payments}
-      initialRange={parseFeeRange({})}
+      initialRange={parseFeeRange(query)}
       today={isoDate(new Date())}
     />
   )

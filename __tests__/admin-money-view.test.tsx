@@ -119,6 +119,27 @@ describe('AdminMoneyView', () => {
   })
 })
 
+describe('range in the URL', () => {
+  it('writes the chosen preset to the URL without leaving the page', () => {
+    const replaceState = jest.spyOn(window.history, 'replaceState')
+    renderView()
+    fireEvent.keyDown(screen.getByRole('button', { name: /Last 30 days/ }), { key: 'Enter' })
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /All time/ }))
+    expect(replaceState).toHaveBeenLastCalledWith(null, '', '/the-boot-room/admin?range=all')
+    expect(screen.getByRole('button', { name: /All time/ })).toBeInTheDocument()
+    replaceState.mockRestore()
+  })
+
+  it('writes custom dates', () => {
+    const replaceState = jest.spyOn(window.history, 'replaceState')
+    renderView()
+    fireEvent.keyDown(screen.getByRole('button', { name: /Last 30 days/ }), { key: 'Enter' })
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-09-20' } })
+    expect(replaceState).toHaveBeenLastCalledWith(null, '', '/the-boot-room/admin?range=custom&from=2026-09-20&to=2026-10-06')
+    replaceState.mockRestore()
+  })
+})
+
 describe('optimistic overlay', () => {
   it('applies pending changes, with null removing a row', () => {
     expect(applyOverlay({ a: 1, b: 2 }, { b: null, c: 3 })).toEqual({ a: 1, c: 3 })

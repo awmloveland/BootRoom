@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { parseWeekDate } from '@/lib/utils'
 import {
   buildShareText,
@@ -57,6 +57,7 @@ export function AdminMoneyView({
   today,
 }: AdminMoneyViewProps) {
   const router = useRouter()
+  const pathname = usePathname()
 
   const payments = useOptimisticMap(serverPayments)
   const fees = useOptimisticMap(serverFees)
@@ -172,6 +173,14 @@ export function AdminMoneyView({
     setRange(next)
     setOpenDebtor(null)
     setOpenSettled(null)
+    // Keep the choice in the URL so a refresh or shared link keeps it. Next
+    // syncs native history calls with its router, without a server round trip.
+    const params = new URLSearchParams({ range: next.preset })
+    if (next.preset === 'custom' && next.from && next.to) {
+      params.set('from', next.from)
+      params.set('to', next.to)
+    }
+    window.history.replaceState(null, '', `${pathname}?${params}`)
   }
 
   return (
