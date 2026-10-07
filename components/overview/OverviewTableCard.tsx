@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils'
 import type { QuarterlyTableResult, QuarterStanding } from '@/lib/sidebar-stats'
 import type { Week } from '@/lib/types'
 import { EmptyState, WIDGET_CLASS, WIDGET_TITLE_CLASS } from '@/components/StatsSidebar'
+import { FormatLabel } from '@/components/FormatLabel'
 import {
   buildQuarterTableRows,
   ChampionBox,
@@ -57,7 +58,7 @@ function LastResultStrip({ week }: { week: Week }) {
             {style.label}
           </p>
           <p className="mt-1.5 font-plex text-[9.5px] uppercase tracking-[.14em] text-[#8ba4c4]">
-            {week.date}{week.format ? ` · ${week.format}` : ''}
+            {week.date}{week.format && <> · <FormatLabel format={week.format} /></>}
           </p>
         </div>
         {margin !== null && (

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { FlaskConical, Trash2 } from 'lucide-react'
-import { cn, ewptScore, winProbability, winCopy } from '@/lib/utils'
+import { cn, ewptScore, winProbability, winCopy, manAdvantage } from '@/lib/utils'
 import { autoPick } from '@/lib/autoPick'
 import { FormDots } from '@/components/FormDots'
 import type { Player } from '@/lib/types'
@@ -200,7 +200,7 @@ export function LineupLab({ allPlayers }: Props) {
         {teamA.length >= MIN_PLAYERS && teamB.length >= MIN_PLAYERS && (() => {
           const scoreA = ewptScore(teamA)
           const scoreB = ewptScore(teamB)
-          const winProbA = winProbability(scoreA, scoreB)
+          const winProbA = winProbability(scoreA, scoreB, manAdvantage(teamA.length, teamB.length))
           const winProbB = 1 - winProbA
           const copy = winCopy(winProbA)
           const isEven = copy.team === 'even'

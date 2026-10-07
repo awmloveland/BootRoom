@@ -236,6 +236,7 @@ lime accents. Colours are written as Tailwind arbitrary hex values
 | Team B accent | `#a78bfa` (text `#c4b5fd`) |
 | Champion / positive status | `#bef264` |
 | Destructive / losses | `#e2686f` |
+| Warning (e.g. uneven teams in the builder) | `#fbbf24` |
 
 Cards are `rounded-xl` with `shadow-[0_18px_44px_rgba(0,0,0,.42)]` when open or
 featured; buttons and inputs use `rounded` (4px).

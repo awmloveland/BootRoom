@@ -20,6 +20,7 @@ import {
 import { findRecordBreaks } from '@/lib/records'
 import { ResultModal } from '@/components/ResultModal'
 import { EditWeekModal } from '@/components/EditWeekModal'
+import { FormatLabel } from '@/components/FormatLabel'
 
 interface MatchCardProps {
   week: Week
@@ -277,7 +278,7 @@ function DnfCard({
                 <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">Week {week.week}</p>
                 <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">
                   {week.date}
-                  {week.format && <span> · {week.format}</span>}
+                  {week.format && <span> · <FormatLabel format={week.format} /></span>}
                 </p>
               </div>
               <div className="flex items-center gap-2.5">
@@ -404,7 +405,7 @@ function AwaitingResultCard({
                 <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">Week {week.week}</p>
                 <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">
                   {week.date}
-                  {week.format && <span> · {week.format}</span>}
+                  {week.format && <span> · <FormatLabel format={week.format} /></span>}
                 </p>
               </div>
               <div className="flex items-center gap-2.5">
@@ -614,7 +615,7 @@ function PlayedCard({
                 <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">Week {week.week}</p>
                 <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">
                   {week.date}
-                  {week.format && <span> · {week.format}</span>}
+                  {week.format && <span> · <FormatLabel format={week.format} /></span>}
                 </p>
               </div>
               <div className="flex items-center gap-2.5">

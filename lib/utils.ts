@@ -26,6 +26,8 @@ const DEPTH_MAX_BONUS = 3              // cap on cumulative depth bonus
 
 // --- Win probability ---
 const WIN_PROB_SCALE = 8               // logistic scale: diff / SCALE drives the sigmoid
+/** Rating points an extra player is worth when teams are uneven (5 ≈ a 65% win chance at equal strength). */
+export const MAN_ADVANTAGE_PER_PLAYER = 5
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -365,9 +367,22 @@ export function hintToWpr(
  * Given EWTPI scores for two teams, returns the probability (0–1) that team A wins.
  * Uses a logistic function so a 10-point gap ≈ 73% likelihood.
  */
-export function winProbability(scoreA: number, scoreB: number): number {
+/**
+ * Handicap for uneven teams, signed from Team A's point of view: positive
+ * when Team A has more players, negative when Team B does, zero when even.
+ * Add it to Team A's rating wherever the two teams are compared.
+ */
+export function manAdvantage(sizeA: number, sizeB: number): number {
+  return (sizeA - sizeB) * MAN_ADVANTAGE_PER_PLAYER
+}
+
+/**
+ * Probability that Team A wins. `advantageA` is the man-advantage handicap
+ * from `manAdvantage` (0 for even teams), added to Team A's score.
+ */
+export function winProbability(scoreA: number, scoreB: number, advantageA = 0): number {
   if (scoreA === 0 && scoreB === 0) return 0.5
-  return 1 / (1 + Math.exp(-(scoreA - scoreB) / WIN_PROB_SCALE))
+  return 1 / (1 + Math.exp(-(scoreA + advantageA - scoreB) / WIN_PROB_SCALE))
 }
 
 /**
@@ -731,6 +746,13 @@ export const SITE_TAGLINE = 'Results, stats and fair teams for your weekly game.
 /** "1 player", "38 players": a count with its regular plural. */
 export function pluralise(n: number, word: string): string {
   return `${n} ${word}${n === 1 ? '' : 's'}`
+}
+
+/** "5-a-side" for an even squad of 10, "6v5" for 11 where one side has an extra player. */
+export function squadFormat(n: number): string {
+  if (n === 0) return ''
+  if (n % 2 === 0) return `${n / 2}-a-side`
+  return `${Math.ceil(n / 2)}v${Math.floor(n / 2)}`
 }
 
 /** "1 game played", "142 games played". */
