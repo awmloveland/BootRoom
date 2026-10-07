@@ -1,6 +1,6 @@
 import { autoPick, findAssocTeam } from '@/lib/autoPick'
 import type { Player } from '@/lib/types'
-import { ewptScore } from '@/lib/utils'
+import { ewptScore, manAdvantage } from '@/lib/utils'
 import { seededRng } from './helpers/seeded-rng'
 
 function makePlayer(name: string, overrides?: Partial<Player>): Player {
@@ -669,3 +669,60 @@ describe('autoPick — returns closest-N splits', () => {
   })
 })
 
+
+// ─── Uneven squads: man advantage ────────────────────────────────────────────
+
+describe('autoPick — uneven squads weight the shorter side', () => {
+  const FORMS = ['WWWWW', 'WWDLW', 'WLWLD', 'LLDWL', 'LLLLL']
+  // 11 players with a real spread of ratings (points and form vary), no GKs.
+  const mixedPool = () =>
+    Array.from({ length: 11 }, (_, i) =>
+      makePlayer(`P${i + 1}`, { played: 10, points: i * 3, won: i, recentForm: FORMS[i % FORMS.length] }),
+    )
+
+  it('gives the team that is a player short the stronger line-up on paper', () => {
+    for (let seed = 1; seed <= 10; seed++) {
+      const result = autoPick(mixedPool(), undefined, undefined, seededRng(seed))
+      const best = result.suggestions[0]
+      expect(best.teamA.length + best.teamB.length).toBe(11)
+      const shorter = best.teamA.length < best.teamB.length ? best.teamA : best.teamB
+      const larger = shorter === best.teamA ? best.teamB : best.teamA
+      expect(ewptScore(shorter)).toBeGreaterThan(ewptScore(larger))
+    }
+  })
+
+  it('reports the handicap-adjusted gap as diff', () => {
+    const result = autoPick(mixedPool(), undefined, undefined, seededRng(3))
+    for (const s of result.suggestions) {
+      const expected = Math.abs(s.scoreA + manAdvantage(s.teamA.length, s.teamB.length) - s.scoreB)
+      expect(s.diff).toBeCloseTo(expected, 6)
+      expect(s.scoreA).toBeCloseTo(ewptScore(s.teamA), 6)
+      expect(s.scoreB).toBeCloseTo(ewptScore(s.teamB), 6)
+    }
+  })
+
+  it('puts the extra player on the side without the pinned goalkeeper, whatever the RNG does', () => {
+    // One GK is always pinned to Team A. With identical outfielders the only
+    // way to offset Team A's keeper bonus is to give Team B the extra body.
+    const players = [
+      makePlayer('GK', { mentality: 'goalkeeper' }),
+      ...Array.from({ length: 10 }, (_, i) => makePlayer(`Out ${i + 1}`)),
+    ]
+    for (let seed = 1; seed <= 20; seed++) {
+      const result = autoPick(players, undefined, undefined, seededRng(seed))
+      const best = result.suggestions[0]
+      expect(best.teamA.length).toBe(5)
+      expect(best.teamB.length).toBe(6)
+    }
+  })
+
+  it('leaves even squads unaffected: diff is the raw rating gap', () => {
+    const players = mixedPool().slice(0, 10)
+    const result = autoPick(players, undefined, undefined, seededRng(2))
+    for (const s of result.suggestions) {
+      expect(s.teamA.length).toBe(5)
+      expect(s.teamB.length).toBe(5)
+      expect(s.diff).toBeCloseTo(Math.abs(s.scoreA - s.scoreB), 6)
+    }
+  })
+})

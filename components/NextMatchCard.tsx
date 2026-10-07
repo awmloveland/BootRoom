@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, isPastDeadline, buildShareText, shareOrCopy, fetchLineupShareUrl, wprScore, leagueWprPercentiles, parseWeekDate, hintToWpr } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, manAdvantage, isPastDeadline, buildShareText, shareOrCopy, fetchLineupShareUrl, wprScore, leagueWprPercentiles, parseWeekDate, hintToWpr, squadFormat } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality, Strength } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
-import { X, Share2 } from 'lucide-react'
+import { X, Share2, TriangleAlert } from 'lucide-react'
 import { WinnerBadge } from '@/components/WinnerBadge'
+import { FormatLabel } from '@/components/FormatLabel'
 import { FaceOffLineup } from '@/components/TeamList'
 import { AddPlayerModal } from '@/components/AddPlayerModal'
 import { ResultModal } from '@/components/ResultModal'
@@ -56,6 +57,9 @@ interface Props {
 }
 
 type CardState = 'loading' | 'idle' | 'building' | 'lineup' | 'cancelled'
+
+/** Fewest players the builder will split into teams. */
+const MIN_SQUAD = 10
 
 /**
  * Scans played weeks to find the most recent week date each player appeared in.
@@ -168,9 +172,6 @@ export function NextMatchCard({
   const [newPlayerEntries, setNewPlayerEntries] = useState<NewPlayerEntry[]>([])
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false)
 
-  // Building state — format
-  const [format, setFormat] = useState('')
-
   const [autoPickResult, setAutoPickResult] = useState<AutoPickResult | null>(null)
   const [suggestionIndex, setSuggestionIndex] = useState(0)
   const [isManuallyEdited, setIsManuallyEdited] = useState(false)
@@ -237,12 +238,8 @@ export function NextMatchCard({
     [allPlayers]
   )
 
-  // Auto-derive format from player count
-  useEffect(() => {
-    const n = squadNames.length
-    if (n === 0) { setFormat(''); return }
-    setFormat(`${Math.ceil(n / 2)}-a-side`)
-  }, [squadNames.length])
+  // Odd squads are fine: one side plays with an extra player ('6v5').
+  const format = squadFormat(squadNames.length)
 
   function clearSplit() {
     setAutoPickResult(null)
@@ -680,18 +677,24 @@ export function NextMatchCard({
                   <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">{displayDate}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  {squadNames.length > 0 && (() => {
-                    const n = squadNames.length
-                    if (n < 10) return (
-                      <span className="font-plex text-[9.5px] font-bold uppercase tracking-[.12em] text-[#e2686f]">{10 - n} more needed (min 10)</span>
-                    )
-                    if (n % 2 !== 0) return (
-                      <span className="font-plex text-[9.5px] font-bold uppercase tracking-[.12em] text-[#e2686f]">Select an even number</span>
-                    )
-                    return (
-                      <span className="font-plex text-[9.5px] font-bold uppercase tracking-[.12em] text-[#8ba4c4]">{format} · {n} players</span>
-                    )
-                  })()}
+                  {/* One calm status line in a fixed colour, so it doesn't flash as players are tapped. */}
+                  {squadNames.length > 0 && (
+                    <span className="font-plex text-[9.5px] font-bold uppercase tracking-[.12em] tabular-nums text-[#8ba4c4]">
+                      {squadNames.length < MIN_SQUAD ? (
+                        `${squadNames.length} selected · ${MIN_SQUAD - squadNames.length} more needed`
+                      ) : squadNames.length % 2 !== 0 ? (
+                        <>
+                          <span className="text-[#fbbf24]">
+                            <TriangleAlert className="inline size-[11px] mr-1 -mt-px align-middle" aria-hidden />
+                            <FormatLabel format={format} />
+                          </span>
+                          {` · ${squadNames.length} players`}
+                        </>
+                      ) : (
+                        `${format} · ${squadNames.length} players`
+                      )}
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
@@ -843,8 +846,13 @@ export function NextMatchCard({
                         {renderTeam('A', localTeamA, liveScoreA)}
                         {renderTeam('B', localTeamB, liveScoreB)}
                       </div>
+                      {localTeamA.length !== localTeamB.length && (
+                        <p className="mt-3 font-plex text-[9.5px] uppercase tracking-[.12em] text-[#6f88a8]">
+                          Uneven teams · {localTeamA.length < localTeamB.length ? 'Team A' : 'Team B'} is a player short, which the odds below allow for
+                        </p>
+                      )}
                       {(() => {
-                        const winProbA = winProbability(liveScoreA, liveScoreB)
+                        const winProbA = winProbability(liveScoreA, liveScoreB, manAdvantage(localTeamA.length, localTeamB.length))
                         const winProbB = 1 - winProbA
                         const copy = winCopy(winProbA)
                         const isEven = copy.team === 'even'
@@ -937,7 +945,7 @@ export function NextMatchCard({
                   <button
                     type="button"
                     onClick={isAutoPickMode ? handleSaveLineup : handleAutoPick}
-                    disabled={saving || squadNames.length < 10 || squadNames.length % 2 !== 0}
+                    disabled={saving || squadNames.length < MIN_SQUAD}
                     className="h-8 px-3.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-xs font-bold whitespace-nowrap transition-colors disabled:opacity-40"
                   >
                     {saving ? 'Saving…' : isAutoPickMode ? 'Confirm Lineup' : 'Build Lineup'}
@@ -979,7 +987,7 @@ export function NextMatchCard({
               <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">Week {displayWeek}</p>
               <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">
                 {displayDate}
-                {scheduledWeek.format && <span> · {scheduledWeek.format}</span>}
+                {scheduledWeek.format && <span> · <FormatLabel format={scheduledWeek.format} /></span>}
               </p>
             </div>
             {isPastDeadline(scheduledWeek.date) ? (

@@ -1,5 +1,6 @@
 import { Calendar, MapPin, Share2 } from 'lucide-react'
 import { cn, formatFixtureDate } from '@/lib/utils'
+import { FormatLabel } from '@/components/FormatLabel'
 
 const BADGE_BASE = 'rounded border px-2.5 py-[5px] font-plex text-[9px] font-bold uppercase tracking-[.18em] whitespace-nowrap'
 const FOCUS_RING = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#38bdf8]'
@@ -115,7 +116,6 @@ export function NextGameLineup({
   onShare,
   copied = false,
 }: NextGameLineupProps) {
-  const venue = [location, format].filter(Boolean).join(' · ')
   const when = [formatFixtureDate(date), kickoffTime].filter(Boolean).join(' · ')
 
   return (
@@ -138,10 +138,14 @@ export function NextGameLineup({
       </div>
 
       <div className="flex items-center justify-between gap-3 border-t border-[#1b2c46] bg-[#0c1728] px-4 py-2.5 font-plex text-[9px] uppercase tracking-[.12em] text-[#8ba4c4]">
-        {venue ? (
+        {location || format ? (
           <span className="inline-flex min-w-0 items-center gap-1.5">
             <MapPin className="size-[11px] shrink-0" aria-hidden />
-            <span className="truncate">{venue}</span>
+            <span className="truncate">
+              {location}
+              {location && format && ' · '}
+              {format && <FormatLabel format={format} />}
+            </span>
           </span>
         ) : (
           <span />

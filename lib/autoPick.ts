@@ -1,12 +1,12 @@
 import type { Player } from './types'
-import { ewptScore } from './utils'
+import { ewptScore, manAdvantage } from './utils'
 
 export interface AutoPickSuggestion {
   teamA: Player[]
   teamB: Player[]
   scoreA: number
   scoreB: number
-  diff: number
+  diff: number   // handicap-adjusted gap: |scoreA + manAdvantage − scoreB|
 }
 
 export interface AutoPickResult {
@@ -19,7 +19,7 @@ const EXHAUSTIVE_THRESHOLD = 20        // n ≤ this → try every split; above,
 // NOTE: the "closest 5" guarantee holds only on the exhaustive path. For
 // n > EXHAUSTIVE_THRESHOLD the algorithm picks the closest 5 from this
 // sample, so a closer split not present in the sample can still be missed.
-const FALLBACK_SAMPLE_COUNT = 500      // random shuffles tried when n > EXHAUSTIVE_THRESHOLD
+const FALLBACK_SAMPLE_COUNT = 500      // random shuffles tried per team size when n > EXHAUSTIVE_THRESHOLD
 const SUGGESTION_COUNT = 5             // distinct splits surfaced in the UI
 
 // --- Filters ---
@@ -50,6 +50,11 @@ export function findAssocTeam(
  * Given a list of players attending the game, return up to SUGGESTION_COUNT
  * (5) balanced team splits — always the closest-to-50/50 splits the algorithm
  * can find, sorted by score diff ascending, with team-swap duplicates collapsed.
+ *
+ * An odd squad gives uneven teams. The gap is measured after adding the
+ * `manAdvantage` handicap to the larger side, so the closest splits hand the
+ * team that is a player short the stronger line-up on paper. Both ways of
+ * placing the extra player are searched and compete on that adjusted gap.
  *
  * Uses exhaustive search for n ≤ 20; random sampling for n > 20. Guest players
  * (not in DB) should be passed with a wprOverride set to the appropriate
@@ -153,27 +158,35 @@ export function autoPick(
   // Apply all pair-pinning exclusions in one pass.
   searchPool = searchPool.filter((p) => !excluded.has(p))
 
-  // When n is odd, randomise which team receives the extra slot. Over many games
-  // this removes Team A's persistent +0.5 depth-bonus advantage.
-  const extraSlotToA = n % 2 === 0 || rng() < 0.5
-  const halfSize = extraSlotToA ? Math.ceil(n / 2) : Math.floor(n / 2)
-  // How many non-pinned players go into Team A (clamp to 0 to avoid negative, and to searchPool.length to avoid exceeding pool)
-  const sizeA = Math.max(0, Math.min(searchPool.length, halfSize - (pinnedA ? 1 : 0) - pinnedTeamA.length))
+  // When n is odd, try both ways of placing the extra player and let the
+  // handicap-adjusted gap decide. The order is shuffled so that pools where
+  // both ways tie (identical players) share the extra slot between sides
+  // over many games rather than always favouring Team A.
+  const halfSizes = n % 2 === 0
+    ? [n / 2]
+    : rng() < 0.5
+      ? [Math.ceil(n / 2), Math.floor(n / 2)]
+      : [Math.floor(n / 2), Math.ceil(n / 2)]
+  // How many non-pinned players go into Team A for each size (clamped to the pool)
+  const sizesA = [...new Set(halfSizes.map((half) =>
+    Math.max(0, Math.min(searchPool.length, half - (pinnedA ? 1 : 0) - pinnedTeamA.length)),
+  ))]
 
   // Generate candidate splits
-  let rawSplits: [Player[], Player[]][]
+  const rawSplits: [Player[], Player[]][] = []
 
-  if (n <= EXHAUSTIVE_THRESHOLD) {
-    rawSplits = combinations(searchPool, sizeA).map((teamASlice) => {
-      const inA = new Set(teamASlice.map((p) => p.playerId))
-      return [teamASlice, searchPool.filter((p) => !inA.has(p.playerId))] as [Player[], Player[]]
-    })
-  } else {
-    // Random-sample fallback for large squads
-    rawSplits = []
-    for (let i = 0; i < FALLBACK_SAMPLE_COUNT; i++) {
-      const shuffled = [...searchPool].sort(() => rng() - 0.5)
-      rawSplits.push([shuffled.slice(0, sizeA), shuffled.slice(sizeA)])
+  for (const sizeA of sizesA) {
+    if (n <= EXHAUSTIVE_THRESHOLD) {
+      for (const teamASlice of combinations(searchPool, sizeA)) {
+        const inA = new Set(teamASlice.map((p) => p.playerId))
+        rawSplits.push([teamASlice, searchPool.filter((p) => !inA.has(p.playerId))])
+      }
+    } else {
+      // Random-sample fallback for large squads
+      for (let i = 0; i < FALLBACK_SAMPLE_COUNT; i++) {
+        const shuffled = [...searchPool].sort(() => rng() - 0.5)
+        rawSplits.push([shuffled.slice(0, sizeA), shuffled.slice(sizeA)])
+      }
     }
   }
 
@@ -183,11 +196,13 @@ export function autoPick(
     [...(pinnedB ? [pinnedB] : []), ...pinnedTeamB, ...b],
   ])
 
-  // Score all splits
+  // Score all splits. For uneven teams the gap includes the man-advantage
+  // handicap, so a split only reads as balanced when the shorter side is
+  // ahead on raw rating by roughly that much.
   const scored = allSplits.map(([a, b]) => {
     const scoreA = ewptScore(a)
     const scoreB = ewptScore(b)
-    const diff = Math.abs(scoreA - scoreB)
+    const diff = Math.abs(scoreA + manAdvantage(a.length, b.length) - scoreB)
     return { teamA: a, teamB: b, scoreA, scoreB, diff }
   })
 
