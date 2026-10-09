@@ -192,23 +192,35 @@ describe('buildResultShareText', () => {
     expect(shareText).not.toContain('goals)')
   })
 
-  it('lists only the winning team on a win', () => {
+  it('uses the singular for a one-goal win', () => {
+    const { shareText } = buildResultShareText({ ...BASE_PARAMS, goalDifference: 1 })
+    expect(shareText).toContain('🏆 Team A win! (+1 goal)\n')
+  })
+
+  it('leaves the margin out of a win with no recorded margin', () => {
+    const { shareText } = buildResultShareText({ ...BASE_PARAMS, goalDifference: 0 })
+    expect(shareText).toContain('🏆 Team A win!\n')
+    expect(shareText).not.toContain('(+0')
+  })
+
+  it('lists the winners straight under the headline on a win', () => {
     const { shareText } = buildResultShareText(BASE_PARAMS)
-    expect(shareText).toContain('🔵 Team A\nDave, Tom')
-    expect(shareText).not.toContain('Team B\n')
+    expect(shareText).toContain('🏆 Team A win! (+2 goals)\n🔵 Dave, Tom\n')
+    expect(shareText).not.toContain('🟣')
     expect(shareText).not.toContain('Jordan, Lee')
   })
 
-  it('lists only Team B when Team B win', () => {
+  it('lists Team B under the headline when Team B win', () => {
     const { shareText } = buildResultShareText({ ...BASE_PARAMS, winner: 'teamB' })
-    expect(shareText).toContain('🟣 Team B\nJordan, Lee')
+    expect(shareText).toContain('🏆 Team B win! (+2 goals)\n🟣 Jordan, Lee\n')
     expect(shareText).not.toContain('Dave, Tom')
   })
 
-  it('lists both teams on a draw', () => {
+  it('lists neither team on a draw', () => {
     const { shareText } = buildResultShareText({ ...BASE_PARAMS, winner: 'draw', goalDifference: 0 })
-    expect(shareText).toContain('🔵 Team A\nDave, Tom')
-    expect(shareText).toContain('🟣 Team B\nJordan, Lee')
+    expect(shareText).toContain('🤝 Draw!\n\n')
+    expect(shareText).not.toContain('🔵')
+    expect(shareText).not.toContain('🟣')
   })
 
   // ── records ──

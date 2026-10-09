@@ -1099,13 +1099,16 @@ export function buildResultShareText(params: {
   const [dd, mmm] = date.split(' ')
   const shortDate = `${DAY_SHORT[parsed.getDay()]} ${dd} ${mmm}`
 
-  // ── Result headline ──────────────────────────────────────────────────────
-  const resultLine =
+  // ── Result headline, with the teams straight underneath ──────────────────
+  // A win lists only the winners, under a headline that already names them;
+  // a draw lists neither team.
+  const margin = goalDifference > 0 ? ` (+${goalDifference} ${goalDifference === 1 ? 'goal' : 'goals'})` : ''
+  const resultLines =
     winner === 'draw'
-      ? '🤝 Draw!'
+      ? ['🤝 Draw!']
       : winner === 'teamA'
-        ? `🏆 Team A win! (+${goalDifference} goals)`
-        : `🏆 Team B win! (+${goalDifference} goals)`
+        ? [`🏆 Team A win!${margin}`, `🔵 ${teamA.join(', ')}`]
+        : [`🏆 Team B win!${margin}`, `🟣 ${teamB.join(', ')}`]
 
   // ── Highlights ───────────────────────────────────────────────────────────
   const { items, table, inForm } = computeResultHighlights({
@@ -1132,11 +1135,8 @@ export function buildResultShareText(params: {
     `⚽ ${leagueName} — Week ${week}`,
     `📅 ${shortDate}${format ? ` · ${format}` : ''}`,
     '',
-    resultLine,
+    ...resultLines,
   ]
-  // Winners only; a draw has no losers, so both teams stay
-  if (winner !== 'teamB') parts.push('', '🔵 Team A', teamA.join(', '))
-  if (winner !== 'teamA') parts.push('', '🟣 Team B', teamB.join(', '))
 
   if (highlightsText.length > 0) {
     parts.push('')
