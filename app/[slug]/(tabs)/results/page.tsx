@@ -76,7 +76,7 @@ export default async function LeagueResultsPage({ params }: Props) {
   const first = weeks
     .filter((w) => w.status === 'scheduled')
     .sort((a, b) => parseWeekDate(a.date).getTime() - parseWeekDate(b.date).getTime())[0]
-  if (first && !isPastDeadline(first.date)) {
+  if (first && !isPastDeadline(first.date, game.kickoff_time ?? null)) {
     nextWeek = {
       id: first.id!,
       season: first.season,
@@ -130,6 +130,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             canShareImage={canShareLineupImage}
             celebration={celebration}
             resultShareUrl={resultShareUrl}
+            kickoffTime={game.kickoff_time ?? null}
           />
           {!isAuthenticated && (
             <p className="pt-2 font-plex text-[9px] uppercase tracking-[.14em] text-[#4f688a] text-center">
@@ -165,6 +166,7 @@ export default async function LeagueResultsPage({ params }: Props) {
             linkedPlayerName={claim.playerName}
             canShareImage={canShareLineupImage}
             resultShareUrl={resultShareUrl}
+            kickoffTime={game.kickoff_time ?? null}
           />
         ) : (
           <div className="py-16 text-center">

@@ -16,9 +16,10 @@ interface PublicMatchListProps {
   leagueSlug?: string
   season?: string                           // only render this season's weeks (Results year tabs)
   resultShareUrl?: string | null            // signed link for the most recent result
+  kickoffTime?: string | null               // league kick-off time; scheduled weeks show as Awaiting Result from then
 }
 
-export function PublicMatchList({ weeks, celebration = null, leagueName, leagueSlug, season, resultShareUrl }: PublicMatchListProps) {
+export function PublicMatchList({ weeks, celebration = null, leagueName, leagueSlug, season, resultShareUrl, kickoffTime = null }: PublicMatchListProps) {
   // Cards render for one season when the year tabs are in play; cards still get
   // the full history for share text.
   const visibleWeeks = season ? weeks.filter((w) => w.season === season) : weeks
@@ -71,6 +72,7 @@ export function PublicMatchList({ weeks, celebration = null, leagueName, leagueS
               weeks={weeks}
               isMostRecent={isMostRecent}
               shareUrl={isMostRecent ? resultShareUrl : null}
+              kickoffTime={kickoffTime}
             />
           </Fragment>
         )

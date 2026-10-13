@@ -17,6 +17,7 @@ interface Props {
   canShareImage: boolean
   celebration: ResultsCelebration | null
   resultShareUrl: string | null     // signed link for the most recent result's Share button
+  kickoffTime: string | null        // league kick-off time, when a scheduled game starts awaiting its result
 }
 
 /** Public results: year tabs, the next match on the current year, then the selected year's results. */
@@ -31,6 +32,7 @@ export function PublicResultsSection({
   canShareImage,
   celebration,
   resultShareUrl,
+  kickoffTime,
 }: Props) {
   const { seasons, year, isDefaultYear, selectYear } = useResultsYear(weeks)
 
@@ -48,6 +50,7 @@ export function PublicResultsSection({
             canEdit={canEditMatchEntry}
             leagueName={leagueName}
             canShareImage={canShareImage}
+            kickoffTime={kickoffTime}
           />
         </div>
       )}
@@ -62,6 +65,7 @@ export function PublicResultsSection({
             leagueName={leagueName}
             leagueSlug={leagueSlug}
             resultShareUrl={resultShareUrl}
+            kickoffTime={kickoffTime}
           />
         </section>
       )}
