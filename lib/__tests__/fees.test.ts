@@ -239,7 +239,7 @@ describe('buildShareText', () => {
   ]
   const payments = { 'w3|Alice': true, 'w3|Tom': true, 'w4|Tom': true }
 
-  it('lists debtors only, by owed, with dates oldest first and a (+1) marker', () => {
+  it('lists debtors only, by owed, with dates oldest first, a (+1) marker and a gap between players', () => {
     const data = computeFees(weeks, {}, payments, 6, RANGE_30, TODAY)
     expect(buildShareText(data, 'Hackney Thursdays')).toBe(
       [
@@ -247,9 +247,10 @@ describe('buildShareText', () => {
         'Last 30 days · 10 Sep – 1 Oct 2026',
         '',
         'Matt · £18',
-        '  10 Sep, 24 Sep, 1 Oct',
+        '10 Sep, 24 Sep, 1 Oct',
+        '',
         'Alice · £12',
-        '  17 Sep (+1), 1 Oct',
+        '17 Sep (+1), 1 Oct',
         '',
         'Total outstanding · £30',
         '£6 per player per game',

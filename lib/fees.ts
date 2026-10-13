@@ -312,7 +312,8 @@ export function presetSummaries(weeks: Week[], today: Date = new Date()): Preset
 
 /**
  * Plain-text breakdown for the group chat: debtors only, biggest debt first,
- * each with their unpaid dates oldest first. No em dashes; `·` separates.
+ * each with their unpaid dates oldest first on the line below, and a blank
+ * line between players. No em dashes; `·` separates.
  */
 export function buildShareText(data: AdminMoneyData, leagueName: string): string {
   const lines = [
@@ -327,7 +328,10 @@ export function buildShareText(data: AdminMoneyData, leagueName: string): string
       .filter((e) => !e.paid)
       .sort((a, b) => parseWeekDate(a.date).getTime() - parseWeekDate(b.date).getTime() || a.week - b.week)
       .map((e) => shortWeekDate(e.date) + (e.guest ? ' (+1)' : ''))
-    lines.push(`${p.name} · ${formatMoney(p.owed)}`, `  ${dates.join(', ')}`)
+    // A blank line between players keeps each name with its dates; chat apps
+    // collapse indentation, so spacing is what separates the rows.
+    if (p !== data.debtors[0]) lines.push('')
+    lines.push(`${p.name} · ${formatMoney(p.owed)}`, dates.join(', '))
   }
 
   // Name the one cost when every game shares it; otherwise lead with the default.
