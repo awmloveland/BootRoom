@@ -59,6 +59,9 @@ describe('notifyAdminsOfJoinRequest', () => {
         from: 'notifications@craft-football.com',
       })
     )
+    expect(mockEmailSend.mock.calls[0][0].html).toContain(
+      'https://craft-football.com/sunday-5s/settings'
+    )
   })
 
   it('sends one email per admin when there are multiple admins', async () => {
@@ -130,6 +133,8 @@ describe('notifyRequesterOfReview', () => {
         from: 'notifications@craft-football.com',
       })
     )
+    expect(mockEmailSend.mock.calls[0][0].html).toContain('https://craft-football.com/sunday-5s')
+    expect(mockEmailSend.mock.calls[0][0].html).not.toContain('/app/league/')
   })
 
   it('sends declined email with correct subject', async () => {

@@ -140,8 +140,10 @@ established in `components/` when adding new components.
 
 **Exception: `components/og/`.** Those components are rendered to PNG by
 `next/og` (Satori), which only understands inline `style` objects, so they
-use `style` props with the palette's hex values. Keep `style` out of every
-other component.
+use `style` props with the palette's hex values. The same goes for the
+email templates in `lib/email/templates/`, since email clients only reliably
+honour inline styles; they share a frame and type styles via `EmailLayout.tsx`.
+Keep `style` out of every other component.
 
 ---
 

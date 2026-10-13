@@ -7,7 +7,7 @@ const baseAdminProps = {
   requesterName: 'Marcus Thompson',
   requesterEmail: 'marcus@example.com',
   message: null,
-  membersPageUrl: 'https://craft-football.com/app/league/sunday-5s/settings',
+  membersPageUrl: 'https://craft-football.com/sunday-5s/settings',
 }
 
 describe('JoinRequestAdminEmail', () => {
@@ -24,7 +24,7 @@ describe('JoinRequestAdminEmail', () => {
 
   it('includes the review CTA link', async () => {
     const html = await render(JoinRequestAdminEmail(baseAdminProps))
-    expect(html).toContain('craft-football.com/app/league/sunday-5s/settings')
+    expect(html).toContain('craft-football.com/sunday-5s/settings')
     expect(html).toContain('Review request')
   })
 
@@ -48,11 +48,11 @@ describe('JoinRequestStatusEmail', () => {
         leagueName: 'Sunday 5s',
         requesterName: 'Marcus',
         action: 'approved',
-        leagueUrl: 'https://craft-football.com/app/league/sunday-5s',
+        leagueUrl: 'https://craft-football.com/sunday-5s',
       })
     )
     expect(html).toContain('in, Marcus')
-    expect(html).toContain('craft-football.com/app/league/sunday-5s')
+    expect(html).toContain('craft-football.com/sunday-5s')
     expect(html).toContain('Go to league')
   })
 
