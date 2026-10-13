@@ -177,7 +177,6 @@ function EditPlayerForm({ leagueId, player, roster, busy, setBusy, onUpdated, on
           'Failed to link member',
         )
         saved = { ...saved, linked_user_id: stagedLink.userId, linked_display_name: stagedLink.displayName }
-        setStagedLink(null)
       }
 
       // Rename last so the steps above always address a name that exists
@@ -190,7 +189,11 @@ function EditPlayerForm({ leagueId, player, roster, busy, setBusy, onUpdated, on
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
-      if (saved !== player) onUpdated(player.name, saved)
+      if (saved !== player) {
+        // Once the link is saved the chip comes from the baseline, so drop the staged copy
+        if (saved.linked_user_id !== player.linked_user_id) setStagedLink(null)
+        onUpdated(player.name, saved)
+      }
     } finally {
       setBusy(false)
     }
@@ -226,6 +229,7 @@ function EditPlayerForm({ leagueId, player, roster, busy, setBusy, onUpdated, on
         <div className="flex gap-2 justify-end">
           <button
             type="button"
+            autoFocus
             onClick={() => { setView('form'); setError(null) }}
             disabled={busy}
             className={OUTLINE_BTN}
@@ -252,7 +256,7 @@ function EditPlayerForm({ leagueId, player, roster, busy, setBusy, onUpdated, on
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSave() }}
             disabled={busy}
             autoComplete="off"
             className="h-9 w-full rounded border border-[#223a5c] bg-[#0c1728] px-3 font-inter-body text-sm text-[#f4f9ff] focus:outline-none focus:ring-0 focus:border-[#38bdf8] disabled:opacity-50"
@@ -276,7 +280,7 @@ function EditPlayerForm({ leagueId, player, roster, busy, setBusy, onUpdated, on
 
         <div>
           <p className={FIELD_LABEL}>Mentality</p>
-          <MentalityControl value={mentality} onChange={setMentality} fullWidth />
+          <MentalityControl value={mentality} onChange={setMentality} fullWidth disabled={busy} />
         </div>
 
         <div>
@@ -295,6 +299,7 @@ function EditPlayerForm({ leagueId, player, roster, busy, setBusy, onUpdated, on
                   setPickingMember(false)
                 }}
                 onCancel={() => setPickingMember(false)}
+                submitting={busy}
               />
             </div>
           ) : (
@@ -302,7 +307,7 @@ function EditPlayerForm({ leagueId, player, roster, busy, setBusy, onUpdated, on
               type="button"
               onClick={() => setPickingMember(true)}
               disabled={busy}
-              className="text-xs text-[#6f88a8] border border-dashed border-[#223a5c] px-2 py-0.5 rounded hover:border-[#3d5578] hover:text-[#cfe0f4] transition-colors"
+              className="text-xs text-[#6f88a8] border border-dashed border-[#223a5c] px-2 py-0.5 rounded hover:border-[#3d5578] hover:text-[#cfe0f4] transition-colors disabled:opacity-50"
             >
               + Link member
             </button>

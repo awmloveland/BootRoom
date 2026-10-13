@@ -14,9 +14,10 @@ interface Props {
   value: Mentality
   onChange: (m: Mentality) => void
   fullWidth?: boolean
+  disabled?: boolean
 }
 
-export function MentalityControl({ value, onChange, fullWidth = false }: Props) {
+export function MentalityControl({ value, onChange, fullWidth = false, disabled = false }: Props) {
   return (
     <div
       className={cn(
@@ -29,9 +30,10 @@ export function MentalityControl({ value, onChange, fullWidth = false }: Props) 
           key={v}
           type="button"
           aria-pressed={v === value}
-          onClick={() => { if (v !== value) onChange(v) }}
+          disabled={disabled}
+          onClick={() => { if (!disabled && v !== value) onChange(v) }}
           className={cn(
-            'transition-colors border-[#223a5c]',
+            'transition-colors border-[#223a5c] disabled:opacity-50 disabled:cursor-not-allowed',
             fullWidth ? 'flex-1 h-8' : 'h-6 px-2',
             i < OPTIONS.length - 1 && 'border-r',
             v === value

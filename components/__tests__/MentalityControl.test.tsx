@@ -20,4 +20,13 @@ describe('MentalityControl', () => {
     fireEvent.click(screen.getByRole('button', { name: 'DEF' }))
     expect(onChange).toHaveBeenCalledWith('defensive')
   })
+
+  it('ignores clicks when disabled', () => {
+    const onChange = jest.fn()
+    render(<MentalityControl value="attacking" onChange={onChange} disabled />)
+    const def = screen.getByRole('button', { name: 'DEF' })
+    expect(def).toBeDisabled()
+    fireEvent.click(def)
+    expect(onChange).not.toHaveBeenCalled()
+  })
 })

@@ -45,8 +45,8 @@ function renderModal(overrides: Partial<ModalProps> = {}) {
     onClose: jest.fn(),
     ...overrides,
   }
-  render(<EditPlayerModal {...props} />)
-  return props
+  const { rerender } = render(<EditPlayerModal {...props} />)
+  return { ...props, rerender }
 }
 
 describe('EditPlayerModal', () => {
@@ -228,5 +228,87 @@ describe('EditPlayerModal', () => {
     renderModal({ roster: [makePlayer('Sam', { linked_user_id: 'u1', linked_display_name: 'Sam O.' })] })
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     expect(screen.getByText(/will be unlinked/)).toHaveTextContent('Sam O. will be unlinked')
+  })
+
+  it('blocks closing while a save is in flight', async () => {
+    let resolve!: (v: unknown) => void
+    fetchMock.mockReturnValue(new Promise((r) => { resolve = r }))
+    const props = renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'DEF' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('button', { name: 'Saving…' })).toBeDisabled()
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+    expect(props.onClose).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Close' })).toBeDisabled()
+
+    resolve(ok())
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledTimes(1))
+  })
+
+  it('resends only the step that failed on a second Save', async () => {
+    fetchMock
+      .mockResolvedValueOnce(ok())
+      .mockResolvedValueOnce(fail('Name already exists in this league'))
+    const props = renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'DEF' }))
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Sammy' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Name already exists in this league')).toBeInTheDocument()
+
+    // What the parent does after onUpdated: the roster entry now holds the saved mentality
+    props.rerender(
+      <EditPlayerModal
+        {...props}
+        roster={[
+          makePlayer('Sam', { played: 6, strength: 'average', mentality: 'defensive' }),
+          makePlayer('Alex'),
+        ]}
+      />,
+    )
+    fetchMock.mockReset()
+    fetchMock.mockResolvedValue(ok())
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(props.onClose).toHaveBeenCalled())
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/league/league-1/players/Sam/rename')
+    expect(JSON.parse(init.body)).toEqual({ new_name: 'Sammy' })
+  })
+
+  it('lets an unrated player pick a strength', async () => {
+    fetchMock.mockResolvedValue(ok())
+    const props = renderModal({ roster: [makePlayer('Sam', { played: 2, strength: null }), makePlayer('Alex')] })
+    fireEvent.click(screen.getByRole('radio', { name: 'Above average' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(props.onClose).toHaveBeenCalled())
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/league/league-1/players/Sam')
+    expect(init.method).toBe('PATCH')
+    expect(JSON.parse(init.body)).toEqual({ strength: 'above' })
+  })
+
+  it('URL-encodes player names', async () => {
+    fetchMock.mockResolvedValue(ok())
+    const props = renderModal({
+      playerName: 'Jo Bloggs/2',
+      roster: [makePlayer('Jo Bloggs/2', { played: 12 }), makePlayer('Alex')],
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'DEF' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(props.onClose).toHaveBeenCalled())
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/league/league-1/players/Jo%20Bloggs%2F2')
+  })
+
+  it('allows a case-only rename', () => {
+    renderModal({ playerName: 'sam', roster: [makePlayer('sam', { played: 12 }), makePlayer('Alex')] })
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Sam' } })
+
+    expect(screen.queryByText('Another player already has that name')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
   })
 })
