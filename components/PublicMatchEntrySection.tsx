@@ -11,6 +11,7 @@ interface Props {
   leagueName?: string
   canEdit?: boolean
   canShareImage?: boolean
+  kickoffTime?: string | null
 }
 
 /**
@@ -18,7 +19,7 @@ interface Props {
  * Accepts serializable props from the server page component and
  * wires onResultSaved to a full page reload (re-fetches server data).
  */
-export function PublicMatchEntrySection({ gameId, leagueSlug, weeks, initialScheduledWeek, leagueName, canEdit = true, canShareImage = false }: Props) {
+export function PublicMatchEntrySection({ gameId, leagueSlug, weeks, initialScheduledWeek, leagueName, canEdit = true, canShareImage = false, kickoffTime = null }: Props) {
   return (
     <NextMatchCard
       gameId={gameId}
@@ -30,6 +31,7 @@ export function PublicMatchEntrySection({ gameId, leagueSlug, weeks, initialSche
       onResultSaved={() => window.location.reload()}
       leagueName={leagueName}
       canShareImage={canShareImage}
+      kickoffTime={kickoffTime}
     />
   )
 }

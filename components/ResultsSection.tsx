@@ -26,6 +26,7 @@ interface Props {
   linkedPlayerName?: string | null
   canShareImage?: boolean
   resultShareUrl?: string | null    // signed link for the most recent result's Share button
+  kickoffTime?: string | null       // league kick-off time, when a scheduled game starts awaiting its result
 }
 
 /** Latest result in one season, the card that opens when that season is shown. */
@@ -50,6 +51,7 @@ export function ResultsSection({
   linkedPlayerName = null,
   canShareImage = false,
   resultShareUrl = null,
+  kickoffTime = null,
 }: Props) {
   const router = useRouter()
   const { seasons, year, isDefaultYear, selectYear } = useResultsYear(weeks)
@@ -102,6 +104,7 @@ export function ResultsSection({
             leagueName={leagueName}
             canShareImage={canShareImage}
             linkedPlayerName={linkedPlayerName}
+            kickoffTime={kickoffTime}
           />
         </div>
       )}
@@ -122,6 +125,7 @@ export function ResultsSection({
           celebration={celebration}
           linkedPlayerName={linkedPlayerName}
           resultShareUrl={resultShareUrl}
+          kickoffTime={kickoffTime}
         />
       )}
     </div>

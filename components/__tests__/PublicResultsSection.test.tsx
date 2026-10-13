@@ -42,6 +42,7 @@ function renderSection(props: Partial<React.ComponentProps<typeof PublicResultsS
       showMatchHistory={true}
       canShareImage={false}
       celebration={null}
+      kickoffTime={null}
       {...props}
     />
   )

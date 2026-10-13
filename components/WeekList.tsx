@@ -26,6 +26,7 @@ interface Props {
   linkedPlayerName?: string | null          // viewer's linked player, for the YOU tag on played weeks
   season?: string                           // only render this season's weeks (Results year tabs)
   resultShareUrl?: string | null            // signed link for the most recent result
+  kickoffTime?: string | null               // league kick-off time; scheduled weeks show as Awaiting Result from then
 }
 
 interface NameGuestTarget {
@@ -48,6 +49,7 @@ export function WeekList({
   linkedPlayerName = null,
   season,
   resultShareUrl = null,
+  kickoffTime = null,
 }: Props) {
   const router = useRouter()
   // Cards render for one season when the year tabs are in play; cards still get
@@ -151,6 +153,7 @@ export function WeekList({
                 shareUrl={isMostRecent ? resultShareUrl : null}
                 onNameGuest={handleNameGuestRequest}
                 linkedPlayerName={linkedPlayerName}
+                kickoffTime={kickoffTime}
               />
             </div>
           </Fragment>

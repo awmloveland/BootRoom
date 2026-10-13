@@ -724,14 +724,50 @@ export function getMarginCaption(
 }
 
 /**
- * Returns true if the game day 20:00 deadline has passed for the given date string.
- * Matches the local-time behavior of the existing NextMatchCard deadline logic.
- * Input format: 'DD MMM YYYY', e.g. '25 Mar 2026'
+ * A league kick-off time: 'HH:MM' (24-hour, as the league details form saves
+ * it) or the older '6:30pm' / '7pm' form. Null when missing or unreadable.
  */
-export function isPastDeadline(dateStr: string): boolean {
-  const [day, mon, yr] = dateStr.split(' ')
-  const deadline = new Date(`${mon} ${day}, ${yr} 20:00:00`)
+export function parseKickoffTime(value: string | null | undefined): { hours: number; minutes: number } | null {
+  if (!value) return null
+  const v = value.trim().toLowerCase()
+
+  const h24 = v.match(/^(\d{1,2}):(\d{2})$/)
+  if (h24) {
+    const hours = Number(h24[1])
+    const minutes = Number(h24[2])
+    return hours < 24 && minutes < 60 ? { hours, minutes } : null
+  }
+
+  const h12 = v.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/)
+  if (h12) {
+    const hour = Number(h12[1])
+    const minutes = Number(h12[2] ?? 0)
+    if (hour < 1 || hour > 12 || minutes > 59) return null
+    return { hours: (hour % 12) + (h12[3] === 'pm' ? 12 : 0), minutes }
+  }
+
+  return null
+}
+
+/**
+ * True once a game on `dateStr` ('DD MMM YYYY', local time) is waiting for its
+ * result: from the league's kick-off time when it has one, otherwise from 20:00.
+ */
+export function isPastDeadline(dateStr: string, kickoffTime?: string | null): boolean {
+  const { hours, minutes } = parseKickoffTime(kickoffTime) ?? { hours: 20, minutes: 0 }
+  const deadline = parseWeekDate(dateStr)
+  deadline.setHours(hours, minutes, 0, 0)
   return Date.now() > deadline.getTime()
+}
+
+/**
+ * True from midnight at the end of the day after the game. Until then the
+ * Overview card keeps a kicked-off game on screen, waiting for its result.
+ */
+export function isAwaitingWindowOver(dateStr: string): boolean {
+  const closes = parseWeekDate(dateStr)
+  closes.setDate(closes.getDate() + 2)
+  return Date.now() >= closes.getTime()
 }
 
 /** 'DD MMM YYYY' → 'Thu 09 Apr', for fixture lines. */
@@ -765,16 +801,20 @@ export function gamesPlayedLabel(n: number): string {
  * Overview tab can render the card in its first paint.
  *
  * Takes the latest-dated row that is scheduled, cancelled or unrecorded:
- *   - unrecorded, or past the 20:00 deadline → null (the card is idle)
+ *   - unrecorded → null (the card is idle)
+ *   - cancelled and past kick-off → null
+ *   - scheduled and the day after the game has ended → null. Until then a
+ *     kicked-off game stays on the card, waiting for its result.
  *   - otherwise → that row as a ScheduledWeek
  */
-export function getNextMatchSeed(weeks: Week[]): ScheduledWeek | null {
+export function getNextMatchSeed(weeks: Week[], kickoffTime?: string | null): ScheduledWeek | null {
   const latest = sortWeeks(
     weeks.filter((w) => w.status === 'scheduled' || w.status === 'cancelled' || w.status === 'unrecorded')
   )[0]
   if (!latest || !latest.id) return null
   if (latest.status === 'unrecorded') return null
-  if (isPastDeadline(latest.date)) return null
+  if (latest.status === 'cancelled' && isPastDeadline(latest.date, kickoffTime)) return null
+  if (latest.status === 'scheduled' && isAwaitingWindowOver(latest.date)) return null
   return {
     id: latest.id,
     season: latest.season,

@@ -106,8 +106,31 @@ describe('getNextMatchSeed', () => {
     expect(getNextMatchSeed([week({ week: 14, date: '02 Apr 2026', status: 'unrecorded' })])).toBeNull()
   })
 
-  it('returns null when the scheduled week is past its deadline', () => {
+  it('returns null for a scheduled week two days after it was played', () => {
     expect(getNextMatchSeed([week({ week: 14, date: '02 Apr 2026', status: 'scheduled', teamA: ['Alice'], teamB: ['Bob'] })])).toBeNull()
+  })
+
+  it('keeps a scheduled week that has kicked off, for the day after too', () => {
+    const today = week({ week: 15, date: '06 Apr 2026', status: 'scheduled', teamA: ['Alice'], teamB: ['Bob'] })
+    expect(getNextMatchSeed([today], '11:00')).toMatchObject({ week: 15, status: 'scheduled' })
+    const yesterday = week({ week: 15, date: '05 Apr 2026', status: 'scheduled', teamA: ['Alice'], teamB: ['Bob'] })
+    expect(getNextMatchSeed([yesterday], '18:30')).toMatchObject({ week: 15, status: 'scheduled' })
+  })
+
+  it('drops a scheduled week once the day after the game has ended', () => {
+    const old = week({ week: 15, date: '04 Apr 2026', status: 'scheduled', teamA: ['Alice'], teamB: ['Bob'] })
+    expect(getNextMatchSeed([old], '18:30')).toBeNull()
+  })
+
+  it('drops a cancelled week from kick-off', () => {
+    const cancelled = week({ week: 15, date: '06 Apr 2026', status: 'cancelled' })
+    expect(getNextMatchSeed([cancelled], '11:00')).toBeNull()
+    expect(getNextMatchSeed([cancelled], '18:30')).toMatchObject({ status: 'cancelled' })
+  })
+
+  it('treats a cancelled week as 20:00 without a kick-off time', () => {
+    const cancelled = week({ week: 15, date: '06 Apr 2026', status: 'cancelled' })
+    expect(getNextMatchSeed([cancelled])).toMatchObject({ status: 'cancelled' })
   })
 
   it('uses the latest-dated row, not an older unrecorded one', () => {

@@ -48,7 +48,8 @@ export function OverviewNextGame({
   return (
     <NextMatchCard
       variant="overview"
-      overview={{ linkedPlayerName, location, kickoffTime }}
+      overview={{ linkedPlayerName, location }}
+      kickoffTime={kickoffTime}
       gameId={gameId}
       leagueSlug={leagueSlug}
       leagueName={leagueName}

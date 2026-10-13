@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import { render, screen, fireEvent } from '@testing-library/react'
-import { NextGameIdle, NextGameLineup } from '@/components/overview/NextGameCard'
+import { NextGameAwaiting, NextGameIdle, NextGameLineup } from '@/components/overview/NextGameCard'
 
 const LINEUP = {
   week: 16,
@@ -90,32 +90,95 @@ describe('NextGameLineup', () => {
     expect(screen.getByRole('button', { name: 'Result Game' })).toBeInTheDocument()
   })
 
-  it('swaps the badge once the deadline has passed', () => {
-    render(<NextGameLineup {...LINEUP} awaitingResult />)
-    expect(screen.getByText('Awaiting Result')).toBeInTheDocument()
-    expect(screen.queryByText('Upcoming')).not.toBeInTheDocument()
+  it('always shows the upcoming badge', () => {
+    render(<NextGameLineup {...LINEUP} />)
+    expect(screen.getByText('Upcoming')).toBeInTheDocument()
+    expect(screen.queryByText(/awaiting result/i)).not.toBeInTheDocument()
   })
 })
 
+const IDLE = {
+  week: 16,
+  date: '09 Apr 2026',
+  kickoffTime: '18:30',
+  onBuildTeams: jest.fn(),
+  onCancelGame: jest.fn(),
+}
+
 describe('NextGameIdle', () => {
-  it('tells non-editors when to expect teams and offers no buttons', () => {
-    render(<NextGameIdle week={16} canEdit={false} onBuildTeams={jest.fn()} onCancelGame={jest.fn()} />)
+  it('is one row with the week, date and kick-off', () => {
+    render(<NextGameIdle {...IDLE} canEdit={false} />)
     expect(screen.getByText('Next game')).toBeInTheDocument()
     expect(screen.getByText('Week 16')).toBeInTheDocument()
+    expect(screen.getByText('Thu 09 Apr · 18:30')).toBeInTheDocument()
+    expect(screen.queryByText('Lineups not set yet')).not.toBeInTheDocument()
+  })
+
+  it('shows non-editors a No lineup badge and no buttons', () => {
+    render(<NextGameIdle {...IDLE} canEdit={false} />)
     expect(screen.getByText('No lineup')).toBeInTheDocument()
-    expect(screen.getByText('Lineups not set yet')).toBeInTheDocument()
-    expect(screen.getByText('Teams are usually posted the day before.')).toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
 
-  it('gives editors Build Teams and Cancel Game', () => {
+  it('gives editors Cancel and Build Teams instead of the badge', () => {
     const onBuildTeams = jest.fn()
     const onCancelGame = jest.fn()
-    render(<NextGameIdle week={16} canEdit onBuildTeams={onBuildTeams} onCancelGame={onCancelGame} />)
-    expect(screen.getByText('Pick who is playing and we will balance the teams.')).toBeInTheDocument()
+    render(<NextGameIdle {...IDLE} canEdit onBuildTeams={onBuildTeams} onCancelGame={onCancelGame} />)
+    expect(screen.queryByText('No lineup')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Cancel', 'Build Teams'])
     fireEvent.click(screen.getByRole('button', { name: 'Build Teams' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel Game' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(onBuildTeams).toHaveBeenCalledTimes(1)
     expect(onCancelGame).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaves out missing parts of the meta line', () => {
+    const { rerender } = render(<NextGameIdle {...IDLE} kickoffTime={null} canEdit={false} />)
+    expect(screen.getByText('Thu 09 Apr')).toBeInTheDocument()
+    rerender(<NextGameIdle {...IDLE} date="" kickoffTime="18:30" canEdit={false} />)
+    expect(screen.getByText('18:30')).toBeInTheDocument()
+    rerender(<NextGameIdle {...IDLE} date="" kickoffTime={null} canEdit={false} />)
+    expect(screen.queryByTestId('next-game-meta')).not.toBeInTheDocument()
+  })
+})
+
+const AWAITING = {
+  week: 16,
+  teamA: ['Alice', 'Bob'],
+  teamB: ['Charlie', 'Dave'],
+  kickoffTime: '18:30',
+  onEditLineups: jest.fn(),
+  onResultGame: jest.fn(),
+}
+
+describe('NextGameAwaiting', () => {
+  it('shows the kick-off, the badge and both teams on one line each', () => {
+    render(<NextGameAwaiting {...AWAITING} canEdit={false} />)
+    expect(screen.getByText('Kicked off 18:30')).toBeInTheDocument()
+    expect(screen.getByText('Week 16')).toBeInTheDocument()
+    expect(screen.getByText('Awaiting result')).toBeInTheDocument()
+    expect(screen.getByText('Alice, Bob')).toBeInTheDocument()
+    expect(screen.getByText('Charlie, Dave')).toBeInTheDocument()
+  })
+
+  it('says Game day when the league has no kick-off time', () => {
+    render(<NextGameAwaiting {...AWAITING} kickoffTime={null} canEdit={false} />)
+    expect(screen.getByText('Game day')).toBeInTheDocument()
+  })
+
+  it('offers no buttons to non-editors', () => {
+    render(<NextGameAwaiting {...AWAITING} canEdit={false} />)
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('gives editors Edit Lineups and Result Game', () => {
+    const onEditLineups = jest.fn()
+    const onResultGame = jest.fn()
+    render(<NextGameAwaiting {...AWAITING} canEdit onEditLineups={onEditLineups} onResultGame={onResultGame} />)
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Edit Lineups', 'Result Game'])
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Lineups' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Result Game' }))
+    expect(onEditLineups).toHaveBeenCalledTimes(1)
+    expect(onResultGame).toHaveBeenCalledTimes(1)
   })
 })

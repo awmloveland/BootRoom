@@ -40,6 +40,8 @@ interface MatchCardProps {
   linkedPlayerName?: string | null
   /** Signed link for the most recent result; shares the plain league link when absent. */
   shareUrl?: string | null
+  /** League kick-off time ('HH:MM'). A scheduled week shows as Awaiting Result from then; 20:00 when unset. */
+  kickoffTime?: string | null
 }
 
 // ── Edit button helpers ───────────────────────────────────────────────────────
@@ -718,6 +720,7 @@ export function MatchCard({
   onNameGuest,
   linkedPlayerName = null,
   shareUrl,
+  kickoffTime = null,
 }: MatchCardProps) {
   const nameGuestHandler =
     isAdmin && week.id && onNameGuest
@@ -765,8 +768,8 @@ export function MatchCard({
       />
     )
   }
-  if (week.status === 'scheduled' && !isPastDeadline(week.date)) return null
-  if (week.status === 'scheduled' && isPastDeadline(week.date)) {
+  if (week.status === 'scheduled' && !isPastDeadline(week.date, kickoffTime)) return null
+  if (week.status === 'scheduled' && isPastDeadline(week.date, kickoffTime)) {
     return (
       <AwaitingResultCard
         week={week}

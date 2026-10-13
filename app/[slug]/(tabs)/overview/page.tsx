@@ -101,7 +101,7 @@ export default async function LeagueOverviewPage({ params }: Props) {
           leagueName={game.name}
           weeks={weeks}
           allPlayers={players}
-          initialScheduledWeek={getNextMatchSeed(weeks)}
+          initialScheduledWeek={getNextMatchSeed(weeks, game.kickoff_time ?? null)}
           canEdit={canSeeMatchEntry}
           publicMode={tier === 'public'}
           leagueDayIndex={leagueDayIndex}
