@@ -5,11 +5,11 @@ import { FormatLabel } from '@/components/FormatLabel'
 const BADGE_BASE = 'rounded border px-2.5 py-[5px] font-plex text-[9px] font-bold uppercase tracking-[.18em] whitespace-nowrap'
 const FOCUS_RING = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#38bdf8]'
 
-function NextGameHeader({ week, badge }: { week: number; badge: React.ReactNode }) {
+function NextGameHeader({ label = 'Next game', week, badge }: { label?: string; week: number; badge: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-[#1b2c46] bg-[#0c1728] px-4 py-3">
       <div>
-        <p className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8]">Next game</p>
+        <p className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8]">{label}</p>
         <p className="mt-[5px] text-[15px] font-bold leading-none tracking-[-.02em] text-[#f4f9ff]">Week {week}</p>
       </div>
       {badge}
@@ -88,8 +88,6 @@ interface NextGameLineupProps {
   linkedPlayerName?: string | null
   location?: string | null
   kickoffTime?: string | null
-  /** True once the 20:00 deadline has passed with no result. */
-  awaitingResult?: boolean
   canEdit: boolean
   onEditLineups: () => void
   onResultGame: () => void
@@ -109,7 +107,6 @@ export function NextGameLineup({
   linkedPlayerName = null,
   location = null,
   kickoffTime = null,
-  awaitingResult = false,
   canEdit,
   onEditLineups,
   onResultGame,
@@ -122,14 +119,12 @@ export function NextGameLineup({
     <>
       <NextGameHeader
         week={week}
-        badge={awaitingResult ? (
-          <span className={cn(BADGE_BASE, 'border-[#223a5c] text-[#8ba4c4]')}>Awaiting Result</span>
-        ) : (
+        badge={
           <span className={cn(BADGE_BASE, 'inline-flex items-center gap-[7px] border-[#38bdf8]/40 bg-[#38bdf8]/12 text-[#7dd3fc]')}>
             <span className="size-1.5 rounded-full bg-[#38bdf8] animate-cf-pulse motion-reduce:animate-none" />
             Upcoming
           </span>
-        )}
+        }
       />
 
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3.5 px-4 py-3.5">
@@ -204,87 +199,141 @@ export function NextGameLineup({
 
 // ─── Not built ────────────────────────────────────────────────────────────────
 
-// Ghost rows fade downwards: dashed outline / solid left edge alphas .45/.6, .35/.45, .2/.3.
-const GHOST_A = [
-  'border-[#38bdf8]/45 border-l-[#38bdf8]/60',
-  'border-[#38bdf8]/35 border-l-[#38bdf8]/45',
-  'border-[#38bdf8]/20 border-l-[#38bdf8]/30',
-]
-const GHOST_B = [
-  'border-[#a78bfa]/45 border-l-[#a78bfa]/60',
-  'border-[#a78bfa]/35 border-l-[#a78bfa]/45',
-  'border-[#a78bfa]/20 border-l-[#a78bfa]/30',
-]
-
-function GhostColumn({ rows }: { rows: string[] }) {
-  return (
-    <div className="flex flex-col gap-[5px]">
-      {rows.map((colour) => (
-        <span
-          key={colour}
-          className={cn('h-[22px] rounded border border-dashed border-l-2 [border-left-style:solid]', colour)}
-        />
-      ))}
-    </div>
-  )
-}
-
 interface NextGameIdleProps {
   week: number
+  /** Next match date, 'DD MMM YYYY'. Empty when unknown. */
+  date: string
+  kickoffTime?: string | null
   canEdit: boolean
   onBuildTeams: () => void
   onCancelGame: () => void
 }
 
-/** Overview next game card, lineups not built. Renders inside NextMatchCard's card element. */
-export function NextGameIdle({ week, canEdit, onBuildTeams, onCancelGame }: NextGameIdleProps) {
+/** Overview next game card, lineups not built: one row. Renders inside NextMatchCard's card element. */
+export function NextGameIdle({ week, date, kickoffTime = null, canEdit, onBuildTeams, onCancelGame }: NextGameIdleProps) {
+  const when = [date ? formatFixtureDate(date) : null, kickoffTime].filter(Boolean).join(' · ')
+
+  return (
+    <div className="flex items-center justify-between gap-3 px-4 py-3">
+      <div className="min-w-0">
+        <p className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8]">Next game</p>
+        <p className="mt-[5px] text-[15px] font-bold leading-none tracking-[-.02em] text-[#f4f9ff]">Week {week}</p>
+        {when && (
+          <p data-testid="next-game-meta" className="mt-1.5 font-plex text-[9px] uppercase tracking-[.12em] text-[#8ba4c4]">
+            {when}
+          </p>
+        )}
+      </div>
+
+      {canEdit ? (
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onCancelGame}
+            className={cn(
+              'h-8 rounded border border-[#e2686f]/40 px-3 text-xs font-bold text-[#e2686f] transition-colors hover:bg-[#e2686f]/10',
+              FOCUS_RING
+            )}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onBuildTeams}
+            className={cn(
+              'h-8 rounded bg-[#38bdf8] px-3.5 text-xs font-bold whitespace-nowrap text-[#05101d] transition-colors hover:bg-[#7dd3fc]',
+              FOCUS_RING
+            )}
+          >
+            Build Teams
+          </button>
+        </div>
+      ) : (
+        <span className={cn(BADGE_BASE, 'border-dashed border-[#223a5c] text-[#4f688a]')}>No lineup</span>
+      )}
+    </div>
+  )
+}
+
+// ─── Awaiting result ──────────────────────────────────────────────────────────
+
+function TeamLine({ team, players }: { team: 'A' | 'B'; players: string[] }) {
+  const isA = team === 'A'
+  return (
+    <div className="flex gap-2 py-[3px]">
+      <span className={cn(
+        'w-[52px] shrink-0 pt-px text-[10.5px] font-bold uppercase tracking-[.04em]',
+        isA ? 'text-[#7dd3fc]' : 'text-[#c4b5fd]'
+      )}>
+        {isA ? 'Team A' : 'Team B'}
+      </span>
+      <span className="line-clamp-2 min-w-0 font-inter-body text-[11.5px] text-[#cfe0f4]">{players.join(', ')}</span>
+    </div>
+  )
+}
+
+interface NextGameAwaitingProps {
+  week: number
+  teamA: string[]
+  teamB: string[]
+  kickoffTime?: string | null
+  canEdit: boolean
+  onEditLineups: () => void
+  onResultGame: () => void
+}
+
+/** Overview next game card, from kick-off until the result is saved. Renders inside NextMatchCard's card element. */
+export function NextGameAwaiting({
+  week,
+  teamA,
+  teamB,
+  kickoffTime = null,
+  canEdit,
+  onEditLineups,
+  onResultGame,
+}: NextGameAwaitingProps) {
   return (
     <>
       <NextGameHeader
+        label={kickoffTime ? `Kicked off ${kickoffTime}` : 'Game day'}
         week={week}
-        badge={<span className={cn(BADGE_BASE, 'border-dashed border-[#223a5c] text-[#4f688a]')}>No lineup</span>}
+        badge={
+          <span className={cn(BADGE_BASE, 'inline-flex items-center gap-[7px] border-[#fbbf24]/40 bg-[#fbbf24]/8 text-[#fbbf24]')}>
+            <span className="size-1.5 rounded-full bg-[#fbbf24]" />
+            Awaiting result
+          </span>
+        }
       />
 
-      <div className="flex flex-col items-center gap-3 px-4 py-[22px] text-center">
-        <div aria-hidden className="grid w-full max-w-[300px] grid-cols-2 gap-3.5 opacity-70">
-          <GhostColumn rows={GHOST_A} />
-          <GhostColumn rows={GHOST_B} />
-        </div>
-
-        <div>
-          <p className="text-sm font-bold text-[#f4f9ff]">Lineups not set yet</p>
-          <p className="mt-[5px] font-inter-body text-xs text-[#8ba4c4]">
-            {canEdit
-              ? 'Pick who is playing and we will balance the teams.'
-              : 'Teams are usually posted the day before.'}
-          </p>
-        </div>
-
-        {canEdit && (
-          <div className="mt-0.5 flex w-full gap-2">
-            <button
-              type="button"
-              onClick={onCancelGame}
-              className={cn(
-                'h-[34px] flex-1 rounded border border-[#e2686f]/40 text-xs font-bold text-[#e2686f] transition-colors hover:bg-[#e2686f]/10',
-                FOCUS_RING
-              )}
-            >
-              Cancel Game
-            </button>
-            <button
-              type="button"
-              onClick={onBuildTeams}
-              className={cn(
-                'h-[34px] flex-[2] rounded bg-[#38bdf8] text-xs font-bold text-[#05101d] transition-colors hover:bg-[#7dd3fc]',
-                FOCUS_RING
-              )}
-            >
-              Build Teams
-            </button>
-          </div>
-        )}
+      <div className="px-4 py-2.5">
+        <TeamLine team="A" players={teamA} />
+        <TeamLine team="B" players={teamB} />
       </div>
+
+      {canEdit && (
+        <div className="flex gap-2 border-t border-[#1b2c46] bg-[#38bdf8]/6 px-4 py-3">
+          <button
+            type="button"
+            onClick={onEditLineups}
+            className={cn(
+              'h-10 flex-1 rounded border border-[#38bdf8] text-[13px] font-bold text-[#7dd3fc] transition-colors hover:bg-[#38bdf8]/12 hover:text-white',
+              FOCUS_RING
+            )}
+          >
+            Edit Lineups
+          </button>
+          <button
+            type="button"
+            onClick={onResultGame}
+            className={cn(
+              'h-10 flex-[1.4] rounded bg-[#38bdf8] text-[13px] font-bold text-[#05101d] shadow-[0_8px_22px_rgba(56,189,248,.25)] transition-colors hover:bg-[#7dd3fc]',
+              FOCUS_RING
+            )}
+          >
+            Result Game
+          </button>
+        </div>
+      )}
     </>
   )
 }
