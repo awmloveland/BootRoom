@@ -61,6 +61,8 @@ export default async function LeaguePlayersPage({ params }: Props) {
     <>
       {showClaimBanner && <ClaimOnboardingBanner leagueId={leagueId} />}
       <PublicPlayerList
+        leagueId={leagueId}
+        isAdmin={isAdmin}
         players={players}
         visibleStats={visibleStats}
         showMentality={showMentality}
