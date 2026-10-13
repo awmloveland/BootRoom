@@ -129,15 +129,24 @@ export function LeagueJoinArea({ leagueId, leagueSlug, leagueName, joinStatus, i
               variant="outline"
               className="w-8 p-0 text-[#8ba4c4]"
             >
-              <Link href={`/${leagueSlug}/settings`} aria-label="League settings">
+              <Link
+                href={pendingRequestCount > 0 ? `/${leagueSlug}/settings?tab=members` : `/${leagueSlug}/settings`}
+                aria-label={
+                  pendingRequestCount > 0
+                    ? `League settings, ${pendingRequestCount} pending request${pendingRequestCount === 1 ? '' : 's'}`
+                    : 'League settings'
+                }
+              >
                 <SlidersHorizontal className="size-3.5" />
               </Link>
             </Button>
             {pendingRequestCount > 0 && (
               <span
-                aria-label={`${pendingRequestCount} pending request${pendingRequestCount === 1 ? '' : 's'}`}
-                className="pointer-events-none absolute right-[3px] top-[3px] size-[7px] rounded-full bg-[#e2686f] ring-2 ring-[#060b14]"
-              />
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e2686f] px-1 font-plex text-[9px] font-bold leading-none text-[#05101d] ring-2 ring-[#060b14]"
+              >
+                {pendingRequestCount > 9 ? '9+' : pendingRequestCount}
+              </span>
             )}
           </div>
         )}

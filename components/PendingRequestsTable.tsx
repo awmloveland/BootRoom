@@ -11,9 +11,11 @@ interface PendingRequestsTableProps {
   initialRequests: PendingJoinRequest[]
   /** Pending player claims — matched to requests by user_id for inline chip display. */
   pendingClaims?: PlayerClaim[]
+  /** Called after a request or claim has been reviewed. */
+  onChanged?: () => void
 }
 
-export function PendingRequestsTable({ leagueId, initialRequests, pendingClaims = [] }: PendingRequestsTableProps) {
+export function PendingRequestsTable({ leagueId, initialRequests, pendingClaims = [], onChanged }: PendingRequestsTableProps) {
   const [requests, setRequests] = useState<PendingJoinRequest[]>(initialRequests)
   const [claims, setClaims] = useState<PlayerClaim[]>(pendingClaims)
   const [processing, setProcessing] = useState<string | null>(null)
@@ -44,6 +46,7 @@ export function PendingRequestsTable({ leagueId, initialRequests, pendingClaims 
       }
       // Optimistic removal
       setRequests((prev) => prev.filter((r) => r.id !== requestId))
+      onChanged?.()
     } catch {
       setError('Something went wrong')
     } finally {
@@ -77,6 +80,7 @@ export function PendingRequestsTable({ leagueId, initialRequests, pendingClaims 
       }
       setClaims((prev) => prev.filter((c) => c.id !== claimId))
       setExpandedClaimId(null)
+      onChanged?.()
     } catch {
       setError('Something went wrong')
     } finally {
