@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, seasonOfDate, ewptScore, winProbability, winCopy, manAdvantage, isPastDeadline, buildShareText, shareOrCopy, fetchLineupShareUrl, enrichPlayersForRating, wprScore, parseWeekDate, squadFormat } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, seasonOfDate, ewptScore, winProbability, winCopy, manAdvantage, isPastDeadline, buildShareText, shareOrCopy, fetchLineupShareUrl, enrichPlayersForRating, parseLineupMetadata, serializeLineupMetadata, wprScore, parseWeekDate, squadFormat } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality, Strength } from '@/lib/types'
-import { autoPick, type AutoPickResult } from '@/lib/autoPick'
+import { autoPick, buildLineupAudit, type AutoPickResult } from '@/lib/autoPick'
 import { X, Share2, TriangleAlert } from 'lucide-react'
 import { WinnerBadge } from '@/components/WinnerBadge'
 import { FormatLabel } from '@/components/FormatLabel'
@@ -253,10 +253,8 @@ export function NextMatchCard({
       .map((g) => [g.name, g.associatedPlayer] as [string, string])
 
     // Treat guests, new players and zero-game roster players as "unknown" —
-    // the count-balance filter spreads them across teams subject to
-    // pair-pinning constraints. autoPick no-ops internally when the set is
-    // empty or a singleton, so we can pass it unconditionally. We collect
-    // playerIds (not names) so same-named entities stay distinct.
+    // autoPick spreads them as evenly as sizes, keepers and guest pairs allow.
+    // We collect playerIds (not names) so same-named entities stay distinct.
     const unknownEntryNames = new Set<string>()
     for (const g of guestEntries) unknownEntryNames.add(g.name)
     for (const p of newPlayerEntries) unknownEntryNames.add(p.name)
@@ -288,7 +286,10 @@ export function NextMatchCard({
     tgtArr[targetIndex] = srcPlayer
     setLocalTeamA(newA)
     setLocalTeamB(newB)
-    setIsManuallyEdited(true)
+    // Only a change of teams counts as an edit; reordering or undoing a swap does not.
+    const suggestion = autoPickResult?.suggestions[suggestionIndex]
+    const suggestedA = new Set(suggestion?.teamA ?? [])
+    setIsManuallyEdited(newA.length !== suggestedA.size || newA.some((p) => !suggestedA.has(p)))
     dragSource.current = null
     setDragOver(null)
   }
@@ -334,26 +335,7 @@ export function NextMatchCard({
           teamA: data.team_a ?? [],
           teamB: data.team_b ?? [],
           status: data.status as 'scheduled' | 'cancelled',
-          lineupMetadata: data.lineup_metadata
-            ? {
-                guests: ((data.lineup_metadata as any).guests ?? []).map((g: any) => ({
-                  type: 'guest' as const,
-                  name: g.name,
-                  associatedPlayer: g.associated_player,
-                  goalkeeper: g.goalkeeper ?? false,
-                  // Accept new `strength` key or legacy `strength_hint`; fall back to 'average'
-                  strength: (g.strength ?? g.strength_hint ?? 'average') as Strength,
-                })),
-                new_players: ((data.lineup_metadata as any).new_players ?? []).map((p: any) => ({
-                  type: 'new_player' as const,
-                  name: p.name,
-                  // Legacy metadata may carry only `goalkeeper`; derive mentality from it.
-                  mentality: (p.mentality as Mentality) ?? (p.goalkeeper ? 'goalkeeper' : 'balanced'),
-                  // Accept new `strength` key or legacy `strength_hint`; fall back to 'average'
-                  strength: (p.strength ?? p.strength_hint ?? 'average') as Strength,
-                })),
-              }
-            : null,
+          lineupMetadata: parseLineupMetadata(data.lineup_metadata),
           team_a_rating: data.team_a_rating ?? null,
           team_b_rating: data.team_b_rating ?? null,
         }
@@ -392,25 +374,24 @@ export function NextMatchCard({
     const saveSeason = scheduledWeek?.season ?? nextSeason
     const saveWeek = scheduledWeek?.week ?? nextWeekNum
     const saveDate = scheduledWeek?.date ?? nextDate
+    const audit = buildLineupAudit({
+      teamA: localTeamA,
+      teamB: localTeamB,
+      teamARating,
+      teamBRating,
+      bestDiff: autoPickResult.bestDiff,
+      suggestionIndex,
+      suggestionCount: autoPickResult.suggestions.length,
+      edited: isManuallyEdited,
+      builtAt: new Date(),
+    })
     const lineupMetadata: LineupMetadata = {
       guests: guestEntries,
       new_players: newPlayerEntries,
+      autoPick: audit.autoPick,
+      ratings: audit.ratings,
     }
-    const lineupMetadataForDB = {
-      guests: guestEntries.map((g) => ({
-        name: g.name,
-        associated_player: g.associatedPlayer,
-        goalkeeper: g.goalkeeper ?? false,
-        strength: g.strength,
-      })),
-      new_players: newPlayerEntries.map((p) => ({
-        name: p.name,
-        mentality: p.mentality,
-        // DB metadata still accepts a `goalkeeper` key for back-compat with older readers.
-        goalkeeper: p.mentality === 'goalkeeper',
-        strength: p.strength,
-      })),
-    }
+    const lineupMetadataForDB = serializeLineupMetadata(lineupMetadata)
     setSaving(true)
     setError(null)
     try {
@@ -441,7 +422,9 @@ export function NextMatchCard({
         if (err) throw err
         weekId = data as string
       }
-      setScheduledWeek({ id: weekId, season: saveSeason, week: saveWeek, date: saveDate, format, teamA, teamB, status: 'scheduled', lineupMetadata, team_a_rating: teamARating, team_b_rating: teamBRating })
+      // The public route stores no lineup metadata, so keep the local copy in step with it.
+      const savedMetadata = publicMode ? { guests: guestEntries, new_players: newPlayerEntries } : lineupMetadata
+      setScheduledWeek({ id: weekId, season: saveSeason, week: saveWeek, date: saveDate, format, teamA, teamB, status: 'scheduled', lineupMetadata: savedMetadata, team_a_rating: teamARating, team_b_rating: teamBRating })
       setCardState('lineup')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save lineup')
@@ -480,8 +463,8 @@ export function NextMatchCard({
       format: scheduledWeek.format ?? '',
       teamA: scheduledWeek.teamA,
       teamB: scheduledWeek.teamB,
-      teamARating: scheduledWeek.team_a_rating ?? 0,
-      teamBRating: scheduledWeek.team_b_rating ?? 0,
+      teamARating: scheduledWeek.team_a_rating ?? null,
+      teamBRating: scheduledWeek.team_b_rating ?? null,
       shareUrl: signedShareUrl ?? undefined,
     })
     if (await shareOrCopy(text) === 'copied') {
@@ -500,11 +483,13 @@ export function NextMatchCard({
 
     const metadata = scheduledWeek.lineupMetadata
     if (metadata) {
-      setGuestEntries(metadata.guests.map((g) => ({
+      // A newcomer who has since joined the roster is already selected above.
+      const notOnRoster = (entry: { name: string }) => !knownPlayerNames.has(entry.name.toLowerCase())
+      setGuestEntries(metadata.guests.filter(notOnRoster).map((g) => ({
         ...g,
         strength: g.strength ?? 'average',
       })))
-      setNewPlayerEntries(metadata.new_players.map((p) => ({
+      setNewPlayerEntries(metadata.new_players.filter(notOnRoster).map((p) => ({
         ...p,
         strength: p.strength ?? 'average',
       })))
@@ -842,10 +827,18 @@ export function NextMatchCard({
                       </div>
                       {localTeamA.length !== localTeamB.length && (
                         <p className="mt-3 font-plex text-[9.5px] uppercase tracking-[.12em] text-[#6f88a8]">
-                          Uneven teams · {localTeamA.length < localTeamB.length ? 'Team A' : 'Team B'} is a player short, which the odds below allow for
+                          Uneven teams · {localTeamA.length < localTeamB.length ? 'Team A' : 'Team B'} is {Math.abs(localTeamA.length - localTeamB.length) === 1 ? 'a player' : `${Math.abs(localTeamA.length - localTeamB.length)} players`} short, which {isManuallyEdited ? 'the odds below allow' : 'the pick allows'} for
                         </p>
                       )}
-                      {(() => {
+                      {/* The picker already made an untouched lineup level, so the bar
+                          would only restate its target. Show it once players are moved. */}
+                      {!isManuallyEdited ? (
+                        <div className="mt-[18px] pt-3.5 border-t border-[#1b2c46]">
+                          <p className="text-center font-plex text-[9.5px] font-bold uppercase tracking-[.16em] text-[#8ba4c4]">
+                            Even on paper
+                          </p>
+                        </div>
+                      ) : (() => {
                         const winProbA = winProbability(liveScoreA, liveScoreB, manAdvantage(localTeamA.length, localTeamB.length))
                         const winProbB = 1 - winProbA
                         const copy = winCopy(winProbA)
@@ -885,6 +878,9 @@ export function NextMatchCard({
                   )
                 })()}
 
+                {isAutoPickMode && autoPickResult.warning === 'uneven-teams' && (
+                  <p className="font-inter-body text-xs text-[#e2686f]">Teams are uneven because too many guests are tied to one player.</p>
+                )}
                 {error && <p className="font-inter-body text-xs text-[#e2686f]">{error}</p>}
               </div>
 
@@ -1044,6 +1040,11 @@ export function NextMatchCard({
               goalkeepers={goalkeepers}
               linkedPlayerName={linkedPlayerName}
             />
+            {scheduledWeek.lineupMetadata?.autoPick?.edited && (
+              <span className="mt-3 inline-block font-plex text-[9.5px] font-bold uppercase tracking-[.16em] text-[#8ba4c4] border border-[#223a5c] rounded px-1.5 py-0.5">
+                Adjusted by hand
+              </span>
+            )}
 
             {scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0 && (
               <div className="flex flex-wrap items-center justify-between gap-2 mt-3.5 pt-3.5 border-t border-[#1b2c46]">
@@ -1137,6 +1138,7 @@ export function NextMatchCard({
           players={sortedPlayers.filter((p) => selectedNames.includes(p.name))}
           allLeaguePlayers={allPlayers}
           existingGuests={guestEntries}
+          existingNewPlayers={newPlayerEntries}
           onAdd={(entry) => {
             if (entry.type === 'guest') {
               setGuestEntries((prev) => [...prev, entry as GuestEntry])

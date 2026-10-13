@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { HighlightPlayer, LeagueDetails, PendingRequestSummary, Player, PlayerClaimStatus, ResultHighlightItem, ResultHighlights, ResultImageHighlight, ScheduledWeek, ShareLinkRequest, Strength, Week, Winner, YearStats } from './types'
+import { AutoPickAudit, GuestEntry, HighlightPlayer, LeagueDetails, LineupMetadata, LineupRatingEntry, Mentality, NewPlayerEntry, PendingRequestSummary, Player, PlayerClaimStatus, ResultHighlightItem, ResultHighlights, ResultImageHighlight, ScheduledWeek, ShareLinkRequest, Strength, Week, Winner, YearStats } from './types'
 import type { VisibilityTier } from './roles'
 import type { QuarterSummary, QuarterlyEntry } from './sidebar-stats'
 
@@ -26,8 +26,10 @@ const DEPTH_PER_EXTRA_PLAYER = 0.5
 const DEPTH_MAX_BONUS = 3              // cap on cumulative depth bonus
 
 // --- Win probability ---
-const WIN_PROB_SCALE = 8               // logistic scale: diff / SCALE drives the sigmoid
-/** Rating points an extra player is worth when teams are uneven (5 ≈ a 65% win chance at equal strength). */
+// Over the first 50 games the fitted slope was indistinguishable from zero, so
+// the bar is deliberately cautious: a 10-point gap is about 65%.
+const WIN_PROB_SCALE = 16              // logistic scale: diff / SCALE drives the sigmoid
+/** Rating points an extra player is worth when teams are uneven (5 ≈ a 58% win chance at equal strength). */
 export const MAN_ADVANTAGE_PER_PLAYER = 5
 
 export function cn(...inputs: ClassValue[]) {
@@ -227,22 +229,48 @@ export function enrichPlayersForRating(players: Player[], weeks: Week[]): Player
  *  - Depth modifier: small bonus/penalty relative to a 5-player baseline
  */
 export function ewptScore(players: Player[]): number {
-  if (players.length === 0) return 0
-  const wprScores = players.map((p) => wprScore(p))
-  const avgWpr = wprScores.reduce((sum, s) => sum + s, 0) / players.length
-  const gks = players.filter((p) => p.mentality === 'goalkeeper')
-  const gkCount = gks.length
+  return ewptScoreFromRatings(players, players.map((p) => wprScore(p)))
+}
+
+/** Team score from precomputed player ratings. `ewptScore(players)` equals `ewptScoreFromRatings(players, players.map(wprScore))`. */
+export function ewptScoreFromRatings(players: Player[], ratings: number[]): number {
+  let ratingSum = 0
+  let keeperCount = 0
+  let keeperRatingSum = 0
+  for (let i = 0; i < players.length; i++) {
+    ratingSum += ratings[i]
+    if (players[i].mentality === 'goalkeeper') {
+      keeperCount++
+      keeperRatingSum += ratings[i]
+    }
+  }
+  return ewptScoreFromTotals(players.length, ratingSum, keeperCount, keeperRatingSum)
+}
+
+/**
+ * Team score from a team's totals: its size, the sum of its players' ratings,
+ * its keeper count and the sum of its keepers' ratings. Lets the picker score
+ * a split without building the team. `keeperRatingSum` is only read when there
+ * is exactly one keeper.
+ */
+export function ewptScoreFromTotals(
+  size: number,
+  ratingSum: number,
+  keeperCount: number,
+  keeperRatingSum: number,
+): number {
+  if (size === 0) return 0
+  const avgWpr = ratingSum / size
   let gkModifier: number
-  if (gkCount === 0) {
+  if (keeperCount === 0) {
     gkModifier = NO_GK_PENALTY
-  } else if (gkCount === 1) {
-    const gkWpr = wprScore(gks[0])
-    gkModifier = GK_BASE_BONUS + (gkWpr / 100) * GK_WPR_SCALE
+  } else if (keeperCount === 1) {
+    gkModifier = GK_BASE_BONUS + (keeperRatingSum / 100) * GK_WPR_SCALE
   } else {
     gkModifier = DUAL_GK_PENALTY
   }
   const depthBonus = Math.min(
-    (players.length - DEPTH_BASELINE) * DEPTH_PER_EXTRA_PLAYER,
+    (size - DEPTH_BASELINE) * DEPTH_PER_EXTRA_PLAYER,
     DEPTH_MAX_BONUS,
   )
   return Math.min(
@@ -272,9 +300,101 @@ export function resolveTeamRatingForResult(
 }
 
 /**
- * Given EWTPI scores for two teams, returns the probability (0–1) that team A wins.
- * Uses a logistic function so a 10-point gap ≈ 73% likelihood.
+ * Maps `lineup_metadata` JSONB from the weeks table to `LineupMetadata`.
+ * Accepts legacy shapes, and leaves `autoPick` / `ratings` out when absent
+ * (lineups saved before the team builder recorded them).
  */
+export function parseLineupMetadata(raw: unknown): LineupMetadata | null {
+  if (!raw || typeof raw !== 'object') return null
+  const m = raw as Record<string, any>
+  const meta: LineupMetadata = {
+    guests: ((m.guests as any[]) ?? []).map((g): GuestEntry => ({
+      type: 'guest',
+      name: g.name,
+      associatedPlayer: g.associated_player,
+      goalkeeper: g.goalkeeper ?? false,
+      // Accept new `strength` key or legacy `strength_hint`; fall back to 'average'
+      strength: (g.strength ?? g.strength_hint ?? 'average') as Strength,
+    })),
+    new_players: ((m.new_players as any[]) ?? []).map((p): NewPlayerEntry => ({
+      type: 'new_player',
+      name: p.name,
+      // Legacy metadata may carry only `goalkeeper`; derive mentality from it.
+      mentality: (p.mentality as Mentality) ?? (p.goalkeeper ? 'goalkeeper' : 'balanced'),
+      // Accept new `strength` key or legacy `strength_hint`; fall back to 'average'
+      strength: (p.strength ?? p.strength_hint ?? 'average') as Strength,
+    })),
+  }
+  const a = m.auto_pick
+  if (a && typeof a === 'object') {
+    meta.autoPick = {
+      algorithm: a.algorithm,
+      suggestionIndex: a.suggestion_index,
+      suggestionCount: a.suggestion_count,
+      edited: a.edited === true,
+      bestDiff: a.best_diff,
+      savedDiff: a.saved_diff,
+      builtAt: a.built_at,
+    }
+  }
+  if (Array.isArray(m.ratings)) {
+    meta.ratings = m.ratings.map((r: any): LineupRatingEntry => ({
+      name: r.name,
+      team: r.team,
+      wpr: r.wpr,
+      strength: r.strength ?? null,
+      played: r.played,
+      gamesMissed: r.games_missed ?? 0,
+      kind: r.kind,
+    }))
+  }
+  return meta
+}
+
+/** The snake_case JSONB shape `save_lineup` stores in `lineup_metadata`. */
+export function serializeLineupMetadata(meta: LineupMetadata): Record<string, unknown> {
+  const db: Record<string, unknown> = {
+    guests: meta.guests.map((g) => ({
+      name: g.name,
+      associated_player: g.associatedPlayer,
+      goalkeeper: g.goalkeeper ?? false,
+      strength: g.strength,
+    })),
+    new_players: meta.new_players.map((p) => ({
+      name: p.name,
+      mentality: p.mentality,
+      // DB metadata still accepts a `goalkeeper` key for back-compat with older readers.
+      goalkeeper: p.mentality === 'goalkeeper',
+      strength: p.strength,
+    })),
+  }
+  if (meta.autoPick) db.auto_pick = serializeAutoPickAudit(meta.autoPick)
+  if (meta.ratings) {
+    db.ratings = meta.ratings.map((r) => ({
+      name: r.name,
+      team: r.team,
+      wpr: r.wpr,
+      strength: r.strength,
+      played: r.played,
+      games_missed: r.gamesMissed,
+      kind: r.kind,
+    }))
+  }
+  return db
+}
+
+function serializeAutoPickAudit(a: AutoPickAudit) {
+  return {
+    algorithm: a.algorithm,
+    suggestion_index: a.suggestionIndex,
+    suggestion_count: a.suggestionCount,
+    edited: a.edited,
+    best_diff: a.bestDiff,
+    saved_diff: a.savedDiff,
+    built_at: a.builtAt,
+  }
+}
+
 /**
  * Handicap for uneven teams, signed from Team A's point of view: positive
  * when Team A has more players, negative when Team B does, zero when even.
@@ -285,11 +405,12 @@ export function manAdvantage(sizeA: number, sizeB: number): number {
 }
 
 /**
- * Probability that Team A wins. `advantageA` is the man-advantage handicap
- * from `manAdvantage` (0 for even teams), added to Team A's score.
+ * Given EWTPI scores for two teams, returns the probability (0–1) that team A wins.
+ * Uses a logistic function so a 10-point gap ≈ 65% likelihood. `advantageA` is
+ * the man-advantage handicap from `manAdvantage` (0 for even teams), added to
+ * Team A's score.
  */
 export function winProbability(scoreA: number, scoreB: number, advantageA = 0): number {
-  if (scoreA === 0 && scoreB === 0) return 0.5
   return 1 / (1 + Math.exp(-(scoreA + advantageA - scoreB) / WIN_PROB_SCALE))
 }
 
@@ -301,7 +422,7 @@ export function winProbability(scoreA: number, scoreB: number, advantageA = 0): 
 export function winCopy(probA: number): { text: string; team: 'A' | 'B' | 'even' } {
   const pct = probA * 100
   const isEven = Math.abs(pct - 50) <= 1
-  if (isEven) return { text: "Too close to call — this one could go either way", team: 'even' }
+  if (isEven) return { text: 'Too close to call, this one could go either way', team: 'even' }
   const leading = pct > 50 ? 'A' : 'B'
   const leadPct = pct > 50 ? pct : 100 - pct
   const name = leading === 'A' ? 'Team A' : 'Team B'
@@ -316,6 +437,7 @@ const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 /**
  * Builds a formatted plain-text share message for a saved lineup.
  * Suitable for pasting into WhatsApp, iMessage, or any messaging app.
+ * When either rating is null, both ratings and the prediction line are left out.
  */
 export function buildShareText(params: {
   leagueName: string
@@ -325,8 +447,8 @@ export function buildShareText(params: {
   format: string
   teamA: string[]
   teamB: string[]
-  teamARating: number
-  teamBRating: number
+  teamARating: number | null  // either null → no ratings and no prediction line
+  teamBRating: number | null
   /** Signed lineup link from the share endpoint; falls back to the league link. */
   shareUrl?: string
 }): string {
@@ -334,22 +456,23 @@ export function buildShareText(params: {
   const parsed = parseWeekDate(date)
   const [dd, mmm] = date.split(' ')
   const shortDate = `${DAY_SHORT[parsed.getDay()]} ${dd} ${mmm}`
-  const prob = winProbability(teamARating, teamBRating)
-  const { text: prediction } = winCopy(prob)
-  return [
+  const rated = teamARating !== null && teamBRating !== null
+  const lines = [
     `⚽ ${leagueName} — Week ${week}`,
     `📅 ${shortDate} · ${format}`,
     '',
-    `🔵 Team A (${teamARating.toFixed(1)})`,
+    rated ? `🔵 Team A (${teamARating.toFixed(1)})` : '🔵 Team A',
     teamA.join(', '),
     '',
-    `🟣 Team B (${teamBRating.toFixed(1)})`,
+    rated ? `🟣 Team B (${teamBRating.toFixed(1)})` : '🟣 Team B',
     teamB.join(', '),
-    '',
-    `📊 ${prediction}`,
-    '',
-    `🔗 ${shareUrl ?? `https://craft-football.com/${leagueSlug}`}`,
-  ].join('\n')
+  ]
+  if (rated) {
+    const { text: prediction } = winCopy(winProbability(teamARating, teamBRating))
+    lines.push('', `📊 ${prediction}`)
+  }
+  lines.push('', `🔗 ${shareUrl ?? `https://craft-football.com/${leagueSlug}`}`)
+  return lines.join('\n')
 }
 
 /**
