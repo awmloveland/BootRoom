@@ -41,7 +41,7 @@ Mockups from brainstorming are in `.superpowers/brainstorm/` (gitignored):
 
 - New optional prop `onEdit?: () => void`. When set, the open card renders a
   final section below the teammates chart:
-  - `border-t border-[#17263c] pt-3.5` divider, matching the card's other
+  - `border-t border-[#1b2c46] pt-3.5` divider, matching the card's other
     sections.
   - A full-width outline button: `h-9 w-full rounded border border-[#223a5c]
     text-[#cfe0f4] text-[13px] font-bold hover:border-[#38bdf8] hover:text-white`,
@@ -106,10 +106,10 @@ On Save, only changed parts are sent, in this order:
 
 Renaming last means steps 1 and 2 always address a name that exists. If a step
 fails, later steps are skipped, the error is shown, and the modal stays open.
-Any steps that already succeeded stay saved. The modal then refetches the
-roster and resets the form's baseline to it, keeping the admin's unsaved
-values for the failed and skipped fields, so a second Save only resends
-those.
+Any steps that already succeeded stay saved. The modal reports what was saved
+to `PublicPlayerList`, which updates its cached roster (the form's baseline)
+and refreshes the page. The admin's values for the failed and skipped fields
+stay in the form, so a second Save only resends those.
 
 On success: close the modal, `router.refresh()` so the server-rendered stats
 pick up the new name and mentality, update the cached roster in place, and
