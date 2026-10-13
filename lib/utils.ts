@@ -801,16 +801,20 @@ export function gamesPlayedLabel(n: number): string {
  * Overview tab can render the card in its first paint.
  *
  * Takes the latest-dated row that is scheduled, cancelled or unrecorded:
- *   - unrecorded, or past the 20:00 deadline → null (the card is idle)
+ *   - unrecorded → null (the card is idle)
+ *   - cancelled and past kick-off → null
+ *   - scheduled and the day after the game has ended → null. Until then a
+ *     kicked-off game stays on the card, waiting for its result.
  *   - otherwise → that row as a ScheduledWeek
  */
-export function getNextMatchSeed(weeks: Week[]): ScheduledWeek | null {
+export function getNextMatchSeed(weeks: Week[], kickoffTime?: string | null): ScheduledWeek | null {
   const latest = sortWeeks(
     weeks.filter((w) => w.status === 'scheduled' || w.status === 'cancelled' || w.status === 'unrecorded')
   )[0]
   if (!latest || !latest.id) return null
   if (latest.status === 'unrecorded') return null
-  if (isPastDeadline(latest.date)) return null
+  if (latest.status === 'cancelled' && isPastDeadline(latest.date, kickoffTime)) return null
+  if (latest.status === 'scheduled' && isAwaitingWindowOver(latest.date)) return null
   return {
     id: latest.id,
     season: latest.season,
