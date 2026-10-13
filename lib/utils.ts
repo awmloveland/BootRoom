@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { HighlightPlayer, LeagueDetails, Player, PlayerClaimStatus, ResultHighlightItem, ResultHighlights, ResultImageHighlight, ScheduledWeek, ShareLinkRequest, Strength, Week, Winner, YearStats } from './types'
+import { HighlightPlayer, LeagueDetails, PendingRequestSummary, Player, PlayerClaimStatus, ResultHighlightItem, ResultHighlights, ResultImageHighlight, ScheduledWeek, ShareLinkRequest, Strength, Week, Winner, YearStats } from './types'
 import type { VisibilityTier } from './roles'
 import { strengthToRating } from './strength'
 import type { QuarterSummary, QuarterlyEntry } from './sidebar-stats'
@@ -962,6 +962,40 @@ export function buildLeagueTitle({
 }): string {
   const title = `${page} · ${leagueName}`
   return pendingCount > 0 ? `(${pendingCount}) ${title}` : title
+}
+
+/** Up to three names, then a count: "A, B, C and 2 more". */
+function listNames(names: string[]): string {
+  const shown = names.slice(0, 3).join(', ')
+  const rest = names.length - 3
+  return rest > 0 ? `${shown} and ${rest} more` : shown
+}
+
+function playerClaimsText(n: number): string {
+  return `${n} player claim${n === 1 ? '' : 's'} to review`
+}
+
+/**
+ * Copy for the admin banner above the league tabs, e.g. "2 people want to
+ * join" over "Callum Shaw, Priya Nair · 1 player claim to review".
+ * Null when nothing is waiting.
+ */
+export function pendingRequestsBannerText({
+  joinNames,
+  claimNames,
+}: PendingRequestSummary): { title: string; detail: string } | null {
+  if (joinNames.length > 0) {
+    const n = joinNames.length
+    const claims = claimNames.length > 0 ? ` · ${playerClaimsText(claimNames.length)}` : ''
+    return {
+      title: `${n} ${n === 1 ? 'person wants' : 'people want'} to join`,
+      detail: `${listNames(joinNames)}${claims}`,
+    }
+  }
+  if (claimNames.length > 0) {
+    return { title: playerClaimsText(claimNames.length), detail: listNames(claimNames) }
+  }
+  return null
 }
 
 const MILESTONE_SET = new Set([10, 25])

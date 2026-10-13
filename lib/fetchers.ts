@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sortWeeks, deriveSeason, getMostRecentExpectedGameDate, getNextWeekNumber, isPastDeadline } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
-import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality, Strength, JoinRequestStatus, PendingJoinRequest, PlayerClaimStatus } from '@/lib/types'
+import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality, Strength, JoinRequestStatus, PendingJoinRequest, PendingRequestSummary, PlayerClaimStatus } from '@/lib/types'
 import { ratingToStrength } from '@/lib/strength'
 
 // ── Game ─────────────────────────────────────────────────────────────────────
@@ -234,37 +234,47 @@ export const getPendingJoinRequests = cache(async (leagueId: string): Promise<Pe
   }
 })
 
-export const getPendingJoinCount = cache(async (leagueId: string): Promise<number> => {
-  const requests = await getPendingJoinRequests(leagueId)
-  return requests.length
-})
-
-// Returns count of pending player claims. Returns 0 for non-admins (RPC denies access).
-export const getPendingClaimCount = cache(async (leagueId: string): Promise<number> => {
+// Fetches pending player claims with the claimant's display name. Returns []
+// if the caller is not an admin (the RPC raises 'Access denied').
+const getPendingClaims = cache(async (leagueId: string): Promise<{ user_id: string; display_name: string | null }[]> => {
   try {
     const user = await getUser()
-    if (!user) return 0
+    if (!user) return []
     const authSupabase = await getAuthClient()
     const { data, error } = await authSupabase.rpc('get_player_claims', { p_game_id: leagueId })
-    if (error) return 0
-    const claims = (data ?? []) as { status: string }[]
-    return claims.filter((c) => c.status === 'pending').length
+    if (error) return []
+    const claims = (data ?? []) as { user_id: string; display_name: string | null; status: string }[]
+    return claims.filter((c) => c.status === 'pending')
   } catch {
-    return 0
+    return []
   }
 })
 
-// Combined badge count for the admin settings gear: pending join requests + pending claims.
-// Only admins can see the gear, and both RPCs deny non-admins anyway, so skip
-// the two round trips unless the cached role says admin or creator.
-export const getPendingBadgeCount = cache(async (leagueId: string): Promise<number> => {
+// Everything an admin has waiting: join requests, plus player claims from
+// users without a pending join request (a claim made while asking to join is
+// reviewed on that request). Only admins can review, and both RPCs deny
+// non-admins anyway, so skip the two round trips unless the cached role says
+// admin or creator.
+export const getPendingRequests = cache(async (leagueId: string): Promise<PendingRequestSummary> => {
   const { userRole } = await getAuthAndRole(leagueId)
-  if (userRole !== 'admin' && userRole !== 'creator') return 0
-  const [joinCount, claimCount] = await Promise.all([
-    getPendingJoinCount(leagueId),
-    getPendingClaimCount(leagueId),
+  if (userRole !== 'admin' && userRole !== 'creator') return { joinNames: [], claimNames: [] }
+  const [requests, claims] = await Promise.all([
+    getPendingJoinRequests(leagueId),
+    getPendingClaims(leagueId),
   ])
-  return joinCount + claimCount
+  const requestUserIds = new Set(requests.map((r) => r.user_id))
+  return {
+    joinNames: requests.map((r) => r.display_name),
+    claimNames: claims
+      .filter((c) => !requestUserIds.has(c.user_id))
+      .map((c) => c.display_name ?? 'A member'),
+  }
+})
+
+// Badge count for the admin settings gear and the tab title.
+export const getPendingBadgeCount = cache(async (leagueId: string): Promise<number> => {
+  const { joinNames, claimNames } = await getPendingRequests(leagueId)
+  return joinNames.length + claimNames.length
 })
 
 // Returns the current user's claim info for a league (status + linked player name).

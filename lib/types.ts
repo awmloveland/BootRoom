@@ -260,6 +260,17 @@ export interface PendingJoinRequest {
   created_at: string
 }
 
+/**
+ * What an admin has waiting to review. A claim made alongside a pending join
+ * request is shown on that request, so it only appears in `joinNames`.
+ */
+export interface PendingRequestSummary {
+  /** People asking to join, oldest request first. */
+  joinNames: string[]
+  /** Members asking to be linked to a player, with no pending join request. */
+  claimNames: string[]
+}
+
 export interface JoinRequest {
   id: string
   game_id: string
