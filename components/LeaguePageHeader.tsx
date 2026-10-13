@@ -1,7 +1,8 @@
 import { LeagueInfoBar } from '@/components/LeagueInfoBar'
 import { LeagueJoinArea } from '@/components/LeagueJoinArea'
 import { LeagueTabNav } from '@/components/LeagueTabNav'
-import type { LeagueDetails, JoinRequestStatus } from '@/lib/types'
+import { PendingRequestsBanner } from '@/components/PendingRequestsBanner'
+import type { LeagueDetails, JoinRequestStatus, PendingRequestSummary } from '@/lib/types'
 
 interface LeaguePageHeaderProps {
   leagueName: string
@@ -15,10 +16,13 @@ interface LeaguePageHeaderProps {
   isAdmin: boolean
   details?: LeagueDetails | null
   joinStatus?: JoinRequestStatus | 'member' | 'not-member' | null
-  pendingRequestCount?: number
+  /** Join requests and player claims waiting for an admin; empty for everyone else. */
+  pendingRequests?: PendingRequestSummary
   /** Signed league token for the Share button; null for the public. */
   shareToken?: string | null
 }
+
+const NO_PENDING_REQUESTS: PendingRequestSummary = { joinNames: [], claimNames: [] }
 
 export function LeaguePageHeader({
   leagueName,
@@ -31,9 +35,11 @@ export function LeaguePageHeader({
   isAdmin,
   details,
   joinStatus = null,
-  pendingRequestCount = 0,
+  pendingRequests = NO_PENDING_REQUESTS,
   shareToken = null,
 }: LeaguePageHeaderProps) {
+  const pendingRequestCount = pendingRequests.joinNames.length + pendingRequests.claimNames.length
+
   return (
     <div className="mb-[18px]">
       <div className="flex items-start justify-between gap-3.5">
@@ -62,6 +68,7 @@ export function LeaguePageHeader({
       <div className="mt-3.5">
         <LeagueInfoBar details={details} leagueSlug={leagueSlug} isAdmin={isAdmin} />
       </div>
+      {isAdmin && <PendingRequestsBanner leagueSlug={leagueSlug} requests={pendingRequests} />}
       <LeagueTabNav leagueSlug={leagueSlug} isAdmin={isAdmin} />
     </div>
   )
