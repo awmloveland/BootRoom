@@ -5,6 +5,10 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { PublicPlayerList } from '@/components/PublicPlayerList'
 import type { Player } from '@/lib/types'
 
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: jest.fn() }),
+}))
+
 function makePlayer(name: string, played: number, won: number): Player {
   return {
     playerId: `known|${name}`,
@@ -42,7 +46,7 @@ function openCardName(container: HTMLElement) {
 
 describe('PublicPlayerList', () => {
   it('lists sort options in order', () => {
-    render(<PublicPlayerList players={players} />)
+    render(<PublicPlayerList leagueId="league-1" players={players} />)
     const options = Array.from(
       screen.getByRole('group', { name: 'Sort by' }).querySelectorAll('[aria-pressed]'),
     ).map((el) => el.textContent)
@@ -50,7 +54,7 @@ describe('PublicPlayerList', () => {
   })
 
   it('sorts by games won, highest first, by default', () => {
-    render(<PublicPlayerList players={players} />)
+    render(<PublicPlayerList leagueId="league-1" players={players} />)
     expect(screen.getByRole('button', { name: 'Won' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Toggle sort direction' })).toHaveTextContent('High–Low')
     const names = screen.getAllByText(/^(Alder|Birch|Cedar)$/).map((el) => el.textContent)
@@ -58,12 +62,12 @@ describe('PublicPlayerList', () => {
   })
 
   it('opens the first card by default', () => {
-    const { container } = render(<PublicPlayerList players={players} />)
+    const { container } = render(<PublicPlayerList leagueId="league-1" players={players} />)
     expect(openCardName(container)).toContain('Cedar')
   })
 
   it('opens the new first card when the sort option changes', () => {
-    const { container } = render(<PublicPlayerList players={players} />)
+    const { container } = render(<PublicPlayerList leagueId="league-1" players={players} />)
     fireEvent.click(screen.getByRole('button', { name: 'Win Rate' }))
     expect(openCardName(container)).toContain('Birch')
     fireEvent.click(screen.getByRole('button', { name: 'Name' }))
@@ -71,7 +75,7 @@ describe('PublicPlayerList', () => {
   })
 
   it('opens the new first card when the sort direction flips', () => {
-    const { container } = render(<PublicPlayerList players={players} />)
+    const { container } = render(<PublicPlayerList leagueId="league-1" players={players} />)
     fireEvent.click(screen.getByRole('button', { name: 'Toggle sort direction' }))
     expect(openCardName(container)).toContain('Alder')
   })
