@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, ArrowUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -80,21 +80,29 @@ export function PublicPlayerList({ leagueId, players, visibleStats, showMentalit
   const [editingPlayer, setEditingPlayer] = useState<string | null>(null)
   const [roster, setRoster]               = useState<PlayerAttribute[] | null>(null)
   const [rosterError, setRosterError]     = useState(false)
+  // Only the latest roster request may land, so a slow older one can't overwrite a save
+  const rosterRequest = useRef(0)
 
   const loadRoster = useCallback(async () => {
+    const request = ++rosterRequest.current
     setRosterError(false)
     try {
       const res = await fetch(`/api/league/${leagueId}/players`, { credentials: 'include' })
       if (!res.ok) throw new Error('Failed to load roster')
-      setRoster(await res.json())
+      const data: PlayerAttribute[] = await res.json()
+      if (request === rosterRequest.current) setRoster(data)
     } catch {
-      setRosterError(true)
+      if (request === rosterRequest.current) setRosterError(true)
     }
   }, [leagueId])
 
   function openEditor(name: string) {
     setEditingPlayer(name)
-    if (!roster) loadRoster()
+    // Reload if the cache predates this player (e.g. renamed or added elsewhere)
+    if (!roster || !roster.some((p) => p.name === name)) {
+      setRoster(null)
+      loadRoster()
+    }
   }
 
   function handlePlayerUpdated(previousName: string, updated: PlayerAttribute) {

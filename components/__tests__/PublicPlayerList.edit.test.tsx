@@ -59,6 +59,7 @@ describe('PublicPlayerList editing', () => {
     render(<PublicPlayerList leagueId="league-1" players={players} />)
     expect(screen.getByText('Sam')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Edit player' })).not.toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('opens the modal for the open card and loads the roster once', async () => {
@@ -99,5 +100,40 @@ describe('PublicPlayerList editing', () => {
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(mockRefresh).toHaveBeenCalled()
+  })
+  it('keeps the card open under its new name after a rename', async () => {
+    mockApi()
+    const { rerender } = render(<PublicPlayerList leagueId="league-1" isAdmin players={players} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit player' }))
+    fireEvent.change(await screen.findByLabelText('Name'), { target: { value: 'Sammy' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    // What router.refresh() brings back from the server
+    rerender(
+      <PublicPlayerList
+        leagueId="league-1"
+        isAdmin
+        players={[{ ...players[0], name: 'Sammy', playerId: 'roster|Sammy' }, players[1]]}
+      />,
+    )
+    expect(screen.getByText('Sammy').closest('[aria-expanded]')).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('reloads the roster when the player is missing from the cached copy', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: async () => roster.filter((p) => p.name !== 'Sam') })
+      .mockResolvedValueOnce({ ok: true, json: async () => roster })
+    render(<PublicPlayerList leagueId="league-1" isAdmin players={players} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit player' }))
+    expect(await screen.findByText(/isn.t on the roster any more/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit player' }))
+    expect(await screen.findByLabelText('Name')).toHaveValue('Sam')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })
