@@ -58,8 +58,7 @@ export interface Player {
   mentality: Mentality;
   strength: Strength | null;
   recentForm: string; // e.g. 'WWDLW' or '--WLW'
-  wprOverride?: number; // if set, wprScore returns this directly — used for guests/new players
-  lastPlayedWeekDate?: string; // 'DD MMM YYYY' — derived at runtime before auto-pick; not persisted
+  gamesMissed?: number; // league games since this player's last appearance; derived at runtime, not persisted
 }
 
 export interface BootRoomData {
@@ -220,19 +219,43 @@ export interface GuestEntry {
   name: string             // e.g. "Alice +1"
   associatedPlayer: string // e.g. "Alice"
   goalkeeper?: boolean     // whether this guest is playing as goalkeeper
-  strength: Strength       // drives wprOverride at resolution time
+  strength: Strength       // starting label for wprScore, which rates every zero-game player the same way
 }
 
 export interface NewPlayerEntry {
   type: 'new_player'       // runtime discriminant — not persisted to DB
   name: string
   mentality: Mentality     // balanced | attacking | defensive | goalkeeper
-  strength: Strength       // drives wprOverride at resolution time
+  strength: Strength       // starting label for wprScore, which rates every zero-game player the same way
+}
+
+/** What the team builder did when a lineup was saved. Stored as `auto_pick` in `lineup_metadata`. */
+export interface AutoPickAudit {
+  algorithm: number          // TEAM_BUILDER_VERSION at save time
+  suggestionIndex: number    // which of the suggestions was on screen (0-based)
+  suggestionCount: number
+  edited: boolean            // true when players were moved by hand after the pick
+  bestDiff: number           // autoPickResult.bestDiff: the closest split that was available
+  savedDiff: number          // |teamARating + manAdvantage - teamBRating| as saved, on the same basis as bestDiff
+  builtAt: string            // ISO timestamp
+}
+
+/** One player's rating as the team builder saw it. Stored in `lineup_metadata.ratings`. */
+export interface LineupRatingEntry {
+  name: string
+  team: 'A' | 'B'
+  wpr: number                // wprScore at save time, 3 decimals
+  strength: Strength | null
+  played: number
+  gamesMissed: number
+  kind: 'roster' | 'guest' | 'new'
 }
 
 export interface LineupMetadata {
   guests: GuestEntry[]
   new_players: NewPlayerEntry[]
+  autoPick?: AutoPickAudit
+  ratings?: LineupRatingEntry[]
 }
 
 export type SortKey = 'name' | 'played' | 'won' | 'winRate' | 'recentForm'

@@ -8,18 +8,20 @@ import type { Player, GuestEntry, NewPlayerEntry, Strength } from '@/lib/types'
 import { Toggle } from '@/components/ui/toggle'
 import { StrengthPills } from '@/components/ui/StrengthPills'
 import { NewPlayerForm } from '@/components/NewPlayerForm'
+import { nextGuestName } from '@/lib/guestName'
 
 interface Props {
   players: Player[]           // attending players (used for lineup-membership warning check)
   allLeaguePlayers: Player[]  // full league roster (for collision check)
-  existingGuests: GuestEntry[] // used to compute +1, +2 suffixes
+  existingGuests: GuestEntry[] // used to compute +1, +2 suffixes and block name collisions
+  existingNewPlayers: NewPlayerEntry[] // used to block name collisions
   onAdd: (entry: GuestEntry | NewPlayerEntry) => void
   onClose: () => void
 }
 
 type Step = 'choose' | 'guest' | 'new_player'
 
-export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAdd, onClose }: Props) {
+export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, existingNewPlayers, onAdd, onClose }: Props) {
   const [step, setStep] = useState<Step>('choose')
 
   // Guest sub-flow state
@@ -30,15 +32,9 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
   const selectedPlayerInLineup = players.some((p) => p.name === associatedPlayer)
   const showWarning = associatedPlayer && !selectedPlayerInLineup
 
-  function deriveGuestName(base: string): string {
-    const existingForPlayer = existingGuests.filter((g) => g.associatedPlayer === base)
-    const n = existingForPlayer.length + 1
-    return `${base} +${n}`
-  }
-
   function handleAddGuest() {
     if (!associatedPlayer) return
-    const name = deriveGuestName(associatedPlayer)
+    const name = nextGuestName(associatedPlayer, existingGuests)
     onAdd({
       type: 'guest',
       name,
@@ -134,7 +130,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
                   </select>
                   {associatedPlayer && (
                     <p className="font-inter-body text-[11px] text-[#6f88a8] mt-1">
-                      Will appear as <span className="text-[#cfe0f4] font-medium">{deriveGuestName(associatedPlayer)}</span> and placed on the same team as {associatedPlayer}.
+                      Will appear as <span className="text-[#cfe0f4] font-medium">{nextGuestName(associatedPlayer, existingGuests)}</span> and placed on the same team as {associatedPlayer}.
                     </p>
                   )}
                   {showWarning && (
@@ -191,6 +187,7 @@ export function AddPlayerModal({ players, allLeaguePlayers, existingGuests, onAd
           {step === 'new_player' && (
             <NewPlayerForm
               existingNames={allLeaguePlayers.map((p) => p.name)}
+              lineupNames={[...existingNewPlayers.map((p) => p.name), ...existingGuests.map((g) => g.name)]}
               showNameHelper
               cancelLabel="Back"
               onCancel={() => setStep('choose')}

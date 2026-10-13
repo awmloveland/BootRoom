@@ -1,11 +1,23 @@
-import { winCopy, buildShareText, buildResultShareText, buildDnfShareText } from '../utils'
+import { winCopy, winProbability, buildShareText, buildResultShareText, buildDnfShareText } from '../utils'
 import type { Player, Week } from '../types'
+
+describe('winProbability', () => {
+  it('gives about 65% for a 10-point gap', () => {
+    expect(winProbability(10, 0)).toBeCloseTo(0.651, 3)
+    expect(winProbability(0, 10)).toBeCloseTo(0.349, 3)
+  })
+
+  it('gives 50% for level teams, including two empty teams', () => {
+    expect(winProbability(40, 40)).toBe(0.5)
+    expect(winProbability(0, 0)).toBe(0.5)
+  })
+})
 
 describe('winCopy', () => {
   it('returns even copy when exactly 50/50', () => {
     const result = winCopy(0.5)
     expect(result.team).toBe('even')
-    expect(result.text).toBe("Too close to call — this one could go either way")
+    expect(result.text).toBe('Too close to call, this one could go either way')
   })
 
   it('returns even copy within 1pp of 50 (Team A side)', () => {
@@ -115,6 +127,36 @@ describe('buildShareText', () => {
   it('shows "Too close to call" copy for equal ratings', () => {
     const text = buildShareText({ ...base, teamARating: 70, teamBRating: 70 })
     expect(text).toContain('Too close to call')
+  })
+
+  it('omits the ratings and the prediction line when the ratings are null', () => {
+    const text = buildShareText({ ...base, teamARating: null, teamBRating: null })
+    expect(text).toContain('🔵 Team A\n')
+    expect(text).toContain('🟣 Team B\n')
+    expect(text).not.toContain('(72.4)')
+    expect(text).not.toContain('📊')
+    expect(text).toBe(
+      [
+        '⚽ The Boot Room — Week 23',
+        '📅 Fri 10 Apr · 6-a-side',
+        '',
+        '🔵 Team A',
+        'Marcus, Jordan, Diego, Liam, Tom, Alex',
+        '',
+        '🟣 Team B',
+        'Sam, Kai, Jake, Rory, Ben, Chris',
+        '',
+        '🔗 https://craft-football.com/abc123',
+      ].join('\n'),
+    )
+  })
+
+  it('omits both ratings and the prediction line when only one rating is null', () => {
+    const text = buildShareText({ ...base, teamBRating: null })
+    expect(text).toContain('🔵 Team A\n')
+    expect(text).toContain('🟣 Team B\n')
+    expect(text).not.toContain('(72.4)')
+    expect(text).not.toContain('📊')
   })
 })
 
