@@ -59,7 +59,7 @@ export async function notifyAdminsOfJoinRequest(
       requesterName,
       requesterEmail: requester.email,
       message: requester.message,
-      membersPageUrl: `${origin}/app/league/${slug}/settings`,
+      membersPageUrl: `${origin}/${slug}/settings`,
     })
   )
 
@@ -91,13 +91,15 @@ export async function notifyRequesterOfReview(
 
   if (error || !joinRequest) throw new Error(`Join request not found: ${requestId}`)
 
+  // games is a many-to-one embed, so PostgREST returns a single object at
+  // runtime. The untyped client infers an array, hence the cast via unknown.
   const req = joinRequest as unknown as {
     email: string
     display_name: string
-    games: { name: string; slug: string }[] | null
+    games: { name: string; slug: string } | null
   }
 
-  const league = Array.isArray(req.games) ? req.games[0] : null
+  const league = req.games
   if (!league) throw new Error(`League not found for request: ${requestId}`)
   if (!league.slug) throw new Error(`League for request ${requestId} has no slug`)
 
@@ -106,7 +108,7 @@ export async function notifyRequesterOfReview(
       leagueName: league.name,
       requesterName: req.display_name,
       action,
-      leagueUrl: action === 'approved' ? `${origin}/app/league/${league.slug}` : null,
+      leagueUrl: action === 'approved' ? `${origin}/${league.slug}` : null,
     })
   )
 
