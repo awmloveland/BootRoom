@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Search, ArrowUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PlayerCard } from '@/components/PlayerCard'
-import type { Player, SortKey, Week } from '@/lib/types'
+import { EditPlayerModal } from '@/components/EditPlayerModal'
+import type { Player, PlayerAttribute, SortKey, Week } from '@/lib/types'
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: 'won',        label: 'Won' },
@@ -54,13 +56,16 @@ const DEFAULT_ASC: Record<SortKey, boolean> = {
 const DEFAULT_SORT: SortKey = 'won'
 
 interface Props {
+  leagueId: string
   players: Player[]
   visibleStats?: string[]
   showMentality?: boolean
   weeks?: Week[]
+  /** Admins get an Edit player button on each open card */
+  isAdmin?: boolean
 }
 
-export function PublicPlayerList({ players, visibleStats, showMentality = true, weeks }: Props) {
+export function PublicPlayerList({ leagueId, players, visibleStats, showMentality = true, weeks, isAdmin = false }: Props) {
   // Open the top card on first render so the list doesn't land fully collapsed
   const [openPlayer, setOpenPlayer]     = useState<string | null>(
     () => sortPlayers(players, DEFAULT_SORT, DEFAULT_ASC[DEFAULT_SORT])[0]?.name ?? null,
@@ -70,6 +75,50 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true, 
   const [searchQuery, setSearchQuery]   = useState('')
   // Bumped on every sort change to remount the list (see the cards wrapper below)
   const [sortVersion, setSortVersion]   = useState(0)
+  const router = useRouter()
+  // Admin editing. The roster (with member links) loads on first open and is reused.
+  const [editingPlayer, setEditingPlayer] = useState<string | null>(null)
+  const [roster, setRoster]               = useState<PlayerAttribute[] | null>(null)
+  const [rosterError, setRosterError]     = useState(false)
+  // Only the latest roster request may land, so a slow older one can't overwrite a save
+  const rosterRequest = useRef(0)
+
+  const loadRoster = useCallback(async () => {
+    const request = ++rosterRequest.current
+    setRosterError(false)
+    try {
+      const res = await fetch(`/api/league/${leagueId}/players`, { credentials: 'include' })
+      if (!res.ok) throw new Error('Failed to load roster')
+      const data: PlayerAttribute[] = await res.json()
+      if (request === rosterRequest.current) setRoster(data)
+    } catch {
+      if (request === rosterRequest.current) setRosterError(true)
+    }
+  }, [leagueId])
+
+  function openEditor(name: string) {
+    setEditingPlayer(name)
+    // Reload if the cache predates this player (e.g. renamed or added elsewhere)
+    if (!roster || !roster.some((p) => p.name === name)) {
+      setRoster(null)
+      loadRoster()
+    }
+  }
+
+  function handlePlayerUpdated(previousName: string, updated: PlayerAttribute) {
+    setRoster((prev) => prev?.map((p) => (p.name === previousName ? updated : p)) ?? prev)
+    if (updated.name !== previousName) {
+      setEditingPlayer((cur) => (cur === previousName ? updated.name : cur))
+      setOpenPlayer((cur) => (cur === previousName ? updated.name : cur))
+    }
+    router.refresh()
+  }
+
+  function handlePlayerDeleted(name: string) {
+    setRoster((prev) => prev?.filter((p) => p.name !== name) ?? prev)
+    setEditingPlayer(null)
+    router.refresh()
+  }
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -175,9 +224,23 @@ export function PublicPlayerList({ players, visibleStats, showMentality = true, 
               showMentality={showMentality}
               sortBy={sortBy}
               weeks={weeks}
+              onEdit={isAdmin ? () => openEditor(player.name) : undefined}
             />
           ))}
         </div>
+      )}
+
+      {isAdmin && editingPlayer && (
+        <EditPlayerModal
+          leagueId={leagueId}
+          playerName={editingPlayer}
+          roster={roster}
+          rosterError={rosterError}
+          onRetry={loadRoster}
+          onUpdated={handlePlayerUpdated}
+          onDeleted={handlePlayerDeleted}
+          onClose={() => setEditingPlayer(null)}
+        />
       )}
     </div>
   )

@@ -5,6 +5,7 @@ import { ChevronDown, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Mentality, PlayerAttribute, Strength } from '@/lib/types'
 import { StrengthPills } from '@/components/ui/StrengthPills'
+import { MentalityControl } from '@/components/ui/MentalityControl'
 import MemberLinkPicker from '@/components/MemberLinkPicker'
 import { AddRosterPlayerModal } from '@/components/AddRosterPlayerModal'
 
@@ -12,13 +13,6 @@ interface Props {
   leagueId: string
   initialPlayers: PlayerAttribute[]
 }
-
-const MENTALITY_LABELS: { value: Mentality; label: string }[] = [
-  { value: 'goalkeeper', label: 'GK' },
-  { value: 'defensive',  label: 'DEF' },
-  { value: 'balanced',   label: 'BAL' },
-  { value: 'attacking',  label: 'ATT' },
-]
 
 const MENTALITY_DISPLAY: Record<Mentality, string> = {
   goalkeeper: 'GK',
@@ -428,42 +422,6 @@ export function PlayerRosterPanel({ leagueId, initialPlayers }: Props) {
           onClose={() => setAddOpen(false)}
         />
       )}
-    </div>
-  )
-}
-
-function MentalityControl({
-  value,
-  onChange,
-  fullWidth = false,
-}: {
-  value: Mentality
-  onChange: (m: Mentality) => void
-  fullWidth?: boolean
-}) {
-  return (
-    <div
-      className={cn(
-        'flex border border-[#223a5c] rounded overflow-hidden font-plex text-[9px] font-bold uppercase tracking-[.12em]',
-        fullWidth && 'w-full'
-      )}
-    >
-      {MENTALITY_LABELS.map(({ value: v, label }, i) => (
-        <button
-          key={v}
-          onClick={() => { if (v !== value) onChange(v) }}
-          className={cn(
-            'transition-colors border-[#223a5c]',
-            fullWidth ? 'flex-1 h-8' : 'h-6 px-2',
-            i < MENTALITY_LABELS.length - 1 && 'border-r',
-            v === value
-              ? 'bg-[rgba(8,47,73,.6)] text-[#7dd3fc]'
-              : 'text-[#8ba4c4] hover:text-white'
-          )}
-        >
-          {label}
-        </button>
-      ))}
     </div>
   )
 }
