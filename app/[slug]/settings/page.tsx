@@ -72,6 +72,8 @@ export default function LeagueSettingsPage() {
 
   // Player claims state
   const [pendingClaims, setPendingClaims] = useState<PlayerClaim[]>([])
+  // Bumped on every reload so the review tables remount with the fresh lists.
+  const [pendingVersion, setPendingVersion] = useState(0)
 
   // Invite links state
   const [memberLink, setMemberLink] = useState<string | null>(null)
@@ -136,32 +138,48 @@ export default function LeagueSettingsPage() {
 
   const loadMembers = useCallback(async () => {
     setMembersLoading(true)
-    setPendingLoading(true)
     try {
-      const [membersRes, pendingRes, claimsRes] = await Promise.all([
-        fetch(`/api/league/${leagueId}/members`, { credentials: 'include' }),
+      const res = await fetch(`/api/league/${leagueId}/members`, { credentials: 'include' })
+      const data = await res.json()
+      setMembers(Array.isArray(data) ? data : [])
+    } catch {
+      setMembers([])
+    } finally {
+      setMembersLoading(false)
+    }
+  }, [leagueId])
+
+  // Loaded for every section, not just Members, so the Members tab can show
+  // the count. Only the first load shows a skeleton.
+  const loadPending = useCallback(async () => {
+    try {
+      const [pendingRes, claimsRes] = await Promise.all([
         fetch(`/api/league/${leagueId}/join-requests`, { credentials: 'include' }),
         fetch(`/api/league/${leagueId}/player-claims/all`, { credentials: 'include' }),
       ])
-      const [membersData, pendingData, claimsData] = await Promise.all([
-        membersRes.json(),
+      const [pendingData, claimsData] = await Promise.all([
         pendingRes.ok ? pendingRes.json() : Promise.resolve([]),
         claimsRes.ok ? claimsRes.json() : Promise.resolve([]),
       ])
-      setMembers(Array.isArray(membersData) ? membersData : [])
       setPendingRequests(Array.isArray(pendingData) ? pendingData : [])
-
       const allClaims: PlayerClaim[] = Array.isArray(claimsData) ? claimsData : []
       setPendingClaims(allClaims.filter((c) => c.status === 'pending'))
     } catch {
-      setMembers([])
       setPendingRequests([])
       setPendingClaims([])
     } finally {
-      setMembersLoading(false)
+      setPendingVersion((v) => v + 1)
       setPendingLoading(false)
     }
   }, [leagueId])
+
+  // After a review: refresh both lists, and the router cache so the league
+  // header's banner and badge are current when the admin goes back.
+  const handlePendingChanged = useCallback(() => {
+    loadPending()
+    loadMembers()
+    router.refresh()
+  }, [loadPending, loadMembers, router])
 
   async function fetchInviteLink(role: 'member' | 'admin') {
     setLoadingRole(role)
@@ -218,6 +236,10 @@ export default function LeagueSettingsPage() {
   }, [leagueId])
 
   useEffect(() => {
+    if (isAdmin && leagueId) loadPending()
+  }, [isAdmin, leagueId, loadPending])
+
+  useEffect(() => {
     if (!isAdmin) return
     if (section === 'details') loadDetails()
     if (section === 'members') {
@@ -230,6 +252,11 @@ export default function LeagueSettingsPage() {
     if (section === 'players') loadPlayers()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section, isAdmin, loadDetails, loadMembers, loadFeatures, loadPlayers])
+
+  // A claim made alongside a pending join request is reviewed on that request.
+  const pendingRequestUserIds = new Set(pendingRequests.map((r) => r.user_id))
+  const standaloneClaims = pendingClaims.filter((c) => !pendingRequestUserIds.has(c.user_id))
+  const pendingCount = pendingRequests.length + standaloneClaims.length
 
   const NAV: { id: Section; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'details',  label: 'League Details', Icon: Info },
@@ -280,6 +307,14 @@ export default function LeagueSettingsPage() {
           >
             <Icon className="size-[13px]" />
             {label}
+            {id === 'members' && pendingCount > 0 && (
+              <span
+                aria-label={`${pendingCount} pending`}
+                className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e2686f] px-1 text-[9px] leading-none tracking-normal text-[#05101d]"
+              >
+                {pendingCount > 9 ? '9+' : pendingCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -358,28 +393,25 @@ export default function LeagueSettingsPage() {
             <PanelSkeleton cards={[2]} />
           ) : pendingRequests.length > 0 ? (
             <PendingRequestsTable
+              key={pendingVersion}
               leagueId={leagueId}
               initialRequests={pendingRequests}
               pendingClaims={pendingClaims}
+              onChanged={handlePendingChanged}
             />
           ) : (
             <p className="font-inter-body text-[13px] text-[#6f88a8]">No pending requests.</p>
           )}
 
           {/* Player identity claims — only those not attached to a pending join request */}
-          {(() => {
-            const pendingRequestUserIds = new Set(pendingRequests.map((r) => r.user_id))
-            const standaloneClaims = pendingClaims.filter(
-              (c) => !pendingRequestUserIds.has(c.user_id),
-            )
-            return standaloneClaims.length > 0 ? (
-              <PlayerClaimsTable
-                leagueId={leagueId}
-                initialClaims={standaloneClaims}
-                onChanged={loadMembers}
-              />
-            ) : null
-          })()}
+          {standaloneClaims.length > 0 && (
+            <PlayerClaimsTable
+              key={pendingVersion}
+              leagueId={leagueId}
+              initialClaims={standaloneClaims}
+              onChanged={handlePendingChanged}
+            />
+          )}
 
           {/* Member list */}
           <div>

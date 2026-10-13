@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { isLeagueHidden } from '@/lib/features'
 import { dayNameToIndex, getSeasonPlayedWeekCount, getHeaderSeason } from '@/lib/utils'
-import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyJoinRequestStatus, getPendingBadgeCount, getMyClaimInfo } from '@/lib/fetchers'
+import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyJoinRequestStatus, getPendingRequests, getMyClaimInfo } from '@/lib/fetchers'
 import { leagueShareTokenFor } from '@/lib/shareLinksServer'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { LeagueHeaderSkeleton, LeagueSidebarSkeleton } from '@/components/LeagueTabSkeleton'
@@ -60,12 +60,12 @@ async function LeagueHeader({ slug }: { slug: string }) {
   if (!game) notFound()
   const leagueId = game.id
 
-  const [{ userRole }, features, players, weeks, pendingRequestCount, joinStatus] = await Promise.all([
+  const [{ userRole }, features, players, weeks, pendingRequests, joinStatus] = await Promise.all([
     getAuthAndRole(leagueId),
     getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
-    getPendingBadgeCount(leagueId),   // 0 for non-admins, no RPCs
+    getPendingRequests(leagueId),     // empty for non-admins, no RPCs
     getMyJoinRequestStatus(leagueId), // null | 'member' | JoinRequestStatus
   ])
 
@@ -96,7 +96,7 @@ async function LeagueHeader({ slug }: { slug: string }) {
       isAdmin={tier === 'admin'}
       details={details}
       joinStatus={joinStatus}
-      pendingRequestCount={pendingRequestCount}
+      pendingRequests={pendingRequests}
       shareToken={shareToken}
     />
   )

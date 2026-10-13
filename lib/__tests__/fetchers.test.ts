@@ -5,7 +5,7 @@ jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 jest.mock('@/lib/supabase/service', () => ({ createServiceClient: jest.fn() }))
 
 // Import after the mocks are registered.
-import { getUser, getAuthAndRole, getPendingBadgeCount, getMyJoinRequestStatus, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
+import { getUser, getAuthAndRole, getPendingBadgeCount, getPendingRequests, getMyJoinRequestStatus, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
 import type { Week } from '@/lib/types'
 
 const LEAGUE = '11111111-1111-1111-1111-111111111111'
@@ -85,16 +85,60 @@ describe('getPendingBadgeCount', () => {
   })
 
   it('sums pending join requests and pending claims for an admin', async () => {
+    mockAdminRpcs(
+      [{ user_id: 'u1', display_name: 'Callum Shaw' }, { user_id: 'u2', display_name: 'Priya Nair' }],
+      [{ user_id: 'u3', display_name: 'Sofia Marsh', status: 'pending' }, { user_id: 'u4', display_name: 'Rav Singh', status: 'approved' }]
+    )
+    await expect(getPendingBadgeCount(LEAGUE)).resolves.toBe(3)
+  })
+
+  it('counts a claim made with a pending join request once', async () => {
+    mockAdminRpcs(
+      [{ user_id: 'u1', display_name: 'Callum Shaw' }],
+      [{ user_id: 'u1', display_name: 'Callum Shaw', status: 'pending' }]
+    )
+    await expect(getPendingBadgeCount(LEAGUE)).resolves.toBe(1)
+  })
+})
+
+/** Signs in an admin and answers the two admin RPCs with the given rows. */
+function mockAdminRpcs(joinRows: unknown[], claimRows: unknown[]) {
+  const { rpc } = mockAuth(USER)
+  ;(createServiceClient as jest.Mock).mockReturnValue({
+    from: jest.fn(() => queryReturning({ role: 'admin' })),
+  })
+  rpc.mockImplementation((name: string) => {
+    if (name === 'get_join_requests') return Promise.resolve({ data: joinRows, error: null })
+    if (name === 'get_player_claims') return Promise.resolve({ data: claimRows, error: null })
+    return Promise.resolve({ data: null, error: { message: 'unknown rpc' } })
+  })
+  return rpc
+}
+
+describe('getPendingRequests', () => {
+  it('returns empty lists for a plain member without calling either admin RPC', async () => {
     const { rpc } = mockAuth(USER)
     ;(createServiceClient as jest.Mock).mockReturnValue({
-      from: jest.fn(() => queryReturning({ role: 'admin' })),
+      from: jest.fn(() => queryReturning({ role: 'member' })),
     })
-    rpc.mockImplementation((name: string) => {
-      if (name === 'get_join_requests') return Promise.resolve({ data: [{}, {}], error: null })
-      if (name === 'get_player_claims') return Promise.resolve({ data: [{ status: 'pending' }, { status: 'approved' }], error: null })
-      return Promise.resolve({ data: null, error: { message: 'unknown rpc' } })
+    await expect(getPendingRequests(LEAGUE)).resolves.toEqual({ joinNames: [], claimNames: [] })
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('names join requesters and members with a standalone pending claim', async () => {
+    mockAdminRpcs(
+      [{ user_id: 'u1', display_name: 'Callum Shaw' }, { user_id: 'u2', display_name: 'Priya Nair' }],
+      [
+        { user_id: 'u1', display_name: 'Callum Shaw', status: 'pending' },
+        { user_id: 'u3', display_name: 'Sofia Marsh', status: 'pending' },
+        { user_id: 'u4', display_name: 'Rav Singh', status: 'approved' },
+        { user_id: 'u5', display_name: null, status: 'pending' },
+      ]
+    )
+    await expect(getPendingRequests(LEAGUE)).resolves.toEqual({
+      joinNames: ['Callum Shaw', 'Priya Nair'],
+      claimNames: ['Sofia Marsh', 'A member'],
     })
-    await expect(getPendingBadgeCount(LEAGUE)).resolves.toBe(3)
   })
 })
 
