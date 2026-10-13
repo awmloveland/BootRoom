@@ -14,7 +14,7 @@ import { FaceOffLineup } from '@/components/TeamList'
 import { AddPlayerModal } from '@/components/AddPlayerModal'
 import { ResultModal } from '@/components/ResultModal'
 import { FormDots } from '@/components/FormDots'
-import { NextGameIdle, NextGameLineup } from '@/components/overview/NextGameCard'
+import { NextGameAwaiting, NextGameIdle, NextGameLineup } from '@/components/overview/NextGameCard'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface Props {
@@ -42,6 +42,8 @@ interface Props {
   canShareImage?: boolean
   /** The viewer's linked player, for the YOU tag on the Results lineup. */
   linkedPlayerName?: string | null
+  /** League kick-off time ('HH:MM'). A scheduled game awaits its result from then; 20:00 when unset. */
+  kickoffTime?: string | null
   /**
    * 'overview' renders the idle and lineup states in the Overview tab design and
    * takes its first state from `initialScheduledWeek` instead of fetching, so the
@@ -52,7 +54,6 @@ interface Props {
   overview?: {
     linkedPlayerName?: string | null
     location?: string | null
-    kickoffTime?: string | null
   }
 }
 
@@ -153,6 +154,7 @@ export function NextMatchCard({
   leagueName = '',
   canShareImage = false,
   linkedPlayerName = null,
+  kickoffTime = null,
   variant = 'results',
   overview,
 }: Props) {
@@ -165,6 +167,10 @@ export function NextMatchCard({
   const [scheduledWeek, setScheduledWeek] = useState<ScheduledWeek | null>(
     isOverview ? initialScheduledWeek ?? null : null
   )
+  // Overview keeps a kicked-off game on the card until its result is saved.
+  const overviewAwaiting =
+    isOverview && cardState === 'lineup' && scheduledWeek !== null &&
+    isPastDeadline(scheduledWeek.date, kickoffTime)
 
   // Building state — player selection
   const [selectedNames, setSelectedNames] = useState<string[]>([])
@@ -198,7 +204,7 @@ export function NextMatchCard({
   const [shareLink, setShareLink] = useState<{ key: string; url: string | null } | null>(null)
   const shareWeekId = scheduledWeek?.id ?? null
   const shareKey =
-    canShareImage && cardState === 'lineup' && scheduledWeek &&
+    canShareImage && cardState === 'lineup' && !overviewAwaiting && scheduledWeek &&
     scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0
       ? JSON.stringify([scheduledWeek.id, scheduledWeek.teamA, scheduledWeek.teamB])
       : null
@@ -371,12 +377,12 @@ export function NextMatchCard({
 
         // Past-deadline scheduled row — lineup exists but game day has passed
         // The row stays in DB and appears in the results list as "Awaiting Result"
-        if (week.status === 'scheduled' && isPastDeadline(week.date)) {
+        if (week.status === 'scheduled' && isPastDeadline(week.date, kickoffTime)) {
           setCardState('idle')
           return
         }
         // Cancelled past deadline — treat as idle
-        if (week.status === 'cancelled' && isPastDeadline(week.date)) {
+        if (week.status === 'cancelled' && isPastDeadline(week.date, kickoffTime)) {
           setCardState('idle')
           return
         }
@@ -388,7 +394,7 @@ export function NextMatchCard({
       }
     }
     load()
-  }, [gameId, publicMode, isOverview, initialScheduledWeek])
+  }, [gameId, publicMode, isOverview, initialScheduledWeek, kickoffTime])
 
   async function handleSaveLineup() {
     if (!autoPickResult || autoPickResult.suggestions.length === 0) {
@@ -619,7 +625,8 @@ export function NextMatchCard({
         className={cn(
           'rounded-xl border border-[#223a5c] bg-[#0a1421] overflow-hidden shadow-[0_18px_44px_rgba(0,0,0,.42)]',
           // The Results lineup reads as an open match card.
-          !isOverview && cardState === 'lineup' && 'border-[#2c4a72]'
+          !isOverview && cardState === 'lineup' && 'border-[#2c4a72]',
+          overviewAwaiting && 'border-[#2c4a72]'
         )}
       >
 
@@ -627,6 +634,8 @@ export function NextMatchCard({
         {isOverview && cardState === 'idle' && (
           <NextGameIdle
             week={nextWeekNum}
+            date={nextDate}
+            kickoffTime={kickoffTime}
             canEdit={canEdit}
             onBuildTeams={() => { onBuildStart?.(); setCardState('building') }}
             onCancelGame={() => { setError(null); setShowCancelModal(true) }}
@@ -960,8 +969,21 @@ export function NextMatchCard({
           )
         )}
 
+        {/* ── AWAITING RESULT (Overview tab) ── */}
+        {overviewAwaiting && scheduledWeek && (
+          <NextGameAwaiting
+            week={displayWeek}
+            teamA={scheduledWeek.teamA}
+            teamB={scheduledWeek.teamB}
+            kickoffTime={kickoffTime}
+            canEdit={canEdit && scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0}
+            onEditLineups={handleEditLineup}
+            onResultGame={() => { setError(null); setShowResultModal(true) }}
+          />
+        )}
+
         {/* ── LINEUP (Overview tab) ── */}
-        {isOverview && cardState === 'lineup' && scheduledWeek && (
+        {isOverview && cardState === 'lineup' && !overviewAwaiting && scheduledWeek && (
           <NextGameLineup
             week={displayWeek}
             date={displayDate}
@@ -970,8 +992,7 @@ export function NextMatchCard({
             teamB={scheduledWeek.teamB}
             linkedPlayerName={overview?.linkedPlayerName ?? null}
             location={overview?.location ?? null}
-            kickoffTime={overview?.kickoffTime ?? null}
-            awaitingResult={isPastDeadline(scheduledWeek.date)}
+            kickoffTime={kickoffTime}
             canEdit={canEdit && scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0}
             onEditLineups={handleEditLineup}
             onResultGame={() => { setError(null); setShowResultModal(true) }}
@@ -990,7 +1011,7 @@ export function NextMatchCard({
                 {scheduledWeek.format && <span> · <FormatLabel format={scheduledWeek.format} /></span>}
               </p>
             </div>
-            {isPastDeadline(scheduledWeek.date) ? (
+            {isPastDeadline(scheduledWeek.date, kickoffTime) ? (
               <span className="px-2.5 py-[5px] rounded border border-[#223a5c] font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#8ba4c4] whitespace-nowrap">
                 Awaiting Result
               </span>
@@ -1013,7 +1034,7 @@ export function NextMatchCard({
               </div>
               <WinnerBadge winner={null} cancelled />
             </div>
-            {canEdit && !isPastDeadline(scheduledWeek.date) && (
+            {canEdit && !isPastDeadline(scheduledWeek.date, kickoffTime) && (
               <button
                 type="button"
                 onClick={handleReactivate}
