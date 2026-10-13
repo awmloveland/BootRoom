@@ -1,7 +1,7 @@
 'use client'
 
 import * as Collapsible from '@radix-ui/react-collapsible'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Pencil } from 'lucide-react'
 import { useState, useMemo, useRef, useEffect } from 'react'
 import type { Player, SortKey, Week, YearStats } from '@/lib/types'
 import { FormDots } from '@/components/FormDots'
@@ -19,6 +19,8 @@ interface PlayerCardProps {
   /** Whether to show the ATT/BAL/DEF/GK mentality badge — defaults to true */
   showMentality?: boolean
   weeks?: Week[]  // needed for year-filtered stats; undefined = no year toggle
+  /** Admin only: shows an Edit player button at the foot of the open card */
+  onEdit?: () => void
 }
 
 const MENTALITY_LABEL: Record<string, string> = {
@@ -63,6 +65,7 @@ export function PlayerCard({
   sortBy,
   showMentality = true,
   weeks,
+  onEdit,
 }: PlayerCardProps) {
   const contentId = `player-${player.name.replace(/\s+/g, '-').toLowerCase()}-content`
 
@@ -346,6 +349,20 @@ export function PlayerCard({
                     Nobody has played 5 games with {player.name.split(' ')[0]} yet.
                   </p>
                 )}
+              </div>
+            )}
+
+            {/* ── Admin: edit player ── */}
+            {onEdit && (
+              <div className="border-t border-[#1b2c46] pt-3.5">
+                <button
+                  type="button"
+                  onClick={onEdit}
+                  className="h-9 w-full inline-flex items-center justify-center gap-2 rounded border border-[#223a5c] text-[13px] font-bold text-[#cfe0f4] hover:border-[#38bdf8] hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38bdf8]"
+                >
+                  <Pencil className="size-3.5" aria-hidden="true" />
+                  Edit player
+                </button>
               </div>
             )}
 
