@@ -57,7 +57,7 @@ BootRoom/
 │   └── og/                   # next/og (Satori) image JSX, inline styles only
 ├── lib/
 │   ├── types.ts              # All shared TypeScript types (canonical)
-│   ├── utils.ts              # cn(), sortWeeks(), getPlayedWeeks(), deriveSeason()
+│   ├── utils.ts              # cn(), sortWeeks(), getPlayedWeeks()
 │   ├── roles.ts              # resolveVisibilityTier() — maps GameRole → VisibilityTier
 │   ├── features.ts           # isFeatureEnabled() — checks feature against visibility tier
 │   ├── data.ts               # fetchGames(), fetchWeeks(), fetchPlayers()
