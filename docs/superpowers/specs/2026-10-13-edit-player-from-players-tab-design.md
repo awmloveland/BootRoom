@@ -8,8 +8,8 @@ Admins can already edit a player's name, strength, mentality and member link,
 and delete them, from Settings → Players (`PlayerRosterPanel`). This change
 lets them do the same from the Players tab without leaving the league page.
 
-An open player card on the Players tab gets a full-width **Edit player**
-button at its foot, visible to admins only. It opens an **Edit player** modal:
+An open player card on the Players tab ends with an admin strip holding an
+**Edit player** action, visible to admins only. It opens an **Edit player** modal:
 a form with Save and Cancel, and a Delete button that swaps the modal to a
 confirmation.
 
@@ -22,7 +22,10 @@ Mockups from brainstorming are in `.superpowers/brainstorm/` (gitignored):
    the same for admins as for members. Rejected: a pencil on every row (clutter,
    mis-taps inside the tappable header), a "⋯" menu (extra layer), and an
    edit-mode toggle (easy to forget you're in it).
-2. **The button spans the card's width.**
+2. **An admin strip, not a button.** First built as a full-width outline
+   button, but it stacked directly under the teammates chart's "See all"
+   button and read as a pair. Replaced with a flush strip that closes the
+   card: an "Admin" label and a sky text action, so it reads as card chrome.
 3. **Form with Save and Cancel**, not save-as-you-tap. Nothing is written
    until Save; Cancel or closing the modal discards changes. This differs from
    Settings on purpose: a modal reads as a form, and a rename (which changes the
@@ -39,13 +42,14 @@ Mockups from brainstorming are in `.superpowers/brainstorm/` (gitignored):
 
 ### Player card (`components/PlayerCard.tsx`)
 
-- New optional prop `onEdit?: () => void`. When set, the open card renders a
-  final section below the teammates chart:
-  - `border-t border-[#1b2c46] pt-3.5` divider, matching the card's other
-    sections.
-  - A full-width outline button: `h-9 w-full rounded border border-[#223a5c]
-    text-[#cfe0f4] text-[13px] font-bold hover:border-[#38bdf8] hover:text-white`,
-    with a `Pencil` icon (lucide) and the label "Edit player".
+- New optional prop `onEdit?: () => void`. When set, the open card ends with
+  a strip below the padded stats body, inside `Collapsible.Content`:
+  - `border-t border-[#1b2c46] bg-[#0c1728] px-[18px] py-2.5`, bottom corners
+    rounded to sit inside the card's `rounded-xl` border.
+  - Left: "Admin" in `font-plex text-[9px] font-bold uppercase
+    tracking-[.18em] text-[#4f688a]`.
+  - Right: a text button, `Pencil` icon (lucide) + "Edit player",
+    `text-[13px] font-bold text-[#38bdf8] hover:text-[#7dd3fc]`.
 - When `onEdit` is undefined (members, public), nothing changes.
 
 ### Edit player modal (new `components/EditPlayerModal.tsx`)
