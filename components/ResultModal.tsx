@@ -139,6 +139,48 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
     setNewPlayerStates((prev) => prev.map((p, idx) => idx === i ? { ...p, mentality } : p))
   }
 
+  // Guests added to the roster are saved on the match under their new name.
+  // Public result entry does not change the roster.
+  const rosterGuests = publicMode ? [] : guestStates.filter((g) => g.addToRoster && g.rosterName.trim())
+  const rosterNames = new Map(rosterGuests.map((g) => [g.name, g.rosterName.trim()]))
+  const savedTeamA = scheduledWeek.teamA.map((name) => rosterNames.get(name) ?? name)
+  const savedTeamB = scheduledWeek.teamB.map((name) => rosterNames.get(name) ?? name)
+
+  // Runs after record_result: renames roster guests on the match, so the game
+  // counts towards them, and adds reviewed new players to the roster.
+  async function saveRosterChanges(supabase: ReturnType<typeof createClient>) {
+    if (rosterGuests.length > 0) {
+      const { error: nameErr } = await supabase.rpc('name_guests', {
+        p_week_id: scheduledWeek.id,
+        p_guests: rosterGuests.map((g) => ({
+          old_name: g.name,
+          new_name: g.rosterName.trim(),
+          rating: strengthToRating(g.strength),
+          goalkeeper: g.goalkeeper,
+        })),
+      })
+      if (nameErr?.message.includes('name_already_exists')) {
+        const names = rosterGuests.map((g) => `"${g.rosterName.trim()}"`).join(' or ')
+        throw new Error(`A player named ${names} already exists.`)
+      }
+      if (nameErr) throw nameErr
+    }
+
+    const entries = newPlayerStates.map((p) => ({
+      name: p.name,
+      rating: strengthToRating(p.strength),
+      mentality: p.mentality,
+      goalkeeper: p.mentality === 'goalkeeper',
+    }))
+    if (entries.length > 0) {
+      const { error: promoteErr } = await supabase.rpc('promote_roster', {
+        p_game_id: gameId,
+        p_entries: entries,
+      })
+      if (promoteErr) throw promoteErr
+    }
+  }
+
   function validateReview(): boolean {
     let valid = true
     const updatedGuests = guestStates.map((g) => {
@@ -228,24 +270,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           })
           if (resultErr) throw resultErr
 
-          const entries = [
-            ...newPlayerStates.map((p) => ({
-              name: p.name,
-              rating: strengthToRating(p.strength),
-              mentality: p.mentality,
-              goalkeeper: p.mentality === 'goalkeeper',
-            })),
-            ...guestStates
-              .filter((g) => g.addToRoster && g.rosterName.trim())
-              .map((g) => ({ name: g.rosterName.trim(), rating: strengthToRating(g.strength), goalkeeper: g.goalkeeper })),
-          ]
-          if (entries.length > 0) {
-            const { error: promoteErr } = await supabase.rpc('promote_roster', {
-              p_game_id: gameId,
-              p_entries: entries,
-            })
-            if (promoteErr) throw promoteErr
-          }
+          await saveRosterChanges(supabase)
         }
 
         const dnfShareText = buildDnfShareText({
@@ -254,8 +279,8 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           week: scheduledWeek.week,
           date: scheduledWeek.date,
           format: scheduledWeek.format ?? '',
-          teamA: scheduledWeek.teamA,
-          teamB: scheduledWeek.teamB,
+          teamA: savedTeamA,
+          teamB: savedTeamB,
           teamARating: null,
           teamBRating: null,
           notes: notes.trim(),
@@ -308,8 +333,8 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         date: scheduledWeek.date,
         status: 'played',
         format: scheduledWeek.format ?? undefined,
-        teamA: scheduledWeek.teamA,
-        teamB: scheduledWeek.teamB,
+        teamA: savedTeamA,
+        teamB: savedTeamB,
         winner,
         goal_difference: winner === 'draw' ? 0 : goalDifference,
         team_a_rating: teamAScore,
@@ -323,8 +348,8 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         week: scheduledWeek.week,
         date: scheduledWeek.date,
         format: scheduledWeek.format ?? '',
-        teamA: scheduledWeek.teamA,
-        teamB: scheduledWeek.teamB,
+        teamA: savedTeamA,
+        teamB: savedTeamB,
         winner,
         goalDifference: winner === 'draw' ? 0 : goalDifference,
         teamARating: teamAScore,
@@ -365,24 +390,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         })
         if (resultErr) throw resultErr
 
-        const entries = [
-          ...newPlayerStates.map((p) => ({
-            name: p.name,
-            rating: strengthToRating(p.strength),
-            mentality: p.mentality,
-            goalkeeper: p.mentality === 'goalkeeper',
-          })),
-          ...guestStates
-            .filter((g) => g.addToRoster && g.rosterName.trim())
-            .map((g) => ({ name: g.rosterName.trim(), rating: strengthToRating(g.strength), goalkeeper: g.goalkeeper })),
-        ]
-        if (entries.length > 0) {
-          const { error: promoteErr } = await supabase.rpc('promote_roster', {
-            p_game_id: gameId,
-            p_entries: entries,
-          })
-          if (promoteErr) throw promoteErr
-        }
+        await saveRosterChanges(supabase)
       }
 
       void fetchShareLink(gameId, { kind: 'result', weekId: scheduledWeek.id }).then(setResultShareUrl)
@@ -712,13 +720,13 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                 {/* Team A */}
                 <div className="bg-[#0c1728] border border-[#38bdf8]/30 rounded-lg p-3">
                   <p className="font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#7dd3fc] mb-2">Team A</p>
-                  <p className="font-inter-body text-xs text-[#cfe0f4] leading-relaxed">{scheduledWeek.teamA.join(', ')}</p>
+                  <p className="font-inter-body text-xs text-[#cfe0f4] leading-relaxed">{savedTeamA.join(', ')}</p>
                 </div>
 
                 {/* Team B */}
                 <div className="bg-[#0c1728] border border-[#a78bfa]/30 rounded-lg p-3">
                   <p className="font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#c4b5fd] mb-2">Team B</p>
-                  <p className="font-inter-body text-xs text-[#cfe0f4] leading-relaxed">{scheduledWeek.teamB.join(', ')}</p>
+                  <p className="font-inter-body text-xs text-[#cfe0f4] leading-relaxed">{savedTeamB.join(', ')}</p>
                 </div>
 
                 {/* Highlights — non-DNF only, when text non-empty */}
