@@ -1,9 +1,7 @@
 // lib/metadata.ts
 import type { Metadata } from 'next'
-import { resolveVisibilityTier } from '@/lib/roles'
-import { isFeatureEnabled, isLeagueHidden } from '@/lib/features'
 import { buildLeagueTitle, dayNameToIndex, getLeagueTitleStatus } from '@/lib/utils'
-import { getGameBySlug, getAuthAndRole, getFeatures, getWeeks, getPendingBadgeCount } from '@/lib/fetchers'
+import { getGameBySlug, getWeeks, getPendingBadgeCount } from '@/lib/fetchers'
 import {
   buildLeagueShareMetadata,
   buildLineupShareMetadata,
@@ -31,8 +29,8 @@ export type PageSearchParams = Record<string, string | string[] | undefined>
 /**
  * Tab title for a league page. Overview and Results, the league's landing
  * tabs, swap their label for what is happening today ("Match day",
- * "Full time: Team A won") when the viewer can see match history. Admins get
- * their pending join requests and claims as a leading count.
+ * "Full time: Team A won"). Admins get their pending join requests and claims
+ * as a leading count.
  *
  * Shares the request-cached fetchers with the page and tabs layout, so it adds
  * no queries. A share token in the query string (see sharePreview) also adds
@@ -46,20 +44,13 @@ export async function leaguePageMetadata(
   const game = await getGameBySlug(slug)
   if (!game) return {}
 
-  const [{ userRole }, features, weeks, pendingCount, preview] = await Promise.all([
-    getAuthAndRole(game.id),
-    getFeatures(game.id),
+  const [weeks, pendingCount, preview] = await Promise.all([
     getWeeks(game.id),
     getPendingBadgeCount(game.id), // 0 for non-admins
     sharePreview(slug, page, searchParams),
   ])
 
-  const tier = resolveVisibilityTier(userRole)
-  const showStatus =
-    (page === 'overview' || page === 'results') &&
-    !isLeagueHidden(features, tier) &&
-    (tier === 'admin' || isFeatureEnabled(features, 'match_history', tier))
-  const status = showStatus
+  const status = page === 'overview' || page === 'results'
     ? getLeagueTitleStatus(weeks, new Date(), dayNameToIndex(game.day ?? null) ?? undefined)
     : null
 

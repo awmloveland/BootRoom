@@ -38,9 +38,6 @@ function renderSection(props: Partial<React.ComponentProps<typeof PublicResultsS
       leagueName="Craft Football"
       weeks={weeks}
       nextWeek={nextWeek}
-      canEditMatchEntry={false}
-      showMatchHistory={true}
-      canShareImage={false}
       celebration={null}
       kickoffTime={null}
       {...props}
@@ -94,18 +91,5 @@ describe('PublicResultsSection', () => {
   it('shows no next match when there is no upcoming week', () => {
     renderSection({ nextWeek: null })
     expect(screen.queryByTestId('next-match')).not.toBeInTheDocument()
-  })
-
-  it('shows neither tabs nor results when match history is hidden', () => {
-    const { container } = renderSection({ showMatchHistory: false })
-    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
-    expect(ids(container)).toEqual([])
-    expect(screen.getByTestId('next-match')).toBeVisible()
-  })
-
-  it('still shows the next match for a past ?year= when match history is hidden', () => {
-    window.history.replaceState(null, '', '/craft-football/results?year=2025')
-    renderSection({ showMatchHistory: false })
-    expect(screen.getByTestId('next-match')).toBeVisible()
   })
 })

@@ -58,14 +58,12 @@ const DEFAULT_SORT: SortKey = 'won'
 interface Props {
   leagueId: string
   players: Player[]
-  visibleStats?: string[]
-  showMentality?: boolean
   weeks?: Week[]
   /** Admins get an Edit player button on each open card */
   isAdmin?: boolean
 }
 
-export function PublicPlayerList({ leagueId, players, visibleStats, showMentality = true, weeks, isAdmin = false }: Props) {
+export function PublicPlayerList({ leagueId, players, weeks, isAdmin = false }: Props) {
   // Open the top card on first render so the list doesn't land fully collapsed
   const [openPlayer, setOpenPlayer]     = useState<string | null>(
     () => sortPlayers(players, DEFAULT_SORT, DEFAULT_ASC[DEFAULT_SORT])[0]?.name ?? null,
@@ -220,8 +218,6 @@ export function PublicPlayerList({ leagueId, players, visibleStats, showMentalit
               player={player}
               isOpen={openPlayer === player.name}
               onToggle={() => setOpenPlayer((prev) => (prev === player.name ? null : player.name))}
-              visibleStats={visibleStats}
-              showMentality={showMentality}
               sortBy={sortBy}
               weeks={weeks}
               onEdit={isAdmin ? () => openEditor(player.name) : undefined}

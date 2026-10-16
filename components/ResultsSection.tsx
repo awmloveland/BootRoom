@@ -17,14 +17,11 @@ interface Props {
   initialScheduledWeek: ScheduledWeek | null
   canAutoPick: boolean
   allPlayers: Player[]
-  showMatchHistory: boolean
-  showMatchEntry?: boolean          // false for members who can see results but not enter them
   leagueDayIndex?: number
   isAdmin?: boolean
   leagueName?: string
   celebration?: ResultsCelebration | null
   linkedPlayerName?: string | null
-  canShareImage?: boolean
   resultShareUrl?: string | null    // signed link for the most recent result's Share button
   kickoffTime?: string | null       // league kick-off time, when a scheduled game starts awaiting its result
 }
@@ -42,14 +39,11 @@ export function ResultsSection({
   initialScheduledWeek,
   canAutoPick,
   allPlayers,
-  showMatchHistory,
-  showMatchEntry = true,
   leagueDayIndex,
   isAdmin = false,
   leagueName,
   celebration = null,
   linkedPlayerName = null,
-  canShareImage = false,
   resultShareUrl = null,
   kickoffTime = null,
 }: Props) {
@@ -86,30 +80,27 @@ export function ResultsSection({
 
   return (
     <div className="flex flex-col gap-3">
-      {showMatchHistory && <YearTabs years={seasons} selected={year} onSelect={handleYearSelect} />}
-      {showMatchEntry && (
-        // Hidden rather than unmounted on past years, so a half-built line-up survives a year switch.
-        <div hidden={showMatchHistory && !isDefaultYear}>
-          <NextMatchCard
-            gameId={gameId}
-            leagueSlug={leagueSlug}
-            weeks={weeks}
-            initialScheduledWeek={initialScheduledWeek}
-            onResultSaved={() => router.refresh()}
-            canEdit={true}
-            canAutoPick={canAutoPick}
-            allPlayers={allPlayers}
-            onBuildStart={handleBuildStart}
-            leagueDayIndex={leagueDayIndex}
-            leagueName={leagueName}
-            canShareImage={canShareImage}
-            linkedPlayerName={linkedPlayerName}
-            kickoffTime={kickoffTime}
-          />
-        </div>
-      )}
-      {/* Read-only members on an empty league still get WeekList's "No results yet." */}
-      {showMatchHistory && (weeks.length > 0 || !showMatchEntry) && (
+      <YearTabs years={seasons} selected={year} onSelect={handleYearSelect} />
+      {/* Hidden rather than unmounted on past years, so a half-built line-up survives a year switch. */}
+      <div hidden={!isDefaultYear}>
+        <NextMatchCard
+          gameId={gameId}
+          leagueSlug={leagueSlug}
+          weeks={weeks}
+          initialScheduledWeek={initialScheduledWeek}
+          onResultSaved={() => router.refresh()}
+          canEdit={isAdmin}
+          canAutoPick={canAutoPick}
+          allPlayers={allPlayers}
+          onBuildStart={handleBuildStart}
+          leagueDayIndex={leagueDayIndex}
+          leagueName={leagueName}
+          linkedPlayerName={linkedPlayerName}
+          kickoffTime={kickoffTime}
+        />
+      </div>
+      {/* Members on an empty league still get WeekList's "No results yet." */}
+      {(weeks.length > 0 || !isAdmin) && (
         <WeekList
           weeks={weeks}
           season={year}

@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { headers } from 'next/headers'
-import { getGameBySlug, getGame, getAuthAndRole, getFeatures } from '@/lib/fetchers'
+import { getGameBySlug, getGame, getAuthAndRole } from '@/lib/fetchers'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -33,7 +33,6 @@ export default async function LeagueLayout({ children, params }: Props) {
   // re-fetching, and the layout renders as soon as the slug resolves — which
   // is what lets each tab's loading.tsx appear promptly.
   void getAuthAndRole(game.id)
-  void getFeatures(game.id)
 
   return <>{children}</>
 }

@@ -5,14 +5,14 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { FeatureToggleCard } from '@/components/FeatureToggleCard'
 import type { LeagueFeature } from '@/lib/types'
 
-const FEATURE: LeagueFeature = {
-  feature: 'lineup_share_image',
-  available: true,
+// No feature is flagged right now, so the card is tested with a stand-in key.
+const FEATURE = {
+  feature: 'example_feature',
   enabled: false,
   config: null,
   public_enabled: false,
   public_config: null,
-}
+} as unknown as LeagueFeature
 
 describe('FeatureToggleCard', () => {
   beforeEach(() => {

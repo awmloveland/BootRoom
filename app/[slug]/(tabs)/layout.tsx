@@ -1,9 +1,8 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { isLeagueHidden } from '@/lib/features'
 import { dayNameToIndex, getSeasonPlayedWeekCount, getHeaderSeason } from '@/lib/utils'
-import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyJoinRequestStatus, getPendingRequests, getMyClaimInfo } from '@/lib/fetchers'
+import { getGameBySlug, getAuthAndRole, getPlayerStats, getWeeks, getMyJoinRequestStatus, getPendingRequests, getMyClaimInfo } from '@/lib/fetchers'
 import { leagueShareTokenFor } from '@/lib/shareLinksServer'
 import { LeaguePageHeader } from '@/components/LeaguePageHeader'
 import { LeagueHeaderSkeleton, LeagueSidebarSkeleton } from '@/components/LeagueTabSkeleton'
@@ -60,9 +59,8 @@ async function LeagueHeader({ slug }: { slug: string }) {
   if (!game) notFound()
   const leagueId = game.id
 
-  const [{ userRole }, features, players, weeks, pendingRequests, joinStatus] = await Promise.all([
+  const [{ userRole }, players, weeks, pendingRequests, joinStatus] = await Promise.all([
     getAuthAndRole(leagueId),
-    getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
     getPendingRequests(leagueId),     // empty for non-admins, no RPCs
@@ -70,7 +68,6 @@ async function LeagueHeader({ slug }: { slug: string }) {
   ])
 
   const tier = resolveVisibilityTier(userRole)
-  if (isLeagueHidden(features, tier)) return null
 
   // Only members and admins see Share, so only they get a signed token.
   const shareToken = tier === 'public' ? null : leagueShareTokenFor(leagueId)
@@ -107,16 +104,14 @@ async function LeagueSidebar({ slug }: { slug: string }) {
   if (!game) notFound()
   const leagueId = game.id
 
-  const [{ userRole }, features, players, weeks, claim] = await Promise.all([
+  const [{ userRole }, players, weeks, claim] = await Promise.all([
     getAuthAndRole(leagueId),
-    getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
     getMyClaimInfo(leagueId), // 'none' for non-members, no query
   ])
 
   const tier = resolveVisibilityTier(userRole)
-  if (isLeagueHidden(features, tier)) return null
 
   // Large screens only. Below lg these stats live on the Overview tab.
   return (

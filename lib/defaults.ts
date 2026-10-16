@@ -1,17 +1,15 @@
 // lib/defaults.ts
 import type { FeatureKey } from './types'
 
+/**
+ * Starting state for every flagged feature: off for members and the public,
+ * so only admins see it until it is promoted in Settings → Features. Nothing
+ * is flagged right now; see docs/FEATURE_FLAGS.md before adding an entry.
+ */
 export const DEFAULT_FEATURES: {
   feature: FeatureKey
   enabled: boolean
   config: object | null
   public_enabled: boolean
   public_config: object | null
-}[] = [
-  { feature: 'match_history',     enabled: true,  config: null, public_enabled: false, public_config: null },
-  { feature: 'match_entry',       enabled: true,  config: null, public_enabled: false, public_config: null },
-  { feature: 'player_stats',      enabled: true,  config: { max_players: null, visible_stats: ['played','won','drew','lost','winRate','recentForm'] }, public_enabled: false, public_config: null },
-  { feature: 'player_comparison', enabled: false, config: null, public_enabled: false, public_config: null },
-  { feature: 'quarter_celebration', enabled: false, config: null, public_enabled: false, public_config: null },
-  { feature: 'lineup_share_image', enabled: false, config: null, public_enabled: false, public_config: null },
-]
+}[] = []

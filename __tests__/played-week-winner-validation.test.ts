@@ -1,13 +1,10 @@
-import { POST as recordPublicResult } from '@/app/api/public/league/[id]/result/route'
 import { PATCH as editWeek } from '@/app/api/league/[id]/weeks/[weekId]/edit/route'
-import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
 
-jest.mock('@/lib/supabase/service')
 jest.mock('@/lib/supabase/server')
 
 // A played week must always have a winner (teamA, teamB or draw); the match card
-// has no way to show a played result without one. Both write routes enforce it.
+// has no way to show a played result without one. The edit route enforces it.
 
 function jsonRequest(method: string, body: unknown): Request {
   return new Request('http://localhost/api', {
@@ -16,42 +13,6 @@ function jsonRequest(method: string, body: unknown): Request {
     body: JSON.stringify(body),
   })
 }
-
-describe('POST /api/public/league/[id]/result — winner', () => {
-  const from = jest.fn()
-
-  beforeEach(() => {
-    jest.clearAllMocks()
-    // Only the match_entry feature lookup should run before validation fails
-    const featureQuery = {
-      select: jest.fn(() => featureQuery),
-      eq: jest.fn(() => featureQuery),
-      maybeSingle: jest.fn().mockResolvedValue({ data: { public_enabled: true } }),
-    }
-    from.mockImplementation(() => featureQuery)
-    ;(createServiceClient as jest.Mock).mockReturnValue({ from })
-  })
-
-  async function post(winner: unknown) {
-    return recordPublicResult(
-      jsonRequest('POST', { weekId: 'w1', winner, goalDifference: 1, teamARating: null, teamBRating: null }),
-      { params: Promise.resolve({ id: 'g1' }) }
-    )
-  }
-
-  it('rejects a played result with no winner without touching the week', async () => {
-    const res = await post(null)
-    expect(res.status).toBe(400)
-    await expect(res.json()).resolves.toEqual({ error: 'winner must be teamA, teamB, or draw' })
-    expect(from).not.toHaveBeenCalledWith('weeks')
-  })
-
-  it('rejects an unknown winner value', async () => {
-    const res = await post('teamC')
-    expect(res.status).toBe(400)
-    expect(from).not.toHaveBeenCalledWith('weeks')
-  })
-})
 
 describe('PATCH /api/league/[id]/weeks/[weekId]/edit — winner', () => {
   const rpc = jest.fn()

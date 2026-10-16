@@ -467,7 +467,6 @@ function AwaitingResultCard({
           leagueSlug={leagueSlug ?? ''}
           leagueName={leagueName ?? ''}
           weeks={weeks ?? []}
-          publicMode={false}
           onSaved={() => {
             setShowResultModal(false)
             onResultSaved()

@@ -21,7 +21,6 @@ const PROPS = {
   onResultSaved: jest.fn(),
   publicMode: true,
   canEdit: false,
-  canShareImage: true,
   initialScheduledWeek: SCHEDULED,
 }
 
@@ -87,18 +86,6 @@ describe('NextMatchCard share', () => {
     render(<NextMatchCard {...PROPS} />)
     await waitFor(() => expect(shareEndpointCalls()).toHaveLength(1))
     await flushPromises()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Share' }))
-    await waitFor(() => expect(share).toHaveBeenCalled())
-    expect(share.mock.calls[0][0].text).toMatch(/🔗 https:\/\/craft-football\.com\/the-boot-room$/)
-  })
-
-  it('does not request a signed link when the share image is off', async () => {
-    mockShareEndpoint('https://craft-football.com/the-boot-room?lineup=tok.sig')
-    const share = mockNavigatorShare()
-    render(<NextMatchCard {...PROPS} canShareImage={undefined} />)
-    await flushPromises()
-    expect(shareEndpointCalls()).toHaveLength(0)
 
     fireEvent.click(screen.getByRole('button', { name: 'Share' }))
     await waitFor(() => expect(share).toHaveBeenCalled())

@@ -14,20 +14,9 @@ interface PlayerCardProps {
   isOpen: boolean
   onToggle: () => void
   sortBy: SortKey
-  /** Kept for API compatibility — no longer used internally */
-  visibleStats?: string[]
-  /** Whether to show the ATT/BAL/DEF/GK mentality badge — defaults to true */
-  showMentality?: boolean
   weeks?: Week[]  // needed for year-filtered stats; undefined = no year toggle
   /** Admin only: shows an Edit player button at the foot of the open card */
   onEdit?: () => void
-}
-
-const MENTALITY_LABEL: Record<string, string> = {
-  goalkeeper: 'GK',
-  defensive:  'DEF',
-  balanced:   'BAL',
-  attacking:  'ATT',
 }
 
 /** Number + label shown on the right of the collapsed row, e.g. "42 GAMES". */
@@ -63,7 +52,6 @@ export function PlayerCard({
   isOpen,
   onToggle,
   sortBy,
-  showMentality = true,
   weeks,
   onEdit,
 }: PlayerCardProps) {
@@ -212,11 +200,6 @@ export function PlayerCard({
                 </div>
               )}
             </div>
-            {showMentality && (
-              <span className="font-plex text-[8.5px] font-bold tracking-[.16em] text-[#6f88a8] bg-[#0c1728] border border-[#1b2c46] px-1.5 py-[3px] rounded-[3px]">
-                {MENTALITY_LABEL[player.mentality] ?? player.mentality}
-              </span>
-            )}
           </div>
           <div className="flex items-center gap-3 shrink-0">
             {HEADER_METRIC[sortBy](player)}

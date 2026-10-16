@@ -5,12 +5,10 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { canSeeQuarterChampion, canSeeResults, isFeatureEnabled, isLeagueHidden } from '@/lib/features'
 import { dayNameToIndex, getLatestResultWeek, isPastDeadline, parseWeekDate } from '@/lib/utils'
 import { quarterShareUrls, resultShareUrlFor } from '@/lib/shareLinksServer'
-import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
+import { getGameBySlug, getAuthAndRole, getPlayerStats, getWeeks, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
 import { PublicResultsSection } from '@/components/PublicResultsSection'
-import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { ResultsSection } from '@/components/ResultsSection'
 import { BfcacheRefresh } from '@/components/BfcacheRefresh'
 import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
@@ -36,13 +34,11 @@ export default async function LeagueResultsPage({ params }: Props) {
   // The tabs layout (header and sidebar) shares these cached fetchers.
   const [
     { userRole, isAuthenticated },
-    features,
     players,
     rawWeeks,
     claim,
   ] = await Promise.all([
     getAuthAndRole(leagueId),
-    getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
     getMyClaimInfo(leagueId), // 'none' for non-members, no query
@@ -54,14 +50,6 @@ export default async function LeagueResultsPage({ params }: Props) {
   // Onboarding banner for members with no claim.
   const showClaimBanner = tier === 'member' && claim.status === 'none'
 
-  const canSeeMatchHistory = isAdmin || isFeatureEnabled(features, 'match_history', tier)
-  const canSeeMatchEntry = isAdmin || isFeatureEnabled(features, 'match_entry', tier)
-  const canShareLineupImage = isFeatureEnabled(features, 'lineup_share_image', tier)
-
-  if (isLeagueHidden(features, tier)) {
-    return <LeaguePrivateState leagueName={game.name} />
-  }
-
   const leagueDayIndex = dayNameToIndex(game.day ?? null) ?? undefined
 
   // Lazily create an unrecorded row if the most recent expected game day passed
@@ -70,8 +58,7 @@ export default async function LeagueResultsPage({ params }: Props) {
     ? await ensureUnrecordedWeek(leagueId, rawWeeks, leagueDayIndex)
     : rawWeeks
 
-  // Derive nextWeek unconditionally — used for both the editable match entry section
-  // (gated by canSeeMatchEntry) and the always-public read-only lineup display.
+  // The next match card: editable for admins, read-only for everyone else.
   let nextWeek: ScheduledWeek | null = null
   const first = weeks
     .filter((w) => w.status === 'scheduled')
@@ -95,21 +82,18 @@ export default async function LeagueResultsPage({ params }: Props) {
   // Champion card for every completed quarter. The match lists render each
   // above that quarter's first result, so the latest sits below the next match.
   const celebratedQuarters = getCelebratedQuarters(weeks)
-  const canSeeCelebration =
-    isAdmin || isFeatureEnabled(features, 'quarter_celebration', tier)
   const celebration: ResultsCelebration | null =
-    celebratedQuarters.length > 0 && canSeeCelebration
+    celebratedQuarters.length > 0
       ? {
           quarters: celebratedQuarters,
           leagueName: game.name,
           leagueSlug: slug,
-          shareUrls: canSeeQuarterChampion(features, tier) ? quarterShareUrls(slug, leagueId, celebratedQuarters) : {},
+          shareUrls: quarterShareUrls(slug, leagueId, celebratedQuarters),
         }
       : null
 
-  // Signed link for the Share button on the latest result. The lists only
-  // show results to viewers who can see match history.
-  const resultShareUrl = canSeeResults(features, tier) ? resultShareUrlFor(slug, getLatestResultWeek(weeks)) : null
+  // Signed link for the Share button on the latest result.
+  const resultShareUrl = resultShareUrlFor(slug, getLatestResultWeek(weeks))
 
   const goalkeepers = players.filter((p) => p.mentality === 'goalkeeper').map((p) => p.name)
 
@@ -125,9 +109,6 @@ export default async function LeagueResultsPage({ params }: Props) {
             leagueName={game.name}
             weeks={weeks}
             nextWeek={nextWeek}
-            canEditMatchEntry={canSeeMatchEntry}
-            showMatchHistory={canSeeMatchHistory}
-            canShareImage={canShareLineupImage}
             celebration={celebration}
             resultShareUrl={resultShareUrl}
             kickoffTime={game.kickoff_time ?? null}
@@ -148,31 +129,22 @@ export default async function LeagueResultsPage({ params }: Props) {
       <BfcacheRefresh />
       {showClaimBanner && <ClaimOnboardingBanner leagueId={leagueId} />}
       <div className="flex flex-col gap-3">
-        {canSeeMatchEntry || canSeeMatchHistory ? (
-          <ResultsSection
-            gameId={leagueId}
-            leagueSlug={game.slug}
-            weeks={weeks}
-            goalkeepers={goalkeepers}
-            initialScheduledWeek={nextWeek}
-            canAutoPick={true}
-            allPlayers={players}
-            showMatchHistory={canSeeMatchHistory}
-            showMatchEntry={canSeeMatchEntry}
-            leagueDayIndex={leagueDayIndex}
-            isAdmin={isAdmin}
-            leagueName={game.name}
-            celebration={celebration}
-            linkedPlayerName={claim.playerName}
-            canShareImage={canShareLineupImage}
-            resultShareUrl={resultShareUrl}
-            kickoffTime={game.kickoff_time ?? null}
-          />
-        ) : (
-          <div className="py-16 text-center">
-            <p className="text-sm text-[#6f88a8]">Nothing to show here yet.</p>
-          </div>
-        )}
+        <ResultsSection
+          gameId={leagueId}
+          leagueSlug={game.slug}
+          weeks={weeks}
+          goalkeepers={goalkeepers}
+          initialScheduledWeek={nextWeek}
+          canAutoPick={true}
+          allPlayers={players}
+          leagueDayIndex={leagueDayIndex}
+          isAdmin={isAdmin}
+          leagueName={game.name}
+          celebration={celebration}
+          linkedPlayerName={claim.playerName}
+          resultShareUrl={resultShareUrl}
+          kickoffTime={game.kickoff_time ?? null}
+        />
       </div>
     </>
   )

@@ -23,7 +23,6 @@ interface Props {
   leagueSlug: string
   leagueName: string
   weeks: Week[]
-  publicMode: boolean
   onSaved: () => void
   onClose: () => void
 }
@@ -77,7 +76,7 @@ function Stepper({ value, onChange }: { value: number; onChange: (v: number) => 
   )
 }
 
-export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId, leagueSlug, leagueName, weeks, publicMode, onSaved, onClose }: Props) {
+export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId, leagueSlug, leagueName, weeks, onSaved, onClose }: Props) {
   const guests = lineupMetadata?.guests ?? []
   const newPlayers = lineupMetadata?.new_players ?? []
   const hasReviewStep = guests.length > 0 || newPlayers.length > 0
@@ -140,8 +139,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   }
 
   // Guests added to the roster are saved on the match under their new name.
-  // Public result entry does not change the roster.
-  const rosterGuests = publicMode ? [] : guestStates.filter((g) => g.addToRoster && g.rosterName.trim())
+  const rosterGuests = guestStates.filter((g) => g.addToRoster && g.rosterName.trim())
   const rosterNames = new Map(rosterGuests.map((g) => [g.name, g.rosterName.trim()]))
   const savedTeamA = scheduledWeek.teamA.map((name) => rosterNames.get(name) ?? name)
   const savedTeamB = scheduledWeek.teamB.map((name) => rosterNames.get(name) ?? name)
@@ -242,36 +240,20 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
 
     try {
       if (isDnf) {
-        if (publicMode) {
-          const res = await fetch(`/api/public/league/${gameId}/result`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              weekId: scheduledWeek.id,
-              dnf: true,
-              notes: notes.trim() || null,
-            }),
-          })
-          if (!res.ok) {
-            const d = await res.json()
-            throw new Error(d.error ?? 'Failed to save result')
-          }
-        } else {
-          const supabase = createClient()
+        const supabase = createClient()
 
-          const { error: resultErr } = await supabase.rpc('record_result', {
-            p_week_id: scheduledWeek.id,
-            p_dnf: true,
-            p_winner: null,
-            p_notes: notes.trim() || null,
-            p_goal_difference: null,
-            p_team_a_rating: null,
-            p_team_b_rating: null,
-          })
-          if (resultErr) throw resultErr
+        const { error: resultErr } = await supabase.rpc('record_result', {
+          p_week_id: scheduledWeek.id,
+          p_dnf: true,
+          p_winner: null,
+          p_notes: notes.trim() || null,
+          p_goal_difference: null,
+          p_team_a_rating: null,
+          p_team_b_rating: null,
+        })
+        if (resultErr) throw resultErr
 
-          await saveRosterChanges(supabase)
-        }
+        await saveRosterChanges(supabase)
 
         const dnfShareText = buildDnfShareText({
           leagueName,
@@ -359,39 +341,20 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         recordLines: findRecordBreaks(weeksWithResult, syntheticWeek),
       })
 
-      if (publicMode) {
-        const res = await fetch(`/api/public/league/${gameId}/result`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            weekId: scheduledWeek.id,
-            winner,
-            notes: notes.trim() || null,
-            goalDifference: winner === 'draw' ? 0 : goalDifference,
-            teamARating: teamAScore,
-            teamBRating: teamBScore,
-          }),
-        })
-        if (!res.ok) {
-          const d = await res.json()
-          throw new Error(d.error ?? 'Failed to save result')
-        }
-      } else {
-        const supabase = createClient()
+      const supabase = createClient()
 
-        const { error: resultErr } = await supabase.rpc('record_result', {
-          p_week_id: scheduledWeek.id,
-          p_dnf: false,
-          p_winner: winner,
-          p_notes: notes.trim() || null,
-          p_goal_difference: winner === 'draw' ? 0 : goalDifference,
-          p_team_a_rating: teamAScore,
-          p_team_b_rating: teamBScore,
-        })
-        if (resultErr) throw resultErr
+      const { error: resultErr } = await supabase.rpc('record_result', {
+        p_week_id: scheduledWeek.id,
+        p_dnf: false,
+        p_winner: winner,
+        p_notes: notes.trim() || null,
+        p_goal_difference: winner === 'draw' ? 0 : goalDifference,
+        p_team_a_rating: teamAScore,
+        p_team_b_rating: teamBScore,
+      })
+      if (resultErr) throw resultErr
 
-        await saveRosterChanges(supabase)
-      }
+      await saveRosterChanges(supabase)
 
       void fetchShareLink(gameId, { kind: 'result', weekId: scheduledWeek.id }).then(setResultShareUrl)
       setShareData({ dnf: false, winner, goalDifference, shareText, highlightsText })

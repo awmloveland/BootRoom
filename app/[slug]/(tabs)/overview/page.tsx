@@ -5,11 +5,9 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { isFeatureEnabled, isLeagueHidden } from '@/lib/features'
 import { dayNameToIndex, getNextMatchSeed, getOverviewViewerCard } from '@/lib/utils'
-import { getGameBySlug, getAuthAndRole, getFeatures, getPlayerStats, getWeeks, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
+import { getGameBySlug, getAuthAndRole, getPlayerStats, getWeeks, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
 import { computeQuarterlyTable, getQuarterStanding, getLastResult } from '@/lib/sidebar-stats'
-import { LeaguePrivateState } from '@/components/LeaguePrivateState'
 import { LeagueTabSkeleton } from '@/components/LeagueTabSkeleton'
 import { BfcacheRefresh } from '@/components/BfcacheRefresh'
 import { InFormWidget, MarginsWidget, TeamABWidget } from '@/components/StatsSidebar'
@@ -38,28 +36,18 @@ export default async function LeagueOverviewPage({ params }: Props) {
   // The tabs layout (header and sidebar) shares these cached fetchers.
   const [
     { userRole, isAuthenticated },
-    features,
     players,
     rawWeeks,
     claim,
   ] = await Promise.all([
     getAuthAndRole(leagueId),
-    getFeatures(leagueId),
     getPlayerStats(leagueId),
     getWeeks(leagueId),
     getMyClaimInfo(leagueId), // 'none' for non-members, no query
   ])
 
   const tier = resolveVisibilityTier(userRole)
-
-  if (isLeagueHidden(features, tier)) {
-    return <LeaguePrivateState leagueName={game.name} />
-  }
-
   const isAdmin = tier === 'admin'
-  const canSeeMatchHistory = isAdmin || isFeatureEnabled(features, 'match_history', tier)
-  const canSeeMatchEntry = isAdmin || isFeatureEnabled(features, 'match_entry', tier)
-  const canShareLineupImage = isFeatureEnabled(features, 'lineup_share_image', tier)
   const leagueDayIndex = dayNameToIndex(game.day ?? null) ?? undefined
 
   // Overview is the small-screen landing page, so it must keep week numbers and
@@ -81,7 +69,7 @@ export default async function LeagueOverviewPage({ params }: Props) {
 
   const table = computeQuarterlyTable(weeks, new Date(), leagueDayIndex)
   const standing = getQuarterStanding(table.allEntries, linkedPlayer?.name)
-  const lastResult = canSeeMatchHistory ? getLastResult(weeks) : null
+  const lastResult = getLastResult(weeks)
 
   return (
     <>
@@ -102,13 +90,12 @@ export default async function LeagueOverviewPage({ params }: Props) {
           weeks={weeks}
           allPlayers={players}
           initialScheduledWeek={getNextMatchSeed(weeks, game.kickoff_time ?? null)}
-          canEdit={canSeeMatchEntry}
+          canEdit={isAdmin}
           publicMode={tier === 'public'}
           leagueDayIndex={leagueDayIndex}
           linkedPlayerName={linkedPlayer?.name ?? null}
           location={game.location ?? null}
           kickoffTime={game.kickoff_time ?? null}
-          canShareImage={canShareLineupImage}
         />
 
         {viewerCard === 'your-stats' && linkedPlayer && (
