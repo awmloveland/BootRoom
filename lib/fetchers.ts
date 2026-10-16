@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sortWeeks, deriveSeason, getMostRecentExpectedGameDate, getNextWeekNumber, isPastDeadline } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
-import type { GameRole, LeagueFeature, FeatureKey, Player, Week, Mentality, Strength, JoinRequestStatus, PendingJoinRequest, PendingRequestSummary, PlayerClaimStatus } from '@/lib/types'
+import type { GameRole, LeagueFeature, Player, Week, Mentality, Strength, JoinRequestStatus, PendingJoinRequest, PendingRequestSummary, PlayerClaimStatus } from '@/lib/types'
 import { ratingToStrength } from '@/lib/strength'
 
 // ── Game ─────────────────────────────────────────────────────────────────────
@@ -74,25 +74,10 @@ export const getAuthAndRole = cache(async (leagueId: string) => {
 // ── Features ──────────────────────────────────────────────────────────────────
 
 export const getFeatures = cache(async (leagueId: string): Promise<LeagueFeature[]> => {
-  const service = createServiceClient()
-  const [experimentsResult, leagueFeaturesResult] = await Promise.all([
-    service.from('feature_experiments').select('feature, available'),
-    service.from('league_features').select('*').eq('game_id', leagueId),
-  ])
-  const availableSet = experimentsResult.error
-    ? new Set(DEFAULT_FEATURES.map((f) => f.feature as FeatureKey))
-    : new Set(
-        (experimentsResult.data ?? [])
-          .filter((e) => e.available)
-          .map((e) => e.feature as FeatureKey)
-      )
-  const featureMap = Object.fromEntries((leagueFeaturesResult.data ?? []).map((f) => [f.feature, f]))
-  return DEFAULT_FEATURES
-    .filter((def) => availableSet.has(def.feature))
-    .map((def) => {
-      const row = featureMap[def.feature] ?? def
-      return { ...row, available: true } as LeagueFeature
-    })
+  if (DEFAULT_FEATURES.length === 0) return []
+  const { data } = await createServiceClient().from('league_features').select('*').eq('game_id', leagueId)
+  const featureMap = Object.fromEntries((data ?? []).map((f) => [f.feature, f]))
+  return DEFAULT_FEATURES.map((def) => (featureMap[def.feature] ?? def) as LeagueFeature)
 })
 
 // ── Player stats ──────────────────────────────────────────────────────────────

@@ -1,8 +1,8 @@
-import { getAuthAndRole, getFeatures, getGame, getWeeks } from '@/lib/fetchers'
+import { getGame, getWeeks } from '@/lib/fetchers'
 import { parseQuarterToken, parseResultToken, verifyQuarterSignature, verifyResultSignature } from '@/lib/shareLinks'
-import type { FeatureKey, GameRole, LeagueFeature, Week } from '@/lib/types'
+import type { Week } from '@/lib/types'
 
-jest.mock('@/lib/fetchers', () => ({ getAuthAndRole: jest.fn(), getFeatures: jest.fn(), getGame: jest.fn(), getWeeks: jest.fn() }))
+jest.mock('@/lib/fetchers', () => ({ getGame: jest.fn(), getWeeks: jest.fn() }))
 
 import { POST } from '@/app/api/league/[id]/share-link/route'
 
@@ -23,14 +23,8 @@ const WEEKS: Week[] = [
   played(WEEK_ID, 5, '04 Aug 2026'),
 ]
 
-function feature(key: FeatureKey, enabled: boolean, publicEnabled = false): LeagueFeature {
-  return { feature: key, enabled, config: null, public_enabled: publicEnabled, public_config: null } as LeagueFeature
-}
-
-function setup({ role = 'member' as GameRole | null, features = [feature('match_history', true)] } = {}) {
+function setup() {
   ;(getGame as jest.Mock).mockResolvedValue({ id: GAME_ID, slug: 'the-boot-room', name: 'The Boot Room' })
-  ;(getAuthAndRole as jest.Mock).mockResolvedValue({ user: null, userRole: role, isAuthenticated: role !== null })
-  ;(getFeatures as jest.Mock).mockResolvedValue(features)
   ;(getWeeks as jest.Mock).mockResolvedValue(WEEKS)
 }
 
@@ -60,17 +54,12 @@ afterAll(() => {
 })
 
 describe('POST /api/league/[id]/share-link', () => {
-  it('signs a played result the viewer can see', async () => {
+  it('signs a played result', async () => {
     setup()
     const { url } = await (await call({ kind: 'result', weekId: WEEK_ID })).json()
     expect(url).toMatch(/^https:\/\/craft-football\.com\/the-boot-room\?result=/)
     const parsed = parseResultToken(tokenOf(url, 'result'))!
     expect(verifyResultSignature(SECRET, parsed, { winner: 'teamA', goalDifference: 2, teamA: A, teamB: B })).toBe(true)
-  })
-
-  it('declines a result when match history is hidden from the viewer', async () => {
-    setup({ role: null, features: [feature('match_history', true, false)] })
-    expect(await (await call({ kind: 'result', weekId: WEEK_ID })).json()).toEqual({ url: null })
   })
 
   it('declines a week from another league', async () => {
@@ -100,21 +89,6 @@ describe('POST /api/league/[id]/share-link', () => {
       played('00000000-0000-4000-8000-000000000013', 3, '20 Jan 2026'),
     ])
     expect(await (await call({ kind: 'quarter', year: 2026, q: 1 })).json()).toEqual({ url: null })
-  })
-
-  it('signs a quarter for the public only with match history and quarter celebration on', async () => {
-    setup({ role: null, features: [feature('match_history', true, true), feature('quarter_celebration', true, false)] })
-    expect(await (await call({ kind: 'quarter', year: 2026, q: 3 })).json()).toEqual({ url: null })
-
-    setup({ role: null, features: [feature('match_history', true, true), feature('quarter_celebration', true, true)] })
-    const { url } = await (await call({ kind: 'quarter', year: 2026, q: 3 })).json()
-    expect(url).toMatch(/\/the-boot-room\/honours\?quarter=/)
-  })
-
-  it('always signs a result for an admin, whatever the features', async () => {
-    setup({ role: 'admin', features: [] })
-    const { url } = await (await call({ kind: 'result', weekId: WEEK_ID })).json()
-    expect(url).toMatch(/\?result=/)
   })
 
   it('declines a week that is scheduled, not played', async () => {

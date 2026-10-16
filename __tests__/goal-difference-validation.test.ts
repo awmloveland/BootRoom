@@ -1,13 +1,10 @@
-import { POST as recordPublicResult } from '@/app/api/public/league/[id]/result/route'
 import { PATCH as editWeek } from '@/app/api/league/[id]/weeks/[weekId]/edit/route'
-import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
 
-jest.mock('@/lib/supabase/service')
 jest.mock('@/lib/supabase/server')
 
 // goal_difference is an unsigned win margin (the winner is stored separately),
-// so both write routes must reject negative or fractional values.
+// so the edit route must reject negative or fractional values.
 
 function jsonRequest(method: string, body: unknown): Request {
   return new Request('http://localhost/api', {
@@ -16,42 +13,6 @@ function jsonRequest(method: string, body: unknown): Request {
     body: JSON.stringify(body),
   })
 }
-
-describe('POST /api/public/league/[id]/result — goalDifference', () => {
-  const from = jest.fn()
-
-  beforeEach(() => {
-    jest.clearAllMocks()
-    // Only the match_entry feature lookup should run before validation fails
-    const featureQuery = {
-      select: jest.fn(() => featureQuery),
-      eq: jest.fn(() => featureQuery),
-      maybeSingle: jest.fn().mockResolvedValue({ data: { public_enabled: true } }),
-    }
-    from.mockImplementation(() => featureQuery)
-    ;(createServiceClient as jest.Mock).mockReturnValue({ from })
-  })
-
-  async function post(goalDifference: unknown) {
-    return recordPublicResult(
-      jsonRequest('POST', { weekId: 'w1', winner: 'teamA', goalDifference, teamARating: null, teamBRating: null }),
-      { params: Promise.resolve({ id: 'g1' }) }
-    )
-  }
-
-  it('rejects a negative margin without touching the week', async () => {
-    const res = await post(-2)
-    expect(res.status).toBe(400)
-    await expect(res.json()).resolves.toEqual({ error: 'goalDifference must be a non-negative integer' })
-    expect(from).not.toHaveBeenCalledWith('weeks')
-  })
-
-  it('rejects a fractional margin', async () => {
-    const res = await post(1.5)
-    expect(res.status).toBe(400)
-    expect(from).not.toHaveBeenCalledWith('weeks')
-  })
-})
 
 describe('PATCH /api/league/[id]/weeks/[weekId]/edit — goalDifference', () => {
   const rpc = jest.fn()

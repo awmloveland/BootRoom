@@ -49,7 +49,7 @@ BootRoom/
 │   └── globals.css           # Tailwind import, theme tokens, font utilities
 ├── components/
 │   ├── ui/                   # Base UI primitives (button, input, navbar…)
-│   ├── FeaturePanel.tsx      # Feature flag management UI (admin only)
+│   ├── FeaturePanel.tsx      # Feature flag management UI (admin only, hidden when no flags)
 │   ├── AdminMemberTable.tsx  # Member management UI (admin only)
 │   ├── MatchCard.tsx         # Collapsible match result card
 │   ├── TeamList.tsx          # FaceOffLineup: both teams' line-ups in one grid
@@ -91,6 +91,10 @@ A flag is usually worth suggesting when the feature:
 A flag is usually not needed for read-only views of existing data (stats
 cards, new tabs), visual changes, share text or link previews, and bug fixes.
 
+No features are flagged right now: the old flags were retired in October 2026
+once their features were on for everyone. League results and players are
+always public, and only admins enter results.
+
 When a feature is flagged, it has two independent toggles controlled by the admin:
 
 | Toggle | Column | Who it affects |
@@ -105,8 +109,9 @@ Admins always bypass feature flag checks — they see every feature regardless o
 2. Promote to members by toggling **enabled** on in Settings → Features → Members tab.
 3. Promote to public by toggling **public_enabled** on in Settings → Features → Public tab.
 4. Each tier can have independent config (e.g. different visible stat columns for public vs members).
-5. To add a new flag: add a `FeatureKey` to `lib/types.ts`, add a `DEFAULT_FEATURES` entry in `app/api/league/[id]/features/route.ts`, wire it into `FeaturePanel.tsx`, and write a migration to seed the row.
-6. Use `isFeatureEnabled(features, key, resolveVisibilityTier(userRole))` from `lib/features.ts` to gate UI.
+5. To add a new flag: add a `FeatureKey` to `lib/types.ts`, add a `DEFAULT_FEATURES` entry in `lib/defaults.ts`, and add its card copy to `FEATURE_COPY` in `FeaturePanel.tsx`. The Settings → Features tab only shows while at least one flag exists.
+6. Use `isFeatureEnabled(features, key, resolveVisibilityTier(userRole))` from `lib/features.ts` to gate UI, with `getFeatures(leagueId)` from `lib/fetchers.ts`.
+7. Once a feature is on for everyone, retire its flag: delete the checks, the key and its rows.
 
 See **`docs/FEATURE_FLAGS.md`** for the full step-by-step guide.
 
@@ -150,18 +155,13 @@ other component.
 Defined in `lib/types.ts`. Never redefine or shadow them locally.
 
 ```ts
-export type FeatureKey =
-  | 'match_history'
-  | 'match_entry'
-  | 'player_stats'
-  | 'player_comparison'
-  | 'quarter_celebration'
-  | 'lineup_share_image';
+// No features are flagged right now; add keys here as needed.
+export type FeatureKey = never;
 
 export interface LeagueFeature {
   feature: FeatureKey;
   enabled: boolean;               // whether members can access this feature
-  config?: FeatureConfig | null;  // member-tier config (columns, limits, etc.)
+  config?: FeatureConfig | null;  // member-tier config, shape is up to the feature
   public_enabled: boolean;        // whether public visitors can access this feature
   public_config?: FeatureConfig | null; // public-tier config (may differ from member config)
   // Admins always have full access regardless of these settings
@@ -300,10 +300,10 @@ colons, full stops, or the `·` dot separator.
 
 ### FeaturePanel
 
-- Renders per-feature rows with an enabled toggle and a visibility selector
-- Visibility selector lets admins promote a feature: `admin_only` → `members` → `public`
+- Renders a `FeatureToggleCard` (Members and Public switches) per flagged feature
 - Calls `PATCH /api/league/[id]/features` on any change
-- Admins always bypass feature checks — the panel shows all features regardless
+- Admins always bypass feature checks, so the panel shows all features regardless
+- Hidden from Settings while no features are flagged
 
 ---
 
@@ -317,4 +317,4 @@ colons, full stops, or the `·` dot separator.
 - **No player profile pages** — player detail views are not in scope yet.
 - **Max-width `max-w-2xl`** — do not widen the content column.
 - **Single domain** — everything runs on `craft-football.com`. `m.craft-football.com` permanently redirects there via `vercel.json`.
-- **Public routing** — public league pages live at `/results/[id]`. Feature-level access is controlled per-feature via `public_enabled` on `league_features`.
+- **Public leagues** — league pages live at `/[slug]` and every league's results and players are public. Signed-out visitors get a read-only view; only league admins record results.

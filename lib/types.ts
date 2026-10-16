@@ -71,8 +71,6 @@ export interface BootRoomData {
 
 export type GameRole = 'creator' | 'admin' | 'member';
 
-export type ProfileRole = 'user' | 'developer';
-
 export interface Game {
   id: string;
   name: string;
@@ -89,19 +87,12 @@ export interface LeagueDetails {
   player_count?: number;        // derived from players.length — omitted if players not fetched
 }
 
-export type FeatureKey =
-  | 'match_history'
-  | 'match_entry'
-  | 'player_stats'
-  | 'player_comparison'
-  | 'quarter_celebration'
-  | 'lineup_share_image';
+// No features are behind a flag right now. Add a key here when one needs a
+// flag (see docs/FEATURE_FLAGS.md).
+export type FeatureKey = never;
 
-export interface FeatureConfig {
-  max_players?: number | null;
-  visible_stats?: string[];
-  show_mentality?: boolean; // show ATT/BAL/DEF/GK badge on player cards (default true)
-}
+/** Per-tier settings for a flagged feature. Shape is up to the feature. */
+export type FeatureConfig = Record<string, unknown>;
 
 /** All-time winning margin stats. Built by computeMargins in lib/sidebar-stats.ts. */
 export interface MarginStats {
@@ -122,7 +113,6 @@ export interface MarginStats {
 
 export interface LeagueFeature {
   feature: FeatureKey;
-  available: boolean;             // whether this feature is globally available (from feature_experiments)
   enabled: boolean;               // whether members can access this feature
   config?: FeatureConfig | null;
   public_enabled: boolean;

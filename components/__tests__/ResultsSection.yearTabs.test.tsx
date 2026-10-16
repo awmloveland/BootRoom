@@ -11,7 +11,7 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(window.location.search),
 }))
 jest.mock('@/components/NextMatchCard', () => ({
-  NextMatchCard: () => <div data-testid="next-match" />,
+  NextMatchCard: ({ canEdit }: { canEdit?: boolean }) => <div data-testid="next-match" data-can-edit={String(canEdit)} />,
 }))
 jest.mock('@/components/MatchCard', () => ({
   MatchCard: ({ week, isOpen }: { week: Week; isOpen: boolean }) => (
@@ -40,7 +40,6 @@ function renderSection(props: Partial<React.ComponentProps<typeof ResultsSection
       initialScheduledWeek={null}
       canAutoPick={true}
       allPlayers={[]}
-      showMatchHistory={true}
       {...props}
     />
   )
@@ -105,30 +104,30 @@ describe('ResultsSection year tabs', () => {
     expect(container.querySelector('[data-testid="week-2025-40"]')).toHaveAttribute('data-open', 'true')
   })
 
-  it('hides the next match when match entry is off', () => {
-    renderSection({ showMatchEntry: false })
-    expect(screen.queryByTestId('next-match')).not.toBeInTheDocument()
+  it('lets admins edit the next match', () => {
+    renderSection({ isAdmin: true })
+    expect(screen.getByTestId('next-match')).toHaveAttribute('data-can-edit', 'true')
   })
 
-  it('shows the empty state for a read-only member on a league with no weeks', () => {
-    renderSection({ weeks: [], showMatchEntry: false })
+  it('shows members the next match read-only', () => {
+    renderSection()
+    expect(screen.getByTestId('next-match')).toHaveAttribute('data-can-edit', 'false')
+  })
+
+  it('shows the empty state for a member on a league with no weeks', () => {
+    renderSection({ weeks: [] })
     expect(screen.getByText('No results yet.')).toBeInTheDocument()
+  })
+
+  it('shows admins only the next match on a league with no weeks', () => {
+    renderSection({ weeks: [], isAdmin: true })
+    expect(screen.queryByText('No results yet.')).not.toBeInTheDocument()
+    expect(screen.getByTestId('next-match')).toBeInTheDocument()
   })
 
   it('renders no tabs for a single-season league', () => {
     renderSection({ weeks: weeks.filter((w) => w.season === '2026') })
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
-  })
-
-  it('renders no tabs when match history is hidden', () => {
-    renderSection({ showMatchHistory: false })
-    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
-  })
-
-  it('still shows the next match for a past ?year= when match history is hidden', () => {
-    window.history.replaceState(null, '', '/craft-football/results?year=2025')
-    renderSection({ showMatchHistory: false })
-    expect(screen.getByTestId('next-match')).toBeVisible()
   })
 })
 

@@ -4,7 +4,7 @@ import type { ReactElement } from 'react'
 import Link from 'next/link'
 import { usePathname, useParams, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Settings, LogOut, FlaskConical } from 'lucide-react'
+import { Settings, LogOut } from 'lucide-react'
 
 import {
   Accordion,
@@ -129,7 +129,6 @@ export function Navbar({
 
   const [user, setUser] = useState<{ id?: string; email?: string } | null>(null)
   const [displayName, setDisplayName] = useState<string | null>(null)
-  const [profileRole, setProfileRole] = useState<string | null>(null)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [authResolved, setAuthResolved] = useState(false)
@@ -140,29 +139,18 @@ export function Navbar({
     try {
       const res = await fetch('/api/auth/me', { credentials: 'include' })
       const data = await res.json().catch(() => ({}))
-      let role: string | null = null
-      if (data?.user?.id) {
-        const supabase = createClient()
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .maybeSingle()
-        role = profile?.role ?? null
-      }
       const first = data?.profile?.first_name ?? ''
       const last = data?.profile?.last_name ?? ''
       const derivedName = `${first} ${last}`.trim() || data?.user?.email || null
-      return { user: data?.user ?? null, displayName: derivedName, role }
+      return { user: data?.user ?? null, displayName: derivedName }
     } catch {
-      return { user: null, displayName: null, role: null }
+      return { user: null, displayName: null }
     }
   }, [])
 
-  const applyUserData = useCallback((result: { user: { id?: string; email?: string } | null; displayName: string | null; role: string | null }) => {
+  const applyUserData = useCallback((result: { user: { id?: string; email?: string } | null; displayName: string | null }) => {
     setUser(result.user)
     setDisplayName(result.displayName)
-    setProfileRole(result.role)
   }, [])
 
   const showNav = pathname !== '/sign-in'
@@ -202,7 +190,6 @@ export function Navbar({
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
         setDisplayName(null)
-        setProfileRole(null)
       }
     })
     return () => subscription.unsubscribe()
@@ -283,13 +270,6 @@ export function Navbar({
           )}
           {showNav && user && (
             <div className="flex items-center gap-0.5">
-              {profileRole === 'developer' && (
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/experiments" title="Experiments">
-                    <FlaskConical className="size-4" />
-                  </Link>
-                </Button>
-              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <AvatarButton name={displayName ?? ''} />

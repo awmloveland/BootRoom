@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import type { FeatureKey } from '@/lib/types'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
 
-/** GET — returns feature flags for a league, gated by global feature_experiments availability. */
+/** GET — returns the league's feature flags, falling back to DEFAULT_FEATURES for missing rows. */
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -13,30 +13,11 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Fetch global availability and per-league flags in parallel
-  const [experimentsResult, leagueResult] = await Promise.all([
-    supabase.from('feature_experiments').select('feature, available'),
-    supabase.from('league_features').select('*').eq('game_id', id),
-  ])
+  const { data, error } = await supabase.from('league_features').select('*').eq('game_id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  if (experimentsResult.error) {
-    return NextResponse.json({ error: experimentsResult.error.message }, { status: 500 })
-  }
-
-  const availableSet = new Set(
-    (experimentsResult.data ?? [])
-      .filter((e) => e.available)
-      .map((e) => e.feature as FeatureKey)
-  )
-
-  // Merge with defaults, then filter by global availability
-  const featureMap = Object.fromEntries((leagueResult.data ?? []).map((f) => [f.feature, f]))
-  const features = DEFAULT_FEATURES
-    .filter((def) => availableSet.has(def.feature))
-    .map((def) => {
-      const row = featureMap[def.feature] ?? def
-      return { ...row, available: true }
-    })
+  const featureMap = Object.fromEntries((data ?? []).map((f) => [f.feature, f]))
+  const features = DEFAULT_FEATURES.map((def) => featureMap[def.feature] ?? def)
 
   return NextResponse.json(features)
 }

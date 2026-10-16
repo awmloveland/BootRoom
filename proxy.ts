@@ -6,9 +6,6 @@ const SIGN_IN_PATH = '/sign-in'
 // Routes that require a valid Supabase session
 const AUTH_REQUIRED = ['/settings']
 
-// Routes that require profiles.role = 'developer'
-const DEVELOPER_REQUIRED = ['/experiments']
-
 function getSupabaseUrl() { return process.env.NEXT_PUBLIC_SUPABASE_URL! }
 function getSupabaseAnonKey() {
   return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
@@ -39,12 +36,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Check if this path needs auth or developer role
+  // Check if this path needs auth or league admin
   const needsAuth = AUTH_REQUIRED.some((p) => pathname === p || pathname.startsWith(p + '/'))
-  const needsDeveloper = DEVELOPER_REQUIRED.some((p) => pathname === p || pathname.startsWith(p + '/'))
   const needsLeagueAdmin = /^\/[^/]+\/settings(\/|$)/.test(pathname)
 
-  if (!needsAuth && !needsDeveloper && !needsLeagueAdmin) {
+  if (!needsAuth && !needsLeagueAdmin) {
     return NextResponse.next(requestWithPathname)
   }
 
@@ -86,18 +82,6 @@ export async function proxy(request: NextRequest) {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = '/profile-required'
       return NextResponse.redirect(redirectUrl)
-    }
-  }
-
-  if (needsDeveloper) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle()
-
-    if (profile?.role !== 'developer') {
-      return NextResponse.redirect(new URL('/', request.url))
     }
   }
 

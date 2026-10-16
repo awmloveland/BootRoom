@@ -1,11 +1,9 @@
-import { getAuthAndRole, getFeatures, getGameBySlug, getPendingBadgeCount, getWeeks } from '@/lib/fetchers'
+import { getGameBySlug, getPendingBadgeCount, getWeeks } from '@/lib/fetchers'
 import { loadSharedLeague, loadSharedLineup, loadSharedQuarter, loadSharedResult } from '@/lib/shareLinksServer'
 import type { SharedLeague, SharedLineup, SharedQuarter, SharedResult } from '@/lib/types'
 
 jest.mock('@/lib/fetchers', () => ({
   getGameBySlug: jest.fn(),
-  getAuthAndRole: jest.fn(),
-  getFeatures: jest.fn(),
   getWeeks: jest.fn(),
   getPendingBadgeCount: jest.fn(),
 }))
@@ -28,8 +26,6 @@ const LINEUP: SharedLineup = {
 beforeEach(() => {
   jest.resetAllMocks()
   ;(getGameBySlug as jest.Mock).mockResolvedValue({ id: 'game-1', name: 'The Boot Room', slug: 'the-boot-room', day: null })
-  ;(getAuthAndRole as jest.Mock).mockResolvedValue({ user: null, userRole: null, isAuthenticated: false })
-  ;(getFeatures as jest.Mock).mockResolvedValue([])
   ;(getWeeks as jest.Mock).mockResolvedValue([])
   ;(getPendingBadgeCount as jest.Mock).mockResolvedValue(0)
 })

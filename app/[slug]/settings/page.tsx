@@ -10,17 +10,21 @@ import { LeagueDetailsForm } from '@/components/LeagueDetailsForm'
 import { PlayerRosterPanel } from '@/components/PlayerRosterPanel'
 import { PlayerClaimsTable } from '@/components/PlayerClaimsTable'
 import { cn } from '@/lib/utils'
+import { DEFAULT_FEATURES } from '@/lib/defaults'
 import { Skeleton, SkeletonCard, SKELETON_FADE_IN } from '@/components/ui/skeleton'
 import type { LeagueMember, LeagueFeature, LeagueDetails, PlayerAttribute, PendingJoinRequest, PlayerClaim } from '@/lib/types'
 import { PendingRequestsTable } from '@/components/PendingRequestsTable'
 
 type Section = 'details' | 'members' | 'features' | 'players'
 
+// The Features tab only appears while at least one feature is behind a flag.
+const HAS_FEATURE_FLAGS = DEFAULT_FEATURES.length > 0
+
 function TabInitialiser({ onTab }: { onTab: (tab: Section) => void }) {
   const searchParams = useSearchParams()
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab === 'details' || tab === 'members' || tab === 'features' || tab === 'players') {
+    if (tab === 'details' || tab === 'members' || (tab === 'features' && HAS_FEATURE_FLAGS) || tab === 'players') {
       onTab(tab)
     }
   }, [searchParams, onTab])
@@ -262,7 +266,7 @@ export default function LeagueSettingsPage() {
     { id: 'details',  label: 'League Details', Icon: Info },
     { id: 'members',  label: 'Members',        Icon: Users },
     { id: 'players',  label: 'Players',        Icon: UserCog },
-    { id: 'features', label: 'Features',       Icon: Settings2 },
+    ...(HAS_FEATURE_FLAGS ? [{ id: 'features' as const, label: 'Features', Icon: Settings2 }] : []),
   ]
 
   return (

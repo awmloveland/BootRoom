@@ -12,16 +12,14 @@ interface OverviewNextGameProps {
   allPlayers: Player[]
   /** From getNextMatchSeed on the server, so the card is in the first paint. */
   initialScheduledWeek: ScheduledWeek | null
-  /** The viewer's tier is allowed to build teams and record results (match_entry). */
+  /** Admins build teams and record results; everyone else sees the card read-only. */
   canEdit: boolean
-  /** Public tier: writes go through the public API routes. */
+  /** Signed-out viewer: the card takes its week from the server. */
   publicMode: boolean
   leagueDayIndex?: number
   linkedPlayerName: string | null
   location: string | null
   kickoffTime: string | null
-  /** lineup_share_image is on for this viewer, so Share sends a signed link with a picture. */
-  canShareImage: boolean
 }
 
 /**
@@ -41,7 +39,6 @@ export function OverviewNextGame({
   linkedPlayerName,
   location,
   kickoffTime,
-  canShareImage,
 }: OverviewNextGameProps) {
   const router = useRouter()
 
@@ -60,7 +57,6 @@ export function OverviewNextGame({
       publicMode={publicMode}
       canAutoPick={true}
       leagueDayIndex={leagueDayIndex}
-      canShareImage={canShareImage}
       onResultSaved={() => (publicMode ? window.location.reload() : router.refresh())}
     />
   )

@@ -24,7 +24,7 @@ interface Props {
   weeks: Week[]
   onResultSaved: () => void
   canEdit?: boolean
-  /** When true, skips the Supabase client fetch and uses public API routes for writes. */
+  /** Signed-out viewer: skips the Supabase client fetch and takes the week from the server. */
   publicMode?: boolean
   /** Pre-loaded scheduled week from the server (used when publicMode=true). */
   initialScheduledWeek?: ScheduledWeek | null
@@ -38,8 +38,6 @@ interface Props {
   leagueDayIndex?: number
   /** Display name of the league — used to build the share text. */
   leagueName?: string
-  /** Whether the lineup_share_image feature is on for this viewer; when false Share sends the plain league link and no signed link is requested. */
-  canShareImage?: boolean
   /** The viewer's linked player, for the YOU tag on the Results lineup. */
   linkedPlayerName?: string | null
   /** League kick-off time ('HH:MM'). A scheduled game awaits its result from then; 20:00 when unset. */
@@ -152,7 +150,6 @@ export function NextMatchCard({
   onBuildStart,
   leagueDayIndex,
   leagueName = '',
-  canShareImage = false,
   linkedPlayerName = null,
   kickoffTime = null,
   variant = 'results',
@@ -204,7 +201,7 @@ export function NextMatchCard({
   const [shareLink, setShareLink] = useState<{ key: string; url: string | null } | null>(null)
   const shareWeekId = scheduledWeek?.id ?? null
   const shareKey =
-    canShareImage && cardState === 'lineup' && !overviewAwaiting && scheduledWeek &&
+    cardState === 'lineup' && !overviewAwaiting && scheduledWeek &&
     scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0
       ? JSON.stringify([scheduledWeek.id, scheduledWeek.teamA, scheduledWeek.teamB])
       : null
@@ -430,33 +427,21 @@ export function NextMatchCard({
     setSaving(true)
     setError(null)
     try {
-      let weekId: string
-      if (publicMode) {
-        const res = await fetch(`/api/public/league/${gameId}/lineup`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ season, week: saveWeek, date: saveDate, format: format || null, teamA, teamB, teamARating, teamBRating }),
-        })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error ?? 'Failed to save lineup')
-        weekId = data.id
-      } else {
-        const supabase = createClient()
-        const { data, error: err } = await supabase.rpc('save_lineup', {
-          p_game_id: gameId,
-          p_season: season,
-          p_week: saveWeek,
-          p_date: saveDate,
-          p_format: format || null,
-          p_team_a: teamA,
-          p_team_b: teamB,
-          p_lineup_metadata: lineupMetadataForDB,
-          p_team_a_rating: teamARating,
-          p_team_b_rating: teamBRating,
-        })
-        if (err) throw err
-        weekId = data as string
-      }
+      const supabase = createClient()
+      const { data, error: err } = await supabase.rpc('save_lineup', {
+        p_game_id: gameId,
+        p_season: season,
+        p_week: saveWeek,
+        p_date: saveDate,
+        p_format: format || null,
+        p_team_a: teamA,
+        p_team_b: teamB,
+        p_lineup_metadata: lineupMetadataForDB,
+        p_team_a_rating: teamARating,
+        p_team_b_rating: teamBRating,
+      })
+      if (err) throw err
+      const weekId = data as string
       setScheduledWeek({ id: weekId, season, week: saveWeek, date: saveDate, format, teamA, teamB, status: 'scheduled', lineupMetadata, team_a_rating: teamARating, team_b_rating: teamBRating })
       setCardState('lineup')
     } catch (e) {
@@ -468,16 +453,8 @@ export function NextMatchCard({
 
   async function handleCancelScheduled() {
     if (!scheduledWeek) return
-    if (publicMode) {
-      await fetch(`/api/public/league/${gameId}/lineup`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ weekId: scheduledWeek.id }),
-      })
-    } else {
-      const supabase = createClient()
-      await supabase.rpc('cancel_lineup', { p_week_id: scheduledWeek.id })
-    }
+    const supabase = createClient()
+    await supabase.rpc('cancel_lineup', { p_week_id: scheduledWeek.id })
     setScheduledWeek(null)
     setSelectedNames([])
     setGuestEntries([])
@@ -539,27 +516,15 @@ export function NextMatchCard({
     setSaving(true)
     setError(null)
     try {
-      let weekId: string
-      if (publicMode) {
-        const res = await fetch(`/api/public/league/${gameId}/cancel`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ season, week: cancelWeek, date: cancelDate }),
-        })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error ?? 'Failed to cancel')
-        weekId = data.id
-      } else {
-        const supabase = createClient()
-        const { data, error: err } = await supabase.rpc('cancel_week', {
-          p_game_id: gameId,
-          p_season: season,
-          p_week: cancelWeek,
-          p_date: cancelDate,
-        })
-        if (err) throw err
-        weekId = data as string
-      }
+      const supabase = createClient()
+      const { data, error: err } = await supabase.rpc('cancel_week', {
+        p_game_id: gameId,
+        p_season: season,
+        p_week: cancelWeek,
+        p_date: cancelDate,
+      })
+      if (err) throw err
+      const weekId = data as string
       setScheduledWeek({ id: weekId, season, week: cancelWeek, date: cancelDate, format: null, teamA: [], teamB: [], status: 'cancelled' })
       setShowCancelModal(false)
       setError(null)
@@ -576,19 +541,9 @@ export function NextMatchCard({
     setSaving(true)
     setError(null)
     try {
-      if (publicMode) {
-        const res = await fetch(`/api/public/league/${gameId}/cancel`, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ weekId: scheduledWeek.id }),
-        })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error ?? 'Failed to reactivate')
-      } else {
-        const supabase = createClient()
-        const { error: err } = await supabase.rpc('cancel_lineup', { p_week_id: scheduledWeek.id })
-        if (err) throw err
-      }
+      const supabase = createClient()
+      const { error: err } = await supabase.rpc('cancel_lineup', { p_week_id: scheduledWeek.id })
+      if (err) throw err
       setScheduledWeek(null)
       setCardState('idle')
     } catch (e) {
@@ -791,15 +746,13 @@ export function NextMatchCard({
                         ))}
 
                         {/* Add guest or new player button */}
-                        {!publicMode && (
-                          <button
-                            type="button"
-                            onClick={() => setShowAddPlayerModal(true)}
-                            className="inline-flex items-center gap-1 h-[30px] px-3 rounded border border-dashed border-[#223a5c] font-inter-body text-xs font-semibold text-[#6f88a8] hover:border-[#38bdf8] hover:text-white transition-colors"
-                          >
-                            + Add guest or new player
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => setShowAddPlayerModal(true)}
+                          className="inline-flex items-center gap-1 h-[30px] px-3 rounded border border-dashed border-[#223a5c] font-inter-body text-xs font-semibold text-[#6f88a8] hover:border-[#38bdf8] hover:text-white transition-colors"
+                        >
+                          + Add guest or new player
+                        </button>
                       </div>
                     </div>
                   </>
@@ -1173,7 +1126,6 @@ export function NextMatchCard({
           leagueSlug={leagueSlug}
           leagueName={leagueName}
           weeks={weeks}
-          publicMode={publicMode}
           onSaved={() => {
             setShowResultModal(false)
             setGuestEntries([])

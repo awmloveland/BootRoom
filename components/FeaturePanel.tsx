@@ -1,6 +1,5 @@
 'use client'
 
-import { PlayerStatsCard } from '@/components/PlayerStatsCard'
 import { FeatureToggleCard } from '@/components/FeatureToggleCard'
 import type { FeatureKey, LeagueFeature } from '@/lib/types'
 
@@ -10,16 +9,13 @@ interface FeaturePanelProps {
   onChanged: () => void
 }
 
-function getFeature(features: LeagueFeature[], key: FeatureKey): LeagueFeature {
-  return features.find(f => f.feature === key) ?? {
-    feature: key,
-    available: false,
-    enabled: false,
-    config: null,
-    public_enabled: false,
-    public_config: null,
-  }
+interface FeatureCopy {
+  title: string
+  description: string
 }
+
+/** Card copy for each flagged feature. Add an entry alongside the FeatureKey. */
+const FEATURE_COPY: Record<FeatureKey, FeatureCopy> = {}
 
 export function FeaturePanel({ leagueId, features, onChanged }: FeaturePanelProps) {
   return (
@@ -31,25 +27,19 @@ export function FeaturePanel({ leagueId, features, onChanged }: FeaturePanelProp
           affect members and public visitors. Test with a member account to verify.
         </div>
       </div>
-      <PlayerStatsCard
-        leagueId={leagueId}
-        feature={getFeature(features, 'player_stats')}
-        onChanged={onChanged}
-      />
-      <FeatureToggleCard
-        leagueId={leagueId}
-        feature={getFeature(features, 'quarter_celebration')}
-        title="Quarter Celebration"
-        description="Show the champion + awards card on the Results tab when a quarter wraps. Admins always see it; choose who else does."
-        onChanged={onChanged}
-      />
-      <FeatureToggleCard
-        leagueId={leagueId}
-        feature={getFeature(features, 'lineup_share_image')}
-        title="Lineup Share Image"
-        description="Add a picture of both teams to shared lineup links in WhatsApp, iMessage, Slack and Discord. Admins always get it; choose who else does."
-        onChanged={onChanged}
-      />
+      {features.map((feature) => {
+        const copy: FeatureCopy = FEATURE_COPY[feature.feature]
+        return (
+          <FeatureToggleCard
+            key={feature.feature}
+            leagueId={leagueId}
+            feature={feature}
+            title={copy.title}
+            description={copy.description}
+            onChanged={onChanged}
+          />
+        )
+      })}
     </div>
   )
 }

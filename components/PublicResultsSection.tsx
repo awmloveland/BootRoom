@@ -12,9 +12,6 @@ interface Props {
   leagueName: string
   weeks: Week[]
   nextWeek: ScheduledWeek | null
-  canEditMatchEntry: boolean
-  showMatchHistory: boolean
-  canShareImage: boolean
   celebration: ResultsCelebration | null
   resultShareUrl: string | null     // signed link for the most recent result's Share button
   kickoffTime: string | null        // league kick-off time, when a scheduled game starts awaiting its result
@@ -27,9 +24,6 @@ export function PublicResultsSection({
   leagueName,
   weeks,
   nextWeek,
-  canEditMatchEntry,
-  showMatchHistory,
-  canShareImage,
   celebration,
   resultShareUrl,
   kickoffTime,
@@ -38,37 +32,32 @@ export function PublicResultsSection({
 
   return (
     <>
-      {showMatchHistory && <YearTabs years={seasons} selected={year} onSelect={selectYear} />}
+      <YearTabs years={seasons} selected={year} onSelect={selectYear} />
       {nextWeek && (
-        // Hidden rather than unmounted on past years, so a half-built line-up survives a year switch.
-        <div hidden={showMatchHistory && !isDefaultYear}>
+        <div hidden={!isDefaultYear}>
           <PublicMatchEntrySection
             gameId={gameId}
             leagueSlug={leagueSlug}
             weeks={weeks}
             initialScheduledWeek={nextWeek}
-            canEdit={canEditMatchEntry}
             leagueName={leagueName}
-            canShareImage={canShareImage}
             kickoffTime={kickoffTime}
           />
         </div>
       )}
-      {showMatchHistory && (
-        <section>
-          {/* Keyed by year so the open card resets to that year's latest result. */}
-          <PublicMatchList
-            key={year}
-            weeks={weeks}
-            season={year}
-            celebration={celebration}
-            leagueName={leagueName}
-            leagueSlug={leagueSlug}
-            resultShareUrl={resultShareUrl}
-            kickoffTime={kickoffTime}
-          />
-        </section>
-      )}
+      <section>
+        {/* Keyed by year so the open card resets to that year's latest result. */}
+        <PublicMatchList
+          key={year}
+          weeks={weeks}
+          season={year}
+          celebration={celebration}
+          leagueName={leagueName}
+          leagueSlug={leagueSlug}
+          resultShareUrl={resultShareUrl}
+          kickoffTime={kickoffTime}
+        />
+      </section>
     </>
   )
 }
