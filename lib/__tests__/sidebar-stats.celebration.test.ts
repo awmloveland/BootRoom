@@ -39,6 +39,17 @@ describe('findNewlyCompletedQuarter', () => {
     expect(result!.champion).toBeTruthy()
   })
 
+  it('returns the quarter when its last outstanding week is recorded as a DNF', () => {
+    const before: Week[] = [
+      ...playedWeeks(Q2_FRIDAYS.slice(0, 5)),
+      makeWeek(6, '8 May 2026', 'scheduled'),
+    ]
+    const after: Week[] = [...playedWeeks(Q2_FRIDAYS.slice(0, 5)), makeWeek(6, '8 May 2026', 'dnf')]
+    const result = findNewlyCompletedQuarter(before, after, now)
+    expect(result?.q).toBe(2)
+    expect(result?.year).toBe(2026)
+  })
+
   it('returns null when the quarter completes with fewer than 5 games', () => {
     const before: Week[] = [
       ...playedWeeks(Q2_FRIDAYS.slice(0, 3)),

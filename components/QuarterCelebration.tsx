@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Trophy } from 'lucide-react'
-import { cn, buildQuarterShareText, shareOrCopy, withShareLink } from '@/lib/utils'
+import { cn, buildQuarterShareText, buildResultHeadline, shareOrCopy, withShareLink } from '@/lib/utils'
+import type { FinalGameShare } from '@/lib/utils'
 import type { QuarterSummary } from '@/lib/sidebar-stats'
 
 interface QuarterCelebrationProps {
@@ -13,16 +14,18 @@ interface QuarterCelebrationProps {
   variant: 'modal' | 'card'
   /** Signed link to this quarter; shares the plain Seasons link when absent. */
   shareUrl?: string | null
+  /** The game that just completed the quarter, shown above the champion and shared with the wrap. */
+  finalGame?: FinalGameShare | null
 }
 
-export function QuarterCelebration({ quarter, leagueName, leagueSlug, variant, shareUrl }: QuarterCelebrationProps) {
+export function QuarterCelebration({ quarter, leagueName, leagueSlug, variant, shareUrl, finalGame }: QuarterCelebrationProps) {
   const [copied, setCopied] = useState(false)
 
   const champion = quarter.entries?.[0]
   const medals = (quarter.awards ?? []).filter(a => a.key !== 'champion')
 
   async function handleShare() {
-    const text = withShareLink(buildQuarterShareText({ leagueName, leagueSlug, quarter }), shareUrl)
+    const text = withShareLink(buildQuarterShareText({ leagueName, leagueSlug, quarter, finalGame: finalGame ?? undefined }), shareUrl)
     const result = await shareOrCopy(text)
     if (result === 'copied') {
       setCopied(true)
@@ -48,6 +51,8 @@ export function QuarterCelebration({ quarter, leagueName, leagueSlug, variant, s
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(190,242,100,.14)_0,transparent_42%),radial-gradient(circle_at_85%_0%,rgba(56,189,248,.14)_0,transparent_40%)]"
       />
+
+      {finalGame && <FinalGameBlock game={finalGame} />}
 
       <div className="relative flex items-center justify-between gap-4 px-[22px] pt-5 pb-[18px]">
         <div>
@@ -103,6 +108,35 @@ export function QuarterCelebration({ quarter, leagueName, leagueSlug, variant, s
           </Link>
         )}
       </div>
+    </div>
+  )
+}
+
+function FinalGameBlock({ game }: { game: FinalGameShare }) {
+  const winners = game.result === 'teamA' ? game.teamA : game.result === 'teamB' ? game.teamB : null
+  const headline = game.result === 'dnf'
+    ? buildResultHeadline(null, 0, true)
+    : buildResultHeadline(game.result, game.goalDifference, false)
+
+  return (
+    <div className="relative border-b border-[#1b2c46] px-[22px] py-4">
+      <p className="font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#6f88a8]">Final game</p>
+      <p className="mt-1.5 text-[15px] font-bold tracking-[-.02em] text-[#f4f9ff]">{headline}</p>
+      {winners && (
+        <p className={cn(
+          'mt-1 font-inter-body text-xs leading-relaxed',
+          game.result === 'teamA' ? 'text-[#7dd3fc]' : 'text-[#c4b5fd]',
+        )}>
+          {winners.join(', ')}
+        </p>
+      )}
+      {game.highlights.length > 0 && (
+        <div className="mt-2.5 flex flex-col gap-1">
+          {game.highlights.map((line) => (
+            <p key={line} className="font-inter-body text-xs text-[#cfe0f4]">{line}</p>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

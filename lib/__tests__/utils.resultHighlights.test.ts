@@ -42,7 +42,22 @@ const GOLDEN_TEXT = `⚽ Test FC — Week 8\n📅 Tue 25 Aug · 5-a-side\n\n🏆
 
 describe('buildResultShareText', () => {
   it('matches the golden output', () => {
-    expect(buildResultShareText(PARAMS)).toEqual({ shareText: GOLDEN_TEXT, highlightsText: GOLDEN_HIGHLIGHTS })
+    expect(buildResultShareText(PARAMS)).toEqual({
+      shareText: GOLDEN_TEXT,
+      highlightsText: GOLDEN_HIGHLIGHTS,
+      highlightLines: [
+        '🔥 Ava Stone on a 3-game winning streak',
+        '🔥 Ben Hale on a 3-game winning streak',
+        '😱 Upset! Team B were stronger on paper (4.6 vs 4.1)',
+        '🎖️ Ava Stone played their 10th game tonight',
+        '🎖️ Ben Hale played their 25th game tonight',
+      ],
+    })
+  })
+
+  it('puts record lines first in the highlight lines', () => {
+    const { highlightLines } = buildResultShareText({ ...PARAMS, recordLines: ['📈 Record line'] })
+    expect(highlightLines[0]).toBe('📈 Record line')
   })
 })
 

@@ -1143,8 +1143,10 @@ function highlightLine(item: ResultHighlightItem): string {
 
 /**
  * Builds a formatted plain-text share message for a saved result.
- * Returns { shareText, highlightsText } — shareText is the full message;
- * highlightsText is just the highlights block, rendered separately in the share step.
+ * Returns { shareText, highlightsText, highlightLines }: shareText is the full
+ * message; highlightsText is just the highlights block, rendered separately in
+ * the share step; highlightLines are the record and highlight lines alone,
+ * without the quarter table or in-form line.
  */
 export function buildResultShareText(params: {
   leagueName: string
@@ -1161,7 +1163,7 @@ export function buildResultShareText(params: {
   players: Player[]
   weeks: Week[]          // includes the synthetic week for tonight
   recordLines?: string[] // from findRecordBreaks, shown first in the highlights
-}): { shareText: string; highlightsText: string } {
+}): { shareText: string; highlightsText: string; highlightLines: string[] } {
   const {
     leagueName, leagueSlug, week, date, format,
     teamA, teamB, winner, goalDifference,
@@ -1220,7 +1222,7 @@ export function buildResultShareText(params: {
   parts.push('')
   parts.push(`🔗 https://craft-football.com/${leagueSlug}`)
 
-  return { shareText: parts.join('\n'), highlightsText }
+  return { shareText: parts.join('\n'), highlightsText, highlightLines: highlights }
 }
 
 /**
@@ -1444,16 +1446,42 @@ export function nextLeagueGame(
   return date ? { date, kickoffTime: league.kickoff_time, location: league.location } : null
 }
 
+/** The game that completed a quarter, shared at the top of the quarter wrap. */
+export interface FinalGameShare {
+  result: 'teamA' | 'teamB' | 'draw' | 'dnf'
+  goalDifference: number
+  teamA: string[]
+  teamB: string[]
+  /** Record breaks and highlights, as `highlightLines` from buildResultShareText. */
+  highlights: string[]
+}
+
 /**
- * Builds the plain-text share message for a completed quarter on the
- * Honours tab. Pure function — all data comes from the QuarterSummary.
+ * The final game block of the quarter wrap: headline, the winners, then the
+ * highlights. A draw lists neither team; a DNF has no teams or highlights.
+ */
+export function buildFinalGameLines(game: FinalGameShare): string[] {
+  const { result, goalDifference, teamA, teamB, highlights } = game
+  if (result === 'dnf') return ['⚠️ Final game: called off (DNF)']
+  if (result === 'draw') return ['🤝 Final game: Draw!', ...highlights]
+  const margin = goalDifference > 0 ? ` (+${goalDifference} ${goalDifference === 1 ? 'goal' : 'goals'})` : ''
+  return result === 'teamA'
+    ? [`🏆 Final game: Team A win!${margin}`, `🔵 ${teamA.join(', ')}`, ...highlights]
+    : [`🏆 Final game: Team B win!${margin}`, `🟣 ${teamB.join(', ')}`, ...highlights]
+}
+
+/**
+ * Builds the plain-text share message for a completed quarter. Pure function:
+ * all data comes from the QuarterSummary, plus the game that completed it
+ * when shared straight after recording that game.
  */
 export function buildQuarterShareText(params: {
   leagueName: string
   leagueSlug: string
   quarter: QuarterSummary
+  finalGame?: FinalGameShare
 }): string {
-  const { leagueName, leagueSlug, quarter } = params
+  const { leagueName, leagueSlug, quarter, finalGame } = params
   const { q, year, seasonName, dateRange, entries = [], awards = [], gamesPlayed = 0 } = quarter
 
   const parts: string[] = [
@@ -1461,6 +1489,11 @@ export function buildQuarterShareText(params: {
     `⚽ ${leagueName} — ${seasonName} quarter`,
     `📅 ${quarterRangeLabel(dateRange, gamesPlayed)}`,
   ]
+
+  if (finalGame) {
+    parts.push('')
+    parts.push(...buildFinalGameLines(finalGame))
+  }
 
   const champion = entries[0]?.name
   if (champion) {
