@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn, buildResultShareText, buildDnfShareText, buildResultHeadline, fetchShareLink, resolveTeamRatingForResult, withShareLink } from '@/lib/utils'
+import type { FinalGameShare } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality, Week, Strength } from '@/lib/types'
 import { findNewlyCompletedQuarter } from '@/lib/sidebar-stats'
@@ -100,6 +101,8 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   const [resultShareUrl, setResultShareUrl] = useState<string | null>(null)
   const [quarterShareUrl, setQuarterShareUrl] = useState<string | null>(null)
   const [celebrateQuarter, setCelebrateQuarter] = useState<QuarterSummary | null>(null)
+  // The game just saved, shared with the quarter wrap when it completes a quarter.
+  const [finalGame, setFinalGame] = useState<FinalGameShare | null>(null)
 
   const [guestStates, setGuestStates] = useState<GuestReviewState[]>(
     guests.map((g) => ({
@@ -220,15 +223,23 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
     }
   }
 
-  // After a successful save, celebrate if this game clinched a quarter;
-  // otherwise fall through to the normal per-game share step.
-  function routeAfterSave(weeksAfter: Week[]) {
+  // After a successful save, celebrate if this game clinched a quarter (and
+  // share the result with the wrap); otherwise fall through to the normal
+  // per-game share step.
+  function routeAfterSave(savedWeek: Week) {
+    const weeksAfter = weeks.some(w => w.id === scheduledWeek.id)
+      ? weeks.map(w => (w.id === scheduledWeek.id ? savedWeek : w))
+      : [...weeks, savedWeek]
     const clinched = findNewlyCompletedQuarter(weeks, weeksAfter, new Date())
     if (clinched) {
       void fetchShareLink(gameId, { kind: 'quarter', year: clinched.year, q: clinched.q }).then(setQuarterShareUrl)
       setCelebrateQuarter(clinched)
       setStep('celebrate')
     } else {
+      // DNFs share the plain link.
+      if (savedWeek.status === 'played') {
+        void fetchShareLink(gameId, { kind: 'result', weekId: scheduledWeek.id }).then(setResultShareUrl)
+      }
       setStep('share')
     }
   }
@@ -268,7 +279,17 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           notes: notes.trim(),
         })
         setShareData({ dnf: true, shareText: dnfShareText })
-        setStep('share')
+        setFinalGame({ result: 'dnf', goalDifference: 0, teamA: savedTeamA, teamB: savedTeamB, highlights: [] })
+        routeAfterSave({
+          week: scheduledWeek.week,
+          season: scheduledWeek.season,
+          date: scheduledWeek.date,
+          status: 'dnf',
+          format: scheduledWeek.format ?? undefined,
+          teamA: savedTeamA,
+          teamB: savedTeamB,
+          winner: null,
+        })
         return
       }
 
@@ -324,7 +345,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
       }
       const weeksWithResult = [...weeks, syntheticWeek]
 
-      const { shareText, highlightsText } = buildResultShareText({
+      const { shareText, highlightsText, highlightLines } = buildResultShareText({
         leagueName,
         leagueSlug,
         week: scheduledWeek.week,
@@ -356,12 +377,15 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
 
       await saveRosterChanges(supabase)
 
-      void fetchShareLink(gameId, { kind: 'result', weekId: scheduledWeek.id }).then(setResultShareUrl)
       setShareData({ dnf: false, winner, goalDifference, shareText, highlightsText })
-      const weeksAfter = weeks.some(w => w.id === scheduledWeek.id)
-        ? weeks.map(w => (w.id === scheduledWeek.id ? syntheticWeek : w))
-        : [...weeks, syntheticWeek]
-      routeAfterSave(weeksAfter)
+      setFinalGame({
+        result: winner,
+        goalDifference: winner === 'draw' ? 0 : goalDifference,
+        teamA: savedTeamA,
+        teamB: savedTeamB,
+        highlights: highlightLines,
+      })
+      routeAfterSave(syntheticWeek)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save result')
     } finally {
@@ -747,6 +771,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                   leagueSlug={leagueSlug}
                   variant="modal"
                   shareUrl={quarterShareUrl}
+                  finalGame={finalGame}
                 />
               </div>
               <div className="px-4 pb-[18px]">

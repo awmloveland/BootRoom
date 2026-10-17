@@ -1,4 +1,5 @@
-import { buildQuarterShareText } from '../utils'
+import { buildQuarterShareText, buildFinalGameLines } from '../utils'
+import type { FinalGameShare } from '../utils'
 import type { QuarterSummary, QuarterlyEntry } from '../sidebar-stats'
 
 function entry(
@@ -112,5 +113,81 @@ describe('buildQuarterShareText', () => {
       quarter: makeQuarter({ year: 2025, q: 3 }),
     })
     expect(text.endsWith('🔗 https://craft-football.com/sunday-league/honours#q-2025-3')).toBe(true)
+  })
+})
+
+function finalGame(overrides: Partial<FinalGameShare> = {}): FinalGameShare {
+  return {
+    result: 'teamA',
+    goalDifference: 2,
+    teamA: ['Dave', 'Ali'],
+    teamB: ['Steve', 'Sam'],
+    highlights: ['📈 Ali breaks the record for most wins (41)', '🔥 Dave on a 3-game winning streak'],
+    ...overrides,
+  }
+}
+
+describe('buildFinalGameLines', () => {
+  it('lists the Team A winners and the highlights', () => {
+    expect(buildFinalGameLines(finalGame())).toEqual([
+      '🏆 Final game: Team A win! (+2 goals)',
+      '🔵 Dave, Ali',
+      '📈 Ali breaks the record for most wins (41)',
+      '🔥 Dave on a 3-game winning streak',
+    ])
+  })
+
+  it('lists the Team B winners with a singular goal', () => {
+    expect(buildFinalGameLines(finalGame({ result: 'teamB', goalDifference: 1, highlights: [] }))).toEqual([
+      '🏆 Final game: Team B win! (+1 goal)',
+      '🟣 Steve, Sam',
+    ])
+  })
+
+  it('has no team line on a draw', () => {
+    expect(buildFinalGameLines(finalGame({ result: 'draw', goalDifference: 0, highlights: [] }))).toEqual([
+      '🤝 Final game: Draw!',
+    ])
+  })
+
+  it('has no team line or highlights on a DNF', () => {
+    expect(buildFinalGameLines(finalGame({ result: 'dnf' }))).toEqual([
+      '⚠️ Final game: called off (DNF)',
+    ])
+  })
+})
+
+describe('buildQuarterShareText with the final game', () => {
+  it('puts the final game between the header and the champion', () => {
+    const text = buildQuarterShareText({
+      leagueName: 'The Boot Room',
+      leagueSlug: 'the-boot-room',
+      quarter: makeQuarter(),
+      finalGame: finalGame(),
+    })
+
+    expect(text).toBe([
+      '🏁 That\'s a wrap on Q2 2026!',
+      '⚽ The Boot Room — Spring quarter',
+      '📅 05 Apr – 28 Jun · 12 games',
+      '',
+      '🏆 Final game: Team A win! (+2 goals)',
+      '🔵 Dave, Ali',
+      '📈 Ali breaks the record for most wins (41)',
+      '🔥 Dave on a 3-game winning streak',
+      '',
+      '👑 Your Spring champion: Dave 🎉',
+      '',
+      '🎖️ Quarter honours',
+      '⚽ Iron Man — Steve (14 games)',
+      '⚡ Sharp Shooter — Ali (2.4 PPG)',
+      '',
+      '📊 Final standings',
+      '1. Dave — 32pts (P14 W10 D2 L2)',
+      '2. Ali — 29pts (P12 W9 D2 L1)',
+      '3. Steve — 24pts (P14 W7 D3 L4)',
+      '',
+      '🔗 https://craft-football.com/the-boot-room/honours#q-2026-2',
+    ].join('\n'))
   })
 })
