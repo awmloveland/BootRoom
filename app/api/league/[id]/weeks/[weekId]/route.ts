@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { createClient } from '@/lib/supabase/server'
+import { requireLeagueAdmin } from '@/lib/apiAuth'
 import { NextResponse } from 'next/server'
 
 /** PATCH — admin-only, updates the date on a scheduled week. Body: { date: "DD MMM YYYY" } */
@@ -8,12 +8,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; weekId: string }> }
 ) {
   const { id, weekId } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { data: isAdmin } = await supabase.rpc('is_game_admin', { p_game_id: id })
-  if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const gate = await requireLeagueAdmin(id)
+  if ('response' in gate) return gate.response
 
   let body: unknown
   try {

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { requireLeagueAdmin } from '@/lib/apiAuth'
 import { NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 
@@ -6,14 +7,6 @@ const TOKEN_BYTES = 32
 const EXPIRY_DAYS = 7
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   const body = await request.json()
   const rawEmail = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
   const gameId = typeof body?.gameId === 'string' ? body.gameId : null
@@ -24,10 +17,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'gameId required' }, { status: 400 })
   }
 
-  const { data: isAdmin } = await supabase.rpc('is_game_admin', { p_game_id: gameId })
-  if (!isAdmin) {
-    return NextResponse.json({ error: 'Not an admin of this game' }, { status: 403 })
-  }
+  const gate = await requireLeagueAdmin(gameId)
+  if ('response' in gate) return gate.response
+  const supabase = await createClient()
 
   const token = randomBytes(TOKEN_BYTES).toString('hex')
   const expiresAt = new Date()
@@ -37,7 +29,7 @@ export async function POST(request: Request) {
     {
       game_id: gameId,
       email,
-      invited_by: user.id,
+      invited_by: gate.user.id,
       token,
       expires_at: expiresAt.toISOString(),
       role,
