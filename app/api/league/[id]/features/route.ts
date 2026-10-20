@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { requireLeagueAdmin } from '@/lib/apiAuth'
+import { requireLeagueAdmin, requireUser } from '@/lib/apiAuth'
 import { NextResponse } from 'next/server'
 import type { FeatureKey } from '@/lib/types'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
@@ -10,9 +10,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
+  const gate = await requireUser()
+  if ('response' in gate) return gate.response
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { data, error } = await supabase.from('league_features').select('*').eq('game_id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/apiAuth'
 import { notifyAdminsOfJoinRequest } from '@/lib/email/send-join-request-notifications'
 
 /** GET — return pending join requests for a league. Admin/creator only. */
@@ -8,9 +9,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
+  const gate = await requireUser()
+  if ('response' in gate) return gate.response
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { data, error } = await supabase.rpc('get_join_requests', {
     p_game_id: id,
@@ -32,9 +33,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
+  const gate = await requireUser()
+  if ('response' in gate) return gate.response
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json().catch(() => ({}))
   const message = typeof body?.message === 'string' ? body.message : null
@@ -74,7 +75,7 @@ export async function POST(
   const origin = request.headers.get('origin') ?? 'https://craft-football.com'
   notifyAdminsOfJoinRequest(
     id,
-    { userId: user.id, email: user.email ?? '', message },
+    { userId: gate.user.id, email: gate.user.email ?? '', message },
     origin
   ).catch(err => console.error('[email:notifyAdminsOfJoinRequest]', err))
 

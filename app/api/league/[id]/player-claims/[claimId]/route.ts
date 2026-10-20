@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/apiAuth'
 
 /** DELETE — cancel a pending player claim. Claim owner only. */
 export async function DELETE(
@@ -7,11 +8,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; claimId: string }> }
 ) {
   const { claimId } = await params
+  const gate = await requireUser()
+  if ('response' in gate) return gate.response
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
 
   const { error } = await supabase.rpc('cancel_player_claim', {
     p_claim_id: claimId,
