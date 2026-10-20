@@ -1,114 +1,12 @@
 /**
- * Data fetching: uses API routes when access key mode is enabled,
- * otherwise uses Supabase directly.
+ * The signed-in user's leagues, via the API route so the cookie session is
+ * used. Only the league settings page calls this; PR 6 removes it.
  */
+import type { Game } from '@/lib/types'
 
-import { createClient } from '@/lib/supabase/client'
-import type { Week } from '@/lib/types'
-import { ratingToStrength } from '@/lib/strength'
-
-const USE_ACCESS_KEY = process.env.NEXT_PUBLIC_ACCESS_KEY_MODE === 'true'
-
-export async function fetchGames(): Promise<import('@/lib/types').Game[]> {
+export async function fetchGames(): Promise<Game[]> {
   const res = await fetch('/api/games', { credentials: 'include' })
   if (!res.ok) throw new Error(await res.text())
   const data = await res.json()
-  return (data ?? []) as import('@/lib/types').Game[]
-}
-
-export async function fetchWeeks(gameId: string): Promise<Week[]> {
-  if (USE_ACCESS_KEY) {
-    const res = await fetch(`/api/weeks?gameId=${gameId}`, { credentials: 'include' })
-    if (!res.ok) throw new Error(await res.text())
-    const data = await res.json()
-    return (data ?? []).map((row: Record<string, unknown>) => ({
-      week: row.week,
-      date: row.date,
-      status: row.status,
-      format: row.format ?? undefined,
-      teamA: row.team_a ?? [],
-      teamB: row.team_b ?? [],
-      winner: row.winner ?? null,
-      notes: row.notes ?? undefined,
-      goal_difference: row.goal_difference ?? null,
-    })) as Week[]
-  }
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('weeks')
-    .select('week, date, status, format, team_a, team_b, winner, notes, goal_difference')
-    .eq('game_id', gameId)
-    .in('status', ['played', 'cancelled', 'dnf'])
-    .order('week', { ascending: false })
-  if (error) throw error
-  return (data ?? []).map((row) => ({
-    week: row.week,
-    date: row.date,
-    status: row.status,
-    format: row.format ?? undefined,
-    teamA: row.team_a ?? [],
-    teamB: row.team_b ?? [],
-    winner: row.winner ?? null,
-    notes: row.notes ?? undefined,
-    goal_difference: row.goal_difference ?? null,
-  })) as Week[]
-}
-
-export type PlayerStat = {
-  name: string
-  played: number
-  won: number
-  drew: number
-  lost: number
-  timesTeamA: number
-  timesTeamB: number
-  winRate: number
-  qualified: boolean
-  points: number
-  // `mentality === 'goalkeeper'` is the single source of truth for keeper identity.
-  // The DB column `goalkeeper` is collapsed into `mentality` at read time.
-  mentality: string
-  strength: import('@/lib/types').Strength | null
-  recentForm: string
-}
-
-export async function fetchPlayers(gameId: string): Promise<PlayerStat[]> {
-  if (USE_ACCESS_KEY) {
-    const res = await fetch(`/api/players?gameId=${gameId}`, { credentials: 'include' })
-    if (!res.ok) throw new Error(await res.text())
-    const data = await res.json()
-    return (data ?? []).map((row: Record<string, unknown>) => ({
-      name: row.name,
-      played: row.played,
-      won: row.won,
-      drew: row.drew,
-      lost: row.lost,
-      timesTeamA: row.timesTeamA,
-      timesTeamB: row.timesTeamB,
-      winRate: row.winRate,
-      qualified: row.qualified,
-      points: row.points,
-      mentality: row.goalkeeper ? 'goalkeeper' : (row.mentality ?? 'balanced'),
-      strength: ratingToStrength(typeof row.rating === 'number' ? row.rating : 0),
-      recentForm: row.recentForm ?? '',
-    }))
-  }
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('get_player_stats', { p_game_id: gameId })
-  if (error) throw error
-  return (data ?? []).map((row: Record<string, unknown>) => ({
-    name: row.name,
-    played: Number(row.played),
-    won: Number(row.won),
-    drew: Number(row.drew),
-    lost: Number(row.lost),
-    timesTeamA: Number(row.timesTeamA),
-    timesTeamB: Number(row.timesTeamB),
-    winRate: Number(row.winRate),
-    qualified: Boolean(row.qualified),
-    points: Number(row.points),
-    mentality: row.goalkeeper ? 'goalkeeper' : String(row.mentality ?? 'balanced'),
-    strength: ratingToStrength(Number(row.rating ?? 0)),
-    recentForm: String(row.recentForm ?? ''),
-  }))
+  return (data ?? []) as Game[]
 }
