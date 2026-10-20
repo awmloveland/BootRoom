@@ -1,27 +1,13 @@
 // lib/feesServer.ts
-// Server-only helpers for the Admin tab's pitch fees: the admin gate the fee
-// API routes share, and the one place that reads fee rows from Supabase.
-import { NextResponse } from 'next/server'
-import type { User } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/server'
+// Server-only helpers for the Admin tab's pitch fees: the one place that reads
+// fee rows from Supabase. Re-exports requireLeagueAdmin from lib/apiAuth so the
+// fee routes keep one import.
+export { requireLeagueAdmin } from '@/lib/apiAuth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { DEFAULT_FEE_PER_PLAYER, feeEntryKey, type PaymentMap, type WeekFeeMap } from '@/lib/fees'
 
 /** Largest value numeric(6,2) holds. */
 export const MAX_FEE = 9999.99
-
-/**
- * Resolves the caller and checks they admin this league via is_game_admin.
- * Returns the user, or the 401/403 response to send back.
- */
-export async function requireLeagueAdmin(leagueId: string): Promise<{ user: User } | { response: NextResponse }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
-  const { data: isAdmin } = await supabase.rpc('is_game_admin', { p_game_id: leagueId })
-  if (!isAdmin) return { response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
-  return { user }
-}
 
 /** A fee from a request body: a finite, non-negative amount, rounded to pence. Null when invalid. */
 export function parseFee(value: unknown): number | null {
