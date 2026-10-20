@@ -35,6 +35,9 @@ export async function POST(
     if (error.message?.includes('Claim not found')) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
+    if (error.message?.includes('claim_not_pending')) {
+      return NextResponse.json({ error: 'This has already been reviewed.' }, { status: 409 })
+    }
     console.error('[player-claims review POST]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

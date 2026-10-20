@@ -76,7 +76,6 @@ export default function LeagueSettingsPage() {
   // Player claims state
   const [pendingClaims, setPendingClaims] = useState<PlayerClaim[]>([])
   // Bumped on every reload so the review tables remount with the fresh lists.
-  const [pendingVersion, setPendingVersion] = useState(0)
 
   // Invite links state
   const [memberLink, setMemberLink] = useState<string | null>(null)
@@ -171,16 +170,18 @@ export default function LeagueSettingsPage() {
       setPendingRequests([])
       setPendingClaims([])
     } finally {
-      setPendingVersion((v) => v + 1)
       setPendingLoading(false)
     }
   }, [leagueId])
 
   const loadPlayers = useCallback(async () => {
+    setPlayersLoading(true)
     try {
       const res = await fetch(`/api/league/${leagueId}/players`, { credentials: 'include' })
       const data = await res.json()
       setPlayers(Array.isArray(data) ? data : [])
+    } catch {
+      // Keep the previous roster; callers don't await this.
     } finally {
       setPlayersLoading(false)
     }
@@ -394,7 +395,6 @@ export default function LeagueSettingsPage() {
             <PanelSkeleton cards={[2]} />
           ) : (
             <PendingReviewList
-              key={pendingVersion}
               leagueId={leagueId}
               requests={pendingRequests}
               claims={pendingClaims}

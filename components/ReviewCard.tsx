@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { cn, gamesLabel, getInitials, initialPlaysAs, reviewProblem, timeAgo } from '@/lib/utils'
 import type { PlayerAttribute, PlaysAs, ReviewItem } from '@/lib/types'
@@ -17,6 +17,7 @@ interface ReviewCardProps {
 }
 
 const LABEL = 'font-plex text-[9px] font-bold uppercase tracking-[.16em] text-[#6f88a8]'
+const ALREADY_REVIEWED = 'This has already been reviewed.'
 const LINK = 'font-inter-body text-xs text-[#38bdf8] hover:text-[#7dd3fc] transition-colors'
 
 /** One join request or member claim: who they are, who they'll play as, Decline / Approve. */
@@ -26,6 +27,13 @@ export function ReviewCard({ leagueId, item, roster, onDone, onRosterStale }: Re
   const [busy, setBusy] = useState<'approve' | 'decline' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [noteOpen, setNoteOpen] = useState(false)
+  const newPlayerId = useId()
+
+  /** Every change of who they play as also clears a stale error. */
+  function choose(next: PlaysAs) {
+    setPlaysAs(next)
+    setError(null)
+  }
 
   const person = item.kind === 'join'
     ? {
@@ -73,6 +81,10 @@ export function ReviewCard({ leagueId, item, roster, onDone, onRosterStale }: Re
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
+        if (res.status === 409 && data.error === ALREADY_REVIEWED) {
+          onDone()
+          return
+        }
         setError(data.error ?? 'Something went wrong')
         if (res.status === 409) onRosterStale?.()
         return
@@ -104,10 +116,10 @@ export function ReviewCard({ leagueId, item, roster, onDone, onRosterStale }: Re
           {item.kind === 'claim' ? (
             <p className="mt-1 font-inter-body text-xs text-[#8ba4c4]">Wants to link to a player</p>
           ) : person.note ? (
-            <button type="button" className="mt-1 w-full text-left" onClick={() => setNoteOpen((o) => !o)}>
-              <p className={cn('font-inter-body text-xs italic text-[#8ba4c4]', !noteOpen && 'line-clamp-2')}>
+            <button type="button" aria-expanded={noteOpen} className="mt-1 w-full text-left" onClick={() => setNoteOpen((o) => !o)}>
+              <span className={cn('block font-inter-body text-xs italic text-[#8ba4c4]', !noteOpen && 'line-clamp-2')}>
                 &ldquo;{person.note}&rdquo;
-              </p>
+              </span>
             </button>
           ) : null}
         </div>
@@ -130,7 +142,7 @@ export function ReviewCard({ leagueId, item, roster, onDone, onRosterStale }: Re
                     Their pick
                   </span>
                 )}
-                <button type="button" onClick={() => { setSearch(''); setPlaysAs({ mode: 'list' }) }} className={cn(LINK, 'ml-auto')}>
+                <button type="button" onClick={() => { setSearch(''); choose({ mode: 'list' }) }} className={cn(LINK, 'ml-auto')}>
                   Change
                 </button>
               </div>
@@ -161,7 +173,9 @@ export function ReviewCard({ leagueId, item, roster, onDone, onRosterStale }: Re
             />
             <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-[#1b2c46] divide-y divide-[#17263c]">
               {squad.length === 0 ? (
-                <p className="px-3 py-2 font-inter-body text-xs text-[#6f88a8]">No players match that search.</p>
+                <p className="px-3 py-2 font-inter-body text-xs text-[#6f88a8]">
+                  {query ? 'No players match that search.' : 'No players in the squad yet.'}
+                </p>
               ) : (
                 squad.map((p) => {
                   const linkedElsewhere = !!p.linked_user_id && p.linked_user_id !== person.userId
@@ -170,7 +184,7 @@ export function ReviewCard({ leagueId, item, roster, onDone, onRosterStale }: Re
                       key={p.name}
                       type="button"
                       disabled={linkedElsewhere}
-                      onClick={() => setPlaysAs({ mode: 'existing', name: p.name })}
+                      onClick={() => choose({ mode: 'existing', name: p.name })}
                       className="flex w-full items-baseline gap-2 px-3 py-2 text-left font-inter-body text-sm text-[#cfe0f4] hover:bg-[#0a1421] disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
                     >
                       {p.name}
@@ -184,7 +198,7 @@ export function ReviewCard({ leagueId, item, roster, onDone, onRosterStale }: Re
             </div>
             <button
               type="button"
-              onClick={() => setPlaysAs({ mode: 'new', name: search.trim() || person.name })}
+              onClick={() => choose({ mode: 'new', name: search.trim() || (item.kind === 'join' ? item.request.display_name : item.claim.display_name) || '' })}
               className={cn(LINK, 'mt-2.5 inline-flex items-center gap-1')}
             >
               <Plus className="size-3" aria-hidden />
@@ -195,13 +209,12 @@ export function ReviewCard({ leagueId, item, roster, onDone, onRosterStale }: Re
 
         {playsAs.mode === 'new' && (
           <>
-            <label htmlFor={`new-player-${person.userId}`} className={LABEL}>Plays as · new player</label>
+            <label htmlFor={newPlayerId} className={LABEL}>Plays as · new player</label>
             <input
-              id={`new-player-${person.userId}`}
+              id={newPlayerId}
               type="text"
-              aria-label="New player name"
               value={playsAs.name}
-              onChange={(e) => setPlaysAs({ mode: 'new', name: e.target.value })}
+              onChange={(e) => choose({ mode: 'new', name: e.target.value })}
               className={cn(
                 'mt-1.5 w-full px-3 py-1.5 rounded bg-[#0a1421] border font-inter-body text-sm text-[#f4f9ff] outline-none',
                 warn ? 'border-[#fbbf24]' : 'border-[#223a5c] focus:border-[#38bdf8]',
@@ -215,7 +228,7 @@ export function ReviewCard({ leagueId, item, roster, onDone, onRosterStale }: Re
                 {(!problem.player.linked_user_id || problem.player.linked_user_id === person.userId) && (
                   <button
                     type="button"
-                    onClick={() => setPlaysAs({ mode: 'existing', name: problem.player.name })}
+                    onClick={() => choose({ mode: 'existing', name: problem.player.name })}
                     className={cn(LINK, 'mt-1.5')}
                   >
                     Link to {problem.player.name} instead
@@ -227,7 +240,7 @@ export function ReviewCard({ leagueId, item, roster, onDone, onRosterStale }: Re
                 {saidNew ? "They said they're new. Added to the squad when you approve." : 'Added to the squad when you approve.'}
               </p>
             )}
-            <button type="button" onClick={() => { setSearch(''); setPlaysAs({ mode: 'list' }) }} className={cn(LINK, 'mt-1.5 block')}>
+            <button type="button" onClick={() => { setSearch(''); choose({ mode: 'list' }) }} className={cn(LINK, 'mt-1.5 block')}>
               Already in the squad? Pick them
             </button>
           </>
@@ -242,7 +255,7 @@ export function ReviewCard({ leagueId, item, roster, onDone, onRosterStale }: Re
           onClick={() => send('decline')}
           className="text-xs font-medium text-[#6f88a8] hover:text-[#e2686f] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
-          {busy === 'decline' ? '…' : 'Decline'}
+          {busy === 'decline' ? 'Declining…' : 'Decline'}
         </button>
         <button
           type="button"
@@ -250,7 +263,7 @@ export function ReviewCard({ leagueId, item, roster, onDone, onRosterStale }: Re
           onClick={() => send('approve')}
           className="ml-auto rounded bg-[#38bdf8] px-3 py-1.5 text-xs font-bold text-[#05101d] hover:bg-[#7dd3fc] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
-          {busy === 'approve' ? '…' : 'Approve'}
+          {busy === 'approve' ? 'Approving…' : 'Approve'}
         </button>
       </div>
       {error && <p role="alert" className="mt-2 ml-11 font-inter-body text-xs text-[#e2686f]">{error}</p>}

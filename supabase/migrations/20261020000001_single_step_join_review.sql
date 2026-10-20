@@ -388,6 +388,59 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.review_join_request(uuid, text) TO authenticated;
 
+-- ── review_player_claim: lock the row, only review pending claims ──────────
+-- Two admins declining the same claim (or one declining after the other
+-- approved) must not overwrite each other's decision.
+CREATE OR REPLACE FUNCTION public.review_player_claim(
+  p_claim_id      uuid,
+  p_action        text,       -- 'approved' or 'rejected'
+  p_override_name text DEFAULT NULL
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_claim    player_claims%ROWTYPE;
+  v_admin_id uuid;
+BEGIN
+  v_admin_id := auth.uid();
+  IF v_admin_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  IF p_action NOT IN ('approved', 'rejected') THEN
+    RAISE EXCEPTION 'Invalid action: %', p_action;
+  END IF;
+
+  SELECT * INTO v_claim FROM player_claims WHERE id = p_claim_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Claim not found';
+  END IF;
+
+  IF NOT is_game_admin(v_claim.game_id) THEN
+    RAISE EXCEPTION 'Access denied';
+  END IF;
+
+  IF v_claim.status <> 'pending' THEN
+    RAISE EXCEPTION 'claim_not_pending';
+  END IF;
+
+  UPDATE player_claims
+  SET status              = p_action,
+      reviewed_by         = v_admin_id,
+      admin_override_name = CASE
+                              WHEN p_action = 'approved' THEN p_override_name
+                              ELSE admin_override_name
+                            END,
+      updated_at          = now()
+  WHERE id = p_claim_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.review_player_claim(uuid, text, text) TO authenticated;
+
 COMMIT;
 
 -- Let PostgREST see the new signatures straight away.

@@ -181,8 +181,10 @@ One migration, `supabase/migrations/20261020000001_single_step_join_review.sql`:
    for that user and league to rejected. This cleans up claims left by
    requests made before this change.
 
-`review_player_claim` and `assign_player_link` are unchanged. The app stops
-calling `review_player_claim` for approvals but keeps it for rejecting.
+`assign_player_link` is unchanged. `review_player_claim` now also locks the
+claim row and only reviews pending claims (raising `claim_not_pending`, which
+the route maps to 409). The app stops calling it for approvals but keeps it
+for rejecting.
 
 The player steps live in one internal helper, `link_reviewed_player`, used
 by both approve functions and not callable by clients.

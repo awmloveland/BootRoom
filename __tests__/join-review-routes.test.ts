@@ -14,6 +14,7 @@ import { POST as submitRequest } from '@/app/api/league/[id]/join-requests/route
 import { POST as approveRequest } from '@/app/api/league/[id]/join-requests/[requestId]/approve/route'
 import { POST as approveClaim } from '@/app/api/league/[id]/player-claims/[claimId]/approve/route'
 import { POST as reviewRequest } from '@/app/api/league/[id]/join-requests/[requestId]/review/route'
+import { POST as reviewClaim } from '@/app/api/league/[id]/player-claims/[claimId]/review/route'
 
 const rpc = jest.fn()
 
@@ -130,5 +131,14 @@ describe('POST join-requests/[requestId]/review', () => {
     const res = await reviewRequest(post({ action: 'declined' }) as never, requestParams)
     expect(res.status).toBe(409)
     expect(notifyRequesterOfReview).not.toHaveBeenCalled()
+  })
+})
+
+describe('POST player-claims/[claimId]/review', () => {
+  it('returns 409 when the claim was already reviewed', async () => {
+    setup({ rpcError: { message: 'claim_not_pending' } })
+    const res = await reviewClaim(post({ action: 'rejected' }) as never, claimParams)
+    expect(res.status).toBe(409)
+    await expect(res.json()).resolves.toEqual({ error: 'This has already been reviewed.' })
   })
 })

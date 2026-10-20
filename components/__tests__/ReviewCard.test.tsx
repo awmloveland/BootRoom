@@ -83,7 +83,7 @@ describe('ReviewCard', () => {
 
   it('opens on a new player named after their profile when new', () => {
     renderCard(request())
-    expect(screen.getByLabelText('New player name')).toHaveValue('John Easton')
+    expect(screen.getByLabelText(/new player/i)).toHaveValue('John Easton')
     expect(screen.getByText(/They said they're new/)).toBeInTheDocument()
   })
 
@@ -115,12 +115,12 @@ describe('ReviewCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Already in the squad? Pick them' }))
     expect(screen.getByLabelText('Search the squad')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Not in the list? Add as a new player' }))
-    expect(screen.getByLabelText('New player name')).toHaveValue('John Easton')
+    expect(screen.getByLabelText(/new player/i)).toHaveValue('John Easton')
   })
 
   it('warns about a name clash and offers to link instead', () => {
     renderCard(request())
-    fireEvent.change(screen.getByLabelText('New player name'), { target: { value: 'john e' } })
+    fireEvent.change(screen.getByLabelText(/new player/i), { target: { value: 'john e' } })
     expect(screen.getByText("There's already a John E in the squad.")).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Approve' })).toBeDisabled()
     fireEvent.click(screen.getByRole('button', { name: 'Link to John E instead' }))
@@ -174,5 +174,58 @@ describe('ReviewCard', () => {
     expect(await screen.findByText("There's already a John Easton in the squad.")).toBeInTheDocument()
     expect(onRosterStale).toHaveBeenCalled()
     expect(onDone).not.toHaveBeenCalled()
+  })
+
+  it('treats the already-reviewed 409 as done', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 409, json: async () => ({ error: 'This has already been reviewed.' }) })
+    const { onDone, onRosterStale } = renderCard(claim())
+    fireEvent.click(screen.getByRole('button', { name: 'Decline' }))
+    await waitFor(() => expect(onDone).toHaveBeenCalled())
+    expect(onRosterStale).not.toHaveBeenCalled()
+  })
+
+  it('clears the error when the plays-as choice changes', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 409, json: async () => ({ error: "There's already a John Easton in the squad." }) })
+    renderCard(request())
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText(/new player/i), { target: { value: 'Johnny' } })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('shows busy labels while sending', async () => {
+    fetchMock.mockReturnValue(new Promise(() => {}))
+    renderCard(request())
+    fireEvent.click(screen.getByRole('button', { name: 'Decline' }))
+    expect(await screen.findByRole('button', { name: 'Declining…' })).toBeDisabled()
+  })
+
+  it('expands a long note with aria-expanded', () => {
+    renderCard(request())
+    const toggle = screen.getByRole('button', { name: /Dave's mate from work/ })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('never defaults a member claim new player to the email or "Member"', () => {
+    renderCard(claim({ display_name: null }))
+    fireEvent.click(screen.getByRole('button', { name: 'Change' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Not in the list? Add as a new player' }))
+    expect(screen.getByLabelText(/new player/i)).toHaveValue('')
+  })
+
+  it('defaults a member claim new player to their display name', () => {
+    renderCard(claim())
+    fireEvent.click(screen.getByRole('button', { name: 'Change' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Not in the list? Add as a new player' }))
+    expect(screen.getByLabelText(/new player/i)).toHaveValue('Sam Okafor')
+  })
+
+  it('says the squad is empty when there is no roster and no search', () => {
+    renderCard(request({ played_before: true }), { roster: [] })
+    expect(screen.getByText('No players in the squad yet.')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Search the squad'), { target: { value: 'x' } })
+    expect(screen.getByText('No players match that search.')).toBeInTheDocument()
   })
 })
