@@ -122,7 +122,7 @@ and the link "Already in the squad? Pick them", which opens the squad list.
   else.
 - **Already linked.** In **Existing**, if the player has a
   `linked_display_name` that isn't this person, the line turns amber with
-  "{player} is already linked to {name}." and the squad list opens.
+  "{player} is already linked to {name}." and "Change" stays available.
   Two requesters can now pick the same name, since picking no longer
   reserves it, so this is the guard.
 - An empty new-player name also disables Approve.
@@ -165,9 +165,11 @@ One migration, `supabase/migrations/20261020000001_single_step_join_review.sql`:
    - if `p_create_player`: raise `player_exists` if a `player_attributes` row
      matches case-insensitively, else insert one with the defaults used by
      "+ Add player" (strength average, mentality balanced)
-   - if not: raise `player_not_found` unless the name is on the roster
+   - if not: raise `player_not_found` unless the name is on the roster or
+     in a played line-up (older players may have no `player_attributes` row)
    - raise `player_already_linked` if an approved claim on that name belongs
-     to another user
+     to another user, and `player_claim_pending` if another user has a
+     pending claim on it (the claims table allows one live claim per name)
    - insert `game_members (…, 'member') ON CONFLICT DO NOTHING`
    - upsert an approved `player_claims` row for `(game_id, user_id)` with the
      name and a null override (as `assign_player_link` does)
@@ -182,8 +184,12 @@ One migration, `supabase/migrations/20261020000001_single_step_join_review.sql`:
 `review_player_claim` and `assign_player_link` are unchanged. The app stops
 calling `review_player_claim` for approvals but keeps it for rejecting.
 
+The player steps live in one internal helper, `link_reviewed_player`, used
+by both approve functions and not callable by clients.
+
 The API routes map the raised errors to 409 (`player_exists`,
-`player_already_linked`, `request_not_pending`) and 400 (`player_not_found`,
+`player_already_linked`, `player_claim_pending`, `request_not_pending`,
+`claim_not_pending`) and 400 (`player_not_found`,
 empty name), with British English messages, for example "There's already a
 John E in the squad."
 
