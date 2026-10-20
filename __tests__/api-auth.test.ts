@@ -17,6 +17,11 @@ function setup(user: { id: string; email?: string } | null, isAdmin = false) {
 
 beforeEach(() => rpc.mockReset())
 
+function responseOf(gate: Awaited<ReturnType<typeof requireUser>>) {
+  if (!('response' in gate)) throw new Error('expected a response')
+  return gate.response
+}
+
 describe('requireUser', () => {
   it('returns the user id and email when signed in', async () => {
     setup({ id: 'u1', email: 'a@example.com' })
@@ -25,8 +30,9 @@ describe('requireUser', () => {
 
   it('returns a 401 response when signed out', async () => {
     setup(null)
-    const result = await requireUser()
-    expect('response' in result && result.response.status).toBe(401)
+    const res = responseOf(await requireUser())
+    expect(res.status).toBe(401)
+    await expect(res.json()).resolves.toEqual({ error: 'Unauthorized' })
   })
 })
 
@@ -39,14 +45,30 @@ describe('requireLeagueAdmin', () => {
 
   it('returns a 403 response for a member', async () => {
     setup({ id: 'u1' }, false)
-    const result = await requireLeagueAdmin('g1')
-    expect('response' in result && result.response.status).toBe(403)
+    const res = responseOf(await requireLeagueAdmin('g1'))
+    expect(res.status).toBe(403)
+    await expect(res.json()).resolves.toEqual({ error: 'Forbidden' })
+  })
+
+  it('fails closed when the admin RPC errors', async () => {
+    setup({ id: 'u1' })
+    rpc.mockResolvedValue({ data: null, error: { message: 'boom' } })
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const res = responseOf(await requireLeagueAdmin('g1'))
+    spy.mockRestore()
+    expect(res.status).toBe(403)
+  })
+
+  it('returns a null email when the user has none', async () => {
+    setup({ id: 'u1' }, true)
+    await expect(requireLeagueAdmin('g1')).resolves.toEqual({ user: { id: 'u1', email: null } })
   })
 
   it('returns a 401 response when signed out without calling the RPC', async () => {
     setup(null)
-    const result = await requireLeagueAdmin('g1')
-    expect('response' in result && result.response.status).toBe(401)
+    const res = responseOf(await requireLeagueAdmin('g1'))
+    expect(res.status).toBe(401)
+    await expect(res.json()).resolves.toEqual({ error: 'Unauthorized' })
     expect(rpc).not.toHaveBeenCalled()
   })
 })

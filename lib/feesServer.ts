@@ -2,9 +2,9 @@
 // Server-only helpers for the Admin tab's pitch fees: the one place that reads
 // fee rows from Supabase. Re-exports requireLeagueAdmin from lib/apiAuth so the
 // fee routes keep one import.
-export { requireLeagueAdmin } from '@/lib/apiAuth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { DEFAULT_FEE_PER_PLAYER, feeEntryKey, type PaymentMap, type WeekFeeMap } from '@/lib/fees'
+export { requireLeagueAdmin } from '@/lib/apiAuth'
 
 /** Largest value numeric(6,2) holds. */
 export const MAX_FEE = 9999.99
