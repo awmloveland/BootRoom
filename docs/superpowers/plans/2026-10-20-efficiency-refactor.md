@@ -103,6 +103,7 @@ function gzipSize(file) {
     try {
       gz.set(file, gzipSync(readFileSync(file)).length)
     } catch {
+      console.warn(`Missing chunk: ${file}`)
       gz.set(file, 0)
     }
   }
@@ -123,14 +124,17 @@ const rows = walk(APP)
     const chunks = new Set([...source.matchAll(/static\/chunks\/[^"']+\.js/g)].map((m) => m[0]))
     const bytes = [...chunks].reduce((sum, chunk) => sum + gzipSize(join(ROOT, chunk)), 0)
     const route = file.slice(APP.length).replace('_client-reference-manifest.js', '')
-    return { route, kb: Math.round(bytes / 1024), chunks: chunks.size }
+    return { route, bytes, chunks: chunks.size }
   })
-  .sort((a, b) => b.kb - a.kb)
+  .sort((a, b) => b.bytes - a.bytes)
 
 console.log('Client JS per route (gzipped)')
-for (const { route, kb, chunks } of rows) {
-  console.log(`${String(kb).padStart(5)} kB  ${route}  (${chunks} chunks)`)
+const shown = rows.filter((row) => row.chunks > 0)
+const skipped = rows.length - shown.length
+for (const { route, bytes, chunks } of shown) {
+  console.log(`${String(Math.round(bytes / 1024)).padStart(5)} kB  ${route}  (${chunks} chunks)`)
 }
+console.log(`${skipped} routes with no client JS`)
 ```
 
 - [ ] **Step 2: Add the npm script**
