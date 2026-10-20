@@ -73,11 +73,11 @@ export const getAuthAndRole = cache(async (leagueId: string) => {
 
 // ── Navbar session ────────────────────────────────────────────────────────────
 
+type MembershipRow = { role: GameRole; games: { slug: string } | null }
+
 // The viewer's name and league roles for the navbar. One profile read and one
 // memberships read per request, both via the service client because the
 // result is only ever rendered for the viewer themself.
-type MembershipRow = { role: GameRole; games: { slug: string } | null }
-
 export const getNavSession = cache(async (): Promise<NavSession | null> => {
   const user = await getUser()
   if (!user) return null
