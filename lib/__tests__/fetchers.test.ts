@@ -280,7 +280,8 @@ describe('getNavSession', () => {
     const profile = queryReturning({ first_name: 'Ada', last_name: 'Lovelace' })
     const memberships = {
       select: jest.fn(() => memberships),
-      eq: jest.fn().mockResolvedValue({
+      eq: jest.fn(() => memberships),
+      overrideTypes: jest.fn().mockResolvedValue({
         data: [
           { role: 'admin', games: { slug: 'boot-room' } },
           { role: 'member', games: { slug: 'sunday' } },
@@ -308,11 +309,53 @@ describe('getNavSession', () => {
     const profile = queryReturning({ first_name: '', last_name: '' })
     const memberships = {
       select: jest.fn(() => memberships),
-      eq: jest.fn().mockResolvedValue({ data: [], error: null }),
+      eq: jest.fn(() => memberships),
+      overrideTypes: jest.fn().mockResolvedValue({ data: [], error: null }),
     }
     ;(createServiceClient as jest.Mock).mockReturnValue({
       from: jest.fn((table: string) => (table === 'profiles' ? profile : memberships)),
     })
     await expect(getNavSession()).resolves.toMatchObject({ displayName: 'a@b.c', leagues: [] })
+  })
+
+  it('drops memberships whose game is missing', async () => {
+    mockAuth(USER)
+    const profile = queryReturning({ first_name: 'Ada', last_name: 'Lovelace' })
+    const memberships = {
+      select: jest.fn(() => memberships),
+      eq: jest.fn(() => memberships),
+      overrideTypes: jest.fn().mockResolvedValue({
+        data: [
+          { role: 'admin', games: { slug: 'boot-room' } },
+          { role: 'member', games: null },
+        ],
+        error: null,
+      }),
+    }
+    ;(createServiceClient as jest.Mock).mockReturnValue({
+      from: jest.fn((table: string) => (table === 'profiles' ? profile : memberships)),
+    })
+    const session = await getNavSession()
+    expect(session?.leagues).toEqual([{ slug: 'boot-room', role: 'admin' }])
+  })
+
+  it('logs and degrades when the memberships read fails', async () => {
+    mockAuth(USER)
+    const profile = queryReturning({ first_name: 'Ada', last_name: 'Lovelace' })
+    const memberships = {
+      select: jest.fn(() => memberships),
+      eq: jest.fn(() => memberships),
+      overrideTypes: jest.fn().mockResolvedValue({ data: null, error: { message: 'boom' } }),
+    }
+    ;(createServiceClient as jest.Mock).mockReturnValue({
+      from: jest.fn((table: string) => (table === 'profiles' ? profile : memberships)),
+    })
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      await expect(getNavSession()).resolves.toMatchObject({ displayName: 'Ada Lovelace', leagues: [] })
+      expect(errorSpy).toHaveBeenCalledTimes(1)
+    } finally {
+      errorSpy.mockRestore()
+    }
   })
 })

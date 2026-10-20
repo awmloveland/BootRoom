@@ -76,14 +76,24 @@ export const getAuthAndRole = cache(async (leagueId: string) => {
 // The viewer's name and league roles for the navbar. One profile read and one
 // memberships read per request, both via the service client because the
 // result is only ever rendered for the viewer themself.
+type MembershipRow = { role: GameRole; games: { slug: string } | null }
+
 export const getNavSession = cache(async (): Promise<NavSession | null> => {
   const user = await getUser()
   if (!user) return null
   const service = createServiceClient()
-  const [{ data: profile }, { data: memberships }] = await Promise.all([
+  const [profileRes, membershipsRes] = await Promise.all([
     service.from('profiles').select('first_name, last_name').eq('id', user.id).maybeSingle(),
-    service.from('game_members').select('role, games(slug)').eq('user_id', user.id),
+    service
+      .from('game_members')
+      .select('role, games(slug)')
+      .eq('user_id', user.id)
+      .overrideTypes<MembershipRow[], { merge: false }>(),
   ])
+  if (profileRes.error) console.error('[getNavSession] profiles read failed', profileRes.error)
+  if (membershipsRes.error) console.error('[getNavSession] game_members read failed', membershipsRes.error)
+  const profile = profileRes.data
+  const memberships = membershipsRes.data ?? []
   const first = profile?.first_name ?? ''
   const last = profile?.last_name ?? ''
   const fullName = `${first} ${last}`.trim()
@@ -91,9 +101,7 @@ export const getNavSession = cache(async (): Promise<NavSession | null> => {
     userId: user.id,
     email: user.email ?? null,
     displayName: fullName || user.email || null,
-    leagues: ((memberships ?? []) as unknown as { role: GameRole; games: { slug: string } | null }[])
-      .filter((m) => m.games?.slug)
-      .map((m) => ({ slug: m.games!.slug, role: m.role })),
+    leagues: memberships.flatMap((m) => (m.games ? [{ slug: m.games.slug, role: m.role }] : [])),
   }
 })
 
