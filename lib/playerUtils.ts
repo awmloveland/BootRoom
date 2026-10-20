@@ -78,3 +78,36 @@ export function parseAddPlayerBody(body: unknown): AddPlayerInput | null {
     mentality: b.mentality as Mentality,
   }
 }
+
+export interface ApproveInput {
+  player_name: string
+  create_player: boolean
+}
+
+/**
+ * Validates a POST …/approve body for a join request or player claim.
+ * Returns null if the name is missing or blank, or create_player isn't a boolean.
+ */
+export function parseApproveBody(body: unknown): ApproveInput | null {
+  if (body === null || typeof body !== 'object' || Array.isArray(body)) return null
+  const b = body as Record<string, unknown>
+  if (typeof b.player_name !== 'string') return null
+  const player_name = b.player_name.trim()
+  if (!player_name) return null
+  if (b.create_player !== undefined && typeof b.create_player !== 'boolean') return null
+  return { player_name, create_player: b.create_player === true }
+}
+
+/** Maps an approve RPC error message to an HTTP status and user-facing copy. */
+export function approveErrorResponse(message: string, playerName: string): { status: number; error: string } {
+  if (message.includes('Not authenticated')) return { status: 401, error: 'Unauthorized' }
+  if (message.includes('Access denied')) return { status: 403, error: 'Forbidden' }
+  if (message.includes('not found')) return { status: 404, error: 'Not found' }
+  if (message.includes('_not_pending')) return { status: 409, error: 'This has already been reviewed.' }
+  if (message.includes('player_exists')) return { status: 409, error: `There's already a ${playerName} in the squad.` }
+  if (message.includes('player_already_linked')) return { status: 409, error: `${playerName} is already linked to another member.` }
+  if (message.includes('player_claim_pending')) return { status: 409, error: `Someone else has a pending claim for ${playerName}.` }
+  if (message.includes('player_not_found')) return { status: 400, error: `${playerName} isn't in the squad.` }
+  if (message.includes('player_name_required')) return { status: 400, error: 'Enter a player name.' }
+  return { status: 500, error: 'Internal server error' }
+}

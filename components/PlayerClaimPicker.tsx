@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { SkeletonList } from '@/components/ui/skeleton'
 
@@ -12,7 +12,7 @@ interface Props {
   onClaim: (playerName: string) => void
   onCancel: () => void
   /** Override the footer copy — defaults to the settings-page version. */
-  footerText?: string
+  footerText?: ReactNode
   submitting?: boolean
   /**
    * When true, clicking a name in the list calls onClaim immediately.

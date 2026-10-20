@@ -43,12 +43,15 @@ export async function POST(
       ? body.player_name.trim()
       : null
 
-  // player_name is passed into submit_join_request which creates the claim
-  // directly (SECURITY DEFINER bypasses the member check — user isn't a member yet).
+  const playedBefore = typeof body?.played_before === 'boolean' ? body.played_before : null
+
+  // Only records what they chose. The player link is made when an admin
+  // approves (approve_join_request).
   const { error } = await supabase.rpc('submit_join_request', {
     p_game_id: id,
     p_message: message,
     p_player_name: playerName,
+    p_played_before: playedBefore,
   })
 
   if (error) {

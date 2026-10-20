@@ -14,9 +14,6 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 
-const JOIN_CLAIM_FOOTER =
-  "Can't find your name? You may have played before records began. Mention it in your note above and the admin will sort it out."
-
 interface JoinRequestDialogProps {
   leagueId: string
   leagueName: string
@@ -39,6 +36,8 @@ export function JoinRequestDialog({
   const [submitted, setSubmitted] = useState(false)
   const [claimChoice, setClaimChoice] = useState<'yes' | 'no' | null>(null)
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
+  // "Yes, but I can't find my name": send without one, the admin sorts it.
+  const [cantFind, setCantFind] = useState(false)
 
   function handleOpenChange(nextOpen: boolean) {
     onOpenChange(nextOpen)
@@ -50,6 +49,7 @@ export function JoinRequestDialog({
       setSubmitted(false)
       setClaimChoice(null)
       setSelectedPlayer(null)
+      setCantFind(false)
     }
   }
 
@@ -64,7 +64,8 @@ export function JoinRequestDialog({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: message.trim() || null,
-          player_name: selectedPlayer ?? undefined,
+          player_name: claimChoice === 'yes' ? selectedPlayer : null,
+          played_before: claimChoice === 'yes' ? true : claimChoice === 'no' ? false : null,
         }),
       })
 
@@ -167,6 +168,7 @@ export function JoinRequestDialog({
                     onClick={() => {
                       setClaimChoice('yes')
                       setSelectedPlayer(null)
+                      setCantFind(false)
                     }}
                     className={cn(
                       'rounded-lg border px-3 py-2.5 text-left transition-colors',
@@ -188,6 +190,7 @@ export function JoinRequestDialog({
                     onClick={() => {
                       setClaimChoice('no')
                       setSelectedPlayer(null)
+                      setCantFind(false)
                     }}
                     className={cn(
                       'rounded-lg border px-3 py-2.5 text-left transition-colors',
@@ -219,6 +222,19 @@ export function JoinRequestDialog({
                           Change
                         </button>
                       </div>
+                    ) : cantFind ? (
+                      <div className="rounded-lg border border-[#1b2c46] bg-[#0c1728] px-3 py-2.5">
+                        <p className="text-xs text-[#8ba4c4] leading-relaxed">
+                          No problem, the admin will find you or add you when they approve.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setCantFind(false)}
+                          className="mt-1.5 text-xs text-[#38bdf8] hover:text-[#7dd3fc] transition-colors"
+                        >
+                          Pick my name
+                        </button>
+                      </div>
                     ) : (
                       <>
                         <p className="text-xs text-[#8ba4c4] mb-2">
@@ -227,7 +243,18 @@ export function JoinRequestDialog({
                         <PlayerClaimPicker
                           leagueId={leagueId}
                           selectionOnly
-                          footerText={JOIN_CLAIM_FOOTER}
+                          footerText={
+                            <>
+                              Can&apos;t find your name?{' '}
+                              <button
+                                type="button"
+                                onClick={() => setCantFind(true)}
+                                className="text-[#38bdf8] hover:text-[#7dd3fc] transition-colors"
+                              >
+                                Send without it
+                              </button>
+                            </>
+                          }
                           onClaim={(name) => setSelectedPlayer(name)}
                           onCancel={() => {
                             setClaimChoice(null)

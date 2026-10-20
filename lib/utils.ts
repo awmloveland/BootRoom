@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { HighlightPlayer, LeagueDetails, PendingRequestSummary, Player, PlayerClaimStatus, ResultHighlightItem, ResultHighlights, ResultImageHighlight, ScheduledWeek, ShareLinkRequest, Strength, Week, Winner, YearStats } from './types'
+import { HighlightPlayer, LeagueDetails, PendingJoinRequest, PendingRequestSummary, PlaysAs, Player, PlayerAttribute, PlayerClaim, PlayerClaimStatus, ResultHighlightItem, ResultHighlights, ResultImageHighlight, ReviewItem, ReviewProblem, ScheduledWeek, ShareLinkRequest, Strength, Week, Winner, YearStats } from './types'
 import type { VisibilityTier } from './roles'
 import { strengthToRating } from './strength'
 import type { QuarterSummary, QuarterlyEntry } from './sidebar-stats'
@@ -1570,4 +1570,72 @@ export function buildResultHeadline(
     return `${teamLabel} Wins! (+${goalDifference} ${goalWord})`
   }
   return ''
+}
+
+// --- Join request review (Settings → Members) ---
+
+/** "just now", "5 minutes ago", "2 days ago", or "1 Sept" after 30 days. */
+export function timeAgo(iso: string, now: Date = new Date()): string {
+  const then = new Date(iso)
+  const minutes = Math.floor((now.getTime() - then.getTime()) / 60_000)
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+  const days = Math.floor(hours / 24)
+  if (days <= 30) return `${days} day${days === 1 ? '' : 's'} ago`
+  return then.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+}
+
+/** "no games yet", "1 game", "23 games". */
+export function gamesLabel(played: number): string {
+  if (played === 0) return 'no games yet'
+  return `${played} game${played === 1 ? '' : 's'}`
+}
+
+/**
+ * Join requests (in the order given, oldest first from the RPC), then claims
+ * from existing members, oldest first. A claim from someone who also has a
+ * pending join request is left out: it predates single-step review and is
+ * settled by reviewing the request.
+ */
+export function buildReviewItems(requests: PendingJoinRequest[], claims: PlayerClaim[]): ReviewItem[] {
+  const requestUsers = new Set(requests.map((r) => r.user_id))
+  const memberClaims = claims
+    .filter((c) => !requestUsers.has(c.user_id))
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+  return [
+    ...requests.map((request): ReviewItem => ({ kind: 'join', request })),
+    ...memberClaims.map((claim): ReviewItem => ({ kind: 'claim', claim })),
+  ]
+}
+
+/** Where a review card starts, based on what the person chose. */
+export function initialPlaysAs(item: ReviewItem): PlaysAs {
+  if (item.kind === 'claim') return { mode: 'existing', name: item.claim.player_name }
+  const { player_name, played_before, display_name } = item.request
+  if (player_name) return { mode: 'existing', name: player_name }
+  if (played_before === true) return { mode: 'list' }
+  return { mode: 'new', name: display_name }
+}
+
+/** Case-insensitive roster lookup, the same rule as "+ Add player". */
+export function findRosterPlayer(roster: PlayerAttribute[], name: string): PlayerAttribute | undefined {
+  const target = name.trim().toLowerCase()
+  return roster.find((p) => p.name.toLowerCase() === target)
+}
+
+/** What stops Approve, or null when it can go ahead. `userId` is the person being reviewed. */
+export function reviewProblem(playsAs: PlaysAs, roster: PlayerAttribute[], userId: string): ReviewProblem | null {
+  if (playsAs.mode === 'list') return { kind: 'choose' }
+  if (playsAs.mode === 'new') {
+    if (!playsAs.name.trim()) return { kind: 'empty' }
+    const clash = findRosterPlayer(roster, playsAs.name)
+    return clash ? { kind: 'clash', player: clash } : null
+  }
+  const existing = roster.find((p) => p.name === playsAs.name)
+  if (existing?.linked_user_id && existing.linked_user_id !== userId) {
+    return { kind: 'linked', player: existing }
+  }
+  return null
 }

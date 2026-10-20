@@ -248,6 +248,10 @@ export interface PendingJoinRequest {
   message: string | null
   status: JoinRequestStatus
   created_at: string
+  /** The player they picked when asking to join, if any. */
+  player_name: string | null
+  /** true: has played before; false: new; null: didn't say (or sent before this was asked). */
+  played_before: boolean | null
 }
 
 /**
@@ -290,6 +294,24 @@ export interface PlayerClaim {
   display_name?: string | null
   email?: string
 }
+
+/** One item awaiting review on Settings → Members. */
+export type ReviewItem =
+  | { kind: 'join'; request: PendingJoinRequest }
+  | { kind: 'claim'; claim: PlayerClaim }
+
+/** Who a reviewed person will play as, while the admin is deciding. */
+export type PlaysAs =
+  | { mode: 'existing'; name: string }
+  | { mode: 'list' }
+  | { mode: 'new'; name: string }
+
+/** Why Approve is disabled on a review card. */
+export type ReviewProblem =
+  | { kind: 'choose' }
+  | { kind: 'empty' }
+  | { kind: 'clash'; player: PlayerAttribute }
+  | { kind: 'linked'; player: PlayerAttribute }
 
 // ── All-time records (Records tab) ────────────────────────────────────────────
 
