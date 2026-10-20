@@ -5,8 +5,8 @@ jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 jest.mock('@/lib/supabase/service', () => ({ createServiceClient: jest.fn() }))
 
 // Import after the mocks are registered.
-import { getUser, getAuthAndRole, getPendingBadgeCount, getPendingRequests, getMyJoinRequestStatus, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
-import type { Week } from '@/lib/types'
+import { getUser, getNavSession, getAuthAndRole, getPendingBadgeCount, getPendingRequests, getMyJoinRequestStatus, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
+import type { NavSession, Week } from '@/lib/types'
 
 const LEAGUE = '11111111-1111-1111-1111-111111111111'
 const USER = { id: 'user-1', email: 'a@b.c' }
@@ -266,5 +266,53 @@ describe('ensureUnrecordedWeek', () => {
     const weeks = [playedWeek]
 
     await expect(ensureUnrecordedWeek(LEAGUE, weeks, 4)).resolves.toBe(weeks)
+  })
+})
+
+describe('getNavSession', () => {
+  it('returns null when signed out', async () => {
+    mockAuth(null)
+    await expect(getNavSession()).resolves.toBeNull()
+  })
+
+  it('builds the display name and league roles for a signed-in user', async () => {
+    mockAuth(USER)
+    const profile = queryReturning({ first_name: 'Ada', last_name: 'Lovelace' })
+    const memberships = {
+      select: jest.fn(() => memberships),
+      eq: jest.fn().mockResolvedValue({
+        data: [
+          { role: 'admin', games: { slug: 'boot-room' } },
+          { role: 'member', games: { slug: 'sunday' } },
+        ],
+        error: null,
+      }),
+    }
+    ;(createServiceClient as jest.Mock).mockReturnValue({
+      from: jest.fn((table: string) => (table === 'profiles' ? profile : memberships)),
+    })
+    const session: NavSession | null = await getNavSession()
+    expect(session).toEqual({
+      userId: 'user-1',
+      email: 'a@b.c',
+      displayName: 'Ada Lovelace',
+      leagues: [
+        { slug: 'boot-room', role: 'admin' },
+        { slug: 'sunday', role: 'member' },
+      ],
+    })
+  })
+
+  it('falls back to the email when the profile has no name', async () => {
+    mockAuth(USER)
+    const profile = queryReturning({ first_name: '', last_name: '' })
+    const memberships = {
+      select: jest.fn(() => memberships),
+      eq: jest.fn().mockResolvedValue({ data: [], error: null }),
+    }
+    ;(createServiceClient as jest.Mock).mockReturnValue({
+      from: jest.fn((table: string) => (table === 'profiles' ? profile : memberships)),
+    })
+    await expect(getNavSession()).resolves.toMatchObject({ displayName: 'a@b.c', leagues: [] })
   })
 })

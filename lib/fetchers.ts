@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sortWeeks, deriveSeason, getMostRecentExpectedGameDate, getNextWeekNumber, isPastDeadline } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
-import type { GameRole, LeagueFeature, Player, Week, Mentality, Strength, JoinRequestStatus, PendingJoinRequest, PendingRequestSummary, PlayerClaimStatus } from '@/lib/types'
+import type { GameRole, LeagueFeature, NavSession, Player, Week, Mentality, Strength, JoinRequestStatus, PendingJoinRequest, PendingRequestSummary, PlayerClaimStatus } from '@/lib/types'
 import { ratingToStrength } from '@/lib/strength'
 
 // ── Game ─────────────────────────────────────────────────────────────────────
@@ -68,6 +68,32 @@ export const getAuthAndRole = cache(async (leagueId: string) => {
     }
   } catch {
     return { user: null, userRole: null as GameRole | null, isAuthenticated: false }
+  }
+})
+
+// ── Navbar session ────────────────────────────────────────────────────────────
+
+// The viewer's name and league roles for the navbar. One profile read and one
+// memberships read per request, both via the service client because the
+// result is only ever rendered for the viewer themself.
+export const getNavSession = cache(async (): Promise<NavSession | null> => {
+  const user = await getUser()
+  if (!user) return null
+  const service = createServiceClient()
+  const [{ data: profile }, { data: memberships }] = await Promise.all([
+    service.from('profiles').select('first_name, last_name').eq('id', user.id).maybeSingle(),
+    service.from('game_members').select('role, games(slug)').eq('user_id', user.id),
+  ])
+  const first = profile?.first_name ?? ''
+  const last = profile?.last_name ?? ''
+  const fullName = `${first} ${last}`.trim()
+  return {
+    userId: user.id,
+    email: user.email ?? null,
+    displayName: fullName || user.email || null,
+    leagues: ((memberships ?? []) as unknown as { role: GameRole; games: { slug: string } | null }[])
+      .filter((m) => m.games?.slug)
+      .map((m) => ({ slug: m.games!.slug, role: m.role })),
   }
 })
 
