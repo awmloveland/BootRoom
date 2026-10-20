@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { requireLeagueAdmin } from '@/lib/apiAuth'
+import { requireLeagueAdmin, requireUser } from '@/lib/apiAuth'
 import { NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 
@@ -7,6 +7,10 @@ const TOKEN_BYTES = 32
 const EXPIRY_DAYS = 7
 
 export async function POST(request: Request) {
+  // Session first so a signed-out caller gets 401 before any body validation, as before.
+  const session = await requireUser()
+  if ('response' in session) return session.response
+
   const body = await request.json()
   const rawEmail = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
   const gameId = typeof body?.gameId === 'string' ? body.gameId : null
