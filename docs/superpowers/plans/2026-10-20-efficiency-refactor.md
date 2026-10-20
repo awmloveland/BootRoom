@@ -1281,6 +1281,7 @@ git commit -m "Add the admin settings fetchers"
 - Create: `components/LeagueSettings.tsx`
 - Create: `app/[slug]/settings/loading.tsx`
 - Rewrite: `app/[slug]/settings/page.tsx`
+- Modify: `CLAUDE.md` (remove the `lib/data.ts` line from the repository structure block)
 - Delete: `lib/data.ts`, `app/api/games/route.ts`
 
 - [ ] **Step 1: Create the loading state**
@@ -1647,6 +1648,8 @@ git rm lib/data.ts app/api/games/route.ts
 
 Run: `grep -rn "lib/data'\|/api/games" app components lib --include='*.ts' --include='*.tsx' | grep -v __tests__`
 Expected: no output.
+
+Also delete the `lib/data.ts` line from the repository structure block in CLAUDE.md, since the file no longer exists.
 
 - [ ] **Step 5: Type-check and test**
 
