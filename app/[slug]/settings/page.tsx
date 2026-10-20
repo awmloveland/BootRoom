@@ -8,12 +8,11 @@ import { AdminMemberTable } from '@/components/AdminMemberTable'
 import { FeaturePanel } from '@/components/FeaturePanel'
 import { LeagueDetailsForm } from '@/components/LeagueDetailsForm'
 import { PlayerRosterPanel } from '@/components/PlayerRosterPanel'
-import { PlayerClaimsTable } from '@/components/PlayerClaimsTable'
-import { cn } from '@/lib/utils'
+import { buildReviewItems, cn } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
 import { Skeleton, SkeletonCard, SKELETON_FADE_IN } from '@/components/ui/skeleton'
 import type { LeagueMember, LeagueFeature, LeagueDetails, PlayerAttribute, PendingJoinRequest, PlayerClaim } from '@/lib/types'
-import { PendingRequestsTable } from '@/components/PendingRequestsTable'
+import { PendingReviewList } from '@/components/PendingReviewList'
 
 type Section = 'details' | 'members' | 'features' | 'players'
 
@@ -177,13 +176,24 @@ export default function LeagueSettingsPage() {
     }
   }, [leagueId])
 
+  const loadPlayers = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/league/${leagueId}/players`, { credentials: 'include' })
+      const data = await res.json()
+      setPlayers(Array.isArray(data) ? data : [])
+    } finally {
+      setPlayersLoading(false)
+    }
+  }, [leagueId])
+
   // After a review: refresh both lists, and the router cache so the league
   // header's banner and badge are current when the admin goes back.
   const handlePendingChanged = useCallback(() => {
     loadPending()
     loadMembers()
+    loadPlayers()
     router.refresh()
-  }, [loadPending, loadMembers, router])
+  }, [loadPending, loadMembers, loadPlayers, router])
 
   async function fetchInviteLink(role: 'member' | 'admin') {
     setLoadingRole(role)
@@ -228,17 +238,6 @@ export default function LeagueSettingsPage() {
     }
   }, [leagueId])
 
-  const loadPlayers = useCallback(async () => {
-    setPlayersLoading(true)
-    try {
-      const res = await fetch(`/api/league/${leagueId}/players`, { credentials: 'include' })
-      const data = await res.json()
-      setPlayers(Array.isArray(data) ? data : [])
-    } finally {
-      setPlayersLoading(false)
-    }
-  }, [leagueId])
-
   useEffect(() => {
     if (isAdmin && leagueId) loadPending()
   }, [isAdmin, leagueId, loadPending])
@@ -248,6 +247,7 @@ export default function LeagueSettingsPage() {
     if (section === 'details') loadDetails()
     if (section === 'members') {
       loadMembers()
+      loadPlayers()
       // Auto-create both invite links on members tab mount
       fetchInviteLink('member')
       fetchInviteLink('admin')
@@ -257,10 +257,7 @@ export default function LeagueSettingsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section, isAdmin, loadDetails, loadMembers, loadFeatures, loadPlayers])
 
-  // A claim made alongside a pending join request is reviewed on that request.
-  const pendingRequestUserIds = new Set(pendingRequests.map((r) => r.user_id))
-  const standaloneClaims = pendingClaims.filter((c) => !pendingRequestUserIds.has(c.user_id))
-  const pendingCount = pendingRequests.length + standaloneClaims.length
+  const pendingCount = buildReviewItems(pendingRequests, pendingClaims).length
 
   const NAV: { id: Section; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'details',  label: 'League Details', Icon: Info },
@@ -392,28 +389,18 @@ export default function LeagueSettingsPage() {
             </div>
           </div>
 
-          {/* Pending join requests */}
-          {pendingLoading ? (
+          {/* Join requests and member claims, one card each */}
+          {pendingLoading || (playersLoading && players.length === 0) ? (
             <PanelSkeleton cards={[2]} />
-          ) : pendingRequests.length > 0 ? (
-            <PendingRequestsTable
-              key={pendingVersion}
-              leagueId={leagueId}
-              initialRequests={pendingRequests}
-              pendingClaims={pendingClaims}
-              onChanged={handlePendingChanged}
-            />
           ) : (
-            <p className="font-inter-body text-[13px] text-[#6f88a8]">No pending requests.</p>
-          )}
-
-          {/* Player identity claims — only those not attached to a pending join request */}
-          {standaloneClaims.length > 0 && (
-            <PlayerClaimsTable
+            <PendingReviewList
               key={pendingVersion}
               leagueId={leagueId}
-              initialClaims={standaloneClaims}
+              requests={pendingRequests}
+              claims={pendingClaims}
+              roster={players}
               onChanged={handlePendingChanged}
+              onRosterStale={loadPlayers}
             />
           )}
 
