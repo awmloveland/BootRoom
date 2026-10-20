@@ -2137,4 +2137,4 @@ ORDER BY proname;
 
 Expected: one row each, with `submit_join_request` taking `(p_game_id uuid, p_message text, p_player_name text, p_played_before boolean)`.
 
-- [ ] **Step 3:** Deploy order: apply the migration **before** the app change is deployed. The new app calls `submit_join_request` with four arguments and the approve RPCs, which don't exist until the migration runs.
+- [ ] **Step 3:** Deploy order: apply the migration **before** the app change is deployed. The new app calls `submit_join_request` with four arguments and the approve RPCs, which don't exist until the migration runs. Deploy straight after the migration and don't approve anything in between: the old admin UI's Approve would add the member without linking their picked player, because new requests no longer create a claim.

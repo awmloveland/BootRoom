@@ -15,6 +15,8 @@
 --   * Declining a join request also rejects any pending claim left over from
 --     requests made before this change.
 
+BEGIN;
+
 -- ── 1. played_before ─────────────────────────────────────────────────────────
 ALTER TABLE game_join_requests ADD COLUMN IF NOT EXISTS played_before boolean;
 
@@ -168,7 +170,11 @@ BEGIN
     RAISE EXCEPTION 'player_name_required';
   END IF;
 
-  IF p_create_player THEN
+  -- Two admins approving the same name at once: the second waits, then
+  -- fails the checks below instead of hitting a unique index.
+  PERFORM pg_advisory_xact_lock(hashtext(p_game_id::text || ':' || lower(v_name)));
+
+  IF COALESCE(p_create_player, false) THEN
     -- Same case-insensitive rule as "+ Add player".
     IF EXISTS (
       SELECT 1 FROM player_attributes
@@ -316,7 +322,7 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.approve_player_claim(uuid, text, boolean) TO authenticated;
 
--- ── 7. review_join_request: declining also rejects a leftover claim ─────────
+-- ── 7. review_join_request: pending only; declining rejects a leftover claim
 CREATE OR REPLACE FUNCTION public.review_join_request(
   p_request_id uuid,
   p_action     text  -- 'approved' or 'declined'
@@ -339,7 +345,7 @@ BEGIN
     RAISE EXCEPTION 'Invalid action: %', p_action;
   END IF;
 
-  SELECT * INTO v_request FROM game_join_requests WHERE id = p_request_id;
+  SELECT * INTO v_request FROM game_join_requests WHERE id = p_request_id FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Request not found';
   END IF;
@@ -351,6 +357,11 @@ BEGIN
       AND role IN ('creator', 'admin')
   ) THEN
     RAISE EXCEPTION 'Access denied';
+  END IF;
+
+  -- A late or double-clicked decline must not overwrite an approval.
+  IF v_request.status <> 'pending' THEN
+    RAISE EXCEPTION 'request_not_pending';
   END IF;
 
   UPDATE game_join_requests
@@ -376,3 +387,8 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.review_join_request(uuid, text) TO authenticated;
+
+COMMIT;
+
+-- Let PostgREST see the new signatures straight away.
+NOTIFY pgrst, 'reload schema';

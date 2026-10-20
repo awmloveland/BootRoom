@@ -13,6 +13,7 @@ jest.mock('@/lib/email/send-join-request-notifications', () => ({
 import { POST as submitRequest } from '@/app/api/league/[id]/join-requests/route'
 import { POST as approveRequest } from '@/app/api/league/[id]/join-requests/[requestId]/approve/route'
 import { POST as approveClaim } from '@/app/api/league/[id]/player-claims/[claimId]/approve/route'
+import { POST as reviewRequest } from '@/app/api/league/[id]/join-requests/[requestId]/review/route'
 
 const rpc = jest.fn()
 
@@ -120,5 +121,14 @@ describe('POST player-claims/[claimId]/approve', () => {
     setup({ rpcError: { message: 'player_already_linked' } })
     const res = await approveClaim(post({ player_name: 'Sam O' }), claimParams)
     expect(res.status).toBe(409)
+  })
+})
+
+describe('POST join-requests/[requestId]/review', () => {
+  it('returns 409 when the request was already reviewed', async () => {
+    setup({ rpcError: { message: 'request_not_pending' } })
+    const res = await reviewRequest(post({ action: 'declined' }) as never, requestParams)
+    expect(res.status).toBe(409)
+    expect(notifyRequesterOfReview).not.toHaveBeenCalled()
   })
 })

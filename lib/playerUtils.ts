@@ -100,8 +100,9 @@ export function parseApproveBody(body: unknown): ApproveInput | null {
 
 /** Maps an approve RPC error message to an HTTP status and user-facing copy. */
 export function approveErrorResponse(message: string, playerName: string): { status: number; error: string } {
+  if (message.includes('Not authenticated')) return { status: 401, error: 'Unauthorized' }
   if (message.includes('Access denied')) return { status: 403, error: 'Forbidden' }
-  if (message.includes('not found') && !message.includes('player_not_found')) return { status: 404, error: 'Not found' }
+  if (message.includes('not found')) return { status: 404, error: 'Not found' }
   if (message.includes('_not_pending')) return { status: 409, error: 'This has already been reviewed.' }
   if (message.includes('player_exists')) return { status: 409, error: `There's already a ${playerName} in the squad.` }
   if (message.includes('player_already_linked')) return { status: 409, error: `${playerName} is already linked to another member.` }

@@ -18,6 +18,7 @@ describe('parseApproveBody', () => {
 
 describe('approveErrorResponse', () => {
   it.each([
+    ['Not authenticated', 401, 'Unauthorized'],
     ['Access denied', 403, 'Forbidden'],
     ['Request not found', 404, 'Not found'],
     ['Claim not found', 404, 'Not found'],
