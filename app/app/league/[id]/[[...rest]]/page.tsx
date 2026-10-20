@@ -8,7 +8,7 @@ interface Props {
   params: Promise<{ id: string; rest?: string[] }>
 }
 
-/** /app/league/<uuid>[/players|/settings] → /<slug>[/players|/settings] */
+/** /app/league/<uuid>[/players|/settings] → /<slug>[/players|/settings]; shares legacyLeaguePath so both legacy prefixes behave the same */
 export default async function LegacyLeaguePage({ params }: Props) {
   const { id, rest } = await params
   const game = await getGame(id)

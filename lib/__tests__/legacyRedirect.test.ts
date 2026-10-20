@@ -8,6 +8,9 @@ describe('legacyLeaguePath', () => {
     expect(legacyLeaguePath('boot-room', ['players'])).toBe('/boot-room/players')
     expect(legacyLeaguePath('boot-room', ['settings'])).toBe('/boot-room/settings')
   })
+  it('only inspects the first segment', () => {
+    expect(legacyLeaguePath('boot-room', ['players', 'extra'])).toBe('/boot-room/players')
+  })
   it('drops anything it does not recognise', () => {
     expect(legacyLeaguePath('boot-room', ['old', 'thing'])).toBe('/boot-room')
   })
