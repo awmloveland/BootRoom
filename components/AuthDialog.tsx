@@ -27,7 +27,7 @@ const VerifyStep = dynamic(() => import('./AuthForms').then((m) => m.VerifyStep)
 
 // Warm the form chunk when the trigger is hovered or focused, so the dialog
 // opens without a spinner on the usual path.
-const preloadAuthForms = () => { void import('./AuthForms') }
+const preloadAuthForms = () => { import('./AuthForms').catch(() => {}) }
 
 type AuthMode = 'signin' | 'signup'
 type AuthStep = 'details' | 'verify' | 'redirecting'
