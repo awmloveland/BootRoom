@@ -10,10 +10,10 @@ function getSupabaseAnonKey() {
 }
 
 /**
- * Two routes need a session before they render: the account page, which
- * also needs a profiles row, and a league's settings page, whose server
- * component checks the admin role itself and redirects members. Everything
- * else is public. The session is verified locally from the JWT.
+ * Two routes need a session with a profiles row before they render: the
+ * account page, and a league's settings page, whose server component checks
+ * the admin role itself and redirects members. Everything else is public.
+ * The session is verified locally from the JWT.
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -61,17 +61,15 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (isAccountSettings) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', user.id)
-      .maybeSingle()
-    if (!profile) {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = '/profile-required'
-      return NextResponse.redirect(redirectUrl)
-    }
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (!profile) {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = '/profile-required'
+    return NextResponse.redirect(redirectUrl)
   }
 
   return response
