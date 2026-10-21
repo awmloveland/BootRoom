@@ -6,7 +6,7 @@ interface Props {
   params: Promise<{ slug: string }>
 }
 
-// The settings page is a client component, so its tab title is set here.
+// The page does not export metadata of its own, so the tab title is set here.
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return leaguePageMetadata((await params).slug, 'settings')
 }
