@@ -385,15 +385,14 @@ describe('admin settings fetchers', () => {
       order: jest.fn().mockResolvedValue({ data: [{ name: 'Bea Smith', rating: 3, mentality: 'balanced' }, { name: 'New Kid', rating: 0, mentality: 'attacking' }], error: null }),
     }
     const from = jest.fn(() => attributes)
-    ;(createServiceClient as jest.Mock).mockReturnValue({
-      from,
-      rpc: jest.fn().mockResolvedValue({ data: [{ name: 'Bea Smith', played: 12 }], error: null }),
-    })
+    const serviceRpc = jest.fn().mockResolvedValue({ data: [{ name: 'Bea Smith', played: 12 }], error: null })
+    ;(createServiceClient as jest.Mock).mockReturnValue({ from, rpc: serviceRpc })
     await expect(getRosterPlayers(LEAGUE)).resolves.toEqual([
       { name: 'Bea Smith', strength: 'above', mentality: 'balanced', played: 12, linked_user_id: 'u2', linked_display_name: 'Bea' },
       { name: 'New Kid', strength: null, mentality: 'attacking', played: 0, linked_user_id: null, linked_display_name: null },
     ])
     expect(from).toHaveBeenCalledWith('player_attributes')
+    expect(serviceRpc).toHaveBeenCalledWith('get_player_stats_public', { p_game_id: LEAGUE })
   })
 
   it('getRosterPlayers returns [] and logs when the attributes read fails', async () => {

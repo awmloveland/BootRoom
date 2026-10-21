@@ -276,18 +276,15 @@ export const getRosterPlayers = cache(async (leagueId: string): Promise<PlayerAt
   const [attributes, members, stats] = await Promise.all([
     service.from('player_attributes').select('name, rating, mentality').eq('game_id', leagueId).order('name', { ascending: true }),
     getLeagueMembers(leagueId),
-    service.rpc('get_player_stats_public', { p_game_id: leagueId }),
+    getPlayerStats(leagueId),
   ])
   if (attributes.error) console.error('[getRosterPlayers] player_attributes read failed', attributes.error)
-  if (stats.error) console.error('[getRosterPlayers] get_player_stats_public failed', stats.error)
   const linked = new Map(
     members
       .filter((m) => m.linked_player_name)
       .map((m) => [m.linked_player_name as string, { linked_user_id: m.user_id, linked_display_name: m.display_name || m.email }])
   )
-  const played = new Map(
-    ((stats.data ?? []) as { name: string; played: number }[]).map((s) => [s.name, Number(s.played ?? 0)])
-  )
+  const played = new Map(stats.map((s) => [s.name, s.played]))
   return ((attributes.data ?? []) as { name: string; rating: number | null; mentality: PlayerAttribute['mentality'] }[]).map((p) => ({
     name: p.name,
     strength: ratingToStrength(Number(p.rating ?? 0)),
