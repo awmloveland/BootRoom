@@ -182,7 +182,7 @@ export interface LeagueMember {
 ## Auth and access model
 
 - **Proxy** (`proxy.ts`, Next 16's name for middleware) guards `/settings` and `/[slug]/settings`
-- `/settings` requires a Supabase session with a `profiles` row (checked in the proxy); `/[slug]/settings` requires a session (proxy) and a creator or admin role (checked by the page, which redirects members to the league's results)
+- Both require a Supabase session with a `profiles` row (checked in the proxy); `/[slug]/settings` also requires a creator or admin role (checked by the page, which redirects members to the league's results)
 - Unauthenticated → redirect to `/sign-in?redirect=...`; authenticated but no profile → `/profile-required`
 - The proxy leaves every other page alone. Overview, Results and Players render read-only for signed-out visitors; Honours, Records, Line-up Lab and Admin check the session in the page and show a sign-in prompt instead (Admin also requires the admin tier)
 - Per-league roles are stored in `game_members` (columns: `game_id`, `user_id`, `role`)
