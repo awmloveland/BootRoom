@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { mockAuthNamespace } from '@/lib/__tests__/helpers/supabase-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
@@ -20,10 +21,10 @@ function queryReturning(data: unknown) {
 }
 
 function mockAuth(user: typeof USER | null) {
-  const getUserMock = jest.fn().mockResolvedValue({ data: { user }, error: null })
+  const auth = mockAuthNamespace(user)
   const rpc = jest.fn()
-  ;(createClient as jest.Mock).mockResolvedValue({ auth: { getUser: getUserMock }, rpc })
-  return { getUserMock, rpc }
+  ;(createClient as jest.Mock).mockResolvedValue({ auth, rpc })
+  return { getUserMock: auth.getClaims, rpc }
 }
 
 beforeEach(() => jest.resetAllMocks())
@@ -184,7 +185,7 @@ describe('getMyClaimInfo', () => {
     })
     const authFrom = jest.fn()
     ;(createClient as jest.Mock).mockResolvedValue({
-      auth: { getUser: jest.fn().mockResolvedValue({ data: { user: USER }, error: null }) },
+      auth: mockAuthNamespace(USER),
       from: authFrom,
       rpc: jest.fn(),
     })
@@ -197,7 +198,7 @@ describe('getMyClaimInfo', () => {
       from: jest.fn(() => queryReturning({ role: 'member' })),
     })
     ;(createClient as jest.Mock).mockResolvedValue({
-      auth: { getUser: jest.fn().mockResolvedValue({ data: { user: USER }, error: null }) },
+      auth: mockAuthNamespace(USER),
       from: jest.fn(() => queryReturning({ status: 'approved', admin_override_name: null, player_name: 'Dev' })),
       rpc: jest.fn(),
     })

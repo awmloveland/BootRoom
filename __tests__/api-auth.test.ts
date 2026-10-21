@@ -1,5 +1,6 @@
 // __tests__/api-auth.test.ts
 import { createClient } from '@/lib/supabase/server'
+import { mockAuthNamespace } from '@/lib/__tests__/helpers/supabase-auth'
 
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 
@@ -10,7 +11,7 @@ const rpc = jest.fn()
 function setup(user: { id: string; email?: string } | null, isAdmin = false) {
   rpc.mockResolvedValue({ data: isAdmin, error: null })
   ;(createClient as jest.Mock).mockResolvedValue({
-    auth: { getUser: jest.fn().mockResolvedValue({ data: { user }, error: null }) },
+    auth: mockAuthNamespace(user),
     rpc,
   })
 }

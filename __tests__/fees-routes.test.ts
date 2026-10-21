@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { mockAuthNamespace } from '@/lib/__tests__/helpers/supabase-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getWeeks } from '@/lib/fetchers'
 import type { Week } from '@/lib/types'
@@ -33,7 +34,7 @@ function query(result: { data?: unknown; error?: unknown } = {}) {
 
 function setup({ user = true, admin = true, tables = {} as Record<string, ReturnType<typeof query>> } = {}) {
   ;(createClient as jest.Mock).mockResolvedValue({
-    auth: { getUser: jest.fn().mockResolvedValue({ data: { user: user ? { id: 'admin-user' } : null } }) },
+    auth: mockAuthNamespace(user ? { id: 'admin-user' } : null),
     rpc: jest.fn().mockResolvedValue({ data: admin }),
   })
   const from = jest.fn((table: string) => tables[table] ?? query())
