@@ -24,7 +24,7 @@ function mockAuth(user: typeof USER | null) {
   const auth = mockAuthNamespace(user)
   const rpc = jest.fn()
   ;(createClient as jest.Mock).mockResolvedValue({ auth, rpc })
-  return { getUserMock: auth.getClaims, rpc }
+  return { rpc }
 }
 
 beforeEach(() => jest.resetAllMocks())
