@@ -371,22 +371,6 @@ export function NextMatchCard({
     }
   }
 
-  async function handleCancelScheduled() {
-    if (!scheduledWeek) return
-    try {
-      await cancelLineup(gameId, scheduledWeek.id)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to cancel lineup')
-      return
-    }
-    setScheduledWeek(null)
-    setSelectedNames([])
-    setGuestEntries([])
-    setNewPlayerEntries([])
-    clearSplit()
-    setCardState('idle')
-  }
-
   async function handleShare() {
     if (!scheduledWeek || !leagueName) return
     const text = buildShareText({
