@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireLeagueAdmin } from '@/lib/apiAuth'
+import { revalidateLeague } from '@/lib/leagueCache'
 import { resolveUniqueSlug } from '@/lib/slug'
 import { NextResponse } from 'next/server'
 
@@ -51,14 +52,20 @@ export async function PATCH(
   const name = typeof b.name === 'string' ? b.name.trim() : ''
   if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
+  const service = createServiceClient()
+  // The slug lookup is cached under its own tag, so the old slug needs
+  // invalidating as well as the new one.
+  const { data: current } = await service.from('games').select('slug').eq('id', id).maybeSingle()
+  const currentSlug = (current?.slug as string | null | undefined) ?? null
+
   const slug = await resolveUniqueSlug(name, id)
 
-  const service = createServiceClient()
   const { error } = await service
     .from('games')
     .update({ name, slug, location, day, kickoff_time, bio })
     .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  revalidateLeague(id, [currentSlug, slug].filter((s): s is string => Boolean(s)))
   return NextResponse.json({ ok: true })
 }

@@ -2,6 +2,7 @@ import { getGame } from '@/lib/fetchers'
 import { createServiceClient } from '@/lib/supabase/service'
 import { parseLineupToken, verifyLineupSignature } from '@/lib/shareLinks'
 
+jest.mock('next/cache', () => ({ revalidateTag: jest.fn() }))
 jest.mock('@/lib/fetchers', () => ({ getGame: jest.fn() }))
 jest.mock('@/lib/supabase/service', () => ({ createServiceClient: jest.fn() }))
 
