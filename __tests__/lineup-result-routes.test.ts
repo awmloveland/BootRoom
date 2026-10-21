@@ -68,6 +68,13 @@ describe('DELETE lineup/[weekId]', () => {
     expect(res.status).toBe(200)
     expect(rpc).toHaveBeenCalledWith('cancel_lineup', { p_week_id: 'w1' })
   })
+
+  it('rejects signed-out callers without calling the RPC', async () => {
+    setup({ user: false })
+    const res = await cancelLineup(new Request('http://localhost/api', { method: 'DELETE' }), week)
+    expect(res.status).toBe(401)
+    expect(rpc).not.toHaveBeenCalled()
+  })
 })
 
 describe('POST weeks/cancel', () => {
@@ -96,13 +103,13 @@ describe('POST weeks/[weekId]/result', () => {
     setup()
     await recordResult(json({
       ...RESULT,
-      guests: [{ oldName: 'Jaff +1', newName: 'Sam', rating: 55, goalkeeper: false }],
-      newPlayers: [{ name: 'Kit', rating: 50, mentality: 'balanced', goalkeeper: false }],
+      guests: [{ oldName: 'Jaff +1', newName: 'Sam', rating: 2, goalkeeper: false }],
+      newPlayers: [{ name: 'Kit', rating: 2, mentality: 'balanced', goalkeeper: false }],
     }), week)
     const names = rpc.mock.calls.map((c) => c[0])
     expect(names).toEqual(['is_game_admin', 'record_result', 'name_guests', 'promote_roster'])
-    expect(rpc).toHaveBeenCalledWith('name_guests', { p_week_id: 'w1', p_guests: [{ old_name: 'Jaff +1', new_name: 'Sam', rating: 55, goalkeeper: false }] })
-    expect(rpc).toHaveBeenCalledWith('promote_roster', { p_game_id: 'g1', p_entries: [{ name: 'Kit', rating: 50, mentality: 'balanced', goalkeeper: false }] })
+    expect(rpc).toHaveBeenCalledWith('name_guests', { p_week_id: 'w1', p_guests: [{ old_name: 'Jaff +1', new_name: 'Sam', rating: 2, goalkeeper: false }] })
+    expect(rpc).toHaveBeenCalledWith('promote_roster', { p_game_id: 'g1', p_entries: [{ name: 'Kit', rating: 2, mentality: 'balanced', goalkeeper: false }] })
   })
 
   it('maps a duplicate guest name to 409', async () => {
@@ -112,7 +119,7 @@ describe('POST weeks/[weekId]/result', () => {
       if (name === 'name_guests') return { data: null, error: { message: 'name_already_exists' } }
       return { data: null, error: null }
     })
-    const res = await recordResult(json({ ...RESULT, guests: [{ oldName: 'G', newName: 'Dup', rating: 50, goalkeeper: false }] }), week)
+    const res = await recordResult(json({ ...RESULT, guests: [{ oldName: 'G', newName: 'Dup', rating: 2, goalkeeper: false }] }), week)
     expect(res.status).toBe(409)
     await expect(res.json()).resolves.toEqual({ error: 'name_already_exists' })
   })
@@ -120,5 +127,19 @@ describe('POST weeks/[weekId]/result', () => {
   it('rejects a played result without a winner', async () => {
     setup()
     expect((await recordResult(json({ ...RESULT, winner: null }), week)).status).toBe(400)
+  })
+
+  it('ignores winner and ratings on a DNF', async () => {
+    setup()
+    expect((await recordResult(json({ ...RESULT, dnf: true }), week)).status).toBe(200)
+    expect(rpc).toHaveBeenCalledWith('record_result', {
+      p_week_id: 'w1', p_dnf: true, p_winner: null, p_notes: 'Tight', p_goal_difference: null, p_team_a_rating: null, p_team_b_rating: null,
+    })
+  })
+
+  it('rejects a malformed guest before writing', async () => {
+    setup()
+    expect((await recordResult(json({ ...RESULT, guests: [null] }), week)).status).toBe(400)
+    expect(rpc).not.toHaveBeenCalledWith('record_result', expect.anything())
   })
 })
