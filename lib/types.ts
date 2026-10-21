@@ -467,3 +467,37 @@ export type HighlightPlayer = Pick<Player, 'name' | 'played' | 'recentForm'>;
 export type ShareLinkRequest =
   | { kind: 'result'; weekId: string }
   | { kind: 'quarter'; year: number; q: number };
+
+// ── Write requests from the match cards to /api/league/[id]/... ──────────────
+
+export interface SaveLineupInput {
+  season: string
+  week: number
+  date: string
+  format: string | null
+  teamA: string[]
+  teamB: string[]
+  /** The DB shape (snake_case keys) the card already builds for save_lineup. */
+  lineupMetadata: Record<string, unknown> | null
+  teamARating: number | null
+  teamBRating: number | null
+}
+
+export interface CancelWeekInput {
+  season: string
+  week: number
+  date: string
+}
+
+export interface RecordResultInput {
+  dnf: boolean
+  winner: Winner | null
+  notes: string | null
+  goalDifference: number | null
+  teamARating: number | null
+  teamBRating: number | null
+  /** Guests promoted to the roster under a new name. */
+  guests: { oldName: string; newName: string; rating: number; goalkeeper: boolean }[]
+  /** Reviewed new players to add to the roster. */
+  newPlayers: { name: string; rating: number; mentality: Mentality; goalkeeper: boolean }[]
+}
