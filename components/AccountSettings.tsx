@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -51,6 +51,8 @@ export function AccountSettings({ account }: { account: AccountData }) {
   const [claimSubmitting, setClaimSubmitting] = useState<string | null>(null)
   const [claimErrors, setClaimErrors] = useState<Record<string, string>>({})
   const [cancellingLeague, setCancellingLeague] = useState<string | null>(null)
+  const [isRefreshing, startRefresh] = useTransition()
+  const [refreshingLeague, setRefreshingLeague] = useState<string | null>(null)
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault()
@@ -107,9 +109,13 @@ export function AccountSettings({ account }: { account: AccountData }) {
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error ?? 'Failed to submit claim')
       }
-      setExpandedLeague(null)
-      // The server page re-reads the claim row, which the Cancel button needs.
-      router.refresh()
+      // Hold the picker open and busy until the refreshed claim row lands,
+      // so the row never flashes back to "No player profile linked".
+      setRefreshingLeague(leagueId)
+      startRefresh(() => {
+        setExpandedLeague(null)
+        router.refresh()
+      })
     } catch (err) {
       setClaimErrors((prev) => ({
         ...prev,
@@ -127,7 +133,8 @@ export function AccountSettings({ account }: { account: AccountData }) {
     try {
       const res = await fetch(`/api/league/${leagueId}/player-claims/${claim.id}`, { method: 'DELETE' })
       if (!res.ok && res.status !== 204) throw new Error('Failed to cancel claim')
-      router.refresh()
+      setRefreshingLeague(leagueId)
+      startRefresh(() => router.refresh())
     } catch {
       // Cancellation errors are non-critical; the user can retry.
     } finally {
@@ -220,8 +227,9 @@ export function AccountSettings({ account }: { account: AccountData }) {
               const claim = claims[league.id]
               const status = claim?.status ?? null
               const isExpanded = expandedLeague === league.id
-              const isSubmitting = claimSubmitting === league.id
-              const isCancelling = cancellingLeague === league.id
+              const isBusy = isRefreshing && refreshingLeague === league.id
+              const isSubmitting = claimSubmitting === league.id || isBusy
+              const isCancelling = cancellingLeague === league.id || isBusy
               const effectiveName = claim?.admin_override_name ?? claim?.player_name
 
               return (
