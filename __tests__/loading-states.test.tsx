@@ -11,6 +11,12 @@ import PlayerClaimPicker from '@/components/PlayerClaimPicker'
 import MemberLinkPicker from '@/components/MemberLinkPicker'
 
 jest.mock('@/lib/supabase/client', () => ({ createClient: jest.fn() }))
+jest.mock('@/lib/leagueApi', () => ({
+  saveLineup: jest.fn().mockResolvedValue({ weekId: 'w-new' }),
+  cancelLineup: jest.fn().mockResolvedValue(undefined),
+  cancelWeek: jest.fn().mockResolvedValue({ weekId: 'w-new' }),
+  recordResult: jest.fn().mockResolvedValue(undefined),
+}))
 
 /** A promise that never settles, so components stay in their loading state. */
 const pending = () => new Promise<never>(() => {})
