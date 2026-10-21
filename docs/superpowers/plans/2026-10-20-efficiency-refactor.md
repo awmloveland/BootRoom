@@ -2910,8 +2910,12 @@ export const leagueSlugTag = (slug: string) => `league-slug:${slug}`
  * lookup is cached under its own tag.
  */
 export function revalidateLeague(leagueId: string, slugs: string[] = []): void {
-  revalidateTag(leagueTag(leagueId), 'max')
-  for (const slug of slugs) revalidateTag(leagueSlugTag(slug), 'max')
+  // { expire: 0 } expires the entry so the very next render re-reads. The
+  // 'max' profile would serve the stale entry once while refreshing in the
+  // background, which is exactly what an admin's refresh after a save would
+  // hit. updateTag is Server-Action-only, so route handlers cannot use it.
+  revalidateTag(leagueTag(leagueId), { expire: 0 })
+  for (const slug of slugs) revalidateTag(leagueSlugTag(slug), { expire: 0 })
 }
 ```
 
@@ -3047,7 +3051,7 @@ git commit -m "Cache a league's public reads across requests"
 ### Task 23: Invalidate from every write route
 
 **Files:**
-- Modify: `app/api/league/[id]/lineup/route.ts`, `app/api/league/[id]/lineup/[weekId]/route.ts`, `app/api/league/[id]/weeks/cancel/route.ts`, `app/api/league/[id]/weeks/[weekId]/result/route.ts`, `app/api/league/[id]/weeks/[weekId]/route.ts`, `app/api/league/[id]/weeks/[weekId]/edit/route.ts`, `app/api/league/[id]/players/route.ts`, `app/api/league/[id]/players/[name]/route.ts`, `app/api/league/[id]/players/[name]/rename/route.ts`, `app/api/league/[id]/guests/name/route.ts`, `app/api/league/[id]/details/route.ts`
+- Modify: `app/api/league/[id]/lineup/route.ts`, `app/api/league/[id]/lineup/[weekId]/route.ts`, `app/api/league/[id]/weeks/cancel/route.ts`, `app/api/league/[id]/weeks/[weekId]/result/route.ts`, `app/api/league/[id]/weeks/[weekId]/route.ts`, `app/api/league/[id]/weeks/[weekId]/edit/route.ts`, `app/api/league/[id]/players/route.ts`, `app/api/league/[id]/players/[name]/route.ts`, `app/api/league/[id]/players/[name]/rename/route.ts`, `app/api/league/[id]/guests/name/route.ts`, `app/api/league/[id]/details/route.ts`, `app/api/league/[id]/fees/route.ts` (writes `games.fee_per_player`), `app/api/league/[id]/player-claims/[claimId]/approve/route.ts` and `app/api/league/[id]/join-requests/[requestId]/approve/route.ts` (their RPCs reach `link_reviewed_player`, which can insert a `player_attributes` row)
 - Modify: every test that imports one of those routes
 
 - [ ] **Step 1: Add the call**
@@ -3092,7 +3096,7 @@ Push the branch and open the PR so Vercel builds a preview. On the preview, as a
 3. Rename the league in Settings → League Details (the slug changes). Expected: the new slug resolves at once and the old one 404s or redirects as before.
 4. Add a player in Settings → Players. Expected: the Players tab shows them on the next load.
 
-If step 2 shows the old list after the refresh, change both `revalidateTag(..., 'max')` calls in `lib/leagueCache.ts` to `revalidateTag(..., { expire: 0 })`, which expires instead of marking stale, and re-test.
+The calls use `{ expire: 0 }` rather than `'max'` because a dynamic render serves a merely stale entry once while it refreshes in the background, which is what the admin's refresh after a save would hit.
 
 - [ ] **Step 5: Commit and finish the PR**
 
