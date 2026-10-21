@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sortWeeks, deriveSeason, getMostRecentExpectedGameDate, getNextWeekNumber, isPastDeadline } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
-import type { GameRole, LeagueFeature, NavSession, Player, Week, Mentality, Strength, JoinRequestStatus, PendingJoinRequest, PendingRequestSummary, PlayerClaimStatus } from '@/lib/types'
+import type { GameRole, LeagueFeature, NavSession, Player, Week, Mentality, Strength, JoinRequestStatus, PendingJoinRequest, PendingRequestSummary, PlayerClaimStatus, LeagueMember, PlayerAttribute, PlayerClaim } from '@/lib/types'
 import { ratingToStrength } from '@/lib/strength'
 
 // ── Game ─────────────────────────────────────────────────────────────────────
@@ -141,6 +141,51 @@ export const getPlayerStats = cache(async (leagueId: string): Promise<Player[]> 
       : String(row.mentality ?? 'balanced')) as Player['mentality'],
     strength: ratingToStrength(Number(row.rating ?? 0)),
     recentForm: String(row.recentForm ?? ''),
+  }))
+})
+
+// ── Admin settings reads ──────────────────────────────────────────────────────
+// All three are admin-only. get_league_members and get_player_claims deny
+// non-admins themselves; getRosterPlayers uses the service client, so the
+// page must have checked the role first (it redirects non-admins).
+
+export const getLeagueMembers = cache(async (leagueId: string): Promise<LeagueMember[]> => {
+  const authSupabase = await getAuthClient()
+  const { data, error } = await authSupabase.rpc('get_league_members', { p_game_id: leagueId })
+  if (error) return []
+  return (data ?? []) as LeagueMember[]
+})
+
+export const getAllPlayerClaims = cache(async (leagueId: string): Promise<PlayerClaim[]> => {
+  const authSupabase = await getAuthClient()
+  const { data, error } = await authSupabase.rpc('get_player_claims', { p_game_id: leagueId })
+  if (error) return []
+  return (data ?? []) as PlayerClaim[]
+})
+
+// The roster with each player's strength, played count and linked member,
+// as the Settings → Players tab and the review cards show it.
+export const getRosterPlayers = cache(async (leagueId: string): Promise<PlayerAttribute[]> => {
+  const service = createServiceClient()
+  const [attributes, members, stats] = await Promise.all([
+    service.from('player_attributes').select('name, rating, mentality').eq('game_id', leagueId).order('name', { ascending: true }),
+    getLeagueMembers(leagueId),
+    service.rpc('get_player_stats_public', { p_game_id: leagueId }),
+  ])
+  const linked = new Map(
+    members
+      .filter((m) => m.linked_player_name)
+      .map((m) => [m.linked_player_name as string, { linked_user_id: m.user_id, linked_display_name: m.display_name || m.email }])
+  )
+  const played = new Map(
+    ((stats.data ?? []) as { name: string; played: number }[]).map((s) => [s.name, Number(s.played ?? 0)])
+  )
+  return ((attributes.data ?? []) as { name: string; rating: number | null; mentality: PlayerAttribute['mentality'] }[]).map((p) => ({
+    name: p.name,
+    strength: ratingToStrength(Number(p.rating ?? 0)),
+    mentality: p.mentality,
+    played: played.get(p.name) ?? 0,
+    ...(linked.get(p.name) ?? { linked_user_id: null, linked_display_name: null }),
   }))
 })
 
