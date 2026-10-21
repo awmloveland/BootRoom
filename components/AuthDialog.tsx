@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
+import { LazyBoundary } from '@/components/ui/LazyBoundary'
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,10 @@ const formLoading = () => (
 const SignInForm = dynamic(() => import('./AuthForms').then((m) => m.SignInForm), { ssr: false, loading: formLoading })
 const SignUpForm = dynamic(() => import('./AuthForms').then((m) => m.SignUpForm), { ssr: false, loading: formLoading })
 const VerifyStep = dynamic(() => import('./AuthForms').then((m) => m.VerifyStep), { ssr: false, loading: formLoading })
+
+// Warm the form chunk when the trigger is hovered or focused, so the dialog
+// opens without a spinner on the usual path.
+const preloadAuthForms = () => { void import('./AuthForms') }
 
 type AuthMode = 'signin' | 'signup'
 type AuthStep = 'details' | 'verify' | 'redirecting'
@@ -126,7 +131,13 @@ export function AuthDialog({
         trigger ? (
           trigger(() => openAs('signin'))
         ) : (
-          <Button size={size} variant="outline" onClick={() => openAs('signin')}>
+          <Button
+            size={size}
+            variant="outline"
+            onClick={() => openAs('signin')}
+            onPointerEnter={preloadAuthForms}
+            onFocus={preloadAuthForms}
+          >
             Log in
           </Button>
         )
@@ -139,26 +150,34 @@ export function AuthDialog({
             <DialogDescription>{dialogDescription}</DialogDescription>
           </DialogHeader>
 
-          {step === 'redirecting' ? (
-            <div className="flex justify-center py-6">
-              <Spinner className="size-6" label="Signing you in" />
-            </div>
-          ) : step === 'verify' ? (
-            <VerifyStep
-              email={email}
-              onBack={handleBack}
-              onVerified={() => setStep('redirecting')}
-              redirect={redirect}
-            />
-          ) : mode === 'signin' ? (
-            <SignInForm onSent={handleCodeSent} onSwitchMode={handleSwitchMode} signinOnly={signinOnly} />
-          ) : (
-            <SignUpForm
-              onSent={handleCodeSent}
-              onSwitchMode={handleSwitchMode}
-              leagueName={leagueName}
-            />
-          )}
+          <LazyBoundary
+            fallback={
+              <p className="mt-4 text-sm text-[#e2686f]">
+                Could not load the sign-in form. Refresh the page and try again.
+              </p>
+            }
+          >
+            {step === 'redirecting' ? (
+              <div className="flex justify-center py-6">
+                <Spinner className="size-6" label="Signing you in" />
+              </div>
+            ) : step === 'verify' ? (
+              <VerifyStep
+                email={email}
+                onBack={handleBack}
+                onVerified={() => setStep('redirecting')}
+                redirect={redirect}
+              />
+            ) : mode === 'signin' ? (
+              <SignInForm onSent={handleCodeSent} onSwitchMode={handleSwitchMode} signinOnly={signinOnly} />
+            ) : (
+              <SignUpForm
+                onSent={handleCodeSent}
+                onSwitchMode={handleSwitchMode}
+                leagueName={leagueName}
+              />
+            )}
+          </LazyBoundary>
         </DialogContent>
       </Dialog>
     </>
