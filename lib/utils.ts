@@ -830,6 +830,18 @@ export function getNextMatchSeed(weeks: Week[], kickoffTime?: string | null): Sc
   }
 }
 
+/**
+ * The Results tab's starting week: getNextMatchSeed, except that a scheduled
+ * game that has kicked off returns null, because the Results week list shows
+ * it as an Awaiting Result card and the next match card must not show the
+ * same game twice. Overview has no week list, so it keeps the awaiting window.
+ */
+export function getResultsNextMatchSeed(weeks: Week[], kickoffTime?: string | null): ScheduledWeek | null {
+  const seed = getNextMatchSeed(weeks, kickoffTime)
+  if (seed?.status === 'scheduled' && isPastDeadline(seed.date, kickoffTime)) return null
+  return seed
+}
+
 /** Cookie holding the browser's last measured viewport, 'narrow' (below lg) or 'wide'. */
 export const VIEWPORT_COOKIE = 'viewport'
 

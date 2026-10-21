@@ -208,6 +208,7 @@ deploys. `.env.example` lists them with placeholders. Never commit real values.
 | `RESEND_API_KEY` | Server only | Transactional email |
 | `APP_ACCESS_KEY` / `NEXT_PUBLIC_ACCESS_KEY_MODE` | Mixed | Optional production lock behind a secret URL key |
 | `SHARE_SIGNING_SECRET` | Server only | HMAC key for signed share links (line-ups, results, quarters, league) and their preview images (see `docs/superpowers/specs/2026-10-05-lineup-share-preview-image-design.md` and `2026-10-06-share-preview-images-design.md`). Missing → Share falls back to plain links and previews render the generic card. Rotating it invalidates every previously shared preview. |
+| `TZ` | Server only | Timezone for kick-off deadline checks; set to `Europe/London` on Vercel |
 
 Server-only variables must never be prefixed `NEXT_PUBLIC_` or read in client
 components.

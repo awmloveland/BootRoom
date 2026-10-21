@@ -4,6 +4,7 @@
 import React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { ResultsSection } from '@/components/ResultsSection'
+import { getResultsNextMatchSeed } from '@/lib/utils'
 import type { Week } from '@/lib/types'
 
 jest.mock('next/navigation', () => ({
@@ -33,14 +34,15 @@ const awaitingWeek: Week = {
 }
 
 describe('ResultsSection with a game awaiting its result', () => {
-  it('shows the game once, in the week list, when the next match card starts idle', () => {
+  it('shows the game once, in the week list, when the page seeds the next match card with the Results rule', () => {
+    const weeks = [awaitingWeek]
     render(
       <ResultsSection
         gameId="g1"
         leagueSlug="craft-football"
-        weeks={[awaitingWeek]}
+        weeks={weeks}
         goalkeepers={[]}
-        initialScheduledWeek={null}
+        initialScheduledWeek={getResultsNextMatchSeed(weeks, '20:00')}
         canAutoPick={true}
         allPlayers={[]}
         isAdmin

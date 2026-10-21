@@ -3,6 +3,7 @@ import {
   leagueLandingPath,
   formatFixtureDate,
   getNextMatchSeed,
+  getResultsNextMatchSeed,
   getOverviewViewerCard,
 } from '@/lib/utils'
 import type { Week } from '@/lib/types'
@@ -144,6 +145,32 @@ describe('getNextMatchSeed', () => {
   it('returns null when there is nothing scheduled, cancelled or unrecorded', () => {
     expect(getNextMatchSeed([week({ week: 14, date: '02 Apr 2026', status: 'played', winner: 'draw' })])).toBeNull()
     expect(getNextMatchSeed([])).toBeNull()
+  })
+})
+
+describe('getResultsNextMatchSeed', () => {
+  function week(overrides: Partial<Week> & { week: number; date: string; status: Week['status'] }): Week {
+    return { id: `id-${overrides.week}`, season: '2026', teamA: [], teamB: [], winner: null, ...overrides }
+  }
+
+  // Monday 6 Apr 2026, midday.
+  beforeEach(() => { jest.useFakeTimers().setSystemTime(new Date(2026, 3, 6, 12)) })
+  afterEach(() => { jest.useRealTimers() })
+
+  it('returns an upcoming scheduled week', () => {
+    const upcoming = week({ week: 15, date: '09 Apr 2026', status: 'scheduled', teamA: ['Alice'], teamB: ['Bob'] })
+    expect(getResultsNextMatchSeed([upcoming], '20:00')).toMatchObject({ week: 15, status: 'scheduled' })
+  })
+
+  it('returns null for a scheduled week that kicked off yesterday, which the week list shows as Awaiting Result', () => {
+    const yesterday = week({ week: 15, date: '05 Apr 2026', status: 'scheduled', teamA: ['Alice'], teamB: ['Bob'] })
+    expect(getNextMatchSeed([yesterday], '18:30')).not.toBeNull()
+    expect(getResultsNextMatchSeed([yesterday], '18:30')).toBeNull()
+  })
+
+  it('returns a cancelled week before kick-off', () => {
+    const cancelled = week({ week: 15, date: '09 Apr 2026', status: 'cancelled' })
+    expect(getResultsNextMatchSeed([cancelled], '20:00')).toMatchObject({ week: 15, status: 'cancelled' })
   })
 })
 

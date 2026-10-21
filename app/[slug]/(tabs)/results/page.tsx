@@ -5,7 +5,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { dayNameToIndex, getLatestResultWeek, getNextMatchSeed, isPastDeadline } from '@/lib/utils'
+import { dayNameToIndex, getLatestResultWeek, getResultsNextMatchSeed } from '@/lib/utils'
 import { quarterShareUrls, resultShareUrlFor } from '@/lib/shareLinksServer'
 import { getGameBySlug, getAuthAndRole, getPlayerStats, getWeeks, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
 import { PublicResultsSection } from '@/components/PublicResultsSection'
@@ -58,14 +58,9 @@ export default async function LeagueResultsPage({ params }: Props) {
     ? await ensureUnrecordedWeek(leagueId, rawWeeks, leagueDayIndex)
     : rawWeeks
 
-  // The next match card's starting week, with the same rules the Overview tab
-  // uses, except that once a game has kicked off the week list's Awaiting
-  // Result card owns it, so the next match card goes idle rather than showing
-  // the same game twice.
-  const kickoff = game.kickoff_time ?? null
-  const seed = getNextMatchSeed(weeks, kickoff)
-  const nextWeek: ScheduledWeek | null =
-    seed?.status === 'scheduled' && isPastDeadline(seed.date, kickoff) ? null : seed
+  // The next match card's starting week. Once a game has kicked off the week
+  // list's Awaiting Result card owns it (see getResultsNextMatchSeed).
+  const nextWeek: ScheduledWeek | null = getResultsNextMatchSeed(weeks, game.kickoff_time ?? null)
 
   // Champion card for every completed quarter. The match lists render each
   // above that quarter's first result, so the latest sits below the next match.
