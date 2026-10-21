@@ -79,6 +79,10 @@ describe('rpcErrorStatus', () => {
     expect(rpcErrorStatus('Access denied')).toBe(403)
   })
 
+  it('maps guest_not_found to 404', () => {
+    expect(rpcErrorStatus('guest_not_found')).toBe(404)
+  })
+
   it('maps an unknown message to 500', () => {
     expect(rpcErrorStatus('something broke')).toBe(500)
   })

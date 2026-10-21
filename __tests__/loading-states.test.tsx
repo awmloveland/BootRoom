@@ -3,6 +3,7 @@
  */
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { createClient } from '@/lib/supabase/client'
+import { cancelLineup, cancelWeek, saveLineup } from '@/lib/leagueApi'
 import { Skeleton, SkeletonCard, SkeletonList, SKELETON_FADE_IN } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { NextMatchCard } from '@/components/NextMatchCard'
@@ -81,7 +82,9 @@ describe('NextMatchCard on Results', () => {
     )
     expect(container.querySelector('[aria-busy="true"]')).not.toBeInTheDocument()
     expect(screen.getByText('Week 16')).toBeInTheDocument()
-    expect(createClient).not.toHaveBeenCalled()
+    expect(saveLineup).not.toHaveBeenCalled()
+    expect(cancelLineup).not.toHaveBeenCalled()
+    expect(cancelWeek).not.toHaveBeenCalled()
   })
 })
 
