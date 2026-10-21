@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { requireLeagueAdmin } from '@/lib/apiAuth'
+import { requireLeagueAdmin, rpcErrorStatus } from '@/lib/apiAuth'
 
 /** POST — admin-only. Marks a game day cancelled via cancel_week. Body: { season, week, date }. Returns { weekId }. */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -17,6 +17,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { data, error } = await supabase.rpc('cancel_week', {
     p_game_id: id, p_season: b.season, p_week: b.week, p_date: b.date,
   })
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return NextResponse.json({ error: error.message }, { status: rpcErrorStatus(error.message) })
   return NextResponse.json({ weekId: data as string })
 }
