@@ -2177,17 +2177,18 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (isAccountSettings) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', user.id)
-      .maybeSingle()
-    if (!profile) {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = '/profile-required'
-      return NextResponse.redirect(redirectUrl)
-    }
+  // Both guarded routes need a profiles row. Accepting an invite or creating
+  // a league does not create one, so a profile-less admin would otherwise
+  // reach league settings.
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (!profile) {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = '/profile-required'
+    return NextResponse.redirect(redirectUrl)
   }
 
   return response
@@ -2205,7 +2206,7 @@ export const config = {
 Change the second bullet of "Auth and access model" to:
 
 ```
-- `/settings` requires a Supabase session with a `profiles` row (checked in the proxy); `/[slug]/settings` requires a session (proxy) and a creator or admin role (checked by the page, which redirects members to the league's results)
+- Both require a Supabase session with a `profiles` row (checked in the proxy); `/[slug]/settings` also requires a creator or admin role (checked by the page, which redirects members to the league's results)
 ```
 
 - [ ] **Step 3: Verify**
@@ -2221,7 +2222,7 @@ git push -u origin refactor/pr-9-proxy
 gh pr create --base main --title "Slimmer proxy for league settings" --body "$(cat <<'EOF'
 Release 4 of the efficiency refactor.
 
-The proxy now only confirms a session exists for `/[slug]/settings`; the server page (PR 6) checks the role and redirects members. That removes three sequential queries (profile, league by slug, member role) from every settings visit.
+The proxy now only confirms a session with a `profiles` row for `/[slug]/settings`; the server page (PR 6) checks the role and redirects members. That removes two of the three sequential queries (league by slug, member role) from every settings visit; the profiles check stays because accepting an invite or creating a league does not create a profiles row.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 EOF
