@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { requireLeagueAdmin } from '@/lib/apiAuth'
 import { NextResponse } from 'next/server'
 import { strengthToRating } from '@/lib/strength'
 import type { Mentality, Strength } from '@/lib/types'
@@ -20,13 +21,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
+  const gate = await requireLeagueAdmin(id)
+  if ('response' in gate) return gate.response
   const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { data: isAdmin } = await supabase.rpc('is_game_admin', { p_game_id: id })
-  if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = (await request.json().catch(() => null)) as Body | null
   if (!body) return NextResponse.json({ error: 'Invalid body' }, { status: 400 })

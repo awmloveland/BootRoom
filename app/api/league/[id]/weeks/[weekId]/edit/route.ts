@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { requireLeagueAdmin } from '@/lib/apiAuth'
 import { NextResponse } from 'next/server'
 
 const VALID_STATUSES = ['played', 'cancelled', 'unrecorded', 'dnf'] as const
@@ -10,15 +11,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; weekId: string }> }
 ) {
   const { id, weekId } = await params
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   // Ownership of the week is enforced inside the edit_week RPC (which derives game_id
   // from the week row and re-checks is_game_admin against that derived id).
-  const { data: isAdmin } = await supabase.rpc('is_game_admin', { p_game_id: id })
-  if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const gate = await requireLeagueAdmin(id)
+  if ('response' in gate) return gate.response
+  const supabase = await createClient()
 
   let body: unknown
   try {

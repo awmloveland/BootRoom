@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/apiAuth'
 import { notifyRequesterOfReview } from '@/lib/email/send-join-request-notifications'
 
 /** POST — approve or decline a pending join request. Admin/creator only. */
@@ -8,12 +9,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string; requestId: string }> }
 ) {
   const { requestId } = await params
+  const gate = await requireUser()
+  if ('response' in gate) return gate.response
   const supabase = await createClient()
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
 
   const body = await request.json().catch(() => ({}))
   const action: string = body.action

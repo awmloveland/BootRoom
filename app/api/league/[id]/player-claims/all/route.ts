@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/apiAuth'
 
 /** GET — return all player claims for the league. Admin/creator only. */
 export async function GET(
@@ -7,11 +8,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
+  const gate = await requireUser()
+  if ('response' in gate) return gate.response
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
 
   const { data, error } = await supabase.rpc('get_player_claims', { p_game_id: id })
 

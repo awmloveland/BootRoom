@@ -1,13 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/apiAuth'
 import { NextResponse } from 'next/server'
 
 export async function PATCH(request: Request) {
+  const gate = await requireUser()
+  if ('response' in gate) return gate.response
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
 
   const body = await request.json().catch(() => ({}))
   const { first_name, last_name } = body
@@ -27,7 +25,7 @@ export async function PATCH(request: Request) {
   const { error } = await supabase
     .from('profiles')
     .update(trimmed)
-    .eq('id', user.id)
+    .eq('id', gate.user.id)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

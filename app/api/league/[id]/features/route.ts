@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { requireLeagueAdmin, requireUser } from '@/lib/apiAuth'
 import { NextResponse } from 'next/server'
 import type { FeatureKey } from '@/lib/types'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
@@ -9,9 +10,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
+  const gate = await requireUser()
+  if ('response' in gate) return gate.response
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { data, error } = await supabase.from('league_features').select('*').eq('game_id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -28,12 +29,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
+  const gate = await requireLeagueAdmin(id)
+  if ('response' in gate) return gate.response
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { data: isAdmin } = await supabase.rpc('is_game_admin', { p_game_id: id })
-  if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await request.json()
   const updates: {
