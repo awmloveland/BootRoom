@@ -5,21 +5,19 @@
 //   if ('response' in gate) return gate.response
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getSessionUser, type SessionUser } from '@/lib/supabase/session'
 
 /** The subset of the session a route handler needs. */
-export interface ApiUser {
-  id: string
-  email: string | null
-}
+export type ApiUser = SessionUser
 
 export type AuthGate = { user: ApiUser } | { response: NextResponse }
 
 /** The signed-in caller, or a 401. */
 export async function requireUser(): Promise<AuthGate> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser(supabase)
   if (!user) return { response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
-  return { user: { id: user.id, email: user.email ?? null } }
+  return { user }
 }
 
 /** The signed-in caller if they admin this league (via is_game_admin), else a 401 or 403. */

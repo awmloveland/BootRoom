@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getSessionUser } from '@/lib/supabase/session'
 
 const SIGN_IN_PATH = '/sign-in'
 
@@ -57,7 +58,7 @@ export async function proxy(request: NextRequest) {
     },
   })
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser(supabase)
 
   if (!user) {
     const redirectUrl = request.nextUrl.clone()

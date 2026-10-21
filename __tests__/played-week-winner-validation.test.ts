@@ -1,4 +1,5 @@
 import { PATCH as editWeek } from '@/app/api/league/[id]/weeks/[weekId]/edit/route'
+import { mockAuthNamespace } from '@/lib/__tests__/helpers/supabase-auth'
 import { createClient } from '@/lib/supabase/server'
 
 jest.mock('@/lib/supabase/server')
@@ -23,7 +24,7 @@ describe('PATCH /api/league/[id]/weeks/[weekId]/edit — winner', () => {
       Promise.resolve(name === 'is_game_admin' ? { data: true } : { error: null })
     )
     ;(createClient as jest.Mock).mockResolvedValue({
-      auth: { getUser: jest.fn().mockResolvedValue({ data: { user: { id: 'u1' } } }) },
+      auth: mockAuthNamespace({ id: 'u1' }),
       rpc,
     })
   })

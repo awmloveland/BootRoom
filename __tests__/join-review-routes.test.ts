@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { mockAuthNamespace } from '@/lib/__tests__/helpers/supabase-auth'
 import {
   notifyAdminsOfJoinRequest,
   notifyRequesterOfReview,
@@ -21,12 +22,7 @@ const rpc = jest.fn()
 function setup({ user = true, rpcError = null as null | { message: string } } = {}) {
   rpc.mockResolvedValue({ data: null, error: rpcError })
   ;(createClient as jest.Mock).mockResolvedValue({
-    auth: {
-      getUser: jest.fn().mockResolvedValue({
-        data: { user: user ? { id: 'u1', email: 'a@example.com' } : null },
-        error: null,
-      }),
-    },
+    auth: mockAuthNamespace(user ? { id: 'u1', email: 'a@example.com' } : null),
     rpc,
   })
 }
