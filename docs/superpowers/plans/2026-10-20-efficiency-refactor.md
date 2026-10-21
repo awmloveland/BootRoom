@@ -1052,17 +1052,34 @@ The Results page already computes `nextWeek` and passes it as `initialScheduledW
 Delete from `// The next match card: editable for admins, read-only for everyone else.` through the closing `}` of `if (first && ...)`, and the `let nextWeek` declaration. Replace with:
 
 ```ts
-  // The next match card's starting week, with the same rules the Overview tab uses.
-  const nextWeek: ScheduledWeek | null = getNextMatchSeed(weeks, game.kickoff_time ?? null)
+  // The next match card's starting week. Once a game has kicked off the week
+  // list's Awaiting Result card owns it (see getResultsNextMatchSeed).
+  const nextWeek: ScheduledWeek | null = getResultsNextMatchSeed(weeks, game.kickoff_time ?? null)
+```
+
+Results must not use `getNextMatchSeed` directly: Overview keeps a kicked-off game on the card until the next midnight because it has no week list, but Results already renders that game as an Awaiting Result card, so the plain seed shows the same game twice with two record-result buttons. Add this helper to `lib/utils.ts` directly after `getNextMatchSeed`, with three unit tests in `lib/__tests__/utils.overview.test.ts` (upcoming → the week; kicked off yesterday → null; cancelled before kick-off → the week):
+
+```ts
+/**
+ * The Results tab's starting week: getNextMatchSeed, except that a scheduled
+ * game that has kicked off returns null, because the Results week list shows
+ * it as an Awaiting Result card and the next match card must not show the
+ * same game twice. Overview has no week list, so it keeps the awaiting window.
+ */
+export function getResultsNextMatchSeed(weeks: Week[], kickoffTime?: string | null): ScheduledWeek | null {
+  const seed = getNextMatchSeed(weeks, kickoffTime)
+  if (seed?.status === 'scheduled' && isPastDeadline(seed.date, kickoffTime)) return null
+  return seed
+}
 ```
 
 Update the import line from `@/lib/utils` to:
 
 ```ts
-import { dayNameToIndex, getLatestResultWeek, getNextMatchSeed } from '@/lib/utils'
+import { dayNameToIndex, getLatestResultWeek, getResultsNextMatchSeed } from '@/lib/utils'
 ```
 
-(`isPastDeadline` and `parseWeekDate` are no longer used here.)
+(`isPastDeadline` and `parseWeekDate` are no longer used here.) The deadline is now evaluated on the server clock, as Overview and the tab title already do; `TZ=Europe/London` must be set on Vercel, and `.env.example` plus the CLAUDE.md env table should say so.
 
 - [ ] **Step 2: Type-check**
 
