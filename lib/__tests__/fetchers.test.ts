@@ -384,13 +384,36 @@ describe('admin settings fetchers', () => {
       eq: jest.fn(() => attributes),
       order: jest.fn().mockResolvedValue({ data: [{ name: 'Bea Smith', rating: 3, mentality: 'balanced' }, { name: 'New Kid', rating: 0, mentality: 'attacking' }], error: null }),
     }
+    const from = jest.fn(() => attributes)
     ;(createServiceClient as jest.Mock).mockReturnValue({
-      from: jest.fn(() => attributes),
+      from,
       rpc: jest.fn().mockResolvedValue({ data: [{ name: 'Bea Smith', played: 12 }], error: null }),
     })
     await expect(getRosterPlayers(LEAGUE)).resolves.toEqual([
       { name: 'Bea Smith', strength: 'above', mentality: 'balanced', played: 12, linked_user_id: 'u2', linked_display_name: 'Bea' },
       { name: 'New Kid', strength: null, mentality: 'attacking', played: 0, linked_user_id: null, linked_display_name: null },
     ])
+    expect(from).toHaveBeenCalledWith('player_attributes')
+  })
+
+  it('getRosterPlayers returns [] and logs when the attributes read fails', async () => {
+    const { rpc } = mockAuth(USER)
+    rpc.mockResolvedValueOnce({ data: [], error: null })
+    const attributes = {
+      select: jest.fn(() => attributes),
+      eq: jest.fn(() => attributes),
+      order: jest.fn().mockResolvedValue({ data: null, error: { message: 'boom' } }),
+    }
+    ;(createServiceClient as jest.Mock).mockReturnValue({
+      from: jest.fn(() => attributes),
+      rpc: jest.fn().mockResolvedValue({ data: [], error: null }),
+    })
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      await expect(getRosterPlayers(LEAGUE)).resolves.toEqual([])
+      expect(spy).toHaveBeenCalledTimes(1)
+    } finally {
+      spy.mockRestore()
+    }
   })
 })
