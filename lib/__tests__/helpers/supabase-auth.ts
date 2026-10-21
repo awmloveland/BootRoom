@@ -5,7 +5,7 @@ export function mockAuthNamespace(user: { id: string; email?: string } | null) {
     getClaims: jest.fn().mockResolvedValue(
       user
         ? { data: { claims: { sub: user.id, email: user.email ?? null } }, error: null }
-        : { data: null, error: { message: 'Auth session missing!' } }
+        : { data: null, error: null }
     ),
     getUser: jest.fn().mockResolvedValue({ data: { user }, error: null }),
   }
