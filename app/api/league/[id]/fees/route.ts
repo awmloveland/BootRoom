@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getWeeks } from '@/lib/fetchers'
 import { computeFees, parseFeeRange } from '@/lib/fees'
 import { getFeeRows, parseFee, requireLeagueAdmin } from '@/lib/feesServer'
+import { revalidateLeague } from '@/lib/leagueCache'
 
 /** GET — admin-only. Who owes what over `?range=30|90|180|all|custom&from=&to=`. Returns AdminMoneyData. */
 export async function GET(
@@ -43,5 +44,6 @@ export async function PATCH(
   const { error } = await service.from('games').update({ fee_per_player: defaultFee }).eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  revalidateLeague(id)
   return NextResponse.json({ ok: true, defaultFee })
 }
