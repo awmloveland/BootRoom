@@ -5,6 +5,13 @@ import { createServiceClient } from '@/lib/supabase/service'
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 jest.mock('@/lib/supabase/service', () => ({ createServiceClient: jest.fn() }))
 
+// unstable_cache is an identity in tests: the fetchers are exercised, the
+// cross-request cache is not.
+jest.mock('next/cache', () => ({
+  unstable_cache: (fn: (...args: unknown[]) => unknown) => fn,
+  revalidateTag: jest.fn(),
+}))
+
 // Import after the mocks are registered.
 import { getUser, getNavSession, getAuthAndRole, getPendingBadgeCount, getPendingRequests, getMyJoinRequestStatus, getMyClaimInfo, ensureUnrecordedWeek, getLeagueMembers, getRosterPlayers, getAllPlayerClaims, getAccountData } from '@/lib/fetchers'
 import type { NavSession, Week } from '@/lib/types'
@@ -259,15 +266,6 @@ describe('ensureUnrecordedWeek', () => {
     await expect(ensureUnrecordedWeek(LEAGUE, weeks, 4)).resolves.toBe(weeks)
     expect(rpc).not.toHaveBeenCalled()
   })
-
-  it('returns the list unchanged when the RPC reports the row already exists', async () => {
-    jest.useFakeTimers().setSystemTime(new Date(2026, 3, 10, 12))
-    const rpc = jest.fn().mockResolvedValue({ data: null, error: null })
-    ;(createServiceClient as jest.Mock).mockReturnValue({ rpc })
-    const weeks = [playedWeek]
-
-    await expect(ensureUnrecordedWeek(LEAGUE, weeks, 4)).resolves.toBe(weeks)
-  })
 })
 
 describe('getNavSession', () => {
@@ -447,5 +445,28 @@ describe('getAccountData', () => {
       leagues: [{ id: 'g1', name: 'Boot Room' }],
       claims: { g1: { id: 'c1', game_id: 'g1', status: 'pending', player_name: 'Ada' } },
     })
+  })
+})
+
+describe('ensureUnrecordedWeek when the row already exists', () => {
+  afterEach(() => { jest.useRealTimers() })
+
+  it('re-reads weeks uncached instead of returning the stale list', async () => {
+    const existing: Week[] = [
+      { id: 'w1', season: '2026', week: 1, date: '01 Oct 2026', status: 'played', teamA: ['A'], teamB: ['B'], winner: 'teamA' },
+    ]
+    const rows = [
+      { id: 'w1', season: '2026', week: 1, date: '01 Oct 2026', status: 'played', format: null, team_a: ['A'], team_b: ['B'], winner: 'teamA', notes: null, goal_difference: null, team_a_rating: null, team_b_rating: null, lineup_metadata: null },
+      { id: 'w2', season: '2026', week: 2, date: '08 Oct 2026', status: 'unrecorded', format: null, team_a: [], team_b: [], winner: null, notes: null, goal_difference: null, team_a_rating: null, team_b_rating: null, lineup_metadata: null },
+    ]
+    const weeksQuery = { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), in: jest.fn().mockResolvedValue({ data: rows, error: null }) }
+    ;(createServiceClient as jest.Mock).mockReturnValue({
+      from: jest.fn(() => weeksQuery),
+      rpc: jest.fn().mockResolvedValue({ data: null, error: null }), // ON CONFLICT DO NOTHING
+    })
+    jest.useFakeTimers().setSystemTime(new Date(2026, 9, 10, 12)) // Sat 10 Oct 2026; Thursday 8 Oct has passed its deadline
+    const result = await ensureUnrecordedWeek(LEAGUE, existing, 4)
+    expect(result.map((w) => w.id)).toEqual(['w2', 'w1'])
+    expect(result.find((w) => w.id === 'w2')?.status).toBe('unrecorded')
   })
 })
