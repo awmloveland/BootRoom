@@ -53,7 +53,7 @@ describe('POST lineup', () => {
       p_team_a: ['A'], p_team_b: ['B'], p_lineup_metadata: { guests: [], new_players: [] },
       p_team_a_rating: 50, p_team_b_rating: 49,
     })
-    expect(revalidateTag).toHaveBeenCalledWith('league:g1', 'max')
+    expect(revalidateTag).toHaveBeenCalledWith('league:g1', { expire: 0 })
   })
 
   it('rejects non-admins', async () => {
@@ -130,7 +130,7 @@ describe('POST weeks/[weekId]/result', () => {
     expect(res.status).toBe(409)
     await expect(res.json()).resolves.toEqual({ error: 'name_already_exists' })
     // record_result already committed, so the cache must still be invalidated
-    expect(revalidateTag).toHaveBeenCalledWith('league:g1', 'max')
+    expect(revalidateTag).toHaveBeenCalledWith('league:g1', { expire: 0 })
   })
 
   it('rejects a played result without a winner', async () => {
