@@ -64,14 +64,18 @@ describe('pickers', () => {
 })
 
 describe('NextMatchCard on Results', () => {
-  it('holds its space with a placeholder while the scheduled week loads', () => {
-    const query = { select: () => query, eq: () => query, in: () => query, order: () => query, limit: () => query, maybeSingle: pending }
-    ;(createClient as jest.Mock).mockReturnValue({ from: () => query })
-
+  it('renders the seeded week on first paint, with no placeholder and no browser read', () => {
+    const week = {
+      id: 'w1', season: '2026', week: 16, date: '09 Apr 2026', format: '5-a-side',
+      teamA: ['Alice'], teamB: ['Bob'], status: 'scheduled' as const,
+      lineupMetadata: null, team_a_rating: null, team_b_rating: null,
+    }
     const { container } = render(
-      <NextMatchCard gameId="g1" leagueSlug="the-boot-room" weeks={[]} onResultSaved={jest.fn()} canEdit />
+      <NextMatchCard gameId="g1" leagueSlug="the-boot-room" weeks={[]} onResultSaved={jest.fn()} canEdit initialScheduledWeek={week} />
     )
-    expect(container.firstChild).toHaveAttribute('aria-busy', 'true')
+    expect(container.querySelector('[aria-busy="true"]')).not.toBeInTheDocument()
+    expect(screen.getByText('Week 16')).toBeInTheDocument()
+    expect(createClient).not.toHaveBeenCalled()
   })
 })
 
