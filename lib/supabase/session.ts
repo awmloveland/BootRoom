@@ -1,3 +1,4 @@
+// lib/supabase/session.ts
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 /** The two session facts server code needs. */
