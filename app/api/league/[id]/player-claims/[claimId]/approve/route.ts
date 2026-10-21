@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/apiAuth'
+import { revalidateLeague } from '@/lib/leagueCache'
 import { approveErrorResponse, parseApproveBody } from '@/lib/playerUtils'
 
 /**
@@ -12,7 +13,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string; claimId: string }> }
 ) {
-  const { claimId } = await params
+  const { id, claimId } = await params
   const gate = await requireUser()
   if ('response' in gate) return gate.response
   const supabase = await createClient()
@@ -34,5 +35,7 @@ export async function POST(
     return NextResponse.json({ error: message }, { status })
   }
 
+  // create_player inserts a player_attributes row the public stats read.
+  revalidateLeague(id)
   return NextResponse.json({ ok: true })
 }

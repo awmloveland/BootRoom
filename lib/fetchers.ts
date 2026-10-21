@@ -407,7 +407,8 @@ export const getWeeks = cache((leagueId: string): Promise<Week[]> =>
  * Lazily create an 'unrecorded' row when the most recent expected game day has
  * passed its deadline with no row for it. Returns the weeks list with the new
  * row appended; the row is built locally from the id the RPC returns, so there
- * is no second fetch. Returns the same list when nothing was created.
+ * is no second fetch. Returns the same list when nothing needed creating, and a
+ * fresh uncached read when another request created the row first.
  *
  * Not cached: it writes. Callers skip it for the public tier.
  */

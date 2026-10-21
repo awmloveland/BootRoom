@@ -3,9 +3,15 @@ import { mockAuthNamespace } from '@/lib/__tests__/helpers/supabase-auth'
 
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 jest.mock('@/lib/slug', () => ({ resolveUniqueSlug: jest.fn().mockResolvedValue('sunday-kickabout') }))
+jest.mock('next/cache', () => ({ revalidateTag: jest.fn() }))
 const update = jest.fn()
 jest.mock('@/lib/supabase/service', () => ({
-  createServiceClient: () => ({ from: () => ({ update: (...args: unknown[]) => { update(...args); return { eq: () => Promise.resolve({ error: null }) } } }) }),
+  createServiceClient: () => ({
+    from: () => ({
+      select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { slug: 'old-slug' }, error: null }) }) }),
+      update: (...args: unknown[]) => { update(...args); return { eq: () => Promise.resolve({ error: null }) } },
+    }),
+  }),
 }))
 
 import { PATCH } from '@/app/api/league/[id]/details/route'

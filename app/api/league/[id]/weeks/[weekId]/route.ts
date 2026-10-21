@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireLeagueAdmin } from '@/lib/apiAuth'
+import { revalidateLeague } from '@/lib/leagueCache'
 import { NextResponse } from 'next/server'
 
 /** PATCH — admin-only, updates the date on a scheduled week. Body: { date: "DD MMM YYYY" } */
@@ -33,5 +34,6 @@ export async function PATCH(
     .eq('status', 'scheduled')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  revalidateLeague(id)
   return NextResponse.json({ ok: true })
 }

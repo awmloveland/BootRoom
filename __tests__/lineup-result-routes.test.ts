@@ -1,6 +1,8 @@
+import { revalidateTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { mockAuthNamespace } from '@/lib/__tests__/helpers/supabase-auth'
 
+jest.mock('next/cache', () => ({ revalidateTag: jest.fn() }))
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 
 import { POST as saveLineup } from '@/app/api/league/[id]/lineup/route'
@@ -35,7 +37,10 @@ const week = { params: Promise.resolve({ id: 'g1', weekId: 'w1' }) }
 
 const LINEUP = { season: '2026', week: 3, date: '22 Oct 2026', format: '7-a-side', teamA: ['A'], teamB: ['B'], lineupMetadata: { guests: [], new_players: [] }, teamARating: 50, teamBRating: 49 }
 
-beforeEach(() => rpc.mockReset())
+beforeEach(() => {
+  rpc.mockReset()
+  ;(revalidateTag as jest.Mock).mockClear()
+})
 
 describe('POST lineup', () => {
   it('calls save_lineup and returns the week id', async () => {
@@ -48,11 +53,13 @@ describe('POST lineup', () => {
       p_team_a: ['A'], p_team_b: ['B'], p_lineup_metadata: { guests: [], new_players: [] },
       p_team_a_rating: 50, p_team_b_rating: 49,
     })
+    expect(revalidateTag).toHaveBeenCalledWith('league:g1', 'max')
   })
 
   it('rejects non-admins', async () => {
     setup({ admin: false })
     expect((await saveLineup(json(LINEUP), league)).status).toBe(403)
+    expect(revalidateTag).not.toHaveBeenCalled()
   })
 
   it('rejects a body without teams', async () => {
@@ -122,6 +129,8 @@ describe('POST weeks/[weekId]/result', () => {
     const res = await recordResult(json({ ...RESULT, guests: [{ oldName: 'G', newName: 'Dup', rating: 2, goalkeeper: false }] }), week)
     expect(res.status).toBe(409)
     await expect(res.json()).resolves.toEqual({ error: 'name_already_exists' })
+    // record_result already committed, so the cache must still be invalidated
+    expect(revalidateTag).toHaveBeenCalledWith('league:g1', 'max')
   })
 
   it('rejects a played result without a winner', async () => {
@@ -141,5 +150,6 @@ describe('POST weeks/[weekId]/result', () => {
     setup()
     expect((await recordResult(json({ ...RESULT, guests: [null] }), week)).status).toBe(400)
     expect(rpc).not.toHaveBeenCalledWith('record_result', expect.anything())
+    expect(revalidateTag).not.toHaveBeenCalled()
   })
 })

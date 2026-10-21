@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireLeagueAdmin } from '@/lib/apiAuth'
+import { revalidateLeague } from '@/lib/leagueCache'
 import { NextResponse } from 'next/server'
 import { strengthToRating } from '@/lib/strength'
 import type { Mentality, Strength } from '@/lib/types'
@@ -66,5 +67,6 @@ export async function POST(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  revalidateLeague(id)
   return NextResponse.json({ ok: true, new_name: newName })
 }

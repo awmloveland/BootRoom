@@ -2,6 +2,7 @@ import { PATCH as editWeek } from '@/app/api/league/[id]/weeks/[weekId]/edit/rou
 import { mockAuthNamespace } from '@/lib/__tests__/helpers/supabase-auth'
 import { createClient } from '@/lib/supabase/server'
 
+jest.mock('next/cache', () => ({ revalidateTag: jest.fn() }))
 jest.mock('@/lib/supabase/server')
 
 // A played week must always have a winner (teamA, teamB or draw); the match card

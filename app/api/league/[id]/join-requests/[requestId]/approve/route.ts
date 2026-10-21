@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/apiAuth'
+import { revalidateLeague } from '@/lib/leagueCache'
 import { approveErrorResponse, parseApproveBody } from '@/lib/playerUtils'
 import { notifyRequesterOfReview } from '@/lib/email/send-join-request-notifications'
 
@@ -13,7 +14,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string; requestId: string }> }
 ) {
-  const { requestId } = await params
+  const { id, requestId } = await params
   const gate = await requireUser()
   if ('response' in gate) return gate.response
   const supabase = await createClient()
@@ -34,6 +35,9 @@ export async function POST(
     if (status === 500) console.error('[join-requests approve POST]', error)
     return NextResponse.json({ error: message }, { status })
   }
+
+  // create_player inserts a player_attributes row the public stats read.
+  revalidateLeague(id)
 
   const origin = request.headers.get('origin') ?? 'https://craft-football.com'
   notifyRequesterOfReview(requestId, 'approved', origin)

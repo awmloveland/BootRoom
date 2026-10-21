@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireLeagueAdmin } from '@/lib/apiAuth'
+import { revalidateLeague } from '@/lib/leagueCache'
 import { NextResponse } from 'next/server'
 import { parsePlayerPatch } from '@/lib/playerUtils'
 import { strengthToRating } from '@/lib/strength'
@@ -39,6 +40,7 @@ export async function PATCH(
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!data) return NextResponse.json({ error: 'Player not found' }, { status: 404 })
 
+  revalidateLeague(id)
   return NextResponse.json(data)
 }
 
@@ -65,5 +67,6 @@ export async function DELETE(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  revalidateLeague(id)
   return NextResponse.json({ ok: true })
 }
