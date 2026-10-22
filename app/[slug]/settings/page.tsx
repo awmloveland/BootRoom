@@ -16,7 +16,7 @@ interface Props {
 const SECTIONS: SettingsSection[] = ['details', 'members', 'players', ...(DEFAULT_FEATURES.length > 0 ? ['features' as const] : [])]
 
 /**
- * Admin settings for one league. The proxy requires a session; this page
+ * Admin settings for one league. The proxy requires a session with a profile; this page
  * checks the role and gathers every panel's data in one batch so the client
  * shell renders with no fetch waterfall.
  */

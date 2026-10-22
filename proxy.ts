@@ -4,14 +4,17 @@ import { getSessionUser } from '@/lib/supabase/session'
 
 const SIGN_IN_PATH = '/sign-in'
 
-// Routes that require a valid Supabase session
-const AUTH_REQUIRED = ['/settings']
-
 function getSupabaseUrl() { return process.env.NEXT_PUBLIC_SUPABASE_URL! }
 function getSupabaseAnonKey() {
   return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 }
 
+/**
+ * Two routes need a session with a profiles row before they render: the
+ * account page, and a league's settings page, whose server component checks
+ * the admin role itself and redirects members. Everything else is public.
+ * The session is verified locally from the JWT.
+ */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -20,12 +23,7 @@ export async function proxy(request: NextRequest) {
   requestHeaders.set('x-pathname', pathname)
   const requestWithPathname = { request: { headers: requestHeaders } }
 
-  // Skip static assets, API routes, and auth callback
-  if (
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/auth') ||
-    pathname.startsWith('/_next')
-  ) {
+  if (pathname.startsWith('/api') || pathname.startsWith('/auth') || pathname.startsWith('/_next')) {
     return NextResponse.next(requestWithPathname)
   }
 
@@ -37,15 +35,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Check if this path needs auth or league admin
-  const needsAuth = AUTH_REQUIRED.some((p) => pathname === p || pathname.startsWith(p + '/'))
-  const needsLeagueAdmin = /^\/[^/]+\/settings(\/|$)/.test(pathname)
-
-  if (!needsAuth && !needsLeagueAdmin) {
+  const isAccountSettings = pathname === '/settings' || pathname.startsWith('/settings/')
+  const isLeagueSettings = /^\/[^/]+\/settings(\/|$)/.test(pathname)
+  if (!isAccountSettings && !isLeagueSettings) {
     return NextResponse.next(requestWithPathname)
   }
 
-  // Build supabase client to check session
   const response = NextResponse.next(requestWithPathname)
   const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
     cookies: {
@@ -59,7 +54,6 @@ export async function proxy(request: NextRequest) {
   })
 
   const user = await getSessionUser(supabase)
-
   if (!user) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = SIGN_IN_PATH
@@ -67,48 +61,15 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Check profile exists (required for all auth-gated routes)
-  // Skip for /sign-in, /profile-required, /invite which handle this themselves
-  const skipProfileCheck = ['/sign-in', '/profile-required', '/invite'].some(
-    (p) => pathname === p || pathname.startsWith(p + '/')
-  )
-  if (!skipProfileCheck) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', user.id)
-      .maybeSingle()
-
-    if (!profile) {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = '/profile-required'
-      return NextResponse.redirect(redirectUrl)
-    }
-  }
-
-  if (needsLeagueAdmin) {
-    // Extract slug from path like /the-boot-room/settings, resolve to UUID
-    const slug = pathname.split('/')[1]
-    const { data: game } = await supabase
-      .from('games')
-      .select('id')
-      .eq('slug', slug)
-      .maybeSingle()
-
-    if (!game) {
-      return NextResponse.redirect(new URL(`/${slug}/results`, request.url))
-    }
-
-    const { data: member } = await supabase
-      .from('game_members')
-      .select('role')
-      .eq('game_id', game.id)
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (!member || !['creator', 'admin'].includes(member.role)) {
-      return NextResponse.redirect(new URL(`/${slug}/results`, request.url))
-    }
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (!profile) {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = '/profile-required'
+    return NextResponse.redirect(redirectUrl)
   }
 
   return response
