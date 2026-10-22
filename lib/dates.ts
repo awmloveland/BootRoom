@@ -39,7 +39,32 @@ const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 
 const MONTH_IDX: Record<string, number> = Object.fromEntries(MONTH_SHORT.map((m, i) => [m, i]))
 
-/** Parse a 'DD MMM YYYY' date string into a local Date. */
+/** The timezone every league plays in. Game days and kick-off deadlines are read on this clock. */
+export const LEAGUE_TIMEZONE = 'Europe/London'
+
+const leagueClock = new Intl.DateTimeFormat('en-GB', {
+  timeZone: LEAGUE_TIMEZONE,
+  year: 'numeric', month: 'numeric', day: 'numeric',
+  hour: 'numeric', minute: 'numeric', second: 'numeric',
+  hour12: false,
+})
+
+/**
+ * The current wall-clock time in the league's timezone, as a Date whose local
+ * getters (getDate, getDay, getHours) read that wall clock. Use it instead of
+ * new Date() wherever a calendar day or kick-off time is compared, so the
+ * answer is the same on a UTC server (Vercel runs functions in UTC and
+ * reserves the TZ variable) as in a London browser. `at` is an instant.
+ */
+export function leagueNow(at: number | Date = Date.now()): Date {
+  const parts: Record<string, number> = {}
+  for (const part of leagueClock.formatToParts(at)) {
+    if (part.type !== 'literal') parts[part.type] = Number(part.value)
+  }
+  return new Date(parts.year, parts.month - 1, parts.day, parts.hour % 24, parts.minute, parts.second)
+}
+
+/** Parse a 'DD MMM YYYY' date string into a Date at midnight on that day (compare it with leagueNow()). */
 export function parseWeekDate(date: string): Date {
   const [d, m, y] = date.split(' ')
   return new Date(parseInt(y), MONTH_IDX[m], parseInt(d))
@@ -60,7 +85,7 @@ export function formatWeekDate(date: Date): string {
  */
 export function getNextMatchDate(weeks: Week[], leagueDayIndex?: number): string {
   const played = getPlayedWeeks(sortWeeks(weeks))
-  const today = new Date()
+  const today = leagueNow()
   today.setHours(0, 0, 0, 0)
 
   // Use leagueDayIndex if provided (note: 0 = Sunday is valid, use !== undefined not truthiness)
@@ -102,7 +127,7 @@ export function dayNameToIndex(day: string | null): number | null {
  * as a 'DD MMM YYYY' string. Never returns today — always at least tomorrow.
  */
 export function nextOccurrenceAfterToday(dayIndex: number): string {
-  const today = new Date()
+  const today = leagueNow()
   today.setHours(0, 0, 0, 0)
   let daysUntil = (dayIndex - today.getDay() + 7) % 7
   if (daysUntil === 0) daysUntil = 7
@@ -138,14 +163,14 @@ export function parseKickoffTime(value: string | null | undefined): { hours: num
 }
 
 /**
- * True once a game on `dateStr` ('DD MMM YYYY', local time) is waiting for its
+ * True once a game on `dateStr` ('DD MMM YYYY', league time) is waiting for its
  * result: from the league's kick-off time when it has one, otherwise from 20:00.
  */
 export function isPastDeadline(dateStr: string, kickoffTime?: string | null): boolean {
   const { hours, minutes } = parseKickoffTime(kickoffTime) ?? { hours: 20, minutes: 0 }
   const deadline = parseWeekDate(dateStr)
   deadline.setHours(hours, minutes, 0, 0)
-  return Date.now() > deadline.getTime()
+  return leagueNow().getTime() > deadline.getTime()
 }
 
 /**
@@ -155,7 +180,7 @@ export function isPastDeadline(dateStr: string, kickoffTime?: string | null): bo
 export function isAwaitingWindowOver(dateStr: string): boolean {
   const closes = parseWeekDate(dateStr)
   closes.setDate(closes.getDate() + 2)
-  return Date.now() >= closes.getTime()
+  return leagueNow().getTime() >= closes.getTime()
 }
 
 /** 'DD MMM YYYY' → 'Thu 09 Apr', for fixture lines. */
@@ -187,7 +212,7 @@ export function getMostRecentExpectedGameDate(
 
   if (dow === null) return null
 
-  const today = new Date()
+  const today = leagueNow()
   today.setHours(0, 0, 0, 0)
   // Walk backwards from today to find the most recent occurrence of this day-of-week
   const daysBack = (today.getDay() - dow + 7) % 7

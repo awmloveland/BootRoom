@@ -4,7 +4,7 @@ import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { LeagueDetails, PlayerClaimStatus, ScheduledWeek, Week } from './types'
 import type { VisibilityTier } from './roles'
-import { formatWeekDate, getPlayedWeeks, isAwaitingWindowOver, isPastDeadline, sortWeeks } from './dates'
+import { formatWeekDate, getPlayedWeeks, isAwaitingWindowOver, isPastDeadline, leagueNow, sortWeeks } from './dates'
 import { formatWinner } from './standings'
 
 // Domain modules. Import from them directly in new code; these re-exports
@@ -29,7 +29,7 @@ export function generateSlug(name: string): string {
 
 /** Return the next week number within the current calendar year (or 1 if no weeks this year). */
 export function getNextWeekNumber(weeks: Week[]): number {
-  const currentYear = String(new Date().getFullYear())
+  const currentYear = String(leagueNow().getFullYear())
   const thisYear = weeks.filter((w) => w.season === currentYear)
   if (thisYear.length === 0) return 1
   return Math.max(...thisYear.map((w) => w.week)) + 1
@@ -37,7 +37,7 @@ export function getNextWeekNumber(weeks: Week[]): number {
 
 export function deriveSeason(weeks: Week[]): string {
   const played = getPlayedWeeks(weeks)
-  if (played.length === 0) return String(new Date().getFullYear())
+  if (played.length === 0) return String(leagueNow().getFullYear())
   return sortWeeks(played)[0].season
 }
 
@@ -49,12 +49,12 @@ export function deriveSeason(weeks: Week[]): string {
  */
 export function getSeasonPlayedWeekCount(weeks: Week[]): number {
   const relevant = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled' || w.status === 'dnf')
-  const currentYear = String(new Date().getFullYear())
+  const currentYear = String(leagueNow().getFullYear())
   const currentYearWeeks = relevant.filter((w) => w.season === currentYear)
   if (currentYearWeeks.length > 0) {
     return Math.max(...currentYearWeeks.map((w) => w.week))
   }
-  const prevYear = String(new Date().getFullYear() - 1)
+  const prevYear = String(leagueNow().getFullYear() - 1)
   const prevYearWeeks = relevant.filter((w) => w.season === prevYear)
   return prevYearWeeks.length > 0 ? Math.max(...prevYearWeeks.map((w) => w.week)) : 0
 }
@@ -66,9 +66,9 @@ export function getSeasonPlayedWeekCount(weeks: Week[]): number {
  */
 export function getHeaderSeason(weeks: Week[]): string {
   const relevant = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled' || w.status === 'dnf')
-  const currentYear = String(new Date().getFullYear())
+  const currentYear = String(leagueNow().getFullYear())
   if (relevant.some((w) => w.season === currentYear)) return currentYear
-  const prevYear = String(new Date().getFullYear() - 1)
+  const prevYear = String(leagueNow().getFullYear() - 1)
   return relevant.some((w) => w.season === prevYear) ? prevYear : currentYear
 }
 
@@ -84,7 +84,7 @@ export function getSeasons(weeks: Week[]): string[] {
  */
 export function resolveSelectedYear(seasons: string[], param: string | null | undefined): string {
   if (param && seasons.includes(param)) return param
-  return seasons[0] ?? String(new Date().getFullYear())
+  return seasons[0] ?? String(leagueNow().getFullYear())
 }
 
 /** Latest played or DNF week by date: the result card that opens by default. */

@@ -3,6 +3,7 @@
 
 import type { Player, Strength } from './types'
 import { strengthToRating } from './strength'
+import { leagueNow } from './dates'
 
 // --- Per-player score (wprScore) ---
 const WPR_PPG_WEIGHT = 0.60            // shrunk points-per-game contribution
@@ -99,7 +100,7 @@ export function wprScore(player: Player, referenceDate?: Date): number {
   let isCalendarRusty = false
   if (player.lastPlayedWeekDate) {
     const lastPlayed = new Date(player.lastPlayedWeekDate)
-    const ref = referenceDate ?? new Date()
+    const ref = referenceDate ?? leagueNow()
     const diffDays = (ref.getTime() - lastPlayed.getTime()) / (1000 * 60 * 60 * 24)
     isCalendarRusty = diffDays > RUSTINESS_DAYS
   }
