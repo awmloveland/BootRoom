@@ -10,6 +10,7 @@ import { computeRecords } from '@/lib/records'
 import { RecordsSection } from '@/components/RecordsSection'
 import { HonoursLoginPrompt } from '@/components/HonoursLoginPrompt'
 import { ClaimOnboardingBanner } from '@/components/ClaimOnboardingBanner'
+import { leagueNow } from '@/lib/utils'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -48,7 +49,7 @@ export default async function RecordsPage({ params }: Props) {
       {signedOut ? (
         <HonoursLoginPrompt leagueSlug={slug} leagueName={game.name} tab="records" />
       ) : (
-        <RecordsSection data={computeRecords(weeks, new Date())} leagueSlug={slug} />
+        <RecordsSection data={computeRecords(weeks, leagueNow())} leagueSlug={slug} />
       )}
     </>
   )

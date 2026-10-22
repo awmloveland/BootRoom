@@ -1079,7 +1079,7 @@ Update the import line from `@/lib/utils` to:
 import { dayNameToIndex, getLatestResultWeek, getResultsNextMatchSeed } from '@/lib/utils'
 ```
 
-(`isPastDeadline` and `parseWeekDate` are no longer used here.) The deadline is now evaluated on the server clock, as Overview and the tab title already do; `TZ=Europe/London` must be set on Vercel, and `.env.example` plus the CLAUDE.md env table should say so.
+(`isPastDeadline` and `parseWeekDate` are no longer used here.) The deadline is evaluated on the server, as Overview and the tab title already do. Vercel reserves the `TZ` variable and runs functions in UTC, so every calendar and kick-off check goes through `leagueNow()` in `lib/utils.ts`, which reads the Europe/London wall clock explicitly.
 
 - [ ] **Step 2: Type-check**
 

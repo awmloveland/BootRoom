@@ -1,6 +1,6 @@
 // lib/metadata.ts
 import type { Metadata } from 'next'
-import { buildLeagueTitle, dayNameToIndex, getLeagueTitleStatus } from '@/lib/utils'
+import { buildLeagueTitle, dayNameToIndex, getLeagueTitleStatus, leagueNow } from '@/lib/utils'
 import { getGameBySlug, getWeeks, getPendingBadgeCount } from '@/lib/fetchers'
 import {
   buildLeagueShareMetadata,
@@ -51,7 +51,7 @@ export async function leaguePageMetadata(
   ])
 
   const status = page === 'overview' || page === 'results'
-    ? getLeagueTitleStatus(weeks, new Date(), dayNameToIndex(game.day ?? null) ?? undefined)
+    ? getLeagueTitleStatus(weeks, leagueNow(), dayNameToIndex(game.day ?? null) ?? undefined)
     : null
 
   const title = {

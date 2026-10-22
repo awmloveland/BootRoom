@@ -5,7 +5,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { dayNameToIndex, getNextMatchSeed, getOverviewViewerCard } from '@/lib/utils'
+import { dayNameToIndex, getNextMatchSeed, getOverviewViewerCard, leagueNow } from '@/lib/utils'
 import { getGameBySlug, getAuthAndRole, getPlayerStats, getWeeks, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
 import { computeQuarterlyTable, getQuarterStanding, getLastResult } from '@/lib/sidebar-stats'
 import { LeagueTabSkeleton } from '@/components/LeagueTabSkeleton'
@@ -67,7 +67,7 @@ export default async function LeagueOverviewPage({ params }: Props) {
     hasLinkedPlayer: linkedPlayer !== null,
   })
 
-  const table = computeQuarterlyTable(weeks, new Date(), leagueDayIndex)
+  const table = computeQuarterlyTable(weeks, leagueNow(), leagueDayIndex)
   const standing = getQuarterStanding(table.allEntries, linkedPlayer?.name)
   const lastResult = getLastResult(weeks)
 
