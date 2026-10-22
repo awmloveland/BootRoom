@@ -5,7 +5,7 @@ jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 jest.mock('@/lib/supabase/service', () => ({ createServiceClient: jest.fn() }))
 
 // Import after the mocks are registered.
-import { getUser, getNavSession, getAuthAndRole, getPendingBadgeCount, getPendingRequests, getMyJoinRequestStatus, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
+import { getUser, getNavSession, getAuthAndRole, getPendingBadgeCount, getPendingRequests, getMyJoinRequestStatus, getMyClaimInfo, ensureUnrecordedWeek, getLeagueMembers, getRosterPlayers, getAllPlayerClaims } from '@/lib/fetchers'
 import type { NavSession, Week } from '@/lib/types'
 
 const LEAGUE = '11111111-1111-1111-1111-111111111111'
@@ -356,6 +356,63 @@ describe('getNavSession', () => {
       expect(errorSpy).toHaveBeenCalledTimes(1)
     } finally {
       errorSpy.mockRestore()
+    }
+  })
+})
+
+describe('admin settings fetchers', () => {
+  it('getLeagueMembers returns the RPC rows and [] on error', async () => {
+    const { rpc } = mockAuth(USER)
+    rpc.mockResolvedValueOnce({ data: [{ user_id: 'u2', email: 'b@b.c', display_name: 'B', role: 'member', joined_at: 'x', linked_player_name: null }], error: null })
+    await expect(getLeagueMembers(LEAGUE)).resolves.toHaveLength(1)
+    expect(rpc).toHaveBeenCalledWith('get_league_members', { p_game_id: LEAGUE })
+    rpc.mockResolvedValueOnce({ data: null, error: { message: 'Access denied' } })
+    await expect(getLeagueMembers('other')).resolves.toEqual([])
+  })
+
+  it('getAllPlayerClaims returns every claim row', async () => {
+    const { rpc } = mockAuth(USER)
+    rpc.mockResolvedValueOnce({ data: [{ id: 'c1', status: 'pending' }, { id: 'c2', status: 'approved' }], error: null })
+    await expect(getAllPlayerClaims(LEAGUE)).resolves.toHaveLength(2)
+  })
+
+  it('getRosterPlayers joins attributes with linked members and played counts', async () => {
+    const { rpc } = mockAuth(USER)
+    rpc.mockResolvedValueOnce({ data: [{ user_id: 'u2', email: 'b@b.c', display_name: 'Bea', role: 'member', joined_at: 'x', linked_player_name: 'Bea Smith' }], error: null })
+    const attributes = {
+      select: jest.fn(() => attributes),
+      eq: jest.fn(() => attributes),
+      order: jest.fn().mockResolvedValue({ data: [{ name: 'Bea Smith', rating: 3, mentality: 'balanced' }, { name: 'New Kid', rating: 0, mentality: 'attacking' }], error: null }),
+    }
+    const from = jest.fn(() => attributes)
+    const serviceRpc = jest.fn().mockResolvedValue({ data: [{ name: 'Bea Smith', played: 12 }], error: null })
+    ;(createServiceClient as jest.Mock).mockReturnValue({ from, rpc: serviceRpc })
+    await expect(getRosterPlayers(LEAGUE)).resolves.toEqual([
+      { name: 'Bea Smith', strength: 'above', mentality: 'balanced', played: 12, linked_user_id: 'u2', linked_display_name: 'Bea' },
+      { name: 'New Kid', strength: null, mentality: 'attacking', played: 0, linked_user_id: null, linked_display_name: null },
+    ])
+    expect(from).toHaveBeenCalledWith('player_attributes')
+    expect(serviceRpc).toHaveBeenCalledWith('get_player_stats_public', { p_game_id: LEAGUE })
+  })
+
+  it('getRosterPlayers returns [] and logs when the attributes read fails', async () => {
+    const { rpc } = mockAuth(USER)
+    rpc.mockResolvedValueOnce({ data: [], error: null })
+    const attributes = {
+      select: jest.fn(() => attributes),
+      eq: jest.fn(() => attributes),
+      order: jest.fn().mockResolvedValue({ data: null, error: { message: 'boom' } }),
+    }
+    ;(createServiceClient as jest.Mock).mockReturnValue({
+      from: jest.fn(() => attributes),
+      rpc: jest.fn().mockResolvedValue({ data: [], error: null }),
+    })
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      await expect(getRosterPlayers(LEAGUE)).resolves.toEqual([])
+      expect(spy).toHaveBeenCalledTimes(1)
+    } finally {
+      spy.mockRestore()
     }
   })
 })

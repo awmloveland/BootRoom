@@ -60,7 +60,6 @@ BootRoom/
 │   ├── utils.ts              # cn(), sortWeeks(), getPlayedWeeks(), deriveSeason()
 │   ├── roles.ts              # resolveVisibilityTier() — maps GameRole → VisibilityTier
 │   ├── features.ts           # isFeatureEnabled() — checks feature against visibility tier
-│   ├── data.ts               # fetchGames() (league settings page only; removed in PR 6 of the efficiency refactor)
 │   └── supabase/             # Supabase client helpers (client, server, service)
 ├── supabase/migrations/      # SQL migrations — run in order via Supabase SQL Editor
 ├── scripts/                  # Data migration and automation scripts

@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sortWeeks, deriveSeason, getMostRecentExpectedGameDate, getNextWeekNumber, isPastDeadline } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
-import type { GameRole, LeagueFeature, NavSession, Player, Week, Mentality, Strength, JoinRequestStatus, PendingJoinRequest, PendingRequestSummary, PlayerClaimStatus } from '@/lib/types'
+import type { GameRole, LeagueFeature, NavSession, Player, Week, Mentality, Strength, JoinRequestStatus, PendingJoinRequest, PendingRequestSummary, PlayerClaimStatus, LeagueMember, PlayerAttribute, PlayerClaim } from '@/lib/types'
 import { ratingToStrength } from '@/lib/strength'
 
 // ── Game ─────────────────────────────────────────────────────────────────────
@@ -234,6 +234,66 @@ export const getMyJoinRequestStatus = cache(async (
   return getJoinRequestStatus(leagueId, user.id)
 })
 
+// ── Admin settings reads ──────────────────────────────────────────────────────
+// All three are admin-only. get_league_members and get_player_claims deny
+// non-admins themselves. getRosterPlayers reads player_attributes through the
+// service client; that table holds nothing get_player_stats_public doesn't
+// already publish, and the member link (which carries emails) comes from
+// get_league_members, so a non-admin caller gets an unlinked roster, not a leak.
+
+export const getLeagueMembers = cache(async (leagueId: string): Promise<LeagueMember[]> => {
+  try {
+    const authSupabase = await getAuthClient()
+    const { data, error } = await authSupabase.rpc('get_league_members', { p_game_id: leagueId })
+    if (error) {
+      if (!/Access denied|permission denied/.test(error.message ?? '')) console.error('[getLeagueMembers] get_league_members failed', error)
+      return []
+    }
+    return (data ?? []) as LeagueMember[]
+  } catch {
+    return []
+  }
+})
+
+export const getAllPlayerClaims = cache(async (leagueId: string): Promise<PlayerClaim[]> => {
+  try {
+    const authSupabase = await getAuthClient()
+    const { data, error } = await authSupabase.rpc('get_player_claims', { p_game_id: leagueId })
+    if (error) {
+      if (!/Access denied|permission denied/.test(error.message ?? '')) console.error('[getAllPlayerClaims] get_player_claims failed', error)
+      return []
+    }
+    return (data ?? []) as PlayerClaim[]
+  } catch {
+    return []
+  }
+})
+
+// The roster with each player's strength, played count and linked member,
+// as the Settings → Players tab and the review cards show it.
+export const getRosterPlayers = cache(async (leagueId: string): Promise<PlayerAttribute[]> => {
+  const service = createServiceClient()
+  const [attributes, members, stats] = await Promise.all([
+    service.from('player_attributes').select('name, rating, mentality').eq('game_id', leagueId).order('name', { ascending: true }),
+    getLeagueMembers(leagueId),
+    getPlayerStats(leagueId),
+  ])
+  if (attributes.error) console.error('[getRosterPlayers] player_attributes read failed', attributes.error)
+  const linked = new Map(
+    members
+      .filter((m) => m.linked_player_name)
+      .map((m) => [m.linked_player_name as string, { linked_user_id: m.user_id, linked_display_name: m.display_name || m.email }])
+  )
+  const played = new Map(stats.map((s) => [s.name, s.played]))
+  return ((attributes.data ?? []) as { name: string; rating: number | null; mentality: PlayerAttribute['mentality'] }[]).map((p) => ({
+    name: p.name,
+    strength: ratingToStrength(Number(p.rating ?? 0)),
+    mentality: p.mentality,
+    played: played.get(p.name) ?? 0,
+    ...(linked.get(p.name) ?? { linked_user_id: null, linked_display_name: null }),
+  }))
+})
+
 // ── Pending join requests ─────────────────────────────────────────────────────
 
 // Fetches all pending join requests for a league. Returns [] if the caller
@@ -253,21 +313,10 @@ export const getPendingJoinRequests = cache(async (leagueId: string): Promise<Pe
   }
 })
 
-// Fetches pending player claims with the claimant's display name. Returns []
-// if the caller is not an admin (the RPC raises 'Access denied').
-const getPendingClaims = cache(async (leagueId: string): Promise<{ user_id: string; display_name: string | null }[]> => {
-  try {
-    const user = await getUser()
-    if (!user) return []
-    const authSupabase = await getAuthClient()
-    const { data, error } = await authSupabase.rpc('get_player_claims', { p_game_id: leagueId })
-    if (error) return []
-    const claims = (data ?? []) as { user_id: string; display_name: string | null; status: string }[]
-    return claims.filter((c) => c.status === 'pending')
-  } catch {
-    return []
-  }
-})
+// Pending player claims only; shares the cached get_player_claims read with
+// the settings page.
+const getPendingClaims = cache(async (leagueId: string) =>
+  (await getAllPlayerClaims(leagueId)).filter((c) => c.status === 'pending'))
 
 // Everything an admin has waiting: join requests, plus player claims from
 // users without a pending join request (a claim made while asking to join is
