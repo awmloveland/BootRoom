@@ -76,7 +76,7 @@ BootRoom/
 └── next.config.js            # Plain .js config (see Key decisions)
 ```
 
-New components go in `components/`. New helpers go in the domain module they belong to: `lib/dates.ts` (week dates, game days, deadlines), `lib/rating.ts` (WPR, EWPT, win probability), `lib/shareText.ts` (share messages and links), `lib/standings.ts` (points and tables), `lib/review.ts` (join request and claim review). `lib/utils.ts` keeps `cn()`, season and week helpers, and re-exports the domain modules for existing imports.
+New components go in `components/`. New helpers go in the domain module they belong to: `lib/dates.ts` (week dates, game days, deadlines), `lib/rating.ts` (WPR, EWPT, win probability), `lib/shareText.ts` (share messages and links), `lib/standings.ts` (points and tables), `lib/review.ts` (join request and claim review). `lib/utils.ts` keeps `cn()`, season helpers and the next match seed, and re-exports the domain modules for existing imports.
 New types go in `lib/types.ts`. Do not create `src/` directories.
 
 ---
