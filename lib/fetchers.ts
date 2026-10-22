@@ -422,3 +422,41 @@ export async function ensureUnrecordedWeek(
     { id: newId as string, season, week, date: recentDate, status: 'unrecorded', teamA: [], teamB: [], winner: null },
   ])
 }
+
+// ── Account page ──────────────────────────────────────────────────────────────
+
+export interface AccountData {
+  email: string
+  firstName: string
+  lastName: string
+  createdAt: string | null
+  leagues: { id: string; name: string }[]
+  /** Keyed by league id. */
+  claims: Record<string, PlayerClaim>
+}
+
+type AccountMembershipRow = { games: { id: string; name: string } | null }
+
+// Everything the account page shows, in one batch.
+export const getAccountData = cache(async (): Promise<AccountData | null> => {
+  const user = await getUser()
+  if (!user) return null
+  const service = createServiceClient()
+  const [profileRes, membershipsRes, claimsRes] = await Promise.all([
+    service.from('profiles').select('first_name, last_name, created_at').eq('id', user.id).maybeSingle(),
+    service.from('game_members').select('games(id, name)').eq('user_id', user.id).overrideTypes<AccountMembershipRow[], { merge: false }>(),
+    service.from('player_claims').select('*').eq('user_id', user.id),
+  ])
+  if (profileRes.error) console.error('[getAccountData] profiles read failed', profileRes.error)
+  if (membershipsRes.error) console.error('[getAccountData] game_members read failed', membershipsRes.error)
+  if (claimsRes.error) console.error('[getAccountData] player_claims read failed', claimsRes.error)
+  const profile = profileRes.data
+  return {
+    email: user.email ?? '',
+    firstName: profile?.first_name ?? '',
+    lastName: profile?.last_name ?? '',
+    createdAt: profile?.created_at ?? null,
+    leagues: (membershipsRes.data ?? []).flatMap((m) => (m.games ? [{ id: m.games.id, name: m.games.name }] : [])),
+    claims: Object.fromEntries(((claimsRes.data ?? []) as PlayerClaim[]).map((c) => [c.game_id, c])),
+  }
+})

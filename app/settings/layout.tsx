@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-// The account page is a client component, so its tab title is set here.
+// The page does not export metadata of its own, so the tab title is set here.
 export const metadata: Metadata = {
   title: 'Account',
 }

@@ -5,7 +5,7 @@ jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 jest.mock('@/lib/supabase/service', () => ({ createServiceClient: jest.fn() }))
 
 // Import after the mocks are registered.
-import { getUser, getNavSession, getAuthAndRole, getPendingBadgeCount, getPendingRequests, getMyJoinRequestStatus, getMyClaimInfo, ensureUnrecordedWeek, getLeagueMembers, getRosterPlayers, getAllPlayerClaims } from '@/lib/fetchers'
+import { getUser, getNavSession, getAuthAndRole, getPendingBadgeCount, getPendingRequests, getMyJoinRequestStatus, getMyClaimInfo, ensureUnrecordedWeek, getLeagueMembers, getRosterPlayers, getAllPlayerClaims, getAccountData } from '@/lib/fetchers'
 import type { NavSession, Week } from '@/lib/types'
 
 const LEAGUE = '11111111-1111-1111-1111-111111111111'
@@ -414,5 +414,37 @@ describe('admin settings fetchers', () => {
     } finally {
       spy.mockRestore()
     }
+  })
+})
+
+describe('getAccountData', () => {
+  it('returns null when signed out', async () => {
+    mockAuth(null)
+    await expect(getAccountData()).resolves.toBeNull()
+  })
+
+  it('keys claims by league id and drops memberships without a game', async () => {
+    mockAuth(USER)
+    const profile = queryReturning({ first_name: 'Ada', last_name: 'L', created_at: '2026-01-01' })
+    const memberships = {
+      select: jest.fn(() => memberships),
+      eq: jest.fn(() => memberships),
+      overrideTypes: jest.fn().mockResolvedValue({ data: [{ games: { id: 'g1', name: 'Boot Room' } }, { games: null }], error: null }),
+    }
+    const claims = {
+      select: jest.fn(() => claims),
+      eq: jest.fn().mockResolvedValue({ data: [{ id: 'c1', game_id: 'g1', status: 'pending', player_name: 'Ada' }], error: null }),
+    }
+    ;(createServiceClient as jest.Mock).mockReturnValue({
+      from: jest.fn((table: string) => (table === 'profiles' ? profile : table === 'game_members' ? memberships : claims)),
+    })
+    await expect(getAccountData()).resolves.toEqual({
+      email: 'a@b.c',
+      firstName: 'Ada',
+      lastName: 'L',
+      createdAt: '2026-01-01',
+      leagues: [{ id: 'g1', name: 'Boot Room' }],
+      claims: { g1: { id: 'c1', game_id: 'g1', status: 'pending', player_name: 'Ada' } },
+    })
   })
 })
