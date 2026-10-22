@@ -3,8 +3,6 @@
 
 import type { PendingJoinRequest, PendingRequestSummary, PlaysAs, PlayerAttribute, PlayerClaim, ReviewItem, ReviewProblem } from './types'
 
-// --- Join request review (Settings → Members) ---
-
 /** Up to three names, then a count: "A, B, C and 2 more". */
 function listNames(names: string[]): string {
   const shown = names.slice(0, 3).join(', ')

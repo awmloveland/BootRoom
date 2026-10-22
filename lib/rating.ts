@@ -248,10 +248,6 @@ export function hintToWpr(
 }
 
 /**
- * Given EWTPI scores for two teams, returns the probability (0–1) that team A wins.
- * Uses a logistic function so a 10-point gap ≈ 73% likelihood.
- */
-/**
  * Handicap for uneven teams, signed from Team A's point of view: positive
  * when Team A has more players, negative when Team B does, zero when even.
  * Add it to Team A's rating wherever the two teams are compared.

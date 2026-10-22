@@ -1,3 +1,5 @@
+// lib/utils.ts
+// cn(), season helpers and the next match seed; re-exports the domain modules.
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { LeagueDetails, PlayerClaimStatus, ScheduledWeek, Week } from './types'
