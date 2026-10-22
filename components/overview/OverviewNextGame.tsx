@@ -14,7 +14,7 @@ interface OverviewNextGameProps {
   initialScheduledWeek: ScheduledWeek | null
   /** Admins build teams and record results; everyone else sees the card read-only. */
   canEdit: boolean
-  /** Signed-out viewer: the card takes its week from the server. */
+  /** Signed-out viewer: read-only card, no admin controls. */
   publicMode: boolean
   leagueDayIndex?: number
   linkedPlayerName: string | null

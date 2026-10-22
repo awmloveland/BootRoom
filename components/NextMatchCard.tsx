@@ -5,7 +5,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
 import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, manAdvantage, isPastDeadline, buildShareText, shareOrCopy, fetchLineupShareUrl, wprScore, leagueWprPercentiles, parseWeekDate, hintToWpr, squadFormat } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { Winner, Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata, Mentality, Strength } from '@/lib/types'
+import type { Winner, Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
 import { X, Share2, TriangleAlert } from 'lucide-react'
 import { WinnerBadge } from '@/components/WinnerBadge'
@@ -15,7 +15,6 @@ import { AddPlayerModal } from '@/components/AddPlayerModal'
 import { ResultModal } from '@/components/ResultModal'
 import { FormDots } from '@/components/FormDots'
 import { NextGameAwaiting, NextGameIdle, NextGameLineup } from '@/components/overview/NextGameCard'
-import { Skeleton } from '@/components/ui/skeleton'
 
 interface Props {
   gameId: string
@@ -24,9 +23,9 @@ interface Props {
   weeks: Week[]
   onResultSaved: () => void
   canEdit?: boolean
-  /** Signed-out viewer: skips the Supabase client fetch and takes the week from the server. */
+  /** Signed-out viewer: read-only card, no admin controls. */
   publicMode?: boolean
-  /** Pre-loaded scheduled week from the server (used when publicMode=true). */
+  /** The week the card starts from, computed on the server with getNextMatchSeed. */
   initialScheduledWeek?: ScheduledWeek | null
   /** When true, shows the Auto-Pick Teams button. */
   canAutoPick?: boolean
@@ -55,7 +54,7 @@ interface Props {
   }
 }
 
-type CardState = 'loading' | 'idle' | 'building' | 'lineup' | 'cancelled'
+type CardState = 'idle' | 'building' | 'lineup' | 'cancelled'
 
 /** Fewest players the builder will split into teams. */
 const MIN_SQUAD = 10
@@ -156,14 +155,12 @@ export function NextMatchCard({
   overview,
 }: Props) {
   const isOverview = variant === 'overview'
-  const [cardState, setCardState] = useState<CardState>(() => {
-    if (!isOverview) return 'loading'
-    if (!initialScheduledWeek) return 'idle'
-    return initialScheduledWeek.status === 'cancelled' ? 'cancelled' : 'lineup'
-  })
-  const [scheduledWeek, setScheduledWeek] = useState<ScheduledWeek | null>(
-    isOverview ? initialScheduledWeek ?? null : null
+  const [cardState, setCardState] = useState<CardState>(() =>
+    initialScheduledWeek
+      ? initialScheduledWeek.status === 'cancelled' ? 'cancelled' : 'lineup'
+      : 'idle'
   )
+  const [scheduledWeek, setScheduledWeek] = useState<ScheduledWeek | null>(initialScheduledWeek ?? null)
   // Overview keeps a kicked-off game on the card until its result is saved.
   const overviewAwaiting =
     isOverview && cardState === 'lineup' && scheduledWeek !== null &&
@@ -309,89 +306,16 @@ export function NextMatchCard({
     setDragOver(null)
   }
 
+  // Every variant takes its first week from the server (getNextMatchSeed), so
+  // the card is in the first paint and never re-reads weeks from the browser.
   useEffect(() => {
-    // Public mode and the Overview variant take the week from the server.
-    if (publicMode || isOverview) {
-      if (initialScheduledWeek) {
-        setScheduledWeek(initialScheduledWeek)
-        setCardState(initialScheduledWeek.status === 'cancelled' ? 'cancelled' : 'lineup')
-      } else {
-        setCardState('idle')
-      }
-      return
+    if (initialScheduledWeek) {
+      setScheduledWeek(initialScheduledWeek)
+      setCardState(initialScheduledWeek.status === 'cancelled' ? 'cancelled' : 'lineup')
+    } else {
+      setCardState('idle')
     }
-
-    async function load() {
-      const supabase = createClient()
-      const { data } = await supabase
-        .from('weeks')
-        .select('id, season, week, date, format, team_a, team_b, status, lineup_metadata, team_a_rating, team_b_rating')
-        .eq('game_id', gameId)
-        .in('status', ['scheduled', 'cancelled', 'unrecorded'])
-        .order('week', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (data) {
-        // Unrecorded row — advance to next week
-        if (data.status === 'unrecorded') {
-          setCardState('idle')
-          return
-        }
-
-        const week: ScheduledWeek = {
-          id: data.id,
-          season: data.season,
-          week: data.week,
-          date: data.date,
-          format: data.format,
-          teamA: data.team_a ?? [],
-          teamB: data.team_b ?? [],
-          status: data.status as 'scheduled' | 'cancelled',
-          lineupMetadata: data.lineup_metadata
-            ? {
-                guests: ((data.lineup_metadata as any).guests ?? []).map((g: any) => ({
-                  type: 'guest' as const,
-                  name: g.name,
-                  associatedPlayer: g.associated_player,
-                  goalkeeper: g.goalkeeper ?? false,
-                  // Accept new `strength` key or legacy `strength_hint`; fall back to 'average'
-                  strength: (g.strength ?? g.strength_hint ?? 'average') as Strength,
-                })),
-                new_players: ((data.lineup_metadata as any).new_players ?? []).map((p: any) => ({
-                  type: 'new_player' as const,
-                  name: p.name,
-                  // Legacy metadata may carry only `goalkeeper`; derive mentality from it.
-                  mentality: (p.mentality as Mentality) ?? (p.goalkeeper ? 'goalkeeper' : 'balanced'),
-                  // Accept new `strength` key or legacy `strength_hint`; fall back to 'average'
-                  strength: (p.strength ?? p.strength_hint ?? 'average') as Strength,
-                })),
-              }
-            : null,
-          team_a_rating: data.team_a_rating ?? null,
-          team_b_rating: data.team_b_rating ?? null,
-        }
-
-        // Past-deadline scheduled row — lineup exists but game day has passed
-        // The row stays in DB and appears in the results list as "Awaiting Result"
-        if (week.status === 'scheduled' && isPastDeadline(week.date, kickoffTime)) {
-          setCardState('idle')
-          return
-        }
-        // Cancelled past deadline — treat as idle
-        if (week.status === 'cancelled' && isPastDeadline(week.date, kickoffTime)) {
-          setCardState('idle')
-          return
-        }
-
-        setScheduledWeek(week)
-        setCardState(week.status === 'cancelled' ? 'cancelled' : 'lineup')
-      } else {
-        setCardState('idle')
-      }
-    }
-    load()
-  }, [gameId, publicMode, isOverview, initialScheduledWeek, kickoffTime])
+  }, [initialScheduledWeek])
 
   async function handleSaveLineup() {
     if (!autoPickResult || autoPickResult.suggestions.length === 0) {
@@ -551,24 +475,6 @@ export function NextMatchCard({
     } finally {
       setSaving(false)
     }
-  }
-
-  // Same footprint as the idle card, so the match list below doesn't jump
-  // when the scheduled week arrives.
-  if (cardState === 'loading') {
-    return (
-      <div
-        className="rounded-xl border border-[#223a5c] bg-[#0a1421] px-[18px] py-3 shadow-[0_18px_44px_rgba(0,0,0,.42)]"
-        aria-busy="true"
-      >
-        <div className="flex h-5 items-center">
-          <Skeleton className="h-3.5 w-20" />
-        </div>
-        <div className="mt-[3px] flex h-[14px] items-center">
-          <Skeleton className="h-2.5 w-28" />
-        </div>
-      </div>
-    )
   }
 
   const displayWeek = scheduledWeek?.week ?? nextWeekNum

@@ -5,7 +5,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
-import { dayNameToIndex, getLatestResultWeek, isPastDeadline, parseWeekDate } from '@/lib/utils'
+import { dayNameToIndex, getLatestResultWeek, getResultsNextMatchSeed } from '@/lib/utils'
 import { quarterShareUrls, resultShareUrlFor } from '@/lib/shareLinksServer'
 import { getGameBySlug, getAuthAndRole, getPlayerStats, getWeeks, getMyClaimInfo, ensureUnrecordedWeek } from '@/lib/fetchers'
 import { PublicResultsSection } from '@/components/PublicResultsSection'
@@ -58,26 +58,9 @@ export default async function LeagueResultsPage({ params }: Props) {
     ? await ensureUnrecordedWeek(leagueId, rawWeeks, leagueDayIndex)
     : rawWeeks
 
-  // The next match card: editable for admins, read-only for everyone else.
-  let nextWeek: ScheduledWeek | null = null
-  const first = weeks
-    .filter((w) => w.status === 'scheduled')
-    .sort((a, b) => parseWeekDate(a.date).getTime() - parseWeekDate(b.date).getTime())[0]
-  if (first && !isPastDeadline(first.date, game.kickoff_time ?? null)) {
-    nextWeek = {
-      id: first.id!,
-      season: first.season,
-      week: first.week,
-      date: first.date,
-      format: first.format ?? null,
-      teamA: first.teamA,
-      teamB: first.teamB,
-      status: 'scheduled',
-      lineupMetadata: first.lineupMetadata ?? null,
-      team_a_rating: first.team_a_rating ?? null,
-      team_b_rating: first.team_b_rating ?? null,
-    }
-  }
+  // The next match card's starting week. Once a game has kicked off the week
+  // list's Awaiting Result card owns it (see getResultsNextMatchSeed).
+  const nextWeek: ScheduledWeek | null = getResultsNextMatchSeed(weeks, game.kickoff_time ?? null)
 
   // Champion card for every completed quarter. The match lists render each
   // above that quarter's first result, so the latest sits below the next match.
