@@ -216,7 +216,7 @@ export function wprScore(player: Player, referenceDate?: Date): number {
   let isCalendarRusty = false
   if (player.lastPlayedWeekDate) {
     const lastPlayed = new Date(player.lastPlayedWeekDate)
-    const ref = referenceDate ?? new Date()
+    const ref = referenceDate ?? leagueNow()
     const diffDays = (ref.getTime() - lastPlayed.getTime()) / (1000 * 60 * 60 * 24)
     isCalendarRusty = diffDays > RUSTINESS_DAYS
   }
@@ -500,7 +500,32 @@ export function buildDnfShareText(params: {
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const MONTH_IDX: Record<string, number> = Object.fromEntries(MONTH_SHORT.map((m, i) => [m, i]))
 
-/** Parse a 'DD MMM YYYY' date string into a local Date. */
+/** The timezone every league plays in. Game days and kick-off deadlines are read on this clock. */
+export const LEAGUE_TIMEZONE = 'Europe/London'
+
+const leagueClock = new Intl.DateTimeFormat('en-GB', {
+  timeZone: LEAGUE_TIMEZONE,
+  year: 'numeric', month: 'numeric', day: 'numeric',
+  hour: 'numeric', minute: 'numeric', second: 'numeric',
+  hour12: false,
+})
+
+/**
+ * The current wall-clock time in the league's timezone, as a Date whose local
+ * getters (getDate, getDay, getHours) read that wall clock. Use it instead of
+ * new Date() wherever a calendar day or kick-off time is compared, so the
+ * answer is the same on a UTC server (Vercel runs functions in UTC and
+ * reserves the TZ variable) as in a London browser. `at` is an instant.
+ */
+export function leagueNow(at: number | Date = Date.now()): Date {
+  const parts: Record<string, number> = {}
+  for (const part of leagueClock.formatToParts(at)) {
+    if (part.type !== 'literal') parts[part.type] = Number(part.value)
+  }
+  return new Date(parts.year, parts.month - 1, parts.day, parts.hour % 24, parts.minute, parts.second)
+}
+
+/** Parse a 'DD MMM YYYY' date string into a Date at midnight on that day (compare it with leagueNow()). */
 export function parseWeekDate(date: string): Date {
   const [d, m, y] = date.split(' ')
   return new Date(parseInt(y), MONTH_IDX[m], parseInt(d))
@@ -521,7 +546,7 @@ export function formatWeekDate(date: Date): string {
  */
 export function getNextMatchDate(weeks: Week[], leagueDayIndex?: number): string {
   const played = getPlayedWeeks(sortWeeks(weeks))
-  const today = new Date()
+  const today = leagueNow()
   today.setHours(0, 0, 0, 0)
 
   // Use leagueDayIndex if provided (note: 0 = Sunday is valid, use !== undefined not truthiness)
@@ -563,7 +588,7 @@ export function dayNameToIndex(day: string | null): number | null {
  * as a 'DD MMM YYYY' string. Never returns today — always at least tomorrow.
  */
 export function nextOccurrenceAfterToday(dayIndex: number): string {
-  const today = new Date()
+  const today = leagueNow()
   today.setHours(0, 0, 0, 0)
   let daysUntil = (dayIndex - today.getDay() + 7) % 7
   if (daysUntil === 0) daysUntil = 7
@@ -574,7 +599,7 @@ export function nextOccurrenceAfterToday(dayIndex: number): string {
 
 /** Return the next week number within the current calendar year (or 1 if no weeks this year). */
 export function getNextWeekNumber(weeks: Week[]): number {
-  const currentYear = String(new Date().getFullYear())
+  const currentYear = String(leagueNow().getFullYear())
   const thisYear = weeks.filter((w) => w.season === currentYear)
   if (thisYear.length === 0) return 1
   return Math.max(...thisYear.map((w) => w.week)) + 1
@@ -613,7 +638,7 @@ export function computeYearStats(playerName: string, weeks: Week[], year: string
 
 export function deriveSeason(weeks: Week[]): string {
   const played = getPlayedWeeks(weeks)
-  if (played.length === 0) return String(new Date().getFullYear())
+  if (played.length === 0) return String(leagueNow().getFullYear())
   return sortWeeks(played)[0].season
 }
 
@@ -625,12 +650,12 @@ export function deriveSeason(weeks: Week[]): string {
  */
 export function getSeasonPlayedWeekCount(weeks: Week[]): number {
   const relevant = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled' || w.status === 'dnf')
-  const currentYear = String(new Date().getFullYear())
+  const currentYear = String(leagueNow().getFullYear())
   const currentYearWeeks = relevant.filter((w) => w.season === currentYear)
   if (currentYearWeeks.length > 0) {
     return Math.max(...currentYearWeeks.map((w) => w.week))
   }
-  const prevYear = String(new Date().getFullYear() - 1)
+  const prevYear = String(leagueNow().getFullYear() - 1)
   const prevYearWeeks = relevant.filter((w) => w.season === prevYear)
   return prevYearWeeks.length > 0 ? Math.max(...prevYearWeeks.map((w) => w.week)) : 0
 }
@@ -642,9 +667,9 @@ export function getSeasonPlayedWeekCount(weeks: Week[]): number {
  */
 export function getHeaderSeason(weeks: Week[]): string {
   const relevant = weeks.filter((w) => w.status === 'played' || w.status === 'cancelled' || w.status === 'dnf')
-  const currentYear = String(new Date().getFullYear())
+  const currentYear = String(leagueNow().getFullYear())
   if (relevant.some((w) => w.season === currentYear)) return currentYear
-  const prevYear = String(new Date().getFullYear() - 1)
+  const prevYear = String(leagueNow().getFullYear() - 1)
   return relevant.some((w) => w.season === prevYear) ? prevYear : currentYear
 }
 
@@ -660,7 +685,7 @@ export function getSeasons(weeks: Week[]): string[] {
  */
 export function resolveSelectedYear(seasons: string[], param: string | null | undefined): string {
   if (param && seasons.includes(param)) return param
-  return seasons[0] ?? String(new Date().getFullYear())
+  return seasons[0] ?? String(leagueNow().getFullYear())
 }
 
 /** Latest played or DNF week by date: the result card that opens by default. */
@@ -750,14 +775,14 @@ export function parseKickoffTime(value: string | null | undefined): { hours: num
 }
 
 /**
- * True once a game on `dateStr` ('DD MMM YYYY', local time) is waiting for its
+ * True once a game on `dateStr` ('DD MMM YYYY', league time) is waiting for its
  * result: from the league's kick-off time when it has one, otherwise from 20:00.
  */
 export function isPastDeadline(dateStr: string, kickoffTime?: string | null): boolean {
   const { hours, minutes } = parseKickoffTime(kickoffTime) ?? { hours: 20, minutes: 0 }
   const deadline = parseWeekDate(dateStr)
   deadline.setHours(hours, minutes, 0, 0)
-  return Date.now() > deadline.getTime()
+  return leagueNow().getTime() > deadline.getTime()
 }
 
 /**
@@ -767,7 +792,7 @@ export function isPastDeadline(dateStr: string, kickoffTime?: string | null): bo
 export function isAwaitingWindowOver(dateStr: string): boolean {
   const closes = parseWeekDate(dateStr)
   closes.setDate(closes.getDate() + 2)
-  return Date.now() >= closes.getTime()
+  return leagueNow().getTime() >= closes.getTime()
 }
 
 /** 'DD MMM YYYY' → 'Thu 09 Apr', for fixture lines. */
@@ -905,7 +930,7 @@ export function getMostRecentExpectedGameDate(
 
   if (dow === null) return null
 
-  const today = new Date()
+  const today = leagueNow()
   today.setHours(0, 0, 0, 0)
   // Walk backwards from today to find the most recent occurrence of this day-of-week
   const daysBack = (today.getDay() - dow + 7) % 7

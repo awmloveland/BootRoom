@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation'
 import { leaguePageMetadata } from '@/lib/metadata'
 import { resolveVisibilityTier } from '@/lib/roles'
 import { getGameBySlug, getAuthAndRole, getWeeks, getMyClaimInfo } from '@/lib/fetchers'
-import { dayNameToIndex } from '@/lib/utils'
+import { dayNameToIndex, leagueNow } from '@/lib/utils'
 import { celebratedFrom, computeAllQuarters, computeQuarterlyTable, getQuarterStanding } from '@/lib/sidebar-stats'
 import { quarterShareUrls } from '@/lib/shareLinksServer'
 import { HonoursSection } from '@/components/HonoursSection'
@@ -42,7 +42,7 @@ export default async function HonoursPage({ params }: Props) {
   const showClaimBanner = tier === 'member' && claim.status === 'none'
 
   // The in-progress quarter shows the same live table as the sidebar.
-  const now = new Date()
+  const now = leagueNow()
   const liveTable = computeQuarterlyTable(weeks, now, dayNameToIndex(game.day ?? null) ?? undefined)
   // claim.playerName is only set for an approved claim.
   const standing = getQuarterStanding(liveTable.allEntries, claim.playerName)

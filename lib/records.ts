@@ -1,4 +1,4 @@
-import { compareStandings, parseWeekDate } from '@/lib/utils'
+import { compareStandings, parseWeekDate, leagueNow } from '@/lib/utils'
 import { isGuestName } from '@/lib/guestName'
 import { computeAllQuarters } from '@/lib/sidebar-stats'
 import type {
@@ -190,7 +190,7 @@ function isLive(r: { best: Run; current: number }): boolean {
  * their games still count towards team records. Only `played` weeks count;
  * cancelled, unfinished and unrecorded weeks are ignored.
  */
-export function computeRecords(weeks: Week[], now: Date = new Date()): RecordsData {
+export function computeRecords(weeks: Week[], now: Date = leagueNow()): RecordsData {
   const games = weeks
     .filter((w) => w.status === 'played')
     .sort((a, b) => parseWeekDate(a.date).getTime() - parseWeekDate(b.date).getTime() || a.week - b.week)

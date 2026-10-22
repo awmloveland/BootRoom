@@ -185,6 +185,7 @@ export interface LeagueMember {
 - Both require a Supabase session with a `profiles` row (checked in the proxy); `/[slug]/settings` also requires a creator or admin role (checked by the page, which redirects members to the league's results)
 - Unauthenticated → redirect to `/sign-in?redirect=...`; authenticated but no profile → `/profile-required`
 - The proxy leaves every other page alone. Overview, Results and Players render read-only for signed-out visitors; Honours, Records, Line-up Lab and Admin check the session in the page and show a sign-in prompt instead (Admin also requires the admin tier)
+- Game days and kick-off deadlines are read on the league's clock (`leagueNow()` in `lib/utils.ts`, Europe/London), never the server's; Vercel runs functions in UTC and reserves the `TZ` variable
 - Per-league roles are stored in `game_members` (columns: `game_id`, `user_id`, `role`)
 - `GameRole`: `creator | admin | member`
   - `creator` and `admin` → admin visibility tier
@@ -207,7 +208,6 @@ deploys. `.env.example` lists them with placeholders. Never commit real values.
 | `RESEND_API_KEY` | Server only | Transactional email |
 | `APP_ACCESS_KEY` | Server only | Optional production lock behind a secret URL key |
 | `SHARE_SIGNING_SECRET` | Server only | HMAC key for signed share links (line-ups, results, quarters, league) and their preview images (see `docs/superpowers/specs/2026-10-05-lineup-share-preview-image-design.md` and `2026-10-06-share-preview-images-design.md`). Missing → Share falls back to plain links and previews render the generic card. Rotating it invalidates every previously shared preview. |
-| `TZ` | Server only | Timezone for kick-off deadline checks; set to `Europe/London` on Vercel |
 
 Server-only variables must never be prefixed `NEXT_PUBLIC_` or read in client
 components.

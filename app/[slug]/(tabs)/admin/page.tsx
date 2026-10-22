@@ -11,6 +11,7 @@ import { getFeeRows } from '@/lib/feesServer'
 import { HonoursLoginPrompt } from '@/components/HonoursLoginPrompt'
 import { NoAccessState } from '@/components/NoAccessState'
 import { AdminMoneyView } from '@/components/admin/AdminMoneyView'
+import { leagueNow } from '@/lib/utils'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -55,7 +56,7 @@ export default async function AdminPage({ params, searchParams }: Props) {
       fees={fees}
       payments={payments}
       initialRange={parseFeeRange(query)}
-      today={isoDate(new Date())}
+      today={isoDate(leagueNow())}
     />
   )
 }

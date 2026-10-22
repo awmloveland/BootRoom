@@ -1,4 +1,4 @@
-import { compareStandings, computeStandings, parseWeekDate } from '@/lib/utils'
+import { compareStandings, computeStandings, parseWeekDate, leagueNow } from '@/lib/utils'
 import { isGuestName } from '@/lib/guestName'
 import type { MarginStats, Player, Week } from '@/lib/types'
 
@@ -59,7 +59,7 @@ export interface InFormEntry {
   ppg: number
 }
 
-export function computeInForm(players: Player[], weeks: Week[], now: Date = new Date()): InFormEntry[] {
+export function computeInForm(players: Player[], weeks: Week[], now: Date = leagueNow()): InFormEntry[] {
   const cutoff = new Date(now)
   cutoff.setDate(cutoff.getDate() - 56) // 8 weeks = 56 days
 
@@ -279,7 +279,7 @@ function buildQuarterAwards(entries: QuarterlyEntry[], weekSlice: Week[]): Quart
   return awards
 }
 
-export function computeQuarterlyTable(weeks: Week[], now: Date = new Date(), gameDay?: number): QuarterlyTableResult {
+export function computeQuarterlyTable(weeks: Week[], now: Date = leagueNow(), gameDay?: number): QuarterlyTableResult {
   const { q, year } = quarterOf(now)
 
   // Holdover: if no played games in the current calendar quarter, show the previous quarter
@@ -378,7 +378,7 @@ export function getLastResult(weeks: Week[]): Week | null {
 
 const SEASON_NAMES: Record<number, string> = { 1: 'Winter', 2: 'Spring', 3: 'Summer', 4: 'Autumn' }
 
-export function computeAllQuarters(weeks: Week[], now: Date = new Date()): HonoursYear[] {
+export function computeAllQuarters(weeks: Week[], now: Date = leagueNow()): HonoursYear[] {
   const { year: currentYear } = quarterOf(now)
   const gameDay = inferGameDay(weeks)
 
@@ -532,7 +532,7 @@ export function computeAllQuarters(weeks: Week[], now: Date = new Date()): Honou
 export function findNewlyCompletedQuarter(
   weeksBefore: Week[],
   weeksAfter: Week[],
-  now: Date = new Date(),
+  now: Date = leagueNow(),
 ): QuarterSummary | null {
   const completedKeys = (weeks: Week[]): Set<string> => {
     const keys = new Set<string>()
@@ -565,7 +565,7 @@ export function findNewlyCompletedQuarter(
  * just above the first result of that quarter, so the latest one sits below
  * the next match and slides down the page as new results come in.
  */
-export function getCelebratedQuarters(weeks: Week[], now: Date = new Date()): QuarterSummary[] {
+export function getCelebratedQuarters(weeks: Week[], now: Date = leagueNow()): QuarterSummary[] {
   return celebratedFrom(computeAllQuarters(weeks, now))
 }
 
