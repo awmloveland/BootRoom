@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireLeagueAdmin } from '@/lib/apiAuth'
+import { revalidateLeague } from '@/lib/leagueCache'
 import { ratingToStrength, strengthToRating } from '@/lib/strength'
 import { parseAddPlayerBody } from '@/lib/playerUtils'
 import { NextResponse } from 'next/server'
@@ -117,6 +118,7 @@ export async function POST(
     return NextResponse.json({ error: rpcErr.message }, { status: 500 })
   }
 
+  revalidateLeague(id)
   return NextResponse.json({
     name,
     strength,

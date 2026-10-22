@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireLeagueAdmin, rpcErrorStatus } from '@/lib/apiAuth'
+import { revalidateLeague } from '@/lib/leagueCache'
 import type { Mentality, RecordResultInput, Winner } from '@/lib/types'
 
 const WINNERS: Exclude<Winner, null>[] = ['teamA', 'teamB', 'draw']
@@ -62,15 +63,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   })
   if (resultErr) return NextResponse.json({ error: resultErr.message }, { status: rpcErrorStatus(resultErr.message) })
 
+  // record_result has committed: every return below, errors included, must
+  // call revalidateLeague.
+
   if (input.guests.length > 0) {
     const { error } = await supabase.rpc('name_guests', {
       p_week_id: weekId,
       p_guests: input.guests.map((g) => ({ old_name: g.oldName, new_name: g.newName, rating: g.rating, goalkeeper: g.goalkeeper })),
     })
     if (error?.message.includes('name_already_exists')) {
+      revalidateLeague(id)
       return NextResponse.json({ error: 'name_already_exists' }, { status: 409 })
     }
-    if (error) return NextResponse.json({ error: error.message }, { status: rpcErrorStatus(error.message) })
+    if (error) {
+      revalidateLeague(id)
+      return NextResponse.json({ error: error.message }, { status: rpcErrorStatus(error.message) })
+    }
   }
 
   if (input.newPlayers.length > 0) {
@@ -78,8 +86,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       p_game_id: id,
       p_entries: input.newPlayers.map((p) => ({ name: p.name, rating: p.rating, mentality: p.mentality, goalkeeper: p.goalkeeper })),
     })
-    if (error) return NextResponse.json({ error: error.message }, { status: rpcErrorStatus(error.message) })
+    if (error) {
+      revalidateLeague(id)
+      return NextResponse.json({ error: error.message }, { status: rpcErrorStatus(error.message) })
+    }
   }
 
+  revalidateLeague(id)
   return NextResponse.json({ ok: true })
 }

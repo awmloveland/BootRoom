@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireLeagueAdmin } from '@/lib/apiAuth'
+import { revalidateLeague } from '@/lib/leagueCache'
 import { NextResponse } from 'next/server'
 import { parseRenameName } from '@/lib/playerUtils'
 
@@ -31,5 +32,6 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  revalidateLeague(id)
   return NextResponse.json({ ok: true, new_name: newName })
 }

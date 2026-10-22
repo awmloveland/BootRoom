@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getWeeks } from '@/lib/fetchers'
 import type { Week } from '@/lib/types'
 
+jest.mock('next/cache', () => ({ revalidateTag: jest.fn() }))
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 jest.mock('@/lib/supabase/service', () => ({ createServiceClient: jest.fn() }))
 jest.mock('@/lib/fetchers', () => ({ getWeeks: jest.fn() }))

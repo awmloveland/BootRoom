@@ -1,5 +1,6 @@
 // lib/fetchers.ts
 import { cache } from 'react'
+import { unstable_cache } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionUser, type SessionUser } from '@/lib/supabase/session'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -7,28 +8,31 @@ import { sortWeeks, deriveSeason, getMostRecentExpectedGameDate, getNextWeekNumb
 import { DEFAULT_FEATURES } from '@/lib/defaults'
 import type { GameRole, LeagueFeature, NavSession, Player, Week, Mentality, Strength, JoinRequestStatus, PendingJoinRequest, PendingRequestSummary, PlayerClaimStatus, LeagueMember, PlayerAttribute, PlayerClaim } from '@/lib/types'
 import { ratingToStrength } from '@/lib/strength'
+import { LEAGUE_CACHE_SECONDS, leagueTag, leagueSlugTag } from '@/lib/leagueCache'
 
 // ── Game ─────────────────────────────────────────────────────────────────────
 
-export const getGame = cache(async (leagueId: string) => {
-  const service = createServiceClient()
-  const { data } = await service
-    .from('games')
-    .select('id, name, slug, location, day, kickoff_time, bio')
-    .eq('id', leagueId)
-    .maybeSingle()
-  return data
-})
+const GAME_COLUMNS = 'id, name, slug, location, day, kickoff_time, bio'
 
-export const getGameBySlug = cache(async (slug: string) => {
-  const service = createServiceClient()
-  const { data } = await service
-    .from('games')
-    .select('id, name, slug, location, day, kickoff_time, bio')
-    .eq('slug', slug)
-    .maybeSingle()
+async function readGame(leagueId: string) {
+  const { data } = await createServiceClient().from('games').select(GAME_COLUMNS).eq('id', leagueId).maybeSingle()
   return data
-})
+}
+
+async function readGameBySlug(slug: string) {
+  const { data } = await createServiceClient().from('games').select(GAME_COLUMNS).eq('slug', slug).maybeSingle()
+  return data
+}
+
+// Cached across requests under the league's tag (see lib/leagueCache.ts), and
+// within a request by React cache().
+export const getGame = cache((leagueId: string) =>
+  unstable_cache(readGame, ['game', leagueId], { tags: [leagueTag(leagueId)], revalidate: LEAGUE_CACHE_SECONDS })(leagueId)
+)
+
+export const getGameBySlug = cache((slug: string) =>
+  unstable_cache(readGameBySlug, ['game-by-slug', slug], { tags: [leagueSlugTag(slug)], revalidate: LEAGUE_CACHE_SECONDS })(slug)
+)
 
 // ── Auth client + user ────────────────────────────────────────────────────────
 
@@ -116,7 +120,7 @@ export const getFeatures = cache(async (leagueId: string): Promise<LeagueFeature
 
 // ── Player stats ──────────────────────────────────────────────────────────────
 
-export const getPlayerStats = cache(async (leagueId: string): Promise<Player[]> => {
+async function readPlayerStats(leagueId: string): Promise<Player[]> {
   const service = createServiceClient()
   const { data } = await service.rpc('get_player_stats_public', { p_game_id: leagueId })
   return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
@@ -142,7 +146,11 @@ export const getPlayerStats = cache(async (leagueId: string): Promise<Player[]> 
     strength: ratingToStrength(Number(row.rating ?? 0)),
     recentForm: String(row.recentForm ?? ''),
   }))
-})
+}
+
+export const getPlayerStats = cache((leagueId: string): Promise<Player[]> =>
+  unstable_cache(readPlayerStats, ['player-stats', leagueId], { tags: [leagueTag(leagueId)], revalidate: LEAGUE_CACHE_SECONDS })(leagueId)
+)
 
 // ── Weeks ─────────────────────────────────────────────────────────────────────
 
@@ -373,18 +381,25 @@ export const getMyClaimInfo = cache(async (leagueId: string): Promise<{
 
 // ── Weeks ─────────────────────────────────────────────────────────────────────
 
-// Fetches all weeks in all statuses — pages filter in-memory as needed.
-// Includes 'scheduled' so the results page can derive nextWeek without a
-// separate DB query.
-export const getWeeks = cache(async (leagueId: string): Promise<Week[]> => {
-  const service = createServiceClient()
-  const { data } = await service
+const WEEK_COLUMNS = 'id, season, week, date, status, format, team_a, team_b, winner, notes, goal_difference, team_a_rating, team_b_rating, lineup_metadata'
+
+// The uncached read. ensureUnrecordedWeek uses it directly when it finds the
+// cache is behind a row it tried to create.
+async function readWeeks(leagueId: string): Promise<Week[]> {
+  const { data } = await createServiceClient()
     .from('weeks')
-    .select('id, season, week, date, status, format, team_a, team_b, winner, notes, goal_difference, team_a_rating, team_b_rating, lineup_metadata')
+    .select(WEEK_COLUMNS)
     .eq('game_id', leagueId)
     .in('status', ['played', 'cancelled', 'unrecorded', 'scheduled', 'dnf'])
   return sortWeeks(((data ?? []) as WeekRow[]).map(mapWeekRow))
-})
+}
+
+// Fetches all weeks in all statuses — pages filter in-memory as needed.
+// Includes 'scheduled' so the results page can derive nextWeek without a
+// separate DB query.
+export const getWeeks = cache((leagueId: string): Promise<Week[]> =>
+  unstable_cache(readWeeks, ['weeks', leagueId], { tags: [leagueTag(leagueId)], revalidate: LEAGUE_CACHE_SECONDS })(leagueId)
+)
 
 // ── Unrecorded week ───────────────────────────────────────────────────────────
 
@@ -392,7 +407,8 @@ export const getWeeks = cache(async (leagueId: string): Promise<Week[]> => {
  * Lazily create an 'unrecorded' row when the most recent expected game day has
  * passed its deadline with no row for it. Returns the weeks list with the new
  * row appended; the row is built locally from the id the RPC returns, so there
- * is no second fetch. Returns the same list when nothing was created.
+ * is no second fetch. Returns the same list when nothing needed creating, and a
+ * fresh uncached read when another request created the row first.
  *
  * Not cached: it writes. Callers skip it for the public tier.
  */
@@ -415,7 +431,10 @@ export async function ensureUnrecordedWeek(
     p_date: recentDate,
   })
   // The RPC returns the new row's UUID, or null on ON CONFLICT DO NOTHING.
-  if (!newId) return weeks
+  // Null means another request created the row and the cached list is behind
+  // it. Re-read once, uncached, for this request; the cache catches up within
+  // LEAGUE_CACHE_SECONDS.
+  if (!newId) return readWeeks(leagueId)
 
   return sortWeeks([
     ...weeks,

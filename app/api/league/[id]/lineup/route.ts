@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireLeagueAdmin, rpcErrorStatus } from '@/lib/apiAuth'
+import { revalidateLeague } from '@/lib/leagueCache'
 import type { SaveLineupInput } from '@/lib/types'
 
 const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string')
@@ -47,5 +48,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     p_team_b_rating: input.teamBRating,
   })
   if (error) return NextResponse.json({ error: error.message }, { status: rpcErrorStatus(error.message) })
+  revalidateLeague(id)
   return NextResponse.json({ weekId: data as string })
 }
