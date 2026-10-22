@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
 import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, manAdvantage, isPastDeadline, buildShareText, shareOrCopy, fetchLineupShareUrl, wprScore, leagueWprPercentiles, parseWeekDate, hintToWpr, squadFormat } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
+import { saveLineup, cancelLineup, cancelWeek } from '@/lib/leagueApi'
 import type { Winner, Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
 import { X, Share2, TriangleAlert } from 'lucide-react'
@@ -351,21 +351,17 @@ export function NextMatchCard({
     setSaving(true)
     setError(null)
     try {
-      const supabase = createClient()
-      const { data, error: err } = await supabase.rpc('save_lineup', {
-        p_game_id: gameId,
-        p_season: season,
-        p_week: saveWeek,
-        p_date: saveDate,
-        p_format: format || null,
-        p_team_a: teamA,
-        p_team_b: teamB,
-        p_lineup_metadata: lineupMetadataForDB,
-        p_team_a_rating: teamARating,
-        p_team_b_rating: teamBRating,
+      const { weekId } = await saveLineup(gameId, {
+        season,
+        week: saveWeek,
+        date: saveDate,
+        format: format || null,
+        teamA,
+        teamB,
+        lineupMetadata: lineupMetadataForDB,
+        teamARating,
+        teamBRating,
       })
-      if (err) throw err
-      const weekId = data as string
       setScheduledWeek({ id: weekId, season, week: saveWeek, date: saveDate, format, teamA, teamB, status: 'scheduled', lineupMetadata, team_a_rating: teamARating, team_b_rating: teamBRating })
       setCardState('lineup')
     } catch (e) {
@@ -373,18 +369,6 @@ export function NextMatchCard({
     } finally {
       setSaving(false)
     }
-  }
-
-  async function handleCancelScheduled() {
-    if (!scheduledWeek) return
-    const supabase = createClient()
-    await supabase.rpc('cancel_lineup', { p_week_id: scheduledWeek.id })
-    setScheduledWeek(null)
-    setSelectedNames([])
-    setGuestEntries([])
-    setNewPlayerEntries([])
-    clearSplit()
-    setCardState('idle')
   }
 
   async function handleShare() {
@@ -435,21 +419,13 @@ export function NextMatchCard({
   }
 
   async function handleCancelGame() {
-    const cancelWeek = scheduledWeek?.week ?? nextWeekNum
+    const cancelWeekNumber = scheduledWeek?.week ?? nextWeekNum
     const cancelDate = scheduledWeek?.date ?? nextDate
     setSaving(true)
     setError(null)
     try {
-      const supabase = createClient()
-      const { data, error: err } = await supabase.rpc('cancel_week', {
-        p_game_id: gameId,
-        p_season: season,
-        p_week: cancelWeek,
-        p_date: cancelDate,
-      })
-      if (err) throw err
-      const weekId = data as string
-      setScheduledWeek({ id: weekId, season, week: cancelWeek, date: cancelDate, format: null, teamA: [], teamB: [], status: 'cancelled' })
+      const { weekId } = await cancelWeek(gameId, { season, week: cancelWeekNumber, date: cancelDate })
+      setScheduledWeek({ id: weekId, season, week: cancelWeekNumber, date: cancelDate, format: null, teamA: [], teamB: [], status: 'cancelled' })
       setShowCancelModal(false)
       setError(null)
       setCardState('cancelled')
@@ -465,9 +441,7 @@ export function NextMatchCard({
     setSaving(true)
     setError(null)
     try {
-      const supabase = createClient()
-      const { error: err } = await supabase.rpc('cancel_lineup', { p_week_id: scheduledWeek.id })
-      if (err) throw err
+      await cancelLineup(gameId, scheduledWeek.id)
       setScheduledWeek(null)
       setCardState('idle')
     } catch (e) {

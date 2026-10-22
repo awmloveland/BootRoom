@@ -3,12 +3,15 @@
  */
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ResultModal } from '@/components/ResultModal'
-import { createClient } from '@/lib/supabase/client'
 import type { LineupMetadata, ScheduledWeek } from '@/lib/types'
+import { recordResult } from '@/lib/leagueApi'
 
-jest.mock('@/lib/supabase/client', () => ({ createClient: jest.fn() }))
-
-const rpc = jest.fn()
+jest.mock('@/lib/leagueApi', () => ({
+  saveLineup: jest.fn().mockResolvedValue({ weekId: 'w-new' }),
+  cancelLineup: jest.fn().mockResolvedValue(undefined),
+  cancelWeek: jest.fn().mockResolvedValue({ weekId: 'w-new' }),
+  recordResult: jest.fn().mockResolvedValue(undefined),
+}))
 
 const WEEK: ScheduledWeek = {
   id: 'w41', season: '2026', week: 41, date: '12 Oct 2026', format: '7-a-side', status: 'scheduled',
@@ -47,8 +50,7 @@ async function saveWithGuestAddedAs(name: string, winner = 'Team A') {
 }
 
 beforeEach(() => {
-  rpc.mockReset().mockResolvedValue({ error: null })
-  ;(createClient as jest.Mock).mockReturnValue({ rpc })
+  ;(recordResult as jest.Mock).mockReset().mockResolvedValue(undefined)
   global.fetch = jest.fn().mockResolvedValue({ ok: false, json: async () => ({}) }) as jest.Mock
 })
 
@@ -57,11 +59,13 @@ describe('ResultModal, guest added to the roster', () => {
     renderModal()
     await saveWithGuestAddedAs(' Tom ')
 
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('name_guests', {
-      p_week_id: 'w41',
-      p_guests: [{ old_name: 'Jaff +1', new_name: 'Tom', rating: 2, goalkeeper: false }],
-    }))
-    expect(rpc.mock.calls.map(([fn]) => fn)).toEqual(['record_result', 'name_guests'])
+    await waitFor(() => expect(recordResult).toHaveBeenCalledWith('g1', 'w41', expect.objectContaining({
+      dnf: false,
+      winner: 'teamA',
+      guests: [{ oldName: 'Jaff +1', newName: 'Tom', rating: 2, goalkeeper: false }],
+      newPlayers: [],
+    })))
+    expect(recordResult).toHaveBeenCalledTimes(1)
   })
 
   it('shows the new name in the saved line-up', async () => {
@@ -75,13 +79,15 @@ describe('ResultModal, guest added to the roster', () => {
     renderModal()
     await saveWithGuestAddedAs('Tom', 'DNF')
 
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('name_guests', expect.objectContaining({ p_week_id: 'w41' })))
+    await waitFor(() => expect(recordResult).toHaveBeenCalledWith('g1', 'w41', expect.objectContaining({
+      dnf: true,
+      winner: null,
+      guests: [expect.objectContaining({ oldName: 'Jaff +1', newName: 'Tom' })],
+    })))
   })
 
   it('explains a name clash instead of showing the database error', async () => {
-    rpc.mockImplementation(async (fn: string) =>
-      fn === 'name_guests' ? { error: new Error('name_already_exists') } : { error: null }
-    )
+    ;(recordResult as jest.Mock).mockRejectedValueOnce(new Error('name_already_exists'))
     renderModal()
     await saveWithGuestAddedAs('Tom')
 

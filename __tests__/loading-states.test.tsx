@@ -3,6 +3,7 @@
  */
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { createClient } from '@/lib/supabase/client'
+import { cancelLineup, cancelWeek, saveLineup } from '@/lib/leagueApi'
 import { Skeleton, SkeletonCard, SkeletonList, SKELETON_FADE_IN } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { NextMatchCard } from '@/components/NextMatchCard'
@@ -11,6 +12,12 @@ import PlayerClaimPicker from '@/components/PlayerClaimPicker'
 import MemberLinkPicker from '@/components/MemberLinkPicker'
 
 jest.mock('@/lib/supabase/client', () => ({ createClient: jest.fn() }))
+jest.mock('@/lib/leagueApi', () => ({
+  saveLineup: jest.fn().mockResolvedValue({ weekId: 'w-new' }),
+  cancelLineup: jest.fn().mockResolvedValue(undefined),
+  cancelWeek: jest.fn().mockResolvedValue({ weekId: 'w-new' }),
+  recordResult: jest.fn().mockResolvedValue(undefined),
+}))
 
 /** A promise that never settles, so components stay in their loading state. */
 const pending = () => new Promise<never>(() => {})
@@ -75,7 +82,9 @@ describe('NextMatchCard on Results', () => {
     )
     expect(container.querySelector('[aria-busy="true"]')).not.toBeInTheDocument()
     expect(screen.getByText('Week 16')).toBeInTheDocument()
-    expect(createClient).not.toHaveBeenCalled()
+    expect(saveLineup).not.toHaveBeenCalled()
+    expect(cancelLineup).not.toHaveBeenCalled()
+    expect(cancelWeek).not.toHaveBeenCalled()
   })
 })
 

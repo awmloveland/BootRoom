@@ -5,7 +5,7 @@ import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn, buildResultShareText, buildDnfShareText, buildResultHeadline, fetchShareLink, resolveTeamRatingForResult, withShareLink } from '@/lib/utils'
 import type { FinalGameShare } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
+import { recordResult } from '@/lib/leagueApi'
 import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality, Week, Strength } from '@/lib/types'
 import { findNewlyCompletedQuarter } from '@/lib/sidebar-stats'
 import { findRecordBreaks } from '@/lib/records'
@@ -147,39 +147,31 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
   const savedTeamA = scheduledWeek.teamA.map((name) => rosterNames.get(name) ?? name)
   const savedTeamB = scheduledWeek.teamB.map((name) => rosterNames.get(name) ?? name)
 
-  // Runs after record_result: renames roster guests on the match, so the game
-  // counts towards them, and adds reviewed new players to the roster.
-  async function saveRosterChanges(supabase: ReturnType<typeof createClient>) {
-    if (rosterGuests.length > 0) {
-      const { error: nameErr } = await supabase.rpc('name_guests', {
-        p_week_id: scheduledWeek.id,
-        p_guests: rosterGuests.map((g) => ({
-          old_name: g.name,
-          new_name: g.rosterName.trim(),
-          rating: strengthToRating(g.strength),
-          goalkeeper: g.goalkeeper,
-        })),
-      })
-      if (nameErr?.message.includes('name_already_exists')) {
-        const names = rosterGuests.map((g) => `"${g.rosterName.trim()}"`).join(' or ')
-        throw new Error(`A player named ${names} already exists.`)
-      }
-      if (nameErr) throw nameErr
+  // What the result route adds to the roster after record_result.
+  function rosterChanges() {
+    return {
+      guests: rosterGuests.map((g) => ({
+        oldName: g.name,
+        newName: g.rosterName.trim(),
+        rating: strengthToRating(g.strength),
+        goalkeeper: g.goalkeeper,
+      })),
+      newPlayers: newPlayerStates.map((p) => ({
+        name: p.name,
+        rating: strengthToRating(p.strength),
+        mentality: p.mentality,
+        goalkeeper: p.mentality === 'goalkeeper',
+      })),
     }
+  }
 
-    const entries = newPlayerStates.map((p) => ({
-      name: p.name,
-      rating: strengthToRating(p.strength),
-      mentality: p.mentality,
-      goalkeeper: p.mentality === 'goalkeeper',
-    }))
-    if (entries.length > 0) {
-      const { error: promoteErr } = await supabase.rpc('promote_roster', {
-        p_game_id: gameId,
-        p_entries: entries,
-      })
-      if (promoteErr) throw promoteErr
+  // The route reports a duplicate guest name as 'name_already_exists'.
+  function describeSaveError(e: unknown): string {
+    if (e instanceof Error && e.message === 'name_already_exists') {
+      const names = rosterGuests.map((g) => `"${g.rosterName.trim()}"`).join(' or ')
+      return `A player named ${names} already exists.`
     }
+    return e instanceof Error ? e.message : 'Failed to save result'
   }
 
   function validateReview(): boolean {
@@ -251,20 +243,11 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
 
     try {
       if (isDnf) {
-        const supabase = createClient()
-
-        const { error: resultErr } = await supabase.rpc('record_result', {
-          p_week_id: scheduledWeek.id,
-          p_dnf: true,
-          p_winner: null,
-          p_notes: notes.trim() || null,
-          p_goal_difference: null,
-          p_team_a_rating: null,
-          p_team_b_rating: null,
+        await recordResult(gameId, scheduledWeek.id, {
+          dnf: true, winner: null, notes: notes.trim() || null,
+          goalDifference: null, teamARating: null, teamBRating: null,
+          ...rosterChanges(),
         })
-        if (resultErr) throw resultErr
-
-        await saveRosterChanges(supabase)
 
         const dnfShareText = buildDnfShareText({
           leagueName,
@@ -362,20 +345,15 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
         recordLines: findRecordBreaks(weeksWithResult, syntheticWeek),
       })
 
-      const supabase = createClient()
-
-      const { error: resultErr } = await supabase.rpc('record_result', {
-        p_week_id: scheduledWeek.id,
-        p_dnf: false,
-        p_winner: winner,
-        p_notes: notes.trim() || null,
-        p_goal_difference: winner === 'draw' ? 0 : goalDifference,
-        p_team_a_rating: teamAScore,
-        p_team_b_rating: teamBScore,
+      await recordResult(gameId, scheduledWeek.id, {
+        dnf: false,
+        winner,
+        notes: notes.trim() || null,
+        goalDifference: winner === 'draw' ? 0 : goalDifference,
+        teamARating: teamAScore,
+        teamBRating: teamBScore,
+        ...rosterChanges(),
       })
-      if (resultErr) throw resultErr
-
-      await saveRosterChanges(supabase)
 
       setShareData({ dnf: false, winner, goalDifference, shareText, highlightsText })
       setFinalGame({
@@ -387,7 +365,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
       })
       routeAfterSave(syntheticWeek)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save result')
+      setError(describeSaveError(e))
     } finally {
       setSaving(false)
     }

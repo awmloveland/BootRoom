@@ -11,7 +11,12 @@ jest.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: jest.fn() }),
   useSearchParams: () => new URLSearchParams(window.location.search),
 }))
-jest.mock('@/lib/supabase/client', () => ({ createClient: jest.fn() }))
+jest.mock('@/lib/leagueApi', () => ({
+  saveLineup: jest.fn().mockResolvedValue({ weekId: 'w-new' }),
+  cancelLineup: jest.fn().mockResolvedValue(undefined),
+  cancelWeek: jest.fn().mockResolvedValue({ weekId: 'w-new' }),
+  recordResult: jest.fn().mockResolvedValue(undefined),
+}))
 
 // Friday 10 Apr 2026, 10:00. The game was yesterday (Thursday 09 Apr, 8pm):
 // kicked off, but the two day awaiting window is still open.

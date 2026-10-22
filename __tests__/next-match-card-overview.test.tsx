@@ -2,11 +2,16 @@
  * @jest-environment jsdom
  */
 import { render, screen, fireEvent } from '@testing-library/react'
-import { createClient } from '@/lib/supabase/client'
 import { NextMatchCard } from '@/components/NextMatchCard'
 import type { ScheduledWeek } from '@/lib/types'
+import { cancelLineup, cancelWeek, saveLineup } from '@/lib/leagueApi'
 
-jest.mock('@/lib/supabase/client', () => ({ createClient: jest.fn() }))
+jest.mock('@/lib/leagueApi', () => ({
+  saveLineup: jest.fn().mockResolvedValue({ weekId: 'w-new' }),
+  cancelLineup: jest.fn().mockResolvedValue(undefined),
+  cancelWeek: jest.fn().mockResolvedValue({ weekId: 'w-new' }),
+  recordResult: jest.fn().mockResolvedValue(undefined),
+}))
 
 const SCHEDULED: ScheduledWeek = {
   id: 'w16', season: '2026', week: 16, date: '09 Apr 2026', format: '5-a-side',
@@ -39,7 +44,9 @@ describe('NextMatchCard, overview variant', () => {
     expect(screen.getByText('Your team')).toBeInTheDocument()
     expect(screen.getByText('Mabley Green · 5-a-side')).toBeInTheDocument()
     expect(screen.getByText('Thu 09 Apr · 8pm')).toBeInTheDocument()
-    expect(createClient).not.toHaveBeenCalled()
+    expect(saveLineup).not.toHaveBeenCalled()
+    expect(cancelLineup).not.toHaveBeenCalled()
+    expect(cancelWeek).not.toHaveBeenCalled()
   })
 
   it('leaves out ratings but keeps the share button', () => {
@@ -67,7 +74,9 @@ describe('NextMatchCard, overview variant', () => {
   it('renders the idle view with no seed and opens the builder from Build Teams', () => {
     render(<NextMatchCard {...BASE} initialScheduledWeek={null} canEdit />)
     expect(screen.getByText('Next game')).toBeInTheDocument()
-    expect(createClient).not.toHaveBeenCalled()
+    expect(saveLineup).not.toHaveBeenCalled()
+    expect(cancelLineup).not.toHaveBeenCalled()
+    expect(cancelWeek).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Build Teams' }))
     expect(screen.getByText('Select attending players')).toBeInTheDocument()
   })

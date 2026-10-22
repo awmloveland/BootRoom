@@ -5,7 +5,12 @@ import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { NextMatchCard } from '@/components/NextMatchCard'
 import type { ScheduledWeek } from '@/lib/types'
 
-jest.mock('@/lib/supabase/client', () => ({ createClient: jest.fn() }))
+jest.mock('@/lib/leagueApi', () => ({
+  saveLineup: jest.fn().mockResolvedValue({ weekId: 'w-new' }),
+  cancelLineup: jest.fn().mockResolvedValue(undefined),
+  cancelWeek: jest.fn().mockResolvedValue({ weekId: 'w-new' }),
+  recordResult: jest.fn().mockResolvedValue(undefined),
+}))
 
 const SCHEDULED: ScheduledWeek = {
   id: 'week-1', season: '2099', week: 13, date: '05 Jan 2099', format: '6-a-side',

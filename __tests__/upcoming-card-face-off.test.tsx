@@ -6,7 +6,12 @@ import { NextMatchCard } from '@/components/NextMatchCard'
 import { MatchCard } from '@/components/MatchCard'
 import type { ScheduledWeek, Week } from '@/lib/types'
 
-jest.mock('@/lib/supabase/client', () => ({ createClient: jest.fn() }))
+jest.mock('@/lib/leagueApi', () => ({
+  saveLineup: jest.fn().mockResolvedValue({ weekId: 'w-new' }),
+  cancelLineup: jest.fn().mockResolvedValue(undefined),
+  cancelWeek: jest.fn().mockResolvedValue({ weekId: 'w-new' }),
+  recordResult: jest.fn().mockResolvedValue(undefined),
+}))
 jest.mock('@/components/ResultModal', () => ({ ResultModal: () => null }))
 jest.mock('@/components/EditWeekModal', () => ({ EditWeekModal: () => null }))
 

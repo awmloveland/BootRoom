@@ -4,7 +4,7 @@ import { mockAuthNamespace } from '@/lib/__tests__/helpers/supabase-auth'
 
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 
-import { requireUser, requireLeagueAdmin } from '@/lib/apiAuth'
+import { requireUser, requireLeagueAdmin, rpcErrorStatus } from '@/lib/apiAuth'
 
 const rpc = jest.fn()
 
@@ -71,5 +71,19 @@ describe('requireLeagueAdmin', () => {
     expect(res.status).toBe(401)
     await expect(res.json()).resolves.toEqual({ error: 'Unauthorized' })
     expect(rpc).not.toHaveBeenCalled()
+  })
+})
+
+describe('rpcErrorStatus', () => {
+  it('maps Access denied to 403', () => {
+    expect(rpcErrorStatus('Access denied')).toBe(403)
+  })
+
+  it('maps guest_not_found to 404', () => {
+    expect(rpcErrorStatus('guest_not_found')).toBe(404)
+  })
+
+  it('maps an unknown message to 500', () => {
+    expect(rpcErrorStatus('something broke')).toBe(500)
   })
 })
