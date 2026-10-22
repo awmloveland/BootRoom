@@ -116,12 +116,15 @@ export default async function HomePage() {
         .select('game_id, date, format')
         .in('game_id', gameIds)
         .eq('status', 'scheduled')
+        // Week numbers restart each season, so order by season first.
+        .order('season', { ascending: true })
         .order('week', { ascending: true }),
       service
         .from('weeks')
         .select('game_id, date')
         .in('game_id', gameIds)
         .eq('status', 'played')
+        .order('season', { ascending: false })
         .order('week', { ascending: false }),
       service
         .from('weeks')

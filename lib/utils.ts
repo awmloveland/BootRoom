@@ -4,7 +4,7 @@ import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { LeagueDetails, PlayerClaimStatus, ScheduledWeek, Week } from './types'
 import type { VisibilityTier } from './roles'
-import { formatWeekDate, getPlayedWeeks, isAwaitingWindowOver, isPastDeadline, leagueNow, sortWeeks } from './dates'
+import { formatWeekDate, isAwaitingWindowOver, isPastDeadline, leagueNow, sortWeeks } from './dates'
 import { formatWinner } from './standings'
 
 // Domain modules. Import from them directly in new code; these re-exports
@@ -27,18 +27,20 @@ export function generateSlug(name: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
-/** Return the next week number within the current calendar year (or 1 if no weeks this year). */
-export function getNextWeekNumber(weeks: Week[]): number {
-  const currentYear = String(leagueNow().getFullYear())
-  const thisYear = weeks.filter((w) => w.season === currentYear)
-  if (thisYear.length === 0) return 1
-  return Math.max(...thisYear.map((w) => w.week)) + 1
+/** Season (calendar year) a match date belongs to. `date` is 'DD MMM YYYY'. */
+export function seasonOfDate(date: string): string {
+  return date.split(' ')[2]
 }
 
-export function deriveSeason(weeks: Week[]): string {
-  const played = getPlayedWeeks(weeks)
-  if (played.length === 0) return String(leagueNow().getFullYear())
-  return sortWeeks(played)[0].season
+/**
+ * Next week number within `season`: highest existing week in that season plus
+ * one, or 1 if none. Take `season` from the match date (seasonOfDate), so both
+ * halves of the (season, week) key come from the same clock.
+ */
+export function getNextWeekNumber(weeks: Week[], season: string): number {
+  const inSeason = weeks.filter((w) => w.season === season)
+  if (inSeason.length === 0) return 1
+  return Math.max(...inSeason.map((w) => w.week)) + 1
 }
 
 /**

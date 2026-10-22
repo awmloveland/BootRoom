@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, manAdvantage, isPastDeadline, buildShareText, shareOrCopy, fetchLineupShareUrl, wprScore, leagueWprPercentiles, parseWeekDate, hintToWpr, squadFormat } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, seasonOfDate, ewptScore, winProbability, winCopy, manAdvantage, isPastDeadline, buildShareText, shareOrCopy, fetchLineupShareUrl, wprScore, leagueWprPercentiles, parseWeekDate, hintToWpr, squadFormat } from '@/lib/utils'
 import { saveLineup, cancelLineup, cancelWeek } from '@/lib/leagueApi'
 import type { Winner, Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata } from '@/lib/types'
 import { autoPick, type AutoPickResult } from '@/lib/autoPick'
@@ -230,8 +230,10 @@ export function NextMatchCard({
   )
 
   const nextDate = useMemo(() => getNextMatchDate(weeks, leagueDayIndex), [weeks, leagueDayIndex])
-  const nextWeekNum = useMemo(() => getNextWeekNumber(weeks), [weeks])
-  const season = useMemo(() => deriveSeason(weeks), [weeks])
+  // Both halves of the week key come from the match date, so a January game
+  // starts a new season instead of reusing last year's week numbers.
+  const nextSeason = useMemo(() => seasonOfDate(nextDate), [nextDate])
+  const nextWeekNum = useMemo(() => getNextWeekNumber(weeks, nextSeason), [weeks, nextSeason])
 
   const goalkeepers = useMemo(
     () => allPlayers.filter((p) => p.mentality === 'goalkeeper').map((p) => p.name),
@@ -326,7 +328,8 @@ export function NextMatchCard({
     const teamB = localTeamB.map((p) => p.name)
     const teamARating = ewptScore(localTeamA)
     const teamBRating = ewptScore(localTeamB)
-    // When editing an existing scheduled week, use its week number and date
+    // When editing an existing scheduled week, use its season, week number and date
+    const saveSeason = scheduledWeek?.season ?? nextSeason
     const saveWeek = scheduledWeek?.week ?? nextWeekNum
     const saveDate = scheduledWeek?.date ?? nextDate
     const lineupMetadata: LineupMetadata = {
@@ -352,7 +355,7 @@ export function NextMatchCard({
     setError(null)
     try {
       const { weekId } = await saveLineup(gameId, {
-        season,
+        season: saveSeason,
         week: saveWeek,
         date: saveDate,
         format: format || null,
@@ -362,7 +365,7 @@ export function NextMatchCard({
         teamARating,
         teamBRating,
       })
-      setScheduledWeek({ id: weekId, season, week: saveWeek, date: saveDate, format, teamA, teamB, status: 'scheduled', lineupMetadata, team_a_rating: teamARating, team_b_rating: teamBRating })
+      setScheduledWeek({ id: weekId, season: saveSeason, week: saveWeek, date: saveDate, format, teamA, teamB, status: 'scheduled', lineupMetadata, team_a_rating: teamARating, team_b_rating: teamBRating })
       setCardState('lineup')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save lineup')
@@ -419,13 +422,14 @@ export function NextMatchCard({
   }
 
   async function handleCancelGame() {
+    const cancelSeason = scheduledWeek?.season ?? nextSeason
     const cancelWeekNumber = scheduledWeek?.week ?? nextWeekNum
     const cancelDate = scheduledWeek?.date ?? nextDate
     setSaving(true)
     setError(null)
     try {
-      const { weekId } = await cancelWeek(gameId, { season, week: cancelWeekNumber, date: cancelDate })
-      setScheduledWeek({ id: weekId, season, week: cancelWeekNumber, date: cancelDate, format: null, teamA: [], teamB: [], status: 'cancelled' })
+      const { weekId } = await cancelWeek(gameId, { season: cancelSeason, week: cancelWeekNumber, date: cancelDate })
+      setScheduledWeek({ id: weekId, season: cancelSeason, week: cancelWeekNumber, date: cancelDate, format: null, teamA: [], teamB: [], status: 'cancelled' })
       setShowCancelModal(false)
       setError(null)
       setCardState('cancelled')
