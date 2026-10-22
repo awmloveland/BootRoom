@@ -27,9 +27,11 @@ export function generateSlug(name: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
-/** Season (calendar year) a match date belongs to. `date` is 'DD MMM YYYY'. */
+/** Season (calendar year) a match date belongs to. `date` is 'DD MMM YYYY'; anything else throws. */
 export function seasonOfDate(date: string): string {
-  return date.split(' ')[2]
+  const year = /^\d{2} [A-Za-z]{3} (\d{4})$/.exec(date)?.[1]
+  if (!year) throw new Error(`Not a match date: ${date}`)
+  return year
 }
 
 /**
