@@ -25,7 +25,7 @@ export async function GET(
   return NextResponse.json({ ...game, player_count })
 }
 
-/** PATCH — admin-only, validates caller is game admin via RPC then updates */
+/** PATCH — admin-only, updates the details and re-slugs the league from its name. Returns { ok, slug }. */
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -60,5 +60,6 @@ export async function PATCH(
     .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ ok: true })
+  // The slug follows the name, so the form can move to the league's new address.
+  return NextResponse.json({ ok: true, slug })
 }

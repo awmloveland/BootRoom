@@ -77,11 +77,12 @@ export function LeagueDetailsForm({
           bio: bio || null,
         }),
       })
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const data = await res.json()
         setError(data.error ?? 'Failed to save')
         return
       }
+      const newSlug: string = typeof data.slug === 'string' && data.slug ? data.slug : leagueSlug
 
       if (rescheduleWeekId && dayChangeModal) {
         const weekRes = await fetch(`/api/league/${leagueId}/weeks/${rescheduleWeekId}`, {
@@ -99,7 +100,13 @@ export function LeagueDetailsForm({
       setSaved(true)
       setInitialDay(day)
       onNameSaved(name.trim())
-      router.refresh()
+      // Renaming re-slugs the league, so the current address stops existing;
+      // move to the new one instead of refreshing a page that is now a 404.
+      if (newSlug !== leagueSlug) {
+        router.replace(`/${newSlug}/settings?tab=details`)
+      } else {
+        router.refresh()
+      }
     } catch {
       setError('Network error')
     } finally {
