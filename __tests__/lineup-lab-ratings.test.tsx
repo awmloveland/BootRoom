@@ -49,9 +49,8 @@ describe('Lineup Lab and the match card rate players the same way', () => {
 
     const teamANames = NAMES.filter((_, i) => i % 2 === 0)
     const teamBNames = NAMES.filter((_, i) => i % 2 === 1)
-    const cardPlayers = enrichPlayersForRating(ALL_PLAYERS, WEEKS)
-    const cardTeamA = resolvePlayersForAutoPick(teamANames, cardPlayers, [], [])
-    const cardTeamB = resolvePlayersForAutoPick(teamBNames, cardPlayers, [], [])
+    const cardTeamA = resolvePlayersForAutoPick(teamANames, ALL_PLAYERS, WEEKS, [], [])
+    const cardTeamB = resolvePlayersForAutoPick(teamBNames, ALL_PLAYERS, WEEKS, [], [])
 
     expect(teamScore('Team A')).toBe(ewptScore(cardTeamA).toFixed(3))
     expect(teamScore('Team B')).toBe(ewptScore(cardTeamB).toFixed(3))
@@ -66,6 +65,7 @@ describe('resolvePlayersForAutoPick', () => {
     const resolved = resolvePlayersForAutoPick(
       ['Zed', 'Ava +1', 'Newbie'],
       roster,
+      WEEKS,
       [{ type: 'guest', name: 'Ava +1', associatedPlayer: 'Ava', strength: 'average' }],
       [{ type: 'new_player', name: 'Newbie', mentality: 'balanced', strength: 'average' }],
     )

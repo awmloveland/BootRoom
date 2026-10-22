@@ -19,7 +19,9 @@ export function makePlayer(name: string, overrides?: Partial<Player>): Player {
  * A 40-game veteran whose `wprScore` equals `rating` exactly. With
  * PRIOR_GAMES = 12 the shrunk points per game is (points + 18) / 52, so
  * points = rating * 52 * 3 / 85 - 18 cancels the results weight. Fractional
- * points are fine in tests.
+ * points are fine in tests. Above about 75 the points exceed 3 a game, an
+ * impossible record, which is harmless because the formula is linear. Do not
+ * override `played`: the identity depends on it.
  */
 export function ratedPlayer(name: string, rating: number, overrides?: Partial<Player>): Player {
   return makePlayer(name, {

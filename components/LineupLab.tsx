@@ -75,7 +75,10 @@ export function LineupLab({ allPlayers, weeks }: Props) {
   function handleAutoBalance() {
     const allSelected = [...teamA, ...teamB]
     if (allSelected.length < 2) return
-    const result = autoPick(allSelected)
+    // Zero-game players count as unknowns, as on the match card, so the
+    // picker spreads them across the teams.
+    const unknownIds = new Set(allSelected.filter((p) => p.played === 0).map((p) => p.playerId))
+    const result = autoPick(allSelected, undefined, unknownIds)
     if (result.suggestions.length === 0) return
     const suggestion = result.suggestions[0]
     setTeamA(suggestion.teamA)

@@ -60,17 +60,19 @@ type CardState = 'idle' | 'building' | 'lineup' | 'cancelled'
 const MIN_SQUAD = 10
 
 /**
- * Turns the squad's names into `Player` objects for the team builder. Guests
- * and new players are plain zero-game players carrying their strength label,
- * so `wprScore` rates them on the same scale as zero-game roster players.
+ * Turns the squad's names into `Player` objects for the team builder. Roster
+ * players are enriched from `weeks` (rust), the same way Lineup Lab does it.
+ * Guests and new players are plain zero-game players carrying their strength
+ * label, so `wprScore` rates them on the same scale as zero-game roster players.
  */
 export function resolvePlayersForAutoPick(
   names: string[],
   allPlayers: Player[],
+  weeks: Week[],
   guests: GuestEntry[],
   newPlayers: NewPlayerEntry[],
 ): Player[] {
-  const lookup = new Map(allPlayers.map((p) => [p.name.toLowerCase(), p]))
+  const lookup = new Map(enrichPlayersForRating(allPlayers, weeks).map((p) => [p.name.toLowerCase(), p]))
   const guestLookup = new Map(guests.map((g) => [g.name.toLowerCase(), g]))
   const newPlayerLookup = new Map(newPlayers.map((p) => [p.name.toLowerCase(), p]))
 
@@ -241,7 +243,7 @@ export function NextMatchCard({
   }
 
   function handleAutoPick() {
-    const resolved = resolvePlayersForAutoPick(squadNames, enrichPlayersForRating(allPlayers, weeks), guestEntries, newPlayerEntries)
+    const resolved = resolvePlayersForAutoPick(squadNames, allPlayers, weeks, guestEntries, newPlayerEntries)
     const pairs = guestEntries
       .filter((g) => g.associatedPlayer)
       .map((g) => [g.name, g.associatedPlayer] as [string, string])
