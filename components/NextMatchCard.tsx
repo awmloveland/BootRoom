@@ -1,19 +1,15 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import * as Dialog from '@radix-ui/react-dialog'
+import { useEffect, useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, deriveSeason, ewptScore, winProbability, winCopy, manAdvantage, isPastDeadline, buildShareText, shareOrCopy, fetchLineupShareUrl, wprScore, leagueWprPercentiles, parseWeekDate, hintToWpr, squadFormat } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, deriveSeason, isPastDeadline } from '@/lib/utils'
 import { saveLineup, cancelLineup, cancelWeek } from '@/lib/leagueApi'
-import type { Winner, Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata } from '@/lib/types'
-import { autoPick, type AutoPickResult } from '@/lib/autoPick'
-import { X, Share2, TriangleAlert } from 'lucide-react'
+import type { Week, Player, ScheduledWeek } from '@/lib/types'
 import { WinnerBadge } from '@/components/WinnerBadge'
-import { FormatLabel } from '@/components/FormatLabel'
-import { FaceOffLineup } from '@/components/TeamList'
-import { AddPlayerModal } from '@/components/AddPlayerModal'
 import { ResultModal } from '@/components/ResultModal'
-import { FormDots } from '@/components/FormDots'
+import { LineupBuilder } from '@/components/LineupBuilder'
+import { LineupCard, CancelGameDialog, useLineupShare } from '@/components/LineupCard'
+import { useLineupBuilder } from '@/components/useLineupBuilder'
 import { NextGameAwaiting, NextGameIdle, NextGameLineup } from '@/components/overview/NextGameCard'
 
 interface Props {
@@ -56,86 +52,6 @@ interface Props {
 
 type CardState = 'idle' | 'building' | 'lineup' | 'cancelled'
 
-/** Fewest players the builder will split into teams. */
-const MIN_SQUAD = 10
-
-/**
- * Scans played weeks to find the most recent week date each player appeared in.
- * Returns a map of player name → date string ('DD MMM YYYY'), or undefined if never played.
- */
-function deriveLastPlayedDates(players: Player[], weeks: Week[]): Map<string, string | undefined> {
-  const playedWeeks = weeks
-    .filter((w) => w.status === 'played')
-    .sort((a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime()) // most recent first
-  const result = new Map<string, string | undefined>()
-  for (const player of players) {
-    const lastWeek = playedWeeks.find(
-      (w) => w.teamA.includes(player.name) || w.teamB.includes(player.name)
-    )
-    result.set(player.name, lastWeek?.date)
-  }
-  return result
-}
-
-function resolvePlayersForAutoPick(
-  names: string[],
-  allPlayers: Player[],
-  guests: GuestEntry[],
-  newPlayers: NewPlayerEntry[],
-): Player[] {
-  const lookup = new Map(allPlayers.map((p) => [p.name.toLowerCase(), p]))
-  const guestLookup = new Map(guests.map((g) => [g.name.toLowerCase(), g]))
-  const newPlayerLookup = new Map(newPlayers.map((p) => [p.name.toLowerCase(), p]))
-  const percentiles = leagueWprPercentiles(allPlayers)
-
-  return names.map((name) => {
-    const known = lookup.get(name.toLowerCase())
-    if (known) return known   // already has `roster|<name>` from fetchers
-
-    const guest = guestLookup.get(name.toLowerCase())
-    if (guest) {
-      return {
-        playerId: `guest|${name}`,
-        name,
-        played: 0, won: 0, drew: 0, lost: 0,
-        timesTeamA: 0, timesTeamB: 0,
-        winRate: 0, qualified: false, points: 0,
-        mentality: guest.goalkeeper ? 'goalkeeper' : 'balanced',
-        strength: guest.strength,
-        recentForm: '',
-        wprOverride: hintToWpr(guest.strength, percentiles),
-      }
-    }
-
-    const newPlayer = newPlayerLookup.get(name.toLowerCase())
-    if (newPlayer) {
-      return {
-        playerId: `new|${name}`,
-        name,
-        played: 0, won: 0, drew: 0, lost: 0,
-        timesTeamA: 0, timesTeamB: 0,
-        winRate: 0, qualified: false, points: 0,
-        mentality: newPlayer.mentality,
-        strength: newPlayer.strength,
-        recentForm: '',
-        wprOverride: hintToWpr(newPlayer.strength, percentiles),
-      }
-    }
-
-    return {
-      playerId: `unknown|${name}`,
-      name,
-      played: 0, won: 0, drew: 0, lost: 0,
-      timesTeamA: 0, timesTeamB: 0,
-      winRate: 0, qualified: false, points: 0,
-      mentality: 'balanced' as const,
-      strength: null,
-      recentForm: '',
-    }
-  })
-}
-
-
 export function NextMatchCard({
   gameId,
   leagueSlug,
@@ -166,145 +82,22 @@ export function NextMatchCard({
     isOverview && cardState === 'lineup' && scheduledWeek !== null &&
     isPastDeadline(scheduledWeek.date, kickoffTime)
 
-  // Building state — player selection
-  const [selectedNames, setSelectedNames] = useState<string[]>([])
-  const [guestEntries, setGuestEntries] = useState<GuestEntry[]>([])
-  const [newPlayerEntries, setNewPlayerEntries] = useState<NewPlayerEntry[]>([])
-  const [showAddPlayerModal, setShowAddPlayerModal] = useState(false)
-
-  const [autoPickResult, setAutoPickResult] = useState<AutoPickResult | null>(null)
-  const [suggestionIndex, setSuggestionIndex] = useState(0)
-  const [isManuallyEdited, setIsManuallyEdited] = useState(false)
-  const [localTeamA, setLocalTeamA] = useState<Player[]>([])
-  const [localTeamB, setLocalTeamB] = useState<Player[]>([])
-  const [dragOver, setDragOver] = useState<{ team: 'A' | 'B'; index: number } | null>(null)
-  const dragSource = useRef<{ team: 'A' | 'B'; index: number } | null>(null)
-  const isAutoPickMode = autoPickResult !== null
-
-  // Cancel game modal
+  const builder = useLineupBuilder({ allPlayers, weeks })
   const [showCancelModal, setShowCancelModal] = useState(false)
-
-  // Result modal
   const [showResultModal, setShowResultModal] = useState(false)
-
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
 
-  // Signed share link for the saved lineup, fetched before the tap: iOS
-  // Safari drops navigator.share if it awaits a request after the click.
-  // Keyed on the week and teams so an edit fetches a fresh link and a stale
-  // one is never used.
-  const [shareLink, setShareLink] = useState<{ key: string; url: string | null } | null>(null)
-  const shareWeekId = scheduledWeek?.id ?? null
-  const shareKey =
-    cardState === 'lineup' && !overviewAwaiting && scheduledWeek &&
-    scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0
-      ? JSON.stringify([scheduledWeek.id, scheduledWeek.teamA, scheduledWeek.teamB])
-      : null
-  useEffect(() => {
-    if (!shareKey || !shareWeekId) return
-    let cancelled = false
-    fetchLineupShareUrl(gameId, shareWeekId).then((url) => {
-      if (!cancelled) setShareLink({ key: shareKey, url })
-    })
-    return () => { cancelled = true }
-  }, [gameId, shareKey, shareWeekId])
-  const signedShareUrl = shareLink?.key === shareKey ? shareLink.url : null
-
-  // Players sorted A–Z for selection list
-  const sortedPlayers = useMemo(
-    () => [...allPlayers].sort((a, b) => a.name.localeCompare(b.name)),
-    [allPlayers]
-  )
-  const selectedSet = useMemo(() => new Set(selectedNames), [selectedNames])
-
-  // Full squad: selected known players + manually-added guests
-  const squadNames = useMemo(
-    () => [
-      ...selectedNames,
-      ...guestEntries.map((g) => g.name),
-      ...newPlayerEntries.map((p) => p.name),
-    ],
-    [selectedNames, guestEntries, newPlayerEntries]
-  )
+  const share = useLineupShare({
+    gameId,
+    leagueSlug,
+    leagueName,
+    week: cardState === 'lineup' && !overviewAwaiting ? scheduledWeek : null,
+  })
 
   const nextDate = useMemo(() => getNextMatchDate(weeks, leagueDayIndex), [weeks, leagueDayIndex])
   const nextWeekNum = useMemo(() => getNextWeekNumber(weeks), [weeks])
   const season = useMemo(() => deriveSeason(weeks), [weeks])
-
-  const goalkeepers = useMemo(
-    () => allPlayers.filter((p) => p.mentality === 'goalkeeper').map((p) => p.name),
-    [allPlayers]
-  )
-
-  // Odd squads are fine: one side plays with an extra player ('6v5').
-  const format = squadFormat(squadNames.length)
-
-  function clearSplit() {
-    setAutoPickResult(null)
-    setSuggestionIndex(0)
-    setIsManuallyEdited(false)
-  }
-
-  function togglePlayer(name: string) {
-    setSelectedNames((prev) =>
-      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
-    )
-    clearSplit()
-  }
-
-  function handleAutoPick() {
-    const lastPlayedDates = deriveLastPlayedDates(allPlayers, weeks)
-    const enrichedPlayers = allPlayers.map((p) => ({
-      ...p,
-      lastPlayedWeekDate: lastPlayedDates.get(p.name),
-    }))
-    const resolved = resolvePlayersForAutoPick(squadNames, enrichedPlayers, guestEntries, newPlayerEntries)
-    const pairs = guestEntries
-      .filter((g) => g.associatedPlayer)
-      .map((g) => [g.name, g.associatedPlayer] as [string, string])
-
-    // Treat both guests and new players as "unknown" — the count-balance filter
-    // spreads them across teams subject to pair-pinning constraints. autoPick
-    // no-ops internally when the set is empty or a singleton, so we can pass it
-    // unconditionally. We collect playerIds (not names) so same-named entities
-    // stay distinct.
-    const unknownEntryNames = new Set<string>()
-    for (const g of guestEntries) unknownEntryNames.add(g.name)
-    for (const p of newPlayerEntries) unknownEntryNames.add(p.name)
-    const unknownIds = new Set(
-      resolved.filter((p) => unknownEntryNames.has(p.name)).map((p) => p.playerId),
-    )
-
-    const result = autoPick(resolved, pairs, unknownIds)
-    setAutoPickResult(result)
-    setSuggestionIndex(0)
-    setIsManuallyEdited(false)
-    if (result.suggestions.length > 0) {
-      setLocalTeamA(result.suggestions[0].teamA)
-      setLocalTeamB(result.suggestions[0].teamB)
-    }
-  }
-
-  function handleSwap(targetTeam: 'A' | 'B', targetIndex: number) {
-    if (!dragSource.current) return
-    const { team: srcTeam, index: srcIndex } = dragSource.current
-    if (srcTeam === targetTeam && srcIndex === targetIndex) return
-    const newA = [...localTeamA]
-    const newB = [...localTeamB]
-    const srcArr = srcTeam === 'A' ? newA : newB
-    const tgtArr = targetTeam === 'A' ? newA : newB
-    const srcPlayer = srcArr[srcIndex]
-    const tgtPlayer = tgtArr[targetIndex]
-    srcArr[srcIndex] = tgtPlayer
-    tgtArr[targetIndex] = srcPlayer
-    setLocalTeamA(newA)
-    setLocalTeamB(newB)
-    setIsManuallyEdited(true)
-    dragSource.current = null
-    setDragOver(null)
-  }
 
   // Every variant takes its first week from the server (getNextMatchSeed), so
   // the card is in the first paint and never re-reads weeks from the browser.
@@ -317,37 +110,32 @@ export function NextMatchCard({
     }
   }, [initialScheduledWeek])
 
+  function startBuilding() {
+    onBuildStart?.()
+    setCardState('building')
+  }
+
+  function openCancel() {
+    setError(null)
+    setShowCancelModal(true)
+  }
+
+  function openResult() {
+    setError(null)
+    setShowResultModal(true)
+  }
+
   async function handleSaveLineup() {
-    if (!autoPickResult || autoPickResult.suggestions.length === 0) {
+    const lineup = builder.toLineup()
+    if (!lineup) {
       setError('No suggestion available')
       return
     }
-    const teamA = localTeamA.map((p) => p.name)
-    const teamB = localTeamB.map((p) => p.name)
-    const teamARating = ewptScore(localTeamA)
-    const teamBRating = ewptScore(localTeamB)
+    const { teamA, teamB, teamARating, teamBRating, lineupMetadata, lineupMetadataForDB } = lineup
     // When editing an existing scheduled week, use its week number and date
     const saveWeek = scheduledWeek?.week ?? nextWeekNum
     const saveDate = scheduledWeek?.date ?? nextDate
-    const lineupMetadata: LineupMetadata = {
-      guests: guestEntries,
-      new_players: newPlayerEntries,
-    }
-    const lineupMetadataForDB = {
-      guests: guestEntries.map((g) => ({
-        name: g.name,
-        associated_player: g.associatedPlayer,
-        goalkeeper: g.goalkeeper ?? false,
-        strength: g.strength,
-      })),
-      new_players: newPlayerEntries.map((p) => ({
-        name: p.name,
-        mentality: p.mentality,
-        // DB metadata still accepts a `goalkeeper` key for back-compat with older readers.
-        goalkeeper: p.mentality === 'goalkeeper',
-        strength: p.strength,
-      })),
-    }
+    const format = builder.format
     setSaving(true)
     setError(null)
     try {
@@ -371,50 +159,9 @@ export function NextMatchCard({
     }
   }
 
-  async function handleShare() {
-    if (!scheduledWeek || !leagueName) return
-    const text = buildShareText({
-      leagueName,
-      leagueSlug,
-      week: scheduledWeek.week,
-      date: scheduledWeek.date,
-      format: scheduledWeek.format ?? '',
-      teamA: scheduledWeek.teamA,
-      teamB: scheduledWeek.teamB,
-      teamARating: scheduledWeek.team_a_rating ?? 0,
-      teamBRating: scheduledWeek.team_b_rating ?? 0,
-      shareUrl: signedShareUrl ?? undefined,
-    })
-    if (await shareOrCopy(text) === 'copied') {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
-
   function handleEditLineup() {
     if (!scheduledWeek) return
-    const knownPlayerNames = new Set(allPlayers.map((p) => p.name.toLowerCase()))
-    const knownOnly = [...scheduledWeek.teamA, ...scheduledWeek.teamB].filter(
-      (name) => knownPlayerNames.has(name.toLowerCase())
-    )
-    setSelectedNames(knownOnly)
-
-    const metadata = scheduledWeek.lineupMetadata
-    if (metadata) {
-      setGuestEntries(metadata.guests.map((g) => ({
-        ...g,
-        strength: g.strength ?? 'average',
-      })))
-      setNewPlayerEntries(metadata.new_players.map((p) => ({
-        ...p,
-        strength: p.strength ?? 'average',
-      })))
-    } else {
-      setGuestEntries([])
-      setNewPlayerEntries([])
-    }
-
-    clearSplit()
+    builder.loadLineup(scheduledWeek)
     setCardState('building')
   }
 
@@ -453,6 +200,7 @@ export function NextMatchCard({
 
   const displayWeek = scheduledWeek?.week ?? nextWeekNum
   const displayDate = scheduledWeek?.date ?? nextDate
+  const hasTeams = scheduledWeek !== null && scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0
 
   return (
     <>
@@ -472,8 +220,8 @@ export function NextMatchCard({
             date={nextDate}
             kickoffTime={kickoffTime}
             canEdit={canEdit}
-            onBuildTeams={() => { onBuildStart?.(); setCardState('building') }}
-            onCancelGame={() => { setError(null); setShowCancelModal(true) }}
+            onBuildTeams={startBuilding}
+            onCancelGame={openCancel}
           />
         )}
 
@@ -481,21 +229,18 @@ export function NextMatchCard({
         {!isOverview && cardState === 'idle' && (
           canEdit ? (
             <div className="flex items-center justify-between gap-4 px-[18px] py-3">
-              <div>
-                <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">Week {nextWeekNum}</p>
-                <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">{nextDate}</p>
-              </div>
+              <WeekHeading week={nextWeekNum} date={nextDate} />
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => { onBuildStart?.(); setCardState('building') }}
+                  onClick={startBuilding}
                   className="h-8 px-3.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-xs font-bold whitespace-nowrap transition-colors"
                 >
                   Build Teams
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setError(null); setShowCancelModal(true) }}
+                  onClick={openCancel}
                   className="h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
                 >
                   Cancel
@@ -504,8 +249,7 @@ export function NextMatchCard({
             </div>
           ) : (
             <div className="px-[18px] py-3">
-              <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">Week {nextWeekNum}</p>
-              <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">{nextDate}</p>
+              <WeekHeading week={nextWeekNum} date={nextDate} />
             </div>
           )
         )}
@@ -513,288 +257,21 @@ export function NextMatchCard({
         {/* ── BUILDING ── */}
         {cardState === 'building' && (
           canEdit ? (
-            <>
-              {/* Header — matches idle style */}
-              <div className="flex items-center justify-between gap-3 px-[18px] py-3 bg-[#0c1728] border-b border-[#1b2c46]">
-                <div>
-                  <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">Week {displayWeek}</p>
-                  <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">{displayDate}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {/* One calm status line in a fixed colour, so it doesn't flash as players are tapped. */}
-                  {squadNames.length > 0 && (
-                    <span className="font-plex text-[9.5px] font-bold uppercase tracking-[.12em] tabular-nums text-[#8ba4c4]">
-                      {squadNames.length < MIN_SQUAD ? (
-                        `${squadNames.length} selected · ${MIN_SQUAD - squadNames.length} more needed`
-                      ) : squadNames.length % 2 !== 0 ? (
-                        <>
-                          <span className="text-[#fbbf24]">
-                            <TriangleAlert className="inline size-[11px] mr-1 -mt-px align-middle" aria-hidden />
-                            <FormatLabel format={format} />
-                          </span>
-                          {` · ${squadNames.length} players`}
-                        </>
-                      ) : (
-                        `${format} · ${squadNames.length} players`
-                      )}
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setError(null)
-                      clearSplit()
-                      setSelectedNames([])
-                      setGuestEntries([])
-                      setNewPlayerEntries([])
-                      setCardState(scheduledWeek ? 'lineup' : 'idle')
-                    }}
-                    className="p-1 rounded text-[#8ba4c4] hover:text-white transition-colors"
-                    aria-label="Close team builder"
-                  >
-                    <X size={15} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Body */}
-              <div className="px-[18px] py-4 space-y-4">
-
-                {/* Player selection — hidden once auto-pick has run */}
-                {!isAutoPickMode && (
-                  <>
-                    <div>
-                      <p className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-3">Select attending players</p>
-                      <div className="flex flex-wrap gap-2">
-                        {sortedPlayers.map((player) => {
-                          const active = selectedSet.has(player.name)
-                          return (
-                            <button
-                              key={player.name}
-                              type="button"
-                              onClick={() => togglePlayer(player.name)}
-                              className={cn(
-                                'h-[30px] px-3 rounded border font-inter-body text-xs font-semibold transition-colors',
-                                active
-                                  ? 'bg-[rgba(8,47,73,.55)] border-[#38bdf8]/50 text-[#7dd3fc]'
-                                  : 'bg-[#0a1421] border-[#1b2c46] text-[#cfe0f4] hover:border-[#2c4a72]'
-                              )}
-                            >
-                              {player.name}
-                            </button>
-                          )
-                        })}
-
-                        {/* Guest pills */}
-                        {guestEntries.map((g) => (
-                          <span
-                            key={g.name}
-                            className="inline-flex items-center gap-1.5 h-[30px] px-3 rounded border font-inter-body text-xs font-semibold bg-[rgba(8,47,73,.55)] border-[#38bdf8]/50 text-[#7dd3fc]"
-                          >
-                            {g.name}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setGuestEntries((prev) => prev.filter((e) => e.name !== g.name))
-                                clearSplit()
-                              }}
-                              className="text-[#38bdf8] hover:text-white"
-                            >
-                              <X size={10} />
-                            </button>
-                          </span>
-                        ))}
-
-                        {/* New player pills */}
-                        {newPlayerEntries.map((p) => (
-                          <span
-                            key={p.name}
-                            className="inline-flex items-center gap-1.5 h-[30px] px-3 rounded border font-inter-body text-xs font-semibold bg-[rgba(8,47,73,.55)] border-[#38bdf8]/50 text-[#7dd3fc]"
-                          >
-                            {p.name}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setNewPlayerEntries((prev) => prev.filter((e) => e.name !== p.name))
-                                clearSplit()
-                              }}
-                              className="text-[#38bdf8] hover:text-white"
-                            >
-                              <X size={10} />
-                            </button>
-                          </span>
-                        ))}
-
-                        {/* Add guest or new player button */}
-                        <button
-                          type="button"
-                          onClick={() => setShowAddPlayerModal(true)}
-                          className="inline-flex items-center gap-1 h-[30px] px-3 rounded border border-dashed border-[#223a5c] font-inter-body text-xs font-semibold text-[#6f88a8] hover:border-[#38bdf8] hover:text-white transition-colors"
-                        >
-                          + Add guest or new player
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* Auto-pick result — replaces player list once built */}
-                {isAutoPickMode && autoPickResult.suggestions.length > 0 && (() => {
-                  const liveScoreA = ewptScore(localTeamA)
-                  const liveScoreB = ewptScore(localTeamB)
-                  const renderTeam = (team: 'A' | 'B', players: Player[], score: number) => (
-                    <div>
-                      <div className={cn(
-                        'flex items-baseline justify-between gap-2 pb-2 border-b border-[#1b2c46]',
-                        team === 'A' ? 'text-[#7dd3fc]' : 'text-[#c4b5fd]'
-                      )}>
-                        <p className="text-xs font-bold uppercase tracking-[.04em]">{team === 'A' ? 'Team A' : 'Team B'}</p>
-                        <span className="font-plex text-sm font-bold tabular-nums">
-                          {score.toFixed(3)}
-                        </span>
-                      </div>
-                      <div className="flex flex-col gap-[5px] mt-2">
-                        {players.map((p, i) => {
-                          const isOver = dragOver?.team === team && dragOver?.index === i
-                          return (
-                            <div
-                              key={p.name}
-                              draggable
-                              onDragStart={() => { dragSource.current = { team, index: i } }}
-                              onDragOver={(e) => { e.preventDefault(); setDragOver({ team, index: i }) }}
-                              onDragLeave={() => setDragOver(null)}
-                              onDrop={() => handleSwap(team, i)}
-                              onDragEnd={() => { dragSource.current = null; setDragOver(null) }}
-                              className={cn(
-                                'flex items-center justify-between gap-2 px-2.5 py-[7px] rounded border-l-2 cursor-grab active:cursor-grabbing transition-colors select-none',
-                                team === 'A'
-                                  ? cn('border-[#38bdf8] text-[#dff1ff]', isOver ? 'bg-[rgba(8,47,73,.95)]' : 'bg-[rgba(8,47,73,.55)]')
-                                  : cn('border-[#a78bfa] text-[#efeaff]', isOver ? 'bg-[rgba(46,16,101,.85)]' : 'bg-[rgba(46,16,101,.45)]')
-                              )}
-                            >
-                              <span className="font-inter-body text-xs font-semibold">
-                                {p.name}{p.mentality === 'goalkeeper' ? ' 🧤' : ''}
-                              </span>
-                              {p.recentForm && <FormDots form={p.recentForm} team={team} className="gap-1 text-[10px]" />}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                  return (
-                    <div>
-                      <div className="grid grid-cols-2 gap-4">
-                        {renderTeam('A', localTeamA, liveScoreA)}
-                        {renderTeam('B', localTeamB, liveScoreB)}
-                      </div>
-                      {localTeamA.length !== localTeamB.length && (
-                        <p className="mt-3 font-plex text-[9.5px] uppercase tracking-[.12em] text-[#6f88a8]">
-                          Uneven teams · {localTeamA.length < localTeamB.length ? 'Team A' : 'Team B'} is a player short, which the odds below allow for
-                        </p>
-                      )}
-                      {(() => {
-                        const winProbA = winProbability(liveScoreA, liveScoreB, manAdvantage(localTeamA.length, localTeamB.length))
-                        const winProbB = 1 - winProbA
-                        const copy = winCopy(winProbA)
-                        const isEven = copy.team === 'even'
-                        return (
-                          <div className="mt-[18px] pt-3.5 border-t border-[#1b2c46]">
-                            <div className="flex items-center gap-3">
-                              <span className={cn(
-                                'font-plex text-[15px] font-bold tabular-nums min-w-10',
-                                isEven ? 'text-[#8ba4c4]' : 'text-[#7dd3fc]'
-                              )}>
-                                {Math.round(winProbA * 100)}%
-                              </span>
-                              <div className="flex-1 h-1.5 rounded-[3px] overflow-hidden flex bg-[#a78bfa]">
-                                <div
-                                  className="bg-[#38bdf8] transition-all duration-300"
-                                  style={{ width: `${winProbA * 100}%` }}
-                                />
-                              </div>
-                              <span className={cn(
-                                'font-plex text-[15px] font-bold tabular-nums min-w-10 text-right',
-                                isEven ? 'text-[#8ba4c4]' : 'text-[#c4b5fd]'
-                              )}>
-                                {Math.round(winProbB * 100)}%
-                              </span>
-                            </div>
-                            <p className={cn(
-                              'mt-2 text-center font-plex text-[9.5px] font-bold uppercase tracking-[.16em]',
-                              copy.team === 'A' ? 'text-[#38bdf8]' : copy.team === 'B' ? 'text-[#a78bfa]' : 'text-[#8ba4c4]'
-                            )}>
-                              {copy.text}
-                            </p>
-                          </div>
-                        )
-                      })()}
-                    </div>
-                  )
-                })()}
-
-                {error && <p className="font-inter-body text-xs text-[#e2686f]">{error}</p>}
-              </div>
-
-              {/* Footer */}
-              <div className="flex flex-wrap items-center justify-between gap-2 px-[18px] py-3 border-t border-[#1b2c46] bg-[#0c1728]">
-                {isAutoPickMode ? (
-                  <button
-                    type="button"
-                    onClick={() => clearSplit()}
-                    className="h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
-                  >
-                    Back
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setCardState(scheduledWeek ? 'lineup' : 'idle')}
-                    className="h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
-                  >
-                    Cancel
-                  </button>
-                )}
-                <div className="flex items-center gap-2">
-                  {isAutoPickMode && autoPickResult && (
-                    isManuallyEdited ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLocalTeamA(autoPickResult.suggestions[suggestionIndex].teamA)
-                          setLocalTeamB(autoPickResult.suggestions[suggestionIndex].teamB)
-                          setIsManuallyEdited(false)
-                        }}
-                        className="h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
-                      >
-                        Auto Balance Teams
-                      </button>
-                    ) : autoPickResult.suggestions.length > 1 ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const next = (suggestionIndex + 1) % autoPickResult.suggestions.length
-                          setSuggestionIndex(next)
-                          setLocalTeamA(autoPickResult.suggestions[next].teamA)
-                          setLocalTeamB(autoPickResult.suggestions[next].teamB)
-                        }}
-                        className="h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
-                      >
-                        Shuffle teams ({suggestionIndex + 1}/{autoPickResult.suggestions.length})
-                      </button>
-                    ) : null
-                  )}
-                  <button
-                    type="button"
-                    onClick={isAutoPickMode ? handleSaveLineup : handleAutoPick}
-                    disabled={saving || squadNames.length < MIN_SQUAD}
-                    className="h-8 px-3.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-xs font-bold whitespace-nowrap transition-colors disabled:opacity-40"
-                  >
-                    {saving ? 'Saving…' : isAutoPickMode ? 'Confirm Lineup' : 'Build Lineup'}
-                  </button>
-                </div>
-              </div>
-            </>
+            <LineupBuilder
+              builder={builder}
+              allPlayers={allPlayers}
+              week={displayWeek}
+              date={displayDate}
+              saving={saving}
+              error={error}
+              onClose={() => {
+                setError(null)
+                builder.reset()
+                setCardState(scheduledWeek ? 'lineup' : 'idle')
+              }}
+              onCancel={() => setCardState(scheduledWeek ? 'lineup' : 'idle')}
+              onConfirm={handleSaveLineup}
+            />
           ) : (
             <div className="px-[18px] py-3">
               <p className="font-inter-body text-xs text-[#6f88a8]">Lineup not yet set.</p>
@@ -809,9 +286,9 @@ export function NextMatchCard({
             teamA={scheduledWeek.teamA}
             teamB={scheduledWeek.teamB}
             kickoffTime={kickoffTime}
-            canEdit={canEdit && scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0}
+            canEdit={canEdit && hasTeams}
             onEditLineups={handleEditLineup}
-            onResultGame={() => { setError(null); setShowResultModal(true) }}
+            onResultGame={openResult}
           />
         )}
 
@@ -826,45 +303,35 @@ export function NextMatchCard({
             linkedPlayerName={overview?.linkedPlayerName ?? null}
             location={overview?.location ?? null}
             kickoffTime={kickoffTime}
-            canEdit={canEdit && scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0}
+            canEdit={canEdit && hasTeams}
             onEditLineups={handleEditLineup}
-            onResultGame={() => { setError(null); setShowResultModal(true) }}
-            onShare={scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0 ? handleShare : undefined}
-            copied={copied}
+            onResultGame={openResult}
+            onShare={hasTeams ? share.share : undefined}
+            copied={share.copied}
           />
         )}
 
-        {/* ── LINEUP header ── */}
+        {/* ── LINEUP ── */}
         {!isOverview && cardState === 'lineup' && scheduledWeek && (
-          <div className="flex items-center justify-between gap-3 px-[18px] py-3 border-b border-[#1b2c46]">
-            <div>
-              <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">Week {displayWeek}</p>
-              <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">
-                {displayDate}
-                {scheduledWeek.format && <span> · <FormatLabel format={scheduledWeek.format} /></span>}
-              </p>
-            </div>
-            {isPastDeadline(scheduledWeek.date, kickoffTime) ? (
-              <span className="px-2.5 py-[5px] rounded border border-[#223a5c] font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#8ba4c4] whitespace-nowrap">
-                Awaiting Result
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-[7px] px-2.5 py-[5px] rounded border border-[#38bdf8]/40 bg-[#38bdf8]/12 font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#7dd3fc] whitespace-nowrap">
-                <span className="size-1.5 rounded-full bg-[#38bdf8] animate-cf-pulse motion-reduce:animate-none" />
-                Upcoming
-              </span>
-            )}
-          </div>
+          <LineupCard
+            week={scheduledWeek}
+            allPlayers={allPlayers}
+            kickoffTime={kickoffTime}
+            canEdit={canEdit}
+            linkedPlayerName={linkedPlayerName}
+            copied={share.copied}
+            onShare={share.share}
+            onCancelGame={() => setShowCancelModal(true)}
+            onEditLineup={handleEditLineup}
+            onResultGame={openResult}
+          />
         )}
 
         {/* ── CANCELLED ── */}
         {cardState === 'cancelled' && scheduledWeek && (
           <div className="flex items-center justify-between gap-4 px-[18px] py-3">
             <div className="flex items-center gap-3">
-              <div>
-                <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">Week {scheduledWeek.week}</p>
-                <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">{scheduledWeek.date}</p>
-              </div>
+              <WeekHeading week={scheduledWeek.week} date={scheduledWeek.date} />
               <WinnerBadge winner={null} cancelled />
             </div>
             {canEdit && !isPastDeadline(scheduledWeek.date, kickoffTime) && (
@@ -879,123 +346,17 @@ export function NextMatchCard({
             )}
           </div>
         )}
-
-        {/* ── LINEUP body ── */}
-        {!isOverview && cardState === 'lineup' && scheduledWeek && (
-          <div className="px-[18px] py-4">
-            <FaceOffLineup
-              teamA={scheduledWeek.teamA}
-              teamB={scheduledWeek.teamB}
-              teamARating={scheduledWeek.team_a_rating}
-              teamBRating={scheduledWeek.team_b_rating}
-              winner={null}
-              goalkeepers={goalkeepers}
-              linkedPlayerName={linkedPlayerName}
-            />
-
-            {scheduledWeek.teamA.length > 0 && scheduledWeek.teamB.length > 0 && (
-              <div className="flex flex-wrap items-center justify-between gap-2 mt-3.5 pt-3.5 border-t border-[#1b2c46]">
-                {canEdit ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowCancelModal(true)}
-                    className="h-8 px-3 rounded border border-[#e2686f]/40 text-[#e2686f] text-xs font-bold whitespace-nowrap hover:bg-[#e2686f]/10 transition-colors"
-                  >
-                    Cancel Game
-                  </button>
-                ) : (
-                  <div />
-                )}
-                <div className="flex items-center gap-2">
-                  {canEdit && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={handleEditLineup}
-                        className="h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
-                      >
-                        <span className="sm:hidden">Edit</span>
-                        <span className="hidden sm:inline">Edit Lineups</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setError(null); setShowResultModal(true) }}
-                        className="h-8 px-3.5 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-xs font-bold whitespace-nowrap transition-colors"
-                      >
-                        <span className="sm:hidden">Result</span>
-                        <span className="hidden sm:inline">Result Game</span>
-                      </button>
-                    </>
-                  )}
-                  <button
-                    type="button"
-                    onClick={handleShare}
-                    aria-label="Share"
-                    className="inline-flex items-center h-8 px-3 rounded border border-[#223a5c] text-[#cfe0f4] text-xs font-bold whitespace-nowrap hover:border-[#38bdf8] hover:text-white transition-colors"
-                  >
-                    <Share2 className="size-[15px] sm:hidden" aria-hidden="true" />
-                    <span className="hidden sm:inline">{copied ? 'Copied!' : 'Share'}</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* ── Cancel Game confirmation modal ── */}
-      <Dialog.Root
+      <CancelGameDialog
         open={showCancelModal}
         onOpenChange={(open) => { setShowCancelModal(open); if (!open) setError(null) }}
-      >
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-[#030710]/80 z-[999]" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-[calc(100%-32px)] sm:max-w-sm rounded-[14px] bg-[#0a1421] border border-[#1b2c46] p-5 shadow-[0_34px_80px_rgba(0,0,0,.65)] focus:outline-none">
-            <Dialog.Title className="text-base font-bold tracking-[-.02em] text-[#f4f9ff] mb-2.5">
-              Cancel Week {displayWeek}?
-            </Dialog.Title>
-            <Dialog.Description className="font-inter-body text-[13px] leading-[1.55] text-[#8ba4c4] mb-5">
-              This will mark the game as cancelled. You can reactivate it before {displayDate} at 8 pm if plans change.
-            </Dialog.Description>
-            {error && <p className="font-inter-body text-xs text-[#e2686f] mb-4">{error}</p>}
-            <div className="flex gap-2 justify-end">
-              <Dialog.Close asChild>
-                <button
-                  type="button"
-                  className="h-9 px-3.5 rounded border border-[#223a5c] text-[#cfe0f4] text-[13px] font-semibold hover:border-[#38bdf8] hover:text-white transition-colors"
-                >
-                  Keep it
-                </button>
-              </Dialog.Close>
-              <button
-                type="button"
-                onClick={handleCancelGame}
-                disabled={saving}
-                className="h-9 px-4 rounded border border-[#e2686f]/40 text-[#e2686f] text-[13px] font-bold hover:bg-[#e2686f]/10 transition-colors disabled:opacity-50"
-              >
-                {saving ? 'Cancelling…' : 'Confirm Cancellation'}
-              </button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
-
-      {showAddPlayerModal && (
-        <AddPlayerModal
-          players={sortedPlayers.filter((p) => selectedNames.includes(p.name))}
-          allLeaguePlayers={allPlayers}
-          existingGuests={guestEntries}
-          onAdd={(entry) => {
-            if (entry.type === 'guest') {
-              setGuestEntries((prev) => [...prev, entry as GuestEntry])
-            } else {
-              setNewPlayerEntries((prev) => [...prev, entry as NewPlayerEntry])
-            }
-            clearSplit()
-          }}
-          onClose={() => setShowAddPlayerModal(false)}
-        />
-      )}
+        week={displayWeek}
+        date={displayDate}
+        saving={saving}
+        error={error}
+        onConfirm={handleCancelGame}
+      />
 
       {showResultModal && scheduledWeek && (
         <ResultModal
@@ -1008,8 +369,7 @@ export function NextMatchCard({
           weeks={weeks}
           onSaved={() => {
             setShowResultModal(false)
-            setGuestEntries([])
-            setNewPlayerEntries([])
+            builder.clearAddedPlayers()
             setScheduledWeek(null)
             setCardState('idle')
             onResultSaved()
@@ -1019,5 +379,14 @@ export function NextMatchCard({
       )}
 
     </>
+  )
+}
+
+function WeekHeading({ week, date }: { week: number; date: string }) {
+  return (
+    <div>
+      <p className="text-sm font-bold tracking-[-.01em] text-[#f4f9ff]">Week {week}</p>
+      <p className="mt-[3px] font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">{date}</p>
+    </div>
   )
 }
