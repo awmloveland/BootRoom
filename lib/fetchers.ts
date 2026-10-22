@@ -1,6 +1,7 @@
 // lib/fetchers.ts
 import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
+import { getSessionUser, type SessionUser } from '@/lib/supabase/session'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sortWeeks, deriveSeason, getMostRecentExpectedGameDate, getNextWeekNumber, isPastDeadline } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
@@ -35,13 +36,12 @@ export const getGameBySlug = cache(async (slug: string) => {
 // it keeps every auth-dependent fetcher on the same instance.
 export const getAuthClient = cache(async () => createClient())
 
-// One call to Supabase Auth per request. Every fetcher that needs the current
-// user goes through here so a page never pays for the auth round trip twice.
-export const getUser = cache(async () => {
+// One session check per request. Every fetcher that needs the current user
+// goes through here. Verified locally from the JWT; see lib/supabase/session.ts.
+export const getUser = cache(async (): Promise<SessionUser | null> => {
   try {
     const authSupabase = await getAuthClient()
-    const { data: { user } } = await authSupabase.auth.getUser()
-    return user
+    return await getSessionUser(authSupabase)
   } catch {
     return null
   }
