@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { requireLeagueAdmin } from '@/lib/apiAuth'
 import { NextResponse } from 'next/server'
 import { parseRenameName } from '@/lib/playerUtils'
 
@@ -9,13 +10,9 @@ export async function PATCH(
 ) {
   const { id, name: oldName } = await params
 
+  const gate = await requireLeagueAdmin(id)
+  if ('response' in gate) return gate.response
   const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { data: isAdmin } = await supabase.rpc('is_game_admin', { p_game_id: id })
-  if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await request.json().catch(() => null)
   const newName = parseRenameName(body?.new_name)
