@@ -57,7 +57,12 @@ BootRoom/
 │   └── og/                   # next/og (Satori) image JSX, inline styles only
 ├── lib/
 │   ├── types.ts              # All shared TypeScript types (canonical)
-│   ├── utils.ts              # cn(), sortWeeks(), getPlayedWeeks(), deriveSeason()
+│   ├── utils.ts              # cn(), season and week helpers; re-exports the domain modules below
+│   ├── dates.ts              # Week dates, game days, kick-off deadlines
+│   ├── rating.ts             # WPR, EWPT, win probability
+│   ├── shareText.ts          # Share messages and signed links
+│   ├── standings.ts          # Points, tables, result formatting
+│   ├── review.ts             # Join request and claim review
 │   ├── roles.ts              # resolveVisibilityTier() — maps GameRole → VisibilityTier
 │   ├── features.ts           # isFeatureEnabled() — checks feature against visibility tier
 │   └── supabase/             # Supabase client helpers (client, server, service)
@@ -71,7 +76,7 @@ BootRoom/
 └── next.config.js            # Plain .js config (see Key decisions)
 ```
 
-New components go in `components/`. New utility functions go in `lib/utils.ts`.
+New components go in `components/`. New helpers go in the domain module they belong to: `lib/dates.ts` (week dates, game days, deadlines), `lib/rating.ts` (WPR, EWPT, win probability), `lib/shareText.ts` (share messages and links), `lib/standings.ts` (points and tables), `lib/review.ts` (join request and claim review). `lib/utils.ts` keeps `cn()`, season helpers and the next match seed, and re-exports the domain modules for existing imports.
 New types go in `lib/types.ts`. Do not create `src/` directories.
 
 ---

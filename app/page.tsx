@@ -10,20 +10,8 @@ import { cookies, headers } from 'next/headers'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { LandingPage } from '@/components/landing/LandingPage'
-import { cn, leagueLandingPath, leagueNow, VIEWPORT_COOKIE } from '@/lib/utils'
-
-const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-const MONTH_IDX: Record<string, number> = Object.fromEntries(MONTH_SHORT.map((m, i) => [m, i]))
-
-function parseWeekDate(date: string): Date {
-  const [d, m, y] = date.split(' ')
-  return new Date(parseInt(y), MONTH_IDX[m], parseInt(d))
-}
-
-function formatWeekDate(date: Date): string {
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${d} ${MONTH_SHORT[date.getMonth()]} ${date.getFullYear()}`
-}
+import { cn, leagueLandingPath, VIEWPORT_COOKIE } from '@/lib/utils'
+import { parseWeekDate, formatWeekDate, leagueNow } from '@/lib/dates'
 
 function formatDisplayDate(weekDateStr: string): string {
   const date = parseWeekDate(weekDateStr)
