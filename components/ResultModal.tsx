@@ -3,7 +3,7 @@
 
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { cn, buildResultShareText, buildDnfShareText, buildResultHeadline, fetchShareLink, resolveTeamRatingForResult, withShareLink } from '@/lib/utils'
+import { cn, buildResultShareText, buildDnfShareText, buildResultHeadline, enrichPlayersForRating, fetchShareLink, resolveTeamRatingForResult, withShareLink } from '@/lib/utils'
 import type { FinalGameShare } from '@/lib/utils'
 import { recordResult } from '@/lib/leagueApi'
 import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality, Week, Strength } from '@/lib/types'
@@ -282,10 +282,12 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
 
       const guestMap = new Map(guestStates.map((g) => [g.name, g]))
       const newPlayerMap = new Map(newPlayerStates.map((p) => [p.name, p]))
+      // Rated the same way as the team builder, for legacy line-ups with no snapshot.
+      const ratedPlayers = enrichPlayersForRating(allPlayers, weeks)
 
       function resolveTeam(names: string[]): Player[] {
         return names.map((name) => {
-          const known = allPlayers.find((p) => p.name === name)
+          const known = ratedPlayers.find((p) => p.name === name)
           if (known) return known
           const src = guestMap.get(name) ?? newPlayerMap.get(name)
           const isGk = src
