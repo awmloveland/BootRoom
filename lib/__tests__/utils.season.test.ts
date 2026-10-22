@@ -67,6 +67,11 @@ describe('seasonOfDate', () => {
     expect(seasonOfDate('04 Jan 2027')).toBe('2027')
     expect(seasonOfDate('31 Dec 2026')).toBe('2026')
   })
+
+  it('throws on anything that is not a DD MMM YYYY date', () => {
+    expect(() => seasonOfDate('2027-01-04')).toThrow('Not a match date')
+    expect(() => seasonOfDate('')).toThrow('Not a match date')
+  })
 })
 
 describe('getNextWeekNumber', () => {

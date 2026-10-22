@@ -14,7 +14,7 @@ const rpc = jest.fn()
 const eq = jest.fn()
 
 /** `existingStatus` is the status of the row already stored under the posted (season, week), if any. */
-function setup({ user = true, admin = true, existingStatus = null as string | null } = {}) {
+function setup({ user = true, admin = true, existingStatus = null as string | null, lookupError = null as { message: string } | null } = {}) {
   rpc.mockImplementation(async (name: string) => {
     if (name === 'is_game_admin') return { data: admin, error: null }
     if (name === 'save_lineup' || name === 'cancel_week') return { data: 'w-new', error: null }
@@ -23,7 +23,7 @@ function setup({ user = true, admin = true, existingStatus = null as string | nu
   const query = {
     select: jest.fn(() => query),
     eq: eq.mockImplementation(() => query),
-    maybeSingle: jest.fn().mockResolvedValue({ data: existingStatus ? { status: existingStatus } : null, error: null }),
+    maybeSingle: jest.fn().mockResolvedValue({ data: existingStatus ? { status: existingStatus } : null, error: lookupError }),
   }
   ;(createClient as jest.Mock).mockResolvedValue({
     auth: mockAuthNamespace(user ? { id: 'u1', email: 'a@example.com' } : null),
@@ -124,6 +124,13 @@ describe.each([
     setup({ existingStatus: status })
     expect((await handler(json(body), league)).status).toBe(200)
     expect(rpc).toHaveBeenCalledWith(rpcName, expect.anything())
+  })
+
+  it('refuses to write when the week lookup fails', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {})
+    setup({ lookupError: { message: 'connection reset' } })
+    expect((await handler(json(body), league)).status).toBe(500)
+    expect(rpc).not.toHaveBeenCalledWith(rpcName, expect.anything())
   })
 
   it('maps the database guard to 409 when the RPC raises it', async () => {
