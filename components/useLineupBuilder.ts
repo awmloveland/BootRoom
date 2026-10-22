@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { ewptScore, squadFormat } from '@/lib/utils'
-import { autoPick, deriveLastPlayedDates, resolvePlayersForAutoPick, type AutoPickResult } from '@/lib/autoPick'
+import { autoPick, resolvePlayersForAutoPick, type AutoPickResult } from '@/lib/autoPick'
 import type { Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata } from '@/lib/types'
 
 /** Fewest players the builder will split into teams. */
@@ -82,26 +82,21 @@ export function useLineupBuilder({ allPlayers, weeks }: { allPlayers: Player[]; 
   }
 
   function runAutoPick() {
-    const lastPlayedDates = deriveLastPlayedDates(allPlayers, weeks)
-    const enrichedPlayers = allPlayers.map((p) => ({
-      ...p,
-      lastPlayedWeekDate: lastPlayedDates.get(p.name),
-    }))
-    const resolved = resolvePlayersForAutoPick(squadNames, enrichedPlayers, guestEntries, newPlayerEntries)
+    const resolved = resolvePlayersForAutoPick(squadNames, allPlayers, weeks, guestEntries, newPlayerEntries)
     const pairs = guestEntries
       .filter((g) => g.associatedPlayer)
       .map((g) => [g.name, g.associatedPlayer] as [string, string])
 
-    // Treat both guests and new players as "unknown" — the count-balance filter
-    // spreads them across teams subject to pair-pinning constraints. autoPick
-    // no-ops internally when the set is empty or a singleton, so we can pass it
-    // unconditionally. We collect playerIds (not names) so same-named entities
-    // stay distinct.
+    // Treat guests, new players and zero-game roster players as "unknown": the
+    // count-balance filter spreads them across teams subject to pair-pinning
+    // constraints. autoPick no-ops internally when the set is empty or a
+    // singleton, so we can pass it unconditionally. We collect playerIds (not
+    // names) so same-named entities stay distinct.
     const unknownEntryNames = new Set<string>()
     for (const g of guestEntries) unknownEntryNames.add(g.name)
     for (const p of newPlayerEntries) unknownEntryNames.add(p.name)
     const unknownIds = new Set(
-      resolved.filter((p) => unknownEntryNames.has(p.name)).map((p) => p.playerId),
+      resolved.filter((p) => unknownEntryNames.has(p.name) || p.played === 0).map((p) => p.playerId),
     )
 
     const result = autoPick(resolved, pairs, unknownIds)

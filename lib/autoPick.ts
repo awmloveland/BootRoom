@@ -1,6 +1,5 @@
 import type { GuestEntry, NewPlayerEntry, Player, Week } from './types'
-import { parseWeekDate } from './dates'
-import { ewptScore, hintToWpr, leagueWprPercentiles, manAdvantage } from './rating'
+import { enrichPlayersForRating, ewptScore, manAdvantage } from './rating'
 
 export interface AutoPickSuggestion {
   teamA: Player[]
@@ -58,8 +57,8 @@ export function findAssocTeam(
  * placing the extra player are searched and compete on that adjusted gap.
  *
  * Uses exhaustive search for n ≤ 20; random sampling for n > 20. Guest players
- * (not in DB) should be passed with a wprOverride set to the appropriate
- * league percentile and all stats at zero.
+ * (not in DB) should be passed as zero-game players carrying their strength
+ * label, so `wprScore` rates them like any other newcomer.
  *
  * @param pairs - Optional array of [guestName, associatedPlayerName] pairs.
  *   Each guest will be pinned to the same team as their associated player.
@@ -249,38 +248,22 @@ export function autoPick(
 }
 
 /**
- * Scans played weeks to find the most recent week date each player appeared in.
- * Returns a map of player name → date string ('DD MMM YYYY'), or undefined if never played.
- */
-export function deriveLastPlayedDates(players: Player[], weeks: Week[]): Map<string, string | undefined> {
-  const playedWeeks = weeks
-    .filter((w) => w.status === 'played')
-    .sort((a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime()) // most recent first
-  const result = new Map<string, string | undefined>()
-  for (const player of players) {
-    const lastWeek = playedWeeks.find(
-      (w) => w.teamA.includes(player.name) || w.teamB.includes(player.name)
-    )
-    result.set(player.name, lastWeek?.date)
-  }
-  return result
-}
-
-/**
- * Turns the squad's names into the players autoPick rates. Roster players come
- * through as they are; guests and new players get zeroed stats and a rating
- * from their strength hint, and any other name is rated as an unknown.
+ * Turns the squad's names into the players autoPick rates. Roster players are
+ * enriched from `weeks` (rust), the same way Lineup Lab does it. Guests and new
+ * players are plain zero-game players carrying their strength label, so
+ * `wprScore` rates them on the same scale as zero-game roster players. Any
+ * other name is rated as an unknown.
  */
 export function resolvePlayersForAutoPick(
   names: string[],
   allPlayers: Player[],
+  weeks: Week[],
   guests: GuestEntry[],
   newPlayers: NewPlayerEntry[],
 ): Player[] {
-  const lookup = new Map(allPlayers.map((p) => [p.name.toLowerCase(), p]))
+  const lookup = new Map(enrichPlayersForRating(allPlayers, weeks).map((p) => [p.name.toLowerCase(), p]))
   const guestLookup = new Map(guests.map((g) => [g.name.toLowerCase(), g]))
   const newPlayerLookup = new Map(newPlayers.map((p) => [p.name.toLowerCase(), p]))
-  const percentiles = leagueWprPercentiles(allPlayers)
 
   return names.map((name) => {
     const known = lookup.get(name.toLowerCase())
@@ -297,7 +280,6 @@ export function resolvePlayersForAutoPick(
         mentality: guest.goalkeeper ? 'goalkeeper' : 'balanced',
         strength: guest.strength,
         recentForm: '',
-        wprOverride: hintToWpr(guest.strength, percentiles),
       }
     }
 
@@ -312,7 +294,6 @@ export function resolvePlayersForAutoPick(
         mentality: newPlayer.mentality,
         strength: newPlayer.strength,
         recentForm: '',
-        wprOverride: hintToWpr(newPlayer.strength, percentiles),
       }
     }
 
