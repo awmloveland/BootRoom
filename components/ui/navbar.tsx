@@ -3,7 +3,7 @@
 import type { ReactElement } from 'react'
 import Link from 'next/link'
 import { usePathname, useParams, useRouter } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { Settings, LogOut } from 'lucide-react'
 
 import {
@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { AvatarButton } from '@/components/ui/AvatarButton'
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
+import type { NavSession } from '@/lib/types'
 
 interface MenuItem {
   title: string
@@ -49,10 +49,10 @@ interface NavbarProps {
   }
   menu?: MenuItem[]
   mobileExtraLinks?: { name: string; url: string }[]
-  auth?: {
-    login?: { text: string; url: string }
-    signOut?: { text: string; onSignOut: () => void }
-  }
+  /** The viewer, resolved on the server. Null when signed out. */
+  session: NavSession | null
+  /** True while the server is still resolving the session (Suspense fallback). */
+  pending?: boolean
 }
 
 const defaultLogo = {
@@ -120,38 +120,21 @@ export function Navbar({
   logo = defaultLogo,
   menu = [],
   mobileExtraLinks = [],
-  auth,
+  session,
+  pending = false,
 }: NavbarProps) {
   const pathname = usePathname()
   const params = useParams()
   const slug = (params as { slug?: string })?.slug
   const isPlayersPage = !!pathname?.match(/^\/[^/]+\/players$/)
 
-  const [user, setUser] = useState<{ id?: string; email?: string } | null>(null)
-  const [displayName, setDisplayName] = useState<string | null>(null)
-  const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [authResolved, setAuthResolved] = useState(false)
-
   const router = useRouter()
 
-  const fetchUserData = useCallback(async () => {
-    try {
-      const res = await fetch('/api/auth/me', { credentials: 'include' })
-      const data = await res.json().catch(() => ({}))
-      const first = data?.profile?.first_name ?? ''
-      const last = data?.profile?.last_name ?? ''
-      const derivedName = `${first} ${last}`.trim() || data?.user?.email || null
-      return { user: data?.user ?? null, displayName: derivedName }
-    } catch {
-      return { user: null, displayName: null }
-    }
-  }, [])
-
-  const applyUserData = useCallback((result: { user: { id?: string; email?: string } | null; displayName: string | null }) => {
-    setUser(result.user)
-    setDisplayName(result.displayName)
-  }, [])
+  const user = session
+  const displayName = session?.displayName ?? null
+  const currentRole = slug ? session?.leagues.find((l) => l.slug === slug)?.role : undefined
+  const isLeagueAdmin = currentRole === 'creator' || currentRole === 'admin'
 
   const showNav = pathname !== '/sign-in'
 
@@ -162,64 +145,10 @@ export function Navbar({
     if (sheetOpen) setSheetOpen(false)
   }
 
-  useEffect(() => {
-    if (pathname === '/sign-in') return
-    let cancelled = false
-    fetchUserData().then((result) => {
-      if (cancelled) return
-      applyUserData(result)
-      setAuthResolved(true)
-    })
-    return () => { cancelled = true }
-  }, [pathname, fetchUserData, applyUserData])
-
-  // Read inside the auth listener without resubscribing on every navigation.
-  const pathnameRef = useRef(pathname)
-  useEffect(() => { pathnameRef.current = pathname }, [pathname])
-
-  useEffect(() => {
-    const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'INITIAL_SESSION') return
-      if (event === 'SIGNED_IN') {
-        // Signing in from the landing page reloads straight into the app.
-        // Showing the app navbar first would stack it over the landing
-        // page's own header until the reload lands.
-        if (pathnameRef.current === '/') return
-        fetchUserData().then(applyUserData)
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null)
-        setDisplayName(null)
-      }
-    })
-    return () => subscription.unsubscribe()
-  }, [fetchUserData, applyUserData])
-
-  useEffect(() => {
-    if (!slug) return
-    let cancelled = false
-    fetch('/api/games', { credentials: 'include' })
-      .then((res) => res.json().catch(() => []))
-      .then((data: { id: string; slug: string; name: string; role: string }[]) => {
-        if (cancelled) return
-        const game = (data ?? []).find((g) => g.slug === slug)
-        setIsLeagueAdmin(game?.role === 'creator' || game?.role === 'admin')
-      })
-      .catch(() => { if (!cancelled) setIsLeagueAdmin(false) })
-    return () => { cancelled = true }
-  }, [slug])
-
-  // Reset league admin when leaving a league context (state-comparison during render)
-  const [prevSlug, setPrevSlug] = useState(slug)
-  if (prevSlug !== slug) {
-    setPrevSlug(slug)
-    if (!slug) setIsLeagueAdmin(false)
-  }
-
   async function handleSignOut() {
     await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' })
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    // The server cleared the session cookies; re-render the layout so the
+    // navbar and every page re-resolve as signed out.
     router.refresh()
   }
 
@@ -234,8 +163,8 @@ export function Navbar({
   }
 
   // The landing page at / ships its own header; hide the app navbar for
-  // signed-out visitors (and while auth state is still resolving) there.
-  if (pathname === '/' && (!authResolved || !user)) return null
+  // signed-out visitors (and while the server is still resolving) there.
+  if (pathname === '/' && (pending || !user)) return null
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#101d31] bg-[rgba(6,11,20,.92)] backdrop-blur-[10px]">
@@ -265,7 +194,7 @@ export function Navbar({
 
         {/* Right: auth / user controls */}
         <div className="flex items-center justify-end gap-2">
-          {showNav && !user && (
+          {showNav && !pending && !user && (
             <AuthDialog redirect={slug ? `/${slug}` : '/'} size="xs" signinOnly />
           )}
           {showNav && user && (
@@ -309,7 +238,7 @@ export function Navbar({
             <img src="/logo.png" alt="Craft Football" className="block h-[30px] w-[30px]" />
             <span className="text-[15px] font-bold tracking-[-.02em]">Craft Football</span>
           </Link>
-          {showNav && !user && (
+          {showNav && !pending && !user && (
             <AuthDialog redirect={slug ? `/${slug}` : '/'} size="xs" signinOnly />
           )}
           {showNav && user && (

@@ -189,6 +189,16 @@ export interface LeagueMember {
   linked_player_name: string | null;
 }
 
+/** What the navbar needs to know about the viewer, resolved once per request on the server. */
+export interface NavSession {
+  userId: string
+  email: string | null
+  /** "First Last", falling back to the email, as the avatar menu shows it. */
+  displayName: string | null
+  /** Every league the viewer belongs to, so the navbar can label the current one Admin or Member. */
+  leagues: { slug: string; role: GameRole }[]
+}
+
 export interface ScheduledWeek {
   id: string;
   season: string;
