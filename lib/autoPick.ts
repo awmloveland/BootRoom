@@ -1,5 +1,6 @@
-import type { Player } from './types'
-import { ewptScore, manAdvantage } from './utils'
+import type { GuestEntry, NewPlayerEntry, Player, Week } from './types'
+import { parseWeekDate } from './dates'
+import { ewptScore, hintToWpr, leagueWprPercentiles, manAdvantage } from './rating'
 
 export interface AutoPickSuggestion {
   teamA: Player[]
@@ -245,6 +246,87 @@ export function autoPick(
   const bestDiff = suggestions.length > 0 ? suggestions[0].diff : 0
 
   return { suggestions, bestDiff }
+}
+
+/**
+ * Scans played weeks to find the most recent week date each player appeared in.
+ * Returns a map of player name → date string ('DD MMM YYYY'), or undefined if never played.
+ */
+export function deriveLastPlayedDates(players: Player[], weeks: Week[]): Map<string, string | undefined> {
+  const playedWeeks = weeks
+    .filter((w) => w.status === 'played')
+    .sort((a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime()) // most recent first
+  const result = new Map<string, string | undefined>()
+  for (const player of players) {
+    const lastWeek = playedWeeks.find(
+      (w) => w.teamA.includes(player.name) || w.teamB.includes(player.name)
+    )
+    result.set(player.name, lastWeek?.date)
+  }
+  return result
+}
+
+/**
+ * Turns the squad's names into the players autoPick rates. Roster players come
+ * through as they are; guests and new players get zeroed stats and a rating
+ * from their strength hint, and any other name is rated as an unknown.
+ */
+export function resolvePlayersForAutoPick(
+  names: string[],
+  allPlayers: Player[],
+  guests: GuestEntry[],
+  newPlayers: NewPlayerEntry[],
+): Player[] {
+  const lookup = new Map(allPlayers.map((p) => [p.name.toLowerCase(), p]))
+  const guestLookup = new Map(guests.map((g) => [g.name.toLowerCase(), g]))
+  const newPlayerLookup = new Map(newPlayers.map((p) => [p.name.toLowerCase(), p]))
+  const percentiles = leagueWprPercentiles(allPlayers)
+
+  return names.map((name) => {
+    const known = lookup.get(name.toLowerCase())
+    if (known) return known   // already has `roster|<name>` from fetchers
+
+    const guest = guestLookup.get(name.toLowerCase())
+    if (guest) {
+      return {
+        playerId: `guest|${name}`,
+        name,
+        played: 0, won: 0, drew: 0, lost: 0,
+        timesTeamA: 0, timesTeamB: 0,
+        winRate: 0, qualified: false, points: 0,
+        mentality: guest.goalkeeper ? 'goalkeeper' : 'balanced',
+        strength: guest.strength,
+        recentForm: '',
+        wprOverride: hintToWpr(guest.strength, percentiles),
+      }
+    }
+
+    const newPlayer = newPlayerLookup.get(name.toLowerCase())
+    if (newPlayer) {
+      return {
+        playerId: `new|${name}`,
+        name,
+        played: 0, won: 0, drew: 0, lost: 0,
+        timesTeamA: 0, timesTeamB: 0,
+        winRate: 0, qualified: false, points: 0,
+        mentality: newPlayer.mentality,
+        strength: newPlayer.strength,
+        recentForm: '',
+        wprOverride: hintToWpr(newPlayer.strength, percentiles),
+      }
+    }
+
+    return {
+      playerId: `unknown|${name}`,
+      name,
+      played: 0, won: 0, drew: 0, lost: 0,
+      timesTeamA: 0, timesTeamB: 0,
+      winRate: 0, qualified: false, points: 0,
+      mentality: 'balanced' as const,
+      strength: null,
+      recentForm: '',
+    }
+  })
 }
 
 /** Return all size-k subsets of arr. */

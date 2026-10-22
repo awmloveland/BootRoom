@@ -1,5 +1,5 @@
-import { autoPick, findAssocTeam } from '@/lib/autoPick'
-import type { Player } from '@/lib/types'
+import { autoPick, deriveLastPlayedDates, findAssocTeam, resolvePlayersForAutoPick } from '@/lib/autoPick'
+import type { GuestEntry, NewPlayerEntry, Player, Week } from '@/lib/types'
 import { ewptScore, manAdvantage } from '@/lib/utils'
 import { seededRng } from './helpers/seeded-rng'
 
@@ -724,5 +724,58 @@ describe('autoPick — uneven squads weight the shorter side', () => {
       expect(s.teamB.length).toBe(5)
       expect(s.diff).toBeCloseTo(Math.abs(s.scoreA - s.scoreB), 6)
     }
+  })
+})
+
+describe('deriveLastPlayedDates', () => {
+  const week = (date: string, status: Week['status'], teamA: string[], teamB: string[]): Week =>
+    ({ season: '2026', week: 1, date, status, teamA, teamB, winner: null })
+
+  it('finds each player\'s most recent played week, whatever order the weeks arrive in', () => {
+    const weeks = [
+      week('01 Sep 2026', 'played', ['Ada'], ['Bea']),
+      week('15 Sep 2026', 'played', ['Bea'], ['Cal']),
+      week('08 Sep 2026', 'played', ['Ada'], ['Cal']),
+    ]
+    const dates = deriveLastPlayedDates([makePlayer('Ada'), makePlayer('Bea'), makePlayer('Cal')], weeks)
+    expect(dates.get('Ada')).toBe('08 Sep 2026')
+    expect(dates.get('Bea')).toBe('15 Sep 2026')
+    expect(dates.get('Cal')).toBe('15 Sep 2026')
+  })
+
+  it('ignores weeks that were not played and leaves newcomers undefined', () => {
+    const weeks = [
+      week('01 Sep 2026', 'played', ['Ada'], ['Bea']),
+      week('22 Sep 2026', 'dnf', ['Ada'], ['Bea']),
+    ]
+    const dates = deriveLastPlayedDates([makePlayer('Ada'), makePlayer('Dee')], weeks)
+    expect(dates.get('Ada')).toBe('01 Sep 2026')
+    expect(dates.has('Dee')).toBe(true)
+    expect(dates.get('Dee')).toBeUndefined()
+  })
+})
+
+describe('resolvePlayersForAutoPick', () => {
+  const roster = [makePlayer('Ada'), makePlayer('Bea')]
+  const guest: GuestEntry = { type: 'guest', name: 'Ada +1', associatedPlayer: 'Ada', goalkeeper: true, strength: 'above' }
+  const newcomer: NewPlayerEntry = { type: 'new_player', name: 'Eve', mentality: 'attacking', strength: 'below' }
+
+  it('returns roster players as they are, matching names case-insensitively', () => {
+    const [ada] = resolvePlayersForAutoPick(['ada'], roster, [], [])
+    expect(ada).toBe(roster[0])
+  })
+
+  it('rates guests and new players from their strength hint with zeroed stats', () => {
+    const [g, n] = resolvePlayersForAutoPick(['Ada +1', 'Eve'], roster, [guest], [newcomer])
+    expect(g).toMatchObject({ playerId: 'guest|Ada +1', played: 0, mentality: 'goalkeeper', strength: 'above' })
+    expect(n).toMatchObject({ playerId: 'new|Eve', played: 0, mentality: 'attacking', strength: 'below' })
+    expect(typeof g.wprOverride).toBe('number')
+    expect(g.wprOverride).toBeGreaterThan(n.wprOverride!)
+  })
+
+  it('falls back to an unrated unknown for any other name', () => {
+    const [x] = resolvePlayersForAutoPick(['Zed'], roster, [], [])
+    expect(x).toMatchObject({ playerId: 'unknown|Zed', mentality: 'balanced', strength: null })
+    expect(x.wprOverride).toBeUndefined()
   })
 })
