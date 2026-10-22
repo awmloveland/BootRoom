@@ -90,9 +90,9 @@ describe('AuthDialog after a verified code', () => {
 
     render(<AuthDialog open onOpenChange={onOpenChange} redirect="/the-boot-room/results" signinOnly />)
 
-    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'a@example.com' } })
+    fireEvent.change(await screen.findByLabelText(/email/i), { target: { value: 'a@example.com' } })
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Send code' })) })
-    fireEvent.change(screen.getByLabelText('Code'), { target: { value: '123456' } })
+    fireEvent.change(await screen.findByLabelText('Code'), { target: { value: '123456' } })
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Verify' })) })
 
     expect(screen.getByRole('heading', { name: 'Signing you in' })).toBeInTheDocument()
