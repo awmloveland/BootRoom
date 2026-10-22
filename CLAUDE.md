@@ -31,6 +31,8 @@ No new UI libraries, CSS-in-JS, or state management libraries should be added
 without discussion. Do not install Redux, Zustand, styled-components, Framer
 Motion, or similar.
 
+Run `npm run build && npm run bundle-report` to see gzipped client JavaScript per route. The shared baseline should stay under 80 kB; see docs/superpowers/plans/2026-10-20-efficiency-refactor.md.
+
 ---
 
 ## Repository structure
@@ -38,12 +40,10 @@ Motion, or similar.
 ```
 BootRoom/
 ├── app/
-│   ├── app/                  # Authenticated member routes
-│   │   ├── layout.tsx        # App shell (navbar)
-│   │   ├── page.tsx          # / — league list
-│   │   ├── league/[id]/      # League home, players, settings
-│   │   ├── settings/         # User settings + invite admin
-│   │   └── add-game/         # Create a new league
+│   ├── [slug]/               # Public league pages: (tabs)/overview, results, players, honours, records, lineup-lab, admin; settings
+│   ├── app/league/[id]/      # Legacy UUID URLs, redirect to /[slug]
+│   ├── results/[id]/         # Legacy UUID URLs, redirect to /[slug]
+│   ├── settings/             # Account settings
 │   ├── invite/               # Invite accept page (consumes ?token=)
 │   ├── api/                  # API routes
 │   └── globals.css           # Tailwind import, theme tokens, font utilities
@@ -60,7 +60,7 @@ BootRoom/
 │   ├── utils.ts              # cn(), sortWeeks(), getPlayedWeeks(), deriveSeason()
 │   ├── roles.ts              # resolveVisibilityTier() — maps GameRole → VisibilityTier
 │   ├── features.ts           # isFeatureEnabled() — checks feature against visibility tier
-│   ├── data.ts               # fetchGames(), fetchWeeks(), fetchPlayers()
+│   ├── data.ts               # fetchGames() (league settings page only; removed in PR 6 of the efficiency refactor)
 │   └── supabase/             # Supabase client helpers (client, server, service)
 ├── supabase/migrations/      # SQL migrations — run in order via Supabase SQL Editor
 ├── scripts/                  # Data migration and automation scripts
@@ -182,10 +182,10 @@ export interface LeagueMember {
 
 ## Auth and access model
 
-- **Proxy** (`proxy.ts`, Next 16's name for middleware) handles routing and session/profile checks
-- All `/app/*` routes require a valid Supabase session with a `profiles` row
-- Unauthenticated → redirect to `/sign-in?redirect=...`
-- Authenticated but no profile → redirect to `/profile-required`
+- **Proxy** (`proxy.ts`, Next 16's name for middleware) guards `/settings` and `/[slug]/settings`
+- Both require a Supabase session with a `profiles` row; `/[slug]/settings` also requires a creator or admin role in that league
+- Unauthenticated → redirect to `/sign-in?redirect=...`; authenticated but no profile → `/profile-required`
+- The proxy leaves every other page alone. Overview, Results and Players render read-only for signed-out visitors; Honours, Records, Line-up Lab and Admin check the session in the page and show a sign-in prompt instead (Admin also requires the admin tier)
 - Per-league roles are stored in `game_members` (columns: `game_id`, `user_id`, `role`)
 - `GameRole`: `creator | admin | member`
   - `creator` and `admin` → admin visibility tier
@@ -206,7 +206,7 @@ deploys. `.env.example` lists them with placeholders. Never commit real values.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public | Supabase client key (either name works) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only | Service-role client (`lib/supabase/service`) and data scripts |
 | `RESEND_API_KEY` | Server only | Transactional email |
-| `APP_ACCESS_KEY` / `NEXT_PUBLIC_ACCESS_KEY_MODE` | Mixed | Optional production lock behind a secret URL key |
+| `APP_ACCESS_KEY` | Server only | Optional production lock behind a secret URL key |
 | `SHARE_SIGNING_SECRET` | Server only | HMAC key for signed share links (line-ups, results, quarters, league) and their preview images (see `docs/superpowers/specs/2026-10-05-lineup-share-preview-image-design.md` and `2026-10-06-share-preview-images-design.md`). Missing → Share falls back to plain links and previews render the generic card. Rotating it invalidates every previously shared preview. |
 
 Server-only variables must never be prefixed `NEXT_PUBLIC_` or read in client

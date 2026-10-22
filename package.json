@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "bundle-report": "node scripts/bundle-report.mjs",
     "deploy": "npx vercel deploy --prod --yes",
     "start": "next start",
     "lint": "eslint .",

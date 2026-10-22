@@ -100,7 +100,7 @@ describe('getMarginCaption', () => {
 // ── mapWeekRow ──────────────────────────────────────────────────
 // Tests that raw Supabase rows (snake_case keys) are correctly
 // mapped to the Week type, including goal_difference.
-// This mirrors the inline mapper in lib/data.ts fetchWeeks.
+// This mirrors mapWeekRow in lib/fetchers.ts.
 function mapWeekRow(row: Record<string, unknown>) {
   return {
     week: row.week,
