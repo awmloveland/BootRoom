@@ -1,4 +1,4 @@
-import { deriveSeason, getNextWeekNumber, computeYearStats, sortWeeks, getSeasonPlayedWeekCount, getHeaderSeason } from '@/lib/utils'
+import { seasonOfDate, getNextWeekNumber, computeYearStats, sortWeeks, getSeasonPlayedWeekCount, getHeaderSeason } from '@/lib/utils'
 import type { Week } from '@/lib/types'
 
 function makeWeek(overrides: Partial<Week>): Week {
@@ -62,37 +62,63 @@ describe('sortWeeks', () => {
   })
 })
 
-describe('deriveSeason', () => {
-  it('returns the season of the most recently played week', () => {
-    const weeks = [
-      makeWeek({ season: '2025', week: 50, date: '05 Dec 2025', status: 'played' }),
-      makeWeek({ season: '2026', week: 3,  date: '15 Jan 2026', status: 'played' }),
-    ]
-    expect(deriveSeason(weeks)).toBe('2026')
-  })
-
-  it('falls back to current calendar year when no played weeks exist', () => {
-    const year = String(new Date().getFullYear())
-    expect(deriveSeason([])).toBe(year)
-    expect(deriveSeason([makeWeek({ status: 'cancelled' })])).toBe(year)
+describe('seasonOfDate', () => {
+  it('returns the calendar year of a match date', () => {
+    expect(seasonOfDate('04 Jan 2027')).toBe('2027')
+    expect(seasonOfDate('31 Dec 2026')).toBe('2026')
   })
 })
 
 describe('getNextWeekNumber', () => {
-  it('returns 1 when no weeks exist in the current year', () => {
-    const currentYear = String(new Date().getFullYear())
-    const pastYear = String(Number(currentYear) - 1)
-    const weeks = [makeWeek({ season: pastYear, week: 52 })]
-    expect(getNextWeekNumber(weeks)).toBe(1)
+  const season2026 = Array.from({ length: 39 }, (_, i) =>
+    makeWeek({ season: '2026', week: i + 1, date: '01 Jan 2026' })
+  )
+
+  it('returns 1 when the season has no weeks yet', () => {
+    expect(getNextWeekNumber(season2026, '2027')).toBe(1)
   })
 
-  it('returns max week + 1 within the current year', () => {
-    const currentYear = String(new Date().getFullYear())
+  it('returns max week + 1 within the given season', () => {
+    expect(getNextWeekNumber(season2026, '2026')).toBe(40)
+  })
+
+  it('ignores week numbers from other seasons', () => {
     const weeks = [
-      makeWeek({ season: currentYear, week: 5 }),
-      makeWeek({ season: currentYear, week: 3 }),
+      makeWeek({ season: '2025', week: 52 }),
+      makeWeek({ season: '2026', week: 5 }),
+      makeWeek({ season: '2026', week: 3 }),
     ]
-    expect(getNextWeekNumber(weeks)).toBe(6)
+    expect(getNextWeekNumber(weeks, '2026')).toBe(6)
+  })
+})
+
+describe('next week key at the year boundary', () => {
+  const season2026 = Array.from({ length: 39 }, (_, i) =>
+    makeWeek({ season: '2026', week: i + 1, date: '01 Jan 2026' })
+  )
+
+  function resolveKey(nextDate: string, weeks: Week[]): [string, number] {
+    const season = seasonOfDate(nextDate)
+    return [season, getNextWeekNumber(weeks, season)]
+  }
+
+  afterEach(() => {
+    jest.useRealTimers()
+  })
+
+  it('resolves a January match to week 1 of the new season without reusing a played key', () => {
+    const [season, week] = resolveKey('04 Jan 2027', season2026)
+    expect([season, week]).toEqual(['2027', 1])
+    expect(season2026.some((w) => w.season === season && w.week === week)).toBe(false)
+  })
+
+  // The old getNextWeekNumber read the clock, which is what put a January game
+  // under last season's week numbers. The card-level check is in
+  // __tests__/next-match-card-season.test.tsx.
+  it('resolves the same key when the lineup is built in late December', () => {
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date(2026, 11, 30))
+    expect(resolveKey('04 Jan 2027', season2026)).toEqual(['2027', 1])
   })
 })
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { getNextMatchDate, getNextWeekNumber, deriveSeason, isPastDeadline } from '@/lib/utils'
+import { getNextMatchDate, getNextWeekNumber, seasonOfDate, isPastDeadline } from '@/lib/utils'
 import { saveLineup, cancelLineup, cancelWeek } from '@/lib/leagueApi'
 import type { Week, Player, ScheduledWeek } from '@/lib/types'
 import { WinnerBadge } from '@/components/WinnerBadge'
@@ -96,8 +96,10 @@ export function NextMatchCard({
   })
 
   const nextDate = useMemo(() => getNextMatchDate(weeks, leagueDayIndex), [weeks, leagueDayIndex])
-  const nextWeekNum = useMemo(() => getNextWeekNumber(weeks), [weeks])
-  const season = useMemo(() => deriveSeason(weeks), [weeks])
+  // Both halves of the week key come from the match date, so a January game
+  // starts a new season instead of reusing last year's week numbers.
+  const nextSeason = useMemo(() => seasonOfDate(nextDate), [nextDate])
+  const nextWeekNum = useMemo(() => getNextWeekNumber(weeks, nextSeason), [weeks, nextSeason])
 
   // Every variant takes its first week from the server (getNextMatchSeed), so
   // the card is in the first paint and never re-reads weeks from the browser.
@@ -132,7 +134,8 @@ export function NextMatchCard({
       return
     }
     const { teamA, teamB, teamARating, teamBRating, lineupMetadata, lineupMetadataForDB } = lineup
-    // When editing an existing scheduled week, use its week number and date
+    // When editing an existing scheduled week, use its season, week number and date
+    const saveSeason = scheduledWeek?.season ?? nextSeason
     const saveWeek = scheduledWeek?.week ?? nextWeekNum
     const saveDate = scheduledWeek?.date ?? nextDate
     const format = builder.format
@@ -140,7 +143,7 @@ export function NextMatchCard({
     setError(null)
     try {
       const { weekId } = await saveLineup(gameId, {
-        season,
+        season: saveSeason,
         week: saveWeek,
         date: saveDate,
         format: format || null,
@@ -150,7 +153,7 @@ export function NextMatchCard({
         teamARating,
         teamBRating,
       })
-      setScheduledWeek({ id: weekId, season, week: saveWeek, date: saveDate, format, teamA, teamB, status: 'scheduled', lineupMetadata, team_a_rating: teamARating, team_b_rating: teamBRating })
+      setScheduledWeek({ id: weekId, season: saveSeason, week: saveWeek, date: saveDate, format, teamA, teamB, status: 'scheduled', lineupMetadata, team_a_rating: teamARating, team_b_rating: teamBRating })
       setCardState('lineup')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save lineup')
@@ -166,13 +169,14 @@ export function NextMatchCard({
   }
 
   async function handleCancelGame() {
+    const cancelSeason = scheduledWeek?.season ?? nextSeason
     const cancelWeekNumber = scheduledWeek?.week ?? nextWeekNum
     const cancelDate = scheduledWeek?.date ?? nextDate
     setSaving(true)
     setError(null)
     try {
-      const { weekId } = await cancelWeek(gameId, { season, week: cancelWeekNumber, date: cancelDate })
-      setScheduledWeek({ id: weekId, season, week: cancelWeekNumber, date: cancelDate, format: null, teamA: [], teamB: [], status: 'cancelled' })
+      const { weekId } = await cancelWeek(gameId, { season: cancelSeason, week: cancelWeekNumber, date: cancelDate })
+      setScheduledWeek({ id: weekId, season: cancelSeason, week: cancelWeekNumber, date: cancelDate, format: null, teamA: [], teamB: [], status: 'cancelled' })
       setShowCancelModal(false)
       setError(null)
       setCardState('cancelled')
