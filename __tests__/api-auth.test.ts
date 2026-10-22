@@ -83,6 +83,10 @@ describe('rpcErrorStatus', () => {
     expect(rpcErrorStatus('guest_not_found')).toBe(404)
   })
 
+  it('maps the recorded week guard to 409', () => {
+    expect(rpcErrorStatus('Week 1 of season 2026 already has a result')).toBe(409)
+  })
+
   it('maps an unknown message to 500', () => {
     expect(rpcErrorStatus('something broke')).toBe(500)
   })

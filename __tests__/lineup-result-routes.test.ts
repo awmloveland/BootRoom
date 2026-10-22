@@ -11,16 +11,24 @@ import { POST as cancelWeek } from '@/app/api/league/[id]/weeks/cancel/route'
 import { POST as recordResult } from '@/app/api/league/[id]/weeks/[weekId]/result/route'
 
 const rpc = jest.fn()
+const eq = jest.fn()
 
-function setup({ user = true, admin = true } = {}) {
+/** `existingStatus` is the status of the row already stored under the posted (season, week), if any. */
+function setup({ user = true, admin = true, existingStatus = null as string | null, lookupError = null as { message: string } | null } = {}) {
   rpc.mockImplementation(async (name: string) => {
     if (name === 'is_game_admin') return { data: admin, error: null }
     if (name === 'save_lineup' || name === 'cancel_week') return { data: 'w-new', error: null }
     return { data: null, error: null }
   })
+  const query = {
+    select: jest.fn(() => query),
+    eq: eq.mockImplementation(() => query),
+    maybeSingle: jest.fn().mockResolvedValue({ data: existingStatus ? { status: existingStatus } : null, error: lookupError }),
+  }
   ;(createClient as jest.Mock).mockResolvedValue({
     auth: mockAuthNamespace(user ? { id: 'u1', email: 'a@example.com' } : null),
     rpc,
+    from: jest.fn(() => query),
   })
 }
 
@@ -39,6 +47,7 @@ const LINEUP = { season: '2026', week: 3, date: '22 Oct 2026', format: '7-a-side
 
 beforeEach(() => {
   rpc.mockReset()
+  eq.mockReset()
   ;(revalidateTag as jest.Mock).mockClear()
 })
 
@@ -90,6 +99,47 @@ describe('POST weeks/cancel', () => {
     const res = await cancelWeek(json({ season: '2026', week: 3, date: '22 Oct 2026' }), league)
     await expect(res.json()).resolves.toEqual({ weekId: 'w-new' })
     expect(rpc).toHaveBeenCalledWith('cancel_week', { p_game_id: 'g1', p_season: '2026', p_week: 3, p_date: '22 Oct 2026' })
+  })
+})
+
+// Both writes upsert on (game_id, season, week), so a wrong key would replace a
+// played game. They refuse to touch a week that already has a result.
+describe.each([
+  ['lineup', saveLineup, LINEUP, 'save_lineup'],
+  ['weeks/cancel', cancelWeek, { season: '2026', week: 3, date: '22 Oct 2026' }, 'cancel_week'],
+] as const)('POST %s: recorded week guard', (_route, handler, body, rpcName) => {
+  it.each(['played', 'dnf'])('returns 409 without writing when the week is %s', async (status) => {
+    setup({ existingStatus: status })
+    const res = await handler(json(body), league)
+    expect(res.status).toBe(409)
+    await expect(res.json()).resolves.toEqual({ error: 'This week already has a result' })
+    expect(eq).toHaveBeenCalledWith('game_id', 'g1')
+    expect(eq).toHaveBeenCalledWith('season', '2026')
+    expect(eq).toHaveBeenCalledWith('week', 3)
+    expect(rpc).not.toHaveBeenCalledWith(rpcName, expect.anything())
+    expect(revalidateTag).not.toHaveBeenCalled()
+  })
+
+  it.each([null, 'scheduled', 'cancelled', 'unrecorded'])('writes when the stored week is %s', async (status) => {
+    setup({ existingStatus: status })
+    expect((await handler(json(body), league)).status).toBe(200)
+    expect(rpc).toHaveBeenCalledWith(rpcName, expect.anything())
+  })
+
+  it('refuses to write when the week lookup fails', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {})
+    setup({ lookupError: { message: 'connection reset' } })
+    expect((await handler(json(body), league)).status).toBe(500)
+    expect(rpc).not.toHaveBeenCalledWith(rpcName, expect.anything())
+  })
+
+  it('maps the database guard to 409 when the RPC raises it', async () => {
+    setup()
+    rpc.mockImplementation(async (name: string) => {
+      if (name === 'is_game_admin') return { data: true, error: null }
+      return { data: null, error: { message: 'Week 3 of season 2026 already has a result' } }
+    })
+    expect((await handler(json(body), league)).status).toBe(409)
   })
 })
 

@@ -4,7 +4,7 @@ import { unstable_cache } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionUser, type SessionUser } from '@/lib/supabase/session'
 import { createServiceClient } from '@/lib/supabase/service'
-import { sortWeeks, deriveSeason, getMostRecentExpectedGameDate, getNextWeekNumber, isPastDeadline, leagueNow } from '@/lib/utils'
+import { sortWeeks, seasonOfDate, getMostRecentExpectedGameDate, getNextWeekNumber, isPastDeadline } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
 import type { GameRole, LeagueFeature, NavSession, Player, Week, Mentality, Strength, JoinRequestStatus, PendingJoinRequest, PendingRequestSummary, PlayerClaimStatus, LeagueMember, PlayerAttribute, PlayerClaim } from '@/lib/types'
 import { ratingToStrength } from '@/lib/strength'
@@ -421,8 +421,8 @@ export async function ensureUnrecordedWeek(
   if (!recentDate || !isPastDeadline(recentDate)) return weeks
   if (weeks.some((w) => w.date === recentDate)) return weeks
 
-  const season = deriveSeason(weeks) || String(leagueNow().getFullYear())
-  const week = getNextWeekNumber(weeks)
+  const season = seasonOfDate(recentDate)
+  const week = getNextWeekNumber(weeks, season)
   const service = createServiceClient()
   const { data: newId } = await service.rpc('create_unrecorded_week', {
     p_game_id: leagueId,
