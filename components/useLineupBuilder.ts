@@ -2,7 +2,8 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { ewptScore, squadFormat } from '@/lib/utils'
-import { autoPick, resolvePlayersForAutoPick, type AutoPickResult } from '@/lib/autoPick'
+import { autoPick, buildLineupAudit, resolvePlayersForAutoPick, type AutoPickResult } from '@/lib/autoPick'
+import { serializeLineupMetadata } from '@/lib/lineupMetadata'
 import type { Week, Player, ScheduledWeek, GuestEntry, NewPlayerEntry, LineupMetadata } from '@/lib/types'
 
 /** Fewest players the builder will split into teams. */
@@ -87,11 +88,9 @@ export function useLineupBuilder({ allPlayers, weeks }: { allPlayers: Player[]; 
       .filter((g) => g.associatedPlayer)
       .map((g) => [g.name, g.associatedPlayer] as [string, string])
 
-    // Treat guests, new players and zero-game roster players as "unknown": the
-    // count-balance filter spreads them across teams subject to pair-pinning
-    // constraints. autoPick no-ops internally when the set is empty or a
-    // singleton, so we can pass it unconditionally. We collect playerIds (not
-    // names) so same-named entities stay distinct.
+    // Treat guests, new players and zero-game roster players as "unknown":
+    // autoPick spreads them as evenly as sizes, keepers and guest pairs allow.
+    // We collect playerIds (not names) so same-named entities stay distinct.
     const unknownEntryNames = new Set<string>()
     for (const g of guestEntries) unknownEntryNames.add(g.name)
     for (const p of newPlayerEntries) unknownEntryNames.add(p.name)
@@ -140,7 +139,9 @@ export function useLineupBuilder({ allPlayers, weeks }: { allPlayers: Player[]; 
     tgtArr[targetIndex] = srcPlayer
     setLocalTeamA(newA)
     setLocalTeamB(newB)
-    setIsManuallyEdited(true)
+    // Only a change of teams counts as an edit; reordering or undoing a swap does not.
+    const suggestedA = new Set(autoPickResult?.suggestions[suggestionIndex]?.teamA ?? [])
+    setIsManuallyEdited(newA.length !== suggestedA.size || newA.some((p) => !suggestedA.has(p)))
     dragSource.current = null
     setDragOver(null)
   }
@@ -178,11 +179,13 @@ export function useLineupBuilder({ allPlayers, weeks }: { allPlayers: Player[]; 
 
     const metadata = week.lineupMetadata
     if (metadata) {
-      setGuestEntries(metadata.guests.map((g) => ({
+      // A newcomer who has since joined the roster is already selected above.
+      const notOnRoster = (entry: { name: string }) => !knownPlayerNames.has(entry.name.toLowerCase())
+      setGuestEntries(metadata.guests.filter(notOnRoster).map((g) => ({
         ...g,
         strength: g.strength ?? 'average',
       })))
-      setNewPlayerEntries(metadata.new_players.map((p) => ({
+      setNewPlayerEntries(metadata.new_players.filter(notOnRoster).map((p) => ({
         ...p,
         strength: p.strength ?? 'average',
       })))
@@ -195,38 +198,39 @@ export function useLineupBuilder({ allPlayers, weeks }: { allPlayers: Player[]; 
   }
 
   /**
-   * The split as it stands, ready to save: names, ratings, and the guests and
-   * new players both as the card keeps them and as the database stores them.
-   * Null until auto-pick has produced a suggestion.
+   * The split as it stands, ready to save: names, ratings, and the lineup
+   * metadata (guests, new players, and an audit of what the picker did with
+   * the ratings it saw) both as the card keeps it and as the database stores
+   * it. Null until auto-pick has produced a suggestion.
    */
   function toLineup() {
     if (!autoPickResult || autoPickResult.suggestions.length === 0) return null
+    const teamARating = ewptScore(localTeamA)
+    const teamBRating = ewptScore(localTeamB)
+    const audit = buildLineupAudit({
+      teamA: localTeamA,
+      teamB: localTeamB,
+      teamARating,
+      teamBRating,
+      bestDiff: autoPickResult.bestDiff,
+      suggestionIndex,
+      suggestionCount: autoPickResult.suggestions.length,
+      edited: isManuallyEdited,
+      builtAt: new Date(),
+    })
     const lineupMetadata: LineupMetadata = {
       guests: guestEntries,
       new_players: newPlayerEntries,
-    }
-    const lineupMetadataForDB = {
-      guests: guestEntries.map((g) => ({
-        name: g.name,
-        associated_player: g.associatedPlayer,
-        goalkeeper: g.goalkeeper ?? false,
-        strength: g.strength,
-      })),
-      new_players: newPlayerEntries.map((p) => ({
-        name: p.name,
-        mentality: p.mentality,
-        // DB metadata still accepts a `goalkeeper` key for back-compat with older readers.
-        goalkeeper: p.mentality === 'goalkeeper',
-        strength: p.strength,
-      })),
+      autoPick: audit.autoPick,
+      ratings: audit.ratings,
     }
     return {
       teamA: localTeamA.map((p) => p.name),
       teamB: localTeamB.map((p) => p.name),
-      teamARating: ewptScore(localTeamA),
-      teamBRating: ewptScore(localTeamB),
+      teamARating,
+      teamBRating,
       lineupMetadata,
-      lineupMetadataForDB,
+      lineupMetadataForDB: serializeLineupMetadata(lineupMetadata),
     }
   }
 

@@ -63,7 +63,7 @@ describe('NextMatchCard uneven teams', () => {
     expect(build).toBeEnabled()
     fireEvent.click(build)
 
-    expect(screen.getByText(/Uneven teams · Team (A|B) is a player short, which the odds below allow for/)).toBeInTheDocument()
+    expect(screen.getByText(/Uneven teams · Team (A|B) is a player short, which the pick allows for/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Confirm Lineup' })).toBeEnabled()
   })
 

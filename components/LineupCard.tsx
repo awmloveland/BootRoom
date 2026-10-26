@@ -50,8 +50,8 @@ export function useLineupShare({ gameId, leagueSlug, leagueName, week }: {
       format: week.format ?? '',
       teamA: week.teamA,
       teamB: week.teamB,
-      teamARating: week.team_a_rating ?? 0,
-      teamBRating: week.team_b_rating ?? 0,
+      teamARating: week.team_a_rating ?? null,
+      teamBRating: week.team_b_rating ?? null,
       shareUrl: signedShareUrl ?? undefined,
     })
     if (await shareOrCopy(text) === 'copied') {
@@ -127,6 +127,11 @@ export function LineupCard({
           goalkeepers={goalkeepers}
           linkedPlayerName={linkedPlayerName}
         />
+        {week.lineupMetadata?.autoPick?.edited && (
+          <span className="mt-3 inline-block font-plex text-[9.5px] font-bold uppercase tracking-[.16em] text-[#8ba4c4] border border-[#223a5c] rounded px-1.5 py-0.5">
+            Adjusted by hand
+          </span>
+        )}
 
         {week.teamA.length > 0 && week.teamB.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-2 mt-3.5 pt-3.5 border-t border-[#1b2c46]">

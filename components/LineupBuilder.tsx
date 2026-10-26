@@ -80,6 +80,9 @@ export function LineupBuilder({ builder, allPlayers, week, date, saving, error, 
         {/* Auto-pick result — replaces player list once built */}
         {isAutoPickMode && autoPickResult.suggestions.length > 0 && <SplitPreview builder={builder} />}
 
+        {isAutoPickMode && autoPickResult.warning === 'uneven-teams' && (
+          <p className="font-inter-body text-xs text-[#e2686f]">Teams are uneven because too many guests are tied to one player.</p>
+        )}
         {error && <p className="font-inter-body text-xs text-[#e2686f]">{error}</p>}
       </div>
 
@@ -138,6 +141,7 @@ export function LineupBuilder({ builder, allPlayers, week, date, saving, error, 
           players={builder.sortedPlayers.filter((p) => builder.selectedNames.includes(p.name))}
           allLeaguePlayers={allPlayers}
           existingGuests={builder.guestEntries}
+          existingNewPlayers={builder.newPlayerEntries}
           onAdd={builder.addEntry}
           onClose={() => setShowAddPlayerModal(false)}
         />
@@ -209,11 +213,15 @@ function AddedPill({ name, onRemove }: { name: string; onRemove: () => void }) {
   )
 }
 
-/** The auto-picked split: both teams, draggable to swap, and the live win odds. */
+/**
+ * The auto-picked split: both teams, draggable to swap, and the live win odds
+ * once players have been moved.
+ */
 function SplitPreview({ builder }: { builder: LineupBuilderState }) {
-  const { teamA, teamB } = builder
+  const { teamA, teamB, isManuallyEdited } = builder
   const liveScoreA = ewptScore(teamA)
   const liveScoreB = ewptScore(teamB)
+  const shortBy = Math.abs(teamA.length - teamB.length)
   return (
     <div>
       <div className="grid grid-cols-2 gap-4">
@@ -222,10 +230,20 @@ function SplitPreview({ builder }: { builder: LineupBuilderState }) {
       </div>
       {teamA.length !== teamB.length && (
         <p className="mt-3 font-plex text-[9.5px] uppercase tracking-[.12em] text-[#6f88a8]">
-          Uneven teams · {teamA.length < teamB.length ? 'Team A' : 'Team B'} is a player short, which the odds below allow for
+          Uneven teams · {teamA.length < teamB.length ? 'Team A' : 'Team B'} is {shortBy === 1 ? 'a player' : `${shortBy} players`} short, which {isManuallyEdited ? 'the odds below allow' : 'the pick allows'} for
         </p>
       )}
-      <WinOdds winProbA={winProbability(liveScoreA, liveScoreB, manAdvantage(teamA.length, teamB.length))} />
+      {/* The picker already made an untouched lineup level, so the bar would
+          only restate its target. Show it once players are moved. */}
+      {isManuallyEdited ? (
+        <WinOdds winProbA={winProbability(liveScoreA, liveScoreB, manAdvantage(teamA.length, teamB.length))} />
+      ) : (
+        <div className="mt-[18px] pt-3.5 border-t border-[#1b2c46]">
+          <p className="text-center font-plex text-[9.5px] font-bold uppercase tracking-[.16em] text-[#8ba4c4]">
+            Even on paper
+          </p>
+        </div>
+      )}
     </div>
   )
 }
