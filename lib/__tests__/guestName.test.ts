@@ -1,4 +1,5 @@
-import { isGuestName, validateNameGuestInput } from '@/lib/guestName'
+import { isGuestName, nextGuestName, validateNameGuestInput } from '@/lib/guestName'
+import type { GuestEntry } from '@/lib/types'
 
 describe('isGuestName', () => {
   it('returns true for "Lloyd +1"', () => {
@@ -35,5 +36,23 @@ describe('validateNameGuestInput', () => {
   })
   it('returns null for a fresh name', () => {
     expect(validateNameGuestInput('Steve', existing)).toBeNull()
+  })
+})
+
+describe('nextGuestName', () => {
+  const guest = (name: string, associatedPlayer: string): GuestEntry =>
+    ({ type: 'guest', name, associatedPlayer, strength: 'average' })
+
+  it('starts at +1 for a host with no guests', () => {
+    expect(nextGuestName('Lloyd', [guest('Mary +1', 'Mary')])).toBe('Lloyd +1')
+  })
+
+  it('numbers after the highest existing suffix, not the count', () => {
+    // +1 was removed, leaving +2: the next guest must be +3, not a second +2.
+    expect(nextGuestName('Lloyd', [guest('Lloyd +2', 'Lloyd')])).toBe('Lloyd +3')
+  })
+
+  it('only looks at that host’s guests', () => {
+    expect(nextGuestName('Lloyd', [guest('Lloyd +1', 'Lloyd'), guest('Mary +4', 'Mary')])).toBe('Lloyd +2')
   })
 })

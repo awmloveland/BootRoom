@@ -10,6 +10,7 @@ import { computeStandings, ordinalSuffix } from './standings'
 /**
  * Builds a formatted plain-text share message for a saved lineup.
  * Suitable for pasting into WhatsApp, iMessage, or any messaging app.
+ * When either rating is null, both ratings and the prediction line are left out.
  */
 export function buildShareText(params: {
   leagueName: string
@@ -19,8 +20,8 @@ export function buildShareText(params: {
   format: string
   teamA: string[]
   teamB: string[]
-  teamARating: number
-  teamBRating: number
+  teamARating: number | null  // either null → no ratings and no prediction line
+  teamBRating: number | null
   /** Signed lineup link from the share endpoint; falls back to the league link. */
   shareUrl?: string
 }): string {
@@ -28,22 +29,23 @@ export function buildShareText(params: {
   const parsed = parseWeekDate(date)
   const [dd, mmm] = date.split(' ')
   const shortDate = `${DAY_SHORT[parsed.getDay()]} ${dd} ${mmm}`
-  const prob = winProbability(teamARating, teamBRating)
-  const { text: prediction } = winCopy(prob)
-  return [
+  const rated = teamARating !== null && teamBRating !== null
+  const lines = [
     `⚽ ${leagueName} — Week ${week}`,
     `📅 ${shortDate} · ${format}`,
     '',
-    `🔵 Team A (${teamARating.toFixed(1)})`,
+    rated ? `🔵 Team A (${teamARating.toFixed(1)})` : '🔵 Team A',
     teamA.join(', '),
     '',
-    `🟣 Team B (${teamBRating.toFixed(1)})`,
+    rated ? `🟣 Team B (${teamBRating.toFixed(1)})` : '🟣 Team B',
     teamB.join(', '),
-    '',
-    `📊 ${prediction}`,
-    '',
-    `🔗 ${shareUrl ?? `https://craft-football.com/${leagueSlug}`}`,
-  ].join('\n')
+  ]
+  if (rated) {
+    const { text: prediction } = winCopy(winProbability(teamARating, teamBRating))
+    lines.push('', `📊 ${prediction}`)
+  }
+  lines.push('', `🔗 ${shareUrl ?? `https://craft-football.com/${leagueSlug}`}`)
+  return lines.join('\n')
 }
 
 /**
