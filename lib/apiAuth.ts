@@ -35,7 +35,7 @@ export async function requireLeagueAdmin(leagueId: string): Promise<AuthGate> {
 export function rpcErrorStatus(message: string): number {
   if (/Access denied/i.test(message)) return 403
   if (/not[ _]found/i.test(message)) return 404
-  if (/already_exists/i.test(message)) return 409
+  if (/already_exists/i.test(message) || /already has a result/i.test(message)) return 409
   if (/^invalid_/i.test(message) || /must be/i.test(message)) return 400
   return 500
 }

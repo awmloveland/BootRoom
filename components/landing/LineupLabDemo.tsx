@@ -220,7 +220,7 @@ export function LineupLabDemo() {
             Fair teams,<br />picked by the<br />numbers.
           </h2>
           <p className="mt-4 font-inter-body text-[15px] leading-[1.65] text-[#8ba4c4] text-pretty">
-            Lineup Lab weighs every player&apos;s record, win rate, recent form and time in goal,
+            Lineup Lab weighs every player&apos;s record, win rate, time in goal and how recently they&apos;ve played,
             then splits tonight&apos;s group into two sides so even it is spooky.
           </p>
         </div>

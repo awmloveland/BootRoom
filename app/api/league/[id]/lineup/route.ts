@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireLeagueAdmin, rpcErrorStatus } from '@/lib/apiAuth'
+import { recordedWeekConflict } from '@/lib/recordedWeek'
 import { revalidateLeague } from '@/lib/leagueCache'
 import type { SaveLineupInput } from '@/lib/types'
 
@@ -35,6 +36,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!input) return NextResponse.json({ error: 'Invalid line-up' }, { status: 400 })
 
   const supabase = await createClient()
+  const conflict = await recordedWeekConflict(supabase, id, input.season, input.week)
+  if (conflict) return conflict
+
   const { data, error } = await supabase.rpc('save_lineup', {
     p_game_id: id,
     p_season: input.season,
