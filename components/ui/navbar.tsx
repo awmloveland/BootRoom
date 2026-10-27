@@ -4,7 +4,7 @@ import type { ReactElement } from 'react'
 import Link from 'next/link'
 import { usePathname, useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Settings, LogOut } from 'lucide-react'
+import { Settings, LogOut, Plus } from 'lucide-react'
 
 import {
   Accordion,
@@ -165,6 +165,8 @@ export function Navbar({
   // The landing page at / ships its own header; hide the app navbar for
   // signed-out visitors (and while the server is still resolving) there.
   if (pathname === '/' && (pending || !user)) return null
+  // The league setup flow at /new draws its own centred shell with no header.
+  if (pathname === '/new' || pathname.startsWith('/new/')) return null
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#101d31] bg-[rgba(6,11,20,.92)] backdrop-blur-[10px]">
@@ -214,6 +216,12 @@ export function Navbar({
                       </p>
                     )}
                   </div>
+                  <DropdownMenuItem asChild>
+                    <Link href="/new">
+                      <Plus className="size-4" />
+                      Create a league
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/settings">
                       <Settings className="size-4" />
@@ -284,6 +292,14 @@ export function Navbar({
                         </p>
                       )}
                     </div>
+                    <Link
+                      href="/new"
+                      className="flex items-center gap-2 text-sm font-bold text-[#f4f9ff]"
+                      onClick={() => setSheetOpen(false)}
+                    >
+                      <Plus className="size-4" />
+                      Create a league
+                    </Link>
                     <Link
                       href="/settings"
                       className="flex items-center gap-2 text-sm font-bold text-[#f4f9ff]"
