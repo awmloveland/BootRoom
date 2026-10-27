@@ -77,7 +77,7 @@ export function NewLeagueWizard() {
       setSubmitting(false)
       return
     }
-    router.push(`/new/${data.slug}/live`)
+    router.push(`/new/${data.slug}/players`)
   }
 
   if (step === 'where') return <WhereStep draft={draft} onChange={update} onNext={() => go('when')} />
