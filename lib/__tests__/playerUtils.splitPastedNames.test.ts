@@ -8,6 +8,7 @@ describe('splitPastedNames', () => {
   it('treats and as a separator only as a whole word', () => {
     expect(splitPastedNames('Andy and Sandra')).toEqual(['Andy', 'Sandra'])
     expect(splitPastedNames('Andrea Brand')).toEqual(['Andrea Brand'])
+    expect(splitPastedNames('Andžej and Zoë')).toEqual(['Andžej', 'Zoë'])
   })
 
   it('trims, drops blanks and de-duplicates case-insensitively keeping the first spelling', () => {

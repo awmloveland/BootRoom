@@ -18,7 +18,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if ('response' in gate) return gate.response
 
   const body = (await req.json().catch(() => null)) as { players?: unknown } | null
-  const raw = Array.isArray(body?.players) ? body.players : null
+  if (!body) return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  const raw = Array.isArray(body.players) ? body.players : null
   if (!raw || raw.length === 0 || raw.length > MAX_PLAYERS) {
     return NextResponse.json({ error: `Send between 1 and ${MAX_PLAYERS} players` }, { status: 400 })
   }

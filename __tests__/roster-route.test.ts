@@ -47,6 +47,7 @@ describe('PUT /api/league/[id]/roster', () => {
     ['an empty list', { players: [] }],
     ['a bad entry', { players: [{ name: 'X', strength: 'huge', mentality: 'balanced' }] }],
     ['a duplicate name', { players: [ALICE, { ...ALICE, name: 'alice' }] }],
+    ['too many', { players: Array.from({ length: 61 }, (_, i) => ({ ...ALICE, name: `P${i}` })) }],
   ])('returns 400 for %s', async (_label, body) => {
     setup(USER)
     expect((await put(body)).status).toBe(400)

@@ -25,7 +25,7 @@ export function MentalityStep({ players, onChange, onNext }: Props) {
         {players.map((p) => (
           <li key={p.id}>
             <PlayerRow name={<span className="truncate">{p.name}</span>} you={p.you}>
-              <MentalityControl size="lg" value={p.mentality} onChange={(m) => onChange(p.id, m)} />
+              <div role="group" aria-label={`Mentality of ${p.name}`}><MentalityControl size="lg" value={p.mentality} onChange={(m) => onChange(p.id, m)} /></div>
             </PlayerRow>
           </li>
         ))}
