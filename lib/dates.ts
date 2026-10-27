@@ -171,7 +171,7 @@ export function parseKickoffTime(value: string | null | undefined): { hours: num
  * games.kickoff_time stores) or null for anything unreadable.
  */
 export function parseKickoffInput(text: string, period: 'am' | 'pm' = 'pm'): string | null {
-  const m = text.trim().toLowerCase().match(/^(\d{1,2})(?:[:.](\d{1,2}))?\s*(am|pm)?$/)
+  const m = text.trim().toLowerCase().match(/^(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?$/)
   if (!m) return null
   let hours = Number(m[1])
   const minutes = Number(m[2] ?? 0)

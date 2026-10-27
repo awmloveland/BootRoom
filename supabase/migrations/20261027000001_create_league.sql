@@ -47,7 +47,7 @@ BEGIN
     FROM profiles
    WHERE id = auth.uid();
   IF v_player IS NULL THEN
-    RAISE EXCEPTION 'profile_missing';
+    RAISE EXCEPTION 'profile_not_found';
   END IF;
 
   INSERT INTO games (name, slug, location, day, kickoff_time, bio, created_by)

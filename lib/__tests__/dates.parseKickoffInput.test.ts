@@ -12,6 +12,8 @@ describe('parseKickoffInput', () => {
     ['20:15', '20:15'],
     ['13', '13:00'],
     ['8pm', '20:00'],
+    ['12pm', '12:00'],
+    ['6am', '06:00'],
     ['8.30pm', '20:30'],
     ['8:30 pm', '20:30'],
     ['7am', '07:00'],
@@ -20,7 +22,7 @@ describe('parseKickoffInput', () => {
     ['18:53', '19:00'],
     ['23:55', '00:00'],
     [' 9 ', '21:00'],
-  ])('reads %p as %p in the evening', (input, expected) => {
+  ])('reads %p as %p with the default pm period', (input, expected) => {
     expect(parseKickoffInput(input)).toBe(expected)
   })
 
@@ -34,7 +36,7 @@ describe('parseKickoffInput', () => {
     expect(parseKickoffInput(input, 'am')).toBe(expected)
   })
 
-  it.each(['', 'abc', '0', '25', '8:70', '13pm', '0am', '8:1x', '00:00'])('rejects %p', (input) => {
+  it.each(['', 'abc', '0', '25', '8:70', '13pm', '0am', '8:1x', '00:00', '24', '8:', '8.3', '8:5'])('rejects %p', (input) => {
     expect(parseKickoffInput(input)).toBeNull()
   })
 })
