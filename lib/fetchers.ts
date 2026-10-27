@@ -410,6 +410,9 @@ export async function ensureUnrecordedWeek(
   weeks: Week[],
   leagueDayIndex?: number,
 ): Promise<Week[]> {
+  // A brand-new league has nothing to be unrecorded against; without this the
+  // admin's first visit would stamp last week's match day as a missed game.
+  if (weeks.length === 0) return weeks
   const recentDate = getMostRecentExpectedGameDate(weeks, leagueDayIndex)
   if (!recentDate || !isPastDeadline(recentDate)) return weeks
   if (weeks.some((w) => w.date === recentDate)) return weeks
