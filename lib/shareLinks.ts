@@ -10,6 +10,7 @@
 // Lineup and result signatures cover the teams (and the result), so editing
 // them produces a new link and an old link stops verifying. League and
 // quarter signatures never change; their images are drawn from live data.
+import 'server-only'
 import { createHmac, timingSafeEqual } from 'crypto'
 import type { Metadata } from 'next'
 import { formatFixtureDate, gamesPlayedLabel, SITE_TAGLINE } from '@/lib/utils'

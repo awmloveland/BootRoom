@@ -5,6 +5,8 @@ const config = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    // Next resolves 'server-only' itself; Jest gets the same no-op module.
+    '^server-only$': '<rootDir>/node_modules/next/dist/compiled/server-only/empty.js',
   },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
