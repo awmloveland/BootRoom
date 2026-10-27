@@ -120,7 +120,7 @@ export function approveErrorResponse(message: string, playerName: string): { sta
 export function splitPastedNames(text: string): string[] {
   const seen = new Set<string>()
   const names: string[] = []
-  for (const part of text.split(/\r?\n|,|&|\/|\band\b/i)) {
+  for (const part of text.split(/\r?\n|,|&|\/|(?<!\p{L})and(?!\p{L})/iu)) {
     const name = part.trim()
     const key = name.toLowerCase()
     if (!name || seen.has(key)) continue

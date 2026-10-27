@@ -52,13 +52,17 @@ export function PlayersStep({ players, existingNames, onAdd, onRename, onRemove,
 
   const count = players.length
   const enough = count >= TWO_SIDES
+  // Renames can collide with another row or an existing player; the route would
+  // reject the first and silently overwrite the second, so block Continue here.
+  const keys = players.map((p) => p.name.trim().toLowerCase())
+  const dupe = players.find((_, i) => keys.indexOf(keys[i]) !== i || existingNames.some((e) => e.toLowerCase() === keys[i]))
 
   return (
     <StepShell
       eyebrow={<StepEyebrow n={4} />}
       title="Who plays?"
       sub="Add the regulars by name. They do not need an account yet."
-      action={<button type="button" className={PRIMARY_BUTTON} disabled={count < MIN_PLAYERS} onClick={onNext}>Continue</button>}
+      action={<button type="button" className={PRIMARY_BUTTON} disabled={count < MIN_PLAYERS || !!dupe} onClick={onNext}>Continue</button>}
       secondary={
         <button type="button" className={SECONDARY_LINK} onClick={() => { setPasteMode((m) => !m); setDraft(''); setError(null) }}>
           {pasteMode ? 'Add one at a time instead' : 'Paste a list instead'}
@@ -69,14 +73,14 @@ export function PlayersStep({ players, existingNames, onAdd, onRename, onRemove,
         {players.map((p) => (
           <li key={p.id}>
             {p.you ? (
-              <PlayerRow name={p.name} you />
+              <PlayerRow name={<span className="truncate">{p.name}</span>} you />
             ) : (
               <PlayerRow
                 className="pl-1.5"
                 name={
                   <input
                     aria-label={`Player name ${p.name}`}
-                    className="h-[38px] w-full rounded-md bg-transparent px-2.5 font-inter-body text-[15px] font-semibold text-[#f4f9ff] focus:border focus:border-[#38bdf8] focus:bg-[#0c1728] focus:outline-none"
+                    className="h-[38px] w-full rounded-md bg-transparent px-2.5 font-inter-body text-[15px] font-semibold text-[#f4f9ff] border border-transparent focus:border-[#38bdf8] focus:bg-[#0c1728] focus:outline-none"
                     value={p.name}
                     onChange={(e) => onRename(p.id, e.target.value)}
                     onBlur={(e) => { const v = e.target.value.trim(); v ? onRename(p.id, v) : onRemove(p.id) }}
@@ -112,7 +116,7 @@ export function PlayersStep({ players, existingNames, onAdd, onRename, onRemove,
               </button>
             </div>
           ) : (
-            <div className="flex h-[50px] items-center gap-2 rounded-lg border border-dashed border-[#223a5c] pl-1.5 pr-1.5">
+            <div className="flex h-[50px] items-center gap-2 rounded-lg border border-dashed border-[#223a5c] px-1.5">
               <input
                 aria-label="Add a player"
                 className="h-[38px] min-w-0 flex-1 bg-transparent px-2.5 font-inter-body text-[15px] text-[#f4f9ff] placeholder:text-[#4f688a] focus:outline-none"
@@ -130,6 +134,7 @@ export function PlayersStep({ players, existingNames, onAdd, onRename, onRemove,
           {error && <p role="alert" className="mt-1.5 px-2 font-inter-body text-[12.5px] text-[#e2686f]">{error}</p>}
         </li>
       </ul>
+      {dupe && <p role="alert" className="mt-3 text-center font-inter-body text-[12.5px] text-[#e2686f]">{dupe.name} is already on the list</p>}
       <p className={cn('mt-3 text-center font-plex text-[9.5px] font-bold uppercase tracking-[.14em]', enough ? 'text-[#bef264]' : 'text-[#4f688a]')}>
         {count} {count === 1 ? 'player' : 'players'} · {enough ? 'enough for two sides' : `${TWO_SIDES} fills two sides of five`}
       </p>
