@@ -3,6 +3,9 @@ import 'server-only'
 import { generateSlug } from '@/lib/utils'
 import { createServiceClient } from '@/lib/supabase/service'
 
+/** Top-level routes in app/; a league slug must never shadow one. */
+const RESERVED = new Set(['api', 'app', 'auth', 'invite', 'new', 'profile-required', 'results', 'settings', 'sign-in'])
+
 /**
  * Generates a unique slug for a league name.
  * Queries the DB to check uniqueness, appending -2, -3, etc. on collision.
@@ -32,9 +35,11 @@ export async function resolveUniqueSlug(name: string, excludeId?: string): Promi
       query = query.neq('id', excludeId)
     }
 
-    const { data, error } = await query.maybeSingle()
-    if (error) throw error
-    if (!data) return candidate
+    if (!RESERVED.has(candidate)) {
+      const { data, error } = await query.maybeSingle()
+      if (error) throw error
+      if (!data) return candidate
+    }
 
     candidate = `${base}-${counter}`
     counter++
