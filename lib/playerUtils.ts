@@ -111,3 +111,21 @@ export function approveErrorResponse(message: string, playerName: string): { sta
   if (message.includes('player_name_required')) return { status: 400, error: 'Enter a player name.' }
   return { status: 500, error: 'Internal server error' }
 }
+
+/**
+ * Names pasted into the league setup roster: one per line, or separated by
+ * commas, `&`, `/` or the word "and". Trimmed, blanks dropped, duplicates
+ * removed case-insensitively keeping the first spelling.
+ */
+export function splitPastedNames(text: string): string[] {
+  const seen = new Set<string>()
+  const names: string[] = []
+  for (const part of text.split(/\r?\n|,|&|\/|(?<!\p{L})and(?!\p{L})/iu)) {
+    const name = part.trim()
+    const key = name.toLowerCase()
+    if (!name || seen.has(key)) continue
+    seen.add(key)
+    names.push(name)
+  }
+  return names
+}
