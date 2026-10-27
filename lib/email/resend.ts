@@ -1,3 +1,4 @@
+import 'server-only'
 import { Resend } from 'resend'
 
 let _client: Resend | null = null
