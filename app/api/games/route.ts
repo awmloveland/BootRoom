@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser, rpcErrorStatus } from '@/lib/apiAuth'
 import { resolveUniqueSlug } from '@/lib/slug'
+import { generateSlug } from '@/lib/utils'
 
 const VALID_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const HH_MM = /^([01]\d|2[0-3]):[0-5]\d$/
@@ -19,7 +20,8 @@ export async function POST(req: Request) {
 
   const b = (await req.json().catch(() => null)) as Record<string, unknown> | null
   const name = typeof b?.name === 'string' ? b.name.trim() : ''
-  if (!name || name.length > 80) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+  if (!name || !generateSlug(name)) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+  if (name.length > 80) return NextResponse.json({ error: 'Name must be 80 characters or fewer' }, { status: 400 })
   const day = typeof b?.day === 'string' && VALID_DAYS.includes(b.day) ? b.day : null
   if (!day) return NextResponse.json({ error: 'Pick a match day' }, { status: 400 })
   const kickoff_time = typeof b?.kickoff_time === 'string' && HH_MM.test(b.kickoff_time) ? b.kickoff_time : null

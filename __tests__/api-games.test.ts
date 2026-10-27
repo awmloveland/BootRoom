@@ -35,6 +35,7 @@ describe('POST /api/games', () => {
 
   it.each([
     ['a blank name', { ...VALID, name: '  ' }],
+    ['a name with no letters or digits', { ...VALID, name: '!!!' }],
     ['a name over 80 characters', { ...VALID, name: 'x'.repeat(81) }],
     ['an unknown day', { ...VALID, day: 'Thu' }],
     ['a 12-hour time', { ...VALID, kickoff_time: '8pm' }],
