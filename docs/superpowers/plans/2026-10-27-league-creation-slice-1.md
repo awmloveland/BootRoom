@@ -98,7 +98,7 @@ BEGIN
     FROM profiles
    WHERE id = auth.uid();
   IF v_player IS NULL THEN
-    RAISE EXCEPTION 'profile_missing';
+    RAISE EXCEPTION 'profile_not_found';
   END IF;
 
   INSERT INTO games (name, slug, location, day, kickoff_time, bio, created_by)
@@ -478,9 +478,9 @@ describe('POST /api/games', () => {
 
   it('maps other RPC errors through rpcErrorStatus', async () => {
     setup(USER)
-    rpc.mockResolvedValue({ data: null, error: { code: 'P0001', message: 'profile_missing' } })
+    rpc.mockResolvedValue({ data: null, error: { code: 'P0001', message: 'profile_not_found' } })
     const res = await post(VALID)
-    expect(res.status).toBe(500)
+    expect(res.status).toBe(404)
   })
 })
 ```
