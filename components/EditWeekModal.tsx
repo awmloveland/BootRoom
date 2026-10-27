@@ -24,11 +24,13 @@ const RESULT_OPTIONS = ['teamA', 'draw', 'teamB'] as const
 function PlayerChip({
   name,
   team,
+  onTap,
   onRemove,
   onDragStart,
 }: {
   name: string
   team: 'A' | 'B' | 'roster'
+  onTap: () => void
   onRemove?: () => void
   onDragStart: (e: React.DragEvent) => void
 }) {
@@ -37,18 +39,28 @@ function PlayerChip({
       draggable
       onDragStart={onDragStart}
       className={cn(
-        'flex items-center justify-between gap-1.5 rounded font-inter-body text-xs font-semibold cursor-grab select-none',
-        team === 'A' && 'px-[9px] py-1.5 bg-[rgba(8,47,73,.55)] border-l-2 border-[#38bdf8] text-[#dff1ff]',
-        team === 'B' && 'px-[9px] py-1.5 bg-[rgba(46,16,101,.45)] border-l-2 border-[#a78bfa] text-[#efeaff]',
-        team === 'roster' && 'px-2.5 py-1.5 border border-[#223a5c] text-[#8ba4c4]'
+        'flex items-stretch justify-between rounded font-inter-body text-xs font-semibold cursor-grab select-none',
+        team === 'A' && 'bg-[rgba(8,47,73,.55)] border-l-2 border-[#38bdf8] text-[#dff1ff]',
+        team === 'B' && 'bg-[rgba(46,16,101,.45)] border-l-2 border-[#a78bfa] text-[#efeaff]',
+        team === 'roster' && 'border border-[#223a5c] text-[#8ba4c4]'
       )}
     >
-      <span className="whitespace-nowrap">{name}</span>
+      {/* Tapping is the touch alternative to dragging, which mobile browsers don't support. */}
+      <button
+        type="button"
+        onClick={onTap}
+        className={cn(
+          'flex-1 py-1.5 text-left whitespace-nowrap cursor-[inherit]',
+          team === 'roster' ? 'px-2.5' : 'pl-[9px] pr-1.5'
+        )}
+      >
+        {name}
+      </button>
       {onRemove && (
         <button
           type="button"
           onClick={onRemove}
-          className="text-[#6f88a8] hover:text-white leading-none text-sm"
+          className="pr-[9px] pl-1 text-[#6f88a8] hover:text-white leading-none text-sm"
           aria-label={`Remove ${name}`}
         >
           ×
@@ -59,6 +71,8 @@ function PlayerChip({
 }
 
 // ── LineupEditor ──────────────────────────────────────────────────────────────
+
+type ChipSource = 'teamA' | 'teamB' | 'roster'
 
 function LineupEditor({
   teamA,
@@ -83,21 +97,30 @@ function LineupEditor({
     .filter((name) => !assignedNames.has(name))
     .filter((name) => name.toLowerCase().includes(search.toLowerCase()))
 
-  function handleDrop(target: 'A' | 'B', e: React.DragEvent) {
-    e.preventDefault()
-    const name = e.dataTransfer.getData('playerName')
-    const source = e.dataTransfer.getData('source') as 'teamA' | 'teamB' | 'roster'
-    if (!name) return
-
+  function movePlayer(name: string, source: ChipSource, target: 'A' | 'B') {
     if (target === 'A') {
-      setDragOverA(false)
       if (source === 'teamB') onChangeTeamB(teamB.filter((n) => n !== name))
       if (!teamA.includes(name)) onChangeTeamA([...teamA, name])
     } else {
-      setDragOverB(false)
       if (source === 'teamA') onChangeTeamA(teamA.filter((n) => n !== name))
       if (!teamB.includes(name)) onChangeTeamB([...teamB, name])
     }
+  }
+
+  // A roster player joins the smaller side, Team A on a tie; a team player swaps sides.
+  function handleTap(name: string, source: ChipSource) {
+    if (source === 'roster') movePlayer(name, source, teamA.length <= teamB.length ? 'A' : 'B')
+    else movePlayer(name, source, source === 'teamA' ? 'B' : 'A')
+  }
+
+  function handleDrop(target: 'A' | 'B', e: React.DragEvent) {
+    e.preventDefault()
+    if (target === 'A') setDragOverA(false)
+    else setDragOverB(false)
+    const name = e.dataTransfer.getData('playerName')
+    const source = e.dataTransfer.getData('source') as ChipSource
+    if (!name) return
+    movePlayer(name, source, target)
   }
 
   return (
@@ -105,6 +128,8 @@ function LineupEditor({
       <div className="grid grid-cols-2 gap-2.5">
         {/* Team A */}
         <div
+          role="group"
+          aria-label="Team A"
           onDragOver={(e) => { e.preventDefault(); setDragOverA(true) }}
           onDragLeave={(e) => {
             if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverA(false)
@@ -121,6 +146,7 @@ function LineupEditor({
               key={name}
               name={name}
               team="A"
+              onTap={() => handleTap(name, 'teamA')}
               onRemove={() => onChangeTeamA(teamA.filter((n) => n !== name))}
               onDragStart={(e) => {
                 e.dataTransfer.setData('playerName', name)
@@ -129,12 +155,14 @@ function LineupEditor({
             />
           ))}
           {teamA.length === 0 && (
-            <p className="font-plex text-[9px] uppercase tracking-[.14em] text-[#4f688a] text-center pt-2">Drop players here</p>
+            <p className="font-plex text-[9px] uppercase tracking-[.14em] text-[#4f688a] text-center pt-2">No players yet</p>
           )}
         </div>
 
         {/* Team B */}
         <div
+          role="group"
+          aria-label="Team B"
           onDragOver={(e) => { e.preventDefault(); setDragOverB(true) }}
           onDragLeave={(e) => {
             if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverB(false)
@@ -151,6 +179,7 @@ function LineupEditor({
               key={name}
               name={name}
               team="B"
+              onTap={() => handleTap(name, 'teamB')}
               onRemove={() => onChangeTeamB(teamB.filter((n) => n !== name))}
               onDragStart={(e) => {
                 e.dataTransfer.setData('playerName', name)
@@ -159,7 +188,7 @@ function LineupEditor({
             />
           ))}
           {teamB.length === 0 && (
-            <p className="font-plex text-[9px] uppercase tracking-[.14em] text-[#4f688a] text-center pt-2">Drop players here</p>
+            <p className="font-plex text-[9px] uppercase tracking-[.14em] text-[#4f688a] text-center pt-2">No players yet</p>
           )}
         </div>
       </div>
@@ -167,7 +196,7 @@ function LineupEditor({
       {/* Roster */}
       <div className="mt-2.5 rounded-lg border border-[#1b2c46] bg-[#0c1728] p-2.5">
         <p className="font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#6f88a8] mb-2">
-          Roster · drag into a team
+          Roster · tap or drag into a team
         </p>
         <input
           type="text"
@@ -183,6 +212,7 @@ function LineupEditor({
               key={name}
               name={name}
               team="roster"
+              onTap={() => handleTap(name, 'roster')}
               onDragStart={(e) => {
                 e.dataTransfer.setData('playerName', name)
                 e.dataTransfer.setData('source', 'roster')
