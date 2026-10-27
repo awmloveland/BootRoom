@@ -191,7 +191,7 @@ export interface LeagueMember {
 - **Proxy** (`proxy.ts`, Next 16's name for middleware) guards `/settings` and `/[slug]/settings`
 - Both require a Supabase session with a `profiles` row (checked in the proxy); `/[slug]/settings` also requires a creator or admin role (checked by the page, which redirects members to the league's results)
 - Unauthenticated → redirect to `/sign-in?redirect=...`; authenticated but no profile → `/profile-required`
-- The proxy leaves every other page alone. Overview, Results and Players render read-only for signed-out visitors; Honours, Records, Line-up Lab and Admin check the session in the page and show a sign-in prompt instead (Admin also requires the admin tier)
+- On every other page the proxy only refreshes a signed-in visitor's session and saves it back to the cookie (server components cannot write cookies, so they must never be the ones to refresh it); `SessionKeepAlive` in the root layout keeps it fresh in the browser while the site is open. Overview, Results and Players render read-only for signed-out visitors; Honours, Records, Line-up Lab and Admin check the session in the page and show a sign-in prompt instead (Admin also requires the admin tier)
 - Game days and kick-off deadlines are read on the league's clock (`leagueNow()` in `lib/utils.ts`, Europe/London), never the server's; Vercel runs functions in UTC and reserves the `TZ` variable
 - Per-league roles are stored in `game_members` (columns: `game_id`, `user_id`, `role`)
 - `GameRole`: `creator | admin | member`

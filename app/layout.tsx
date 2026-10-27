@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import { Navbar } from '@/components/ui/navbar'
 import { NavbarSession } from '@/components/NavbarSession'
 import { ViewportCookie } from '@/components/ViewportCookie'
+import { SessionKeepAlive } from '@/components/SessionKeepAlive'
 import { SITE_TAGLINE } from '@/lib/utils'
 import './globals.css'
 
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           className="absolute inset-x-0 top-0 -z-10 h-[520px] pointer-events-none bg-[radial-gradient(#16283f_1.4px,transparent_1.4px)] bg-[length:24px_24px] [mask-image:linear-gradient(180deg,#000_0%,rgba(0,0,0,.4)_55%,transparent_100%)]"
         />
         <ViewportCookie />
+        <SessionKeepAlive />
         <Suspense fallback={<Navbar session={null} pending />}>
           <NavbarSession />
         </Suspense>

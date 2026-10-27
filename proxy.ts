@@ -9,22 +9,36 @@ function getSupabaseAnonKey() {
   return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 }
 
+/** True when the browser holds a Supabase session (possibly split across `.0`, `.1` chunks). */
+function hasSessionCookie(request: NextRequest) {
+  return request.cookies.getAll().some(({ name }) => name.startsWith('sb-') && name.includes('-auth-token'))
+}
+
+/** Passes the request on, with its pathname as a header for server components. */
+function next(request: NextRequest) {
+  const headers = new Headers(request.headers)
+  headers.set('x-pathname', request.nextUrl.pathname)
+  return NextResponse.next({ request: { headers } })
+}
+
 /**
- * Two routes need a session with a profiles row before they render: the
+ * Refreshes the session for every page a signed-in visitor loads. Server
+ * components cannot write cookies, so a session they refresh is lost and every
+ * later request, the tab prefetches included, refreshes the same token again;
+ * Supabase rejects those concurrent refreshes, and each one can stall a render
+ * for up to 30 seconds. Here the refreshed session goes back to the browser and
+ * on to this request's render. The session itself is verified locally from
+ * the JWT.
+ *
+ * Two routes also need a session with a profiles row before they render: the
  * account page, and a league's settings page, whose server component checks
  * the admin role itself and redirects members. Everything else is public.
- * The session is verified locally from the JWT.
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Forward pathname to server components via request header
-  const requestHeaders = new Headers(request.headers)
-  requestHeaders.set('x-pathname', pathname)
-  const requestWithPathname = { request: { headers: requestHeaders } }
-
   if (pathname.startsWith('/api') || pathname.startsWith('/auth') || pathname.startsWith('/_next')) {
-    return NextResponse.next(requestWithPathname)
+    return next(request)
   }
 
   // Fix Supabase magic link: /?code= → /auth/callback?code=
@@ -37,28 +51,41 @@ export async function proxy(request: NextRequest) {
 
   const isAccountSettings = pathname === '/settings' || pathname.startsWith('/settings/')
   const isLeagueSettings = /^\/[^/]+\/settings(\/|$)/.test(pathname)
-  if (!isAccountSettings && !isLeagueSettings) {
-    return NextResponse.next(requestWithPathname)
+  const needsSession = isAccountSettings || isLeagueSettings
+  if (!needsSession && !hasSessionCookie(request)) {
+    return next(request)
   }
 
-  const response = NextResponse.next(requestWithPathname)
+  let response = next(request)
   const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
     cookies: {
       getAll: () => request.cookies.getAll(),
-      setAll: (cookiesToSet) => {
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options)
-        )
+      setAll: (cookiesToSet, headers) => {
+        // Updating the request's cookies first means the render sees the new session.
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+        response = next(request)
+        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
+        // No-store headers, so a CDN never serves one visitor's session to another.
+        Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
       },
     },
   })
 
   const user = await getSessionUser(supabase)
+  if (!needsSession) return response
+
+  // Redirects carry any refreshed session too, or the browser would keep the spent one.
+  const redirectTo = (url: URL) => {
+    const redirect = NextResponse.redirect(url)
+    response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie))
+    return redirect
+  }
+
   if (!user) {
     // Keep the query (e.g. ?tab=members) so the visitor lands where they were heading.
     const redirectUrl = new URL(SIGN_IN_PATH, request.url)
     redirectUrl.searchParams.set('redirect', pathname + request.nextUrl.search)
-    return NextResponse.redirect(redirectUrl)
+    return redirectTo(redirectUrl)
   }
 
   const { data: profile } = await supabase
@@ -67,7 +94,7 @@ export async function proxy(request: NextRequest) {
     .eq('id', user.id)
     .maybeSingle()
   if (!profile) {
-    return NextResponse.redirect(new URL('/profile-required', request.url))
+    return redirectTo(new URL('/profile-required', request.url))
   }
 
   return response
