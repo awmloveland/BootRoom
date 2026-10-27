@@ -165,6 +165,8 @@ export function Navbar({
   // The landing page at / ships its own header; hide the app navbar for
   // signed-out visitors (and while the server is still resolving) there.
   if (pathname === '/' && (pending || !user)) return null
+  // The league setup flow at /new draws its own centred shell with no header.
+  if (pathname === '/new' || pathname.startsWith('/new/')) return null
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#101d31] bg-[rgba(6,11,20,.92)] backdrop-blur-[10px]">
