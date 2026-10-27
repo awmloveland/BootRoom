@@ -163,6 +163,33 @@ export function parseKickoffTime(value: string | null | undefined): { hours: num
 }
 
 /**
+ * A kick-off typed into the league setup stepper: '8', '8:15', '8.30',
+ * '20:15', '8pm', '8.30pm', '8:30 pm'. A bare hour from 1 to 11, except 6, with
+ * no am/pm is an evening game. Minutes round to the nearest quarter hour. Returns
+ * 'HH:MM' (what games.kickoff_time stores) or null for anything unreadable.
+ */
+export function parseKickoffInput(text: string): string | null {
+  const m = text.trim().toLowerCase().match(/^(\d{1,2})(?:[:.](\d{1,2}))?\s*(am|pm)?$/)
+  if (!m) return null
+  let hours = Number(m[1])
+  const minutes = Number(m[2] ?? 0)
+  if (minutes > 59) return null
+  if (m[3]) {
+    if (hours < 1 || hours > 12) return null
+    hours = (hours % 12) + (m[3] === 'pm' ? 12 : 0)
+  } else {
+    if (hours > 23) return null
+    if (hours >= 1 && hours <= 11 && hours !== 6) hours += 12
+  }
+  let rounded = Math.round(minutes / 15) * 15
+  if (rounded === 60) {
+    rounded = 0
+    hours = (hours + 1) % 24
+  }
+  return `${String(hours).padStart(2, '0')}:${String(rounded).padStart(2, '0')}`
+}
+
+/**
  * True once a game on `dateStr` ('DD MMM YYYY', league time) is waiting for its
  * result: from the league's kick-off time when it has one, otherwise from 20:00.
  */
