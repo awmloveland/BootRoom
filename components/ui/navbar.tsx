@@ -217,6 +217,12 @@ export function Navbar({
                     )}
                   </div>
                   <DropdownMenuItem asChild>
+                    <Link href="/new">
+                      <Plus className="size-4" />
+                      Create a league
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link href="/settings">
                       <Settings className="size-4" />
                       Account Settings

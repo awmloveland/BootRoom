@@ -34,6 +34,7 @@ export function formatMonthYear(date: string): string {
 }
 
 export const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const DAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -220,6 +221,12 @@ export function isAwaitingWindowOver(dateStr: string): boolean {
 export function formatFixtureDate(date: string): string {
   const [day, month] = date.split(' ')
   return `${DAY_SHORT[parseWeekDate(date).getDay()]} ${day.padStart(2, '0')} ${month}`
+}
+
+/** 'DD MMM YYYY' → 'Thursday 30 Oct', for sentences. */
+export function formatLongFixtureDate(date: string): string {
+  const [day, month] = date.split(' ')
+  return `${DAY_LONG[parseWeekDate(date).getDay()]} ${parseInt(day, 10)} ${month}`
 }
 
 /**

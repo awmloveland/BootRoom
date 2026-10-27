@@ -25,7 +25,11 @@ export function LiveShareCard({ leagueName, url, names, day }: Props) {
   const matchDay = day ?? 'match day'
 
   async function copy() {
-    await navigator.clipboard.writeText(url)
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      return
+    }
     setCopied(true)
     setTimeout(() => setCopied(false), 1600)
   }

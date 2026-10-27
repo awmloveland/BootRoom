@@ -10,6 +10,7 @@ import { cookies, headers } from 'next/headers'
 import Link from 'next/link'
 import { ChevronRight, Plus } from 'lucide-react'
 import { LandingPage } from '@/components/landing/LandingPage'
+import { Button } from '@/components/ui/button'
 import { cn, leagueLandingPath, VIEWPORT_COOKIE } from '@/lib/utils'
 import { parseWeekDate, formatWeekDate, leagueNow } from '@/lib/dates'
 
@@ -182,13 +183,12 @@ export default async function HomePage() {
           {leagues.length === 0 ? (
             <div className="mt-6">
               <p className="font-inter-body text-[13px] text-[#6f88a8]">You&apos;re not in any leagues yet.</p>
-              <Link
-                href="/new"
-                className="mt-4 inline-flex h-10 items-center gap-2 rounded bg-[#38bdf8] px-4 text-[13px] font-bold text-[#05101d] transition-colors hover:bg-[#7dd3fc]"
-              >
-                <Plus className="size-4" />
-                Create a league
-              </Link>
+              <Button asChild className="mt-4 gap-2">
+                <Link href="/new">
+                  <Plus className="size-4" />
+                  Create a league
+                </Link>
+              </Button>
             </div>
           ) : (
             <div className="mt-6 flex flex-col gap-2">

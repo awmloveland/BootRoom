@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser, rpcErrorStatus } from '@/lib/apiAuth'
 import { resolveUniqueSlug } from '@/lib/slug'
 import { generateSlug } from '@/lib/utils'
+import { revalidateLeague } from '@/lib/leagueCache'
 
 const VALID_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const HH_MM = /^([01]\d|2[0-3]):[0-5]\d$/
@@ -43,5 +44,6 @@ export async function POST(req: Request) {
     if (error.code === PG_UNIQUE_VIOLATION) return NextResponse.json({ error: 'slug_taken' }, { status: 409 })
     return NextResponse.json({ error: error.message }, { status: rpcErrorStatus(error.message) })
   }
+  revalidateLeague(id as string, [slug])
   return NextResponse.json({ id, slug })
 }

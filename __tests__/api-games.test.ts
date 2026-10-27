@@ -2,9 +2,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { mockAuthNamespace } from '@/lib/__tests__/helpers/supabase-auth'
 import { resolveUniqueSlug } from '@/lib/slug'
+import { revalidateTag } from 'next/cache'
 
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 jest.mock('@/lib/slug', () => ({ resolveUniqueSlug: jest.fn() }))
+jest.mock('next/cache', () => ({ revalidateTag: jest.fn() }))
 
 import { POST } from '@/app/api/games/route'
 
@@ -62,6 +64,8 @@ describe('POST /api/games', () => {
       p_kickoff_time: '20:00',
       p_bio: null,
     })
+    expect(revalidateTag).toHaveBeenCalledWith('league:game-1', expect.anything())
+    expect(revalidateTag).toHaveBeenCalledWith('league-slug:hackney-thursdays', expect.anything())
   })
 
   it('returns 409 slug_taken on a unique violation', async () => {
