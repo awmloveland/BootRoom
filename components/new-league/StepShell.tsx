@@ -23,7 +23,7 @@ export function StepShell({ eyebrow, title, sub, children, action, secondary }: 
         <img src="/logo.png" alt="" className="size-9 brightness-150 drop-shadow-[0_4px_10px_rgba(0,0,0,.5)]" />
       </div>
       {eyebrow && <div className="mt-7 flex justify-center">{eyebrow}</div>}
-      <h1 className="mt-7 text-center text-2xl font-bold leading-[1.15] tracking-[-.03em] text-[#f4f9ff] [text-wrap:pretty] sm:text-[28px]">
+      <h1 className="mt-7 text-center text-2xl font-bold leading-[1.15] tracking-[-.03em] text-[#f4f9ff] text-pretty sm:text-[28px]">
         {title}
       </h1>
       <p className="mt-2.5 text-center font-inter-body text-[14.5px] leading-[1.5] text-[#8ba4c4]">{sub}</p>
@@ -38,11 +38,11 @@ export function StepShell({ eyebrow, title, sub, children, action, secondary }: 
 export const STEP_COUNT = 3
 
 /** `STEP 2/3` in lime. */
-export function StepEyebrow({ n, of }: { n: number; of: number }) {
+export function StepEyebrow({ n }: { n: number }) {
   return (
     <p className="inline-flex items-center gap-2 font-plex text-[9.5px] font-bold uppercase tracking-[.18em] text-[#bef264]">
       <span className="h-0.5 w-[18px] bg-[#bef264]" />
-      Step {n}/{of}
+      Step {n}/{STEP_COUNT}
     </p>
   )
 }
