@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LeagueInfoBar } from '@/components/LeagueInfoBar'
-import { cn, dayNameToIndex, nextOccurrenceAfterToday, generateSlug } from '@/lib/utils'
+import { cn, dayNameToIndex, nextOccurrenceAfterToday } from '@/lib/utils'
 import type { LeagueDetails } from '@/lib/types'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -100,8 +100,8 @@ export function LeagueDetailsForm({
       setSaved(true)
       setInitialDay(day)
       onNameSaved(name.trim())
-      // Renaming re-slugs the league, so the current address stops existing;
-      // move to the new one instead of refreshing a page that is now a 404.
+      // The slug is fixed at creation, so this is normally a refresh; the
+      // redirect branch only runs if an older response ever returns a new slug.
       if (newSlug !== leagueSlug) {
         router.replace(`/${newSlug}/settings?tab=details`)
       } else {
@@ -234,7 +234,7 @@ export function LeagueDetailsForm({
             />
             {name.trim() && (
               <p className="text-xs text-[#6f88a8] mt-1">
-                URL: <span className="text-[#8ba4c4]">craft-football.com/{generateSlug(name.trim())}</span>
+                URL: <span className="text-[#8ba4c4]">craft-football.com/{leagueSlug}</span>
               </p>
             )}
           </div>
