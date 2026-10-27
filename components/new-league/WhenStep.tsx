@@ -50,7 +50,7 @@ export function WhenStep({ draft, onChange, onSubmit, submitting, error }: Props
     setTyped(null)
   }
 
-  const stepperButton = 'flex items-center justify-center text-[#8ba4c4] transition-colors hover:bg-[#0c1728] hover:text-white'
+  const stepperButton = 'flex items-center justify-center text-[#8ba4c4] transition-colors hover:bg-[#0c1728] hover:text-[#f4f9ff]'
 
   return (
     <StepShell
@@ -66,8 +66,8 @@ export function WhenStep({ draft, onChange, onSubmit, submitting, error }: Props
         </>
       }
     >
-      <p className="mb-2 font-inter-body text-sm text-[#8ba4c4]">Match day</p>
-      <div className="grid grid-cols-7 gap-1.5">
+      <p id="match-day-label" className="mb-2 font-inter-body text-sm text-[#8ba4c4]">Match day</p>
+      <div role="group" aria-labelledby="match-day-label" className="grid grid-cols-7 gap-1.5">
         {DAYS.map((d) => (
           <button
             key={d}
@@ -76,7 +76,7 @@ export function WhenStep({ draft, onChange, onSubmit, submitting, error }: Props
             onClick={() => onChange({ day: d })}
             className={cn(
               'h-11 rounded-lg border font-plex text-[10px] font-bold uppercase tracking-[.1em] transition-colors hover:border-[#38bdf8]',
-              draft.day === d ? 'border-[#38bdf8] bg-[rgba(8,47,73,.6)] text-[#7dd3fc]' : 'border-[#1b2c46] bg-[#0a1421] text-[#8ba4c4]',
+              draft.day === d ? 'border-[#38bdf8] bg-[#082f49]/60 text-[#7dd3fc]' : 'border-[#1b2c46] bg-[#0a1421] text-[#8ba4c4]',
             )}
           >
             {d.slice(0, 3)}
@@ -84,11 +84,13 @@ export function WhenStep({ draft, onChange, onSubmit, submitting, error }: Props
         ))}
       </div>
 
-      <p className="mb-2 mt-5 font-inter-body text-sm text-[#8ba4c4]">Kick-off</p>
+      <p id="kick-off-label" className="mb-2 mt-5 font-inter-body text-sm text-[#8ba4c4]">Kick-off</p>
       <div
+        role="group"
+        aria-labelledby="kick-off-label"
         className={cn(
           'grid h-[50px] grid-cols-[56px_1fr_56px] overflow-hidden rounded-lg border bg-[#0a1421]',
-          invalid ? 'border-[rgba(226,104,111,.6)]' : 'border-[#1b2c46]',
+          invalid ? 'border-[#e2686f]/60' : 'border-[#1b2c46]',
         )}
       >
         <button type="button" aria-label="15 minutes earlier" onClick={() => step(-15)} className={cn(stepperButton, 'border-r border-[#1b2c46]')}>
@@ -103,7 +105,7 @@ export function WhenStep({ draft, onChange, onSubmit, submitting, error }: Props
             onChange={(e) => setTyped(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') { commit(); e.currentTarget.blur() }
+              if (e.key === 'Enter') e.currentTarget.blur()
               if (e.key === 'ArrowUp') { e.preventDefault(); step(15) }
               if (e.key === 'ArrowDown') { e.preventDefault(); step(-15) }
             }}

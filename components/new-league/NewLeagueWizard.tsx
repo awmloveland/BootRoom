@@ -47,12 +47,12 @@ export function NewLeagueWizard() {
   const [draft, setDraft] = useState<LeagueDraft>(EMPTY)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const step = stepFromPath(pathname)
-
-  // A hard load of a later step has nothing to continue from.
+  // A hard load of a later step has nothing to continue from: show Name now
+  // and move the URL back through the router.
+  const step = draft.name ? stepFromPath(pathname) : 'name'
   useEffect(() => {
-    if (step !== 'name' && !draft.name) window.history.replaceState(null, '', '/new/name')
-  }, [step, draft.name])
+    if (pathname !== '/new/name' && pathname !== '/new' && !draft.name) router.replace('/new/name')
+  }, [pathname, draft.name, router])
 
   const go = (next: Step) => window.history.pushState(null, '', `/new/${next}`)
   const update = (patch: Partial<LeagueDraft>) => setDraft((d) => ({ ...d, ...patch }))
@@ -60,21 +60,24 @@ export function NewLeagueWizard() {
   async function create() {
     setSubmitting(true)
     setError(null)
+    let res: Response
     try {
-      let res = await postLeague(draft)
+      res = await postLeague(draft)
       // The server re-resolves the slug, so one retry clears a race on the name.
       if (res.status === 409) res = await postLeague(draft)
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(typeof data.error === 'string' && data.error !== 'slug_taken' ? data.error : 'Could not create the league. Try again.')
-        return
-      }
-      router.push(`/new/${data.slug}/live`)
     } catch {
       setError('Could not create the league. Check your connection and try again.')
-    } finally {
       setSubmitting(false)
+      return
     }
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      // Only validation messages are written for people; anything else gets the generic line.
+      setError(res.status === 400 && typeof data.error === 'string' ? data.error : 'Could not create the league. Try again.')
+      setSubmitting(false)
+      return
+    }
+    router.push(`/new/${data.slug}/live`)
   }
 
   if (step === 'where') return <WhereStep draft={draft} onChange={update} onNext={() => go('when')} />
