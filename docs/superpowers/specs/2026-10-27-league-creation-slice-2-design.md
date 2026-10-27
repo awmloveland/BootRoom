@@ -110,7 +110,7 @@ No migration. `promote_roster` already accepts the batch shape.
 
 ## Error handling
 
-- Network or non-400 failure on save: "Could not save the roster. Try
+- Network failure on save: "Could not save the roster. Check your connection and try again."; non-400 failure: "Could not save the roster. Try
   again." under the button. 400 messages are shown as returned.
 - A hard load of mentality or strength with fewer than two players redirects
   to players through `router.replace`.
@@ -123,8 +123,6 @@ No migration. `promote_roster` already accepts the batch shape.
 - `__tests__/roster-route.test.ts`: 401 signed out, 403 non-admin, 400 for an
   empty list, a bad entry and a duplicate, 200 passing the mapped entries to
   `promote_roster` once and revalidating.
-- `__tests__/mentality-control-size.test.tsx` is not needed: the `lg` size is
-  class changes only.
 - Manual (Will, signed in on local dev): create a league, add players by
   typing and by paste, set mentalities and strengths, confirm Settings →
   Players shows them with the chosen values and Live shows the chips, then
