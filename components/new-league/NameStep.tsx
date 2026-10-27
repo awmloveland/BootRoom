@@ -19,7 +19,8 @@ export function NameStep({ draft, onChange, onNext }: Props) {
   // The local slug stands in while it loads or if the request fails.
   const [server, setServer] = useState<{ name: string; slug: string } | null>(null)
   const slug = server?.name === draft.name ? server.slug : generateSlug(draft.name)
-  const canContinue = draft.name.trim().length > 0
+  // The server rejects a name with no letters or digits, so stop it here, not two steps later.
+  const canContinue = slug !== ''
 
   useEffect(() => {
     const name = draft.name

@@ -208,7 +208,7 @@ Slice 4 handles the gap between imported weeks and today separately.
   re-enables it. Network failure shows "Could not create the league. Check
   your connection and try again."
 - Slug preview failure falls back silently to `generateSlug(name)`.
-- Live page for a non-admin or unknown slug redirects rather than erroring.
+- Live page redirects a non-admin to the league and returns 404 for an unknown slug, as the league pages do.
 
 ## Testing
 

@@ -43,7 +43,8 @@ export function WhenStep({ draft, onChange, onSubmit, submitting, error }: Props
   }
 
   function commit() {
-    if (typed !== null) {
+    // Only an edited value is re-read; bare hours under 6 would otherwise flip to pm on blur.
+    if (typed !== null && typed !== display) {
       const parsed = parseKickoffInput(typed, suffix)
       if (parsed) onChange({ time: parsed })
     }
