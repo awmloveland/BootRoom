@@ -13,7 +13,7 @@ jest.mock('next/cache', () => ({
 }))
 
 // Import after the mocks are registered.
-import { getUser, getNavSession, getAuthAndRole, getPendingBadgeCount, getPendingRequests, getMyJoinRequestStatus, getMyClaimInfo, ensureUnrecordedWeek, getLeagueMembers, getRosterPlayers, getAllPlayerClaims, getAccountData } from '@/lib/fetchers'
+import { getUser, getPlayerStats, getWeeks, getNavSession, getAuthAndRole, getPendingBadgeCount, getPendingRequests, getMyJoinRequestStatus, getMyClaimInfo, ensureUnrecordedWeek, getLeagueMembers, getRosterPlayers, getAllPlayerClaims, getAccountData } from '@/lib/fetchers'
 import type { NavSession, Week } from '@/lib/types'
 
 const LEAGUE = '11111111-1111-1111-1111-111111111111'
@@ -488,5 +488,39 @@ describe('ensureUnrecordedWeek when the row already exists', () => {
     const result = await ensureUnrecordedWeek(LEAGUE, existing, 4)
     expect(result.map((w) => w.id)).toEqual(['w2', 'w1'])
     expect(result.find((w) => w.id === 'w2')?.status).toBe('unrecorded')
+  })
+})
+
+describe('league reads', () => {
+  // A failed read must throw: unstable_cache stores whatever resolves, so an
+  // empty list returned here would serve "0 players" to everyone until the
+  // entry expires. A throw is not cached, so the next request reads again.
+  let consoleError: jest.SpyInstance
+  beforeEach(() => { consoleError = jest.spyOn(console, 'error').mockImplementation(() => {}) })
+  afterEach(() => consoleError.mockRestore())
+
+  it('getPlayerStats maps the rows', async () => {
+    const rpc = jest.fn().mockResolvedValue({ data: [{ name: 'Alice', played: 3, won: 2, drew: 0, lost: 1, winRate: 66.7, recentForm: 'WLW' }], error: null })
+    ;(createServiceClient as jest.Mock).mockReturnValue({ rpc })
+    const players = await getPlayerStats(LEAGUE)
+    expect(rpc).toHaveBeenCalledWith('get_player_stats_public', { p_game_id: LEAGUE })
+    expect(players).toHaveLength(1)
+    expect(players[0]).toMatchObject({ name: 'Alice', played: 3, recentForm: 'WLW' })
+  })
+
+  it('getPlayerStats throws and logs when the read fails', async () => {
+    const rpc = jest.fn().mockResolvedValue({ data: null, error: { message: 'canceling statement due to statement timeout' } })
+    ;(createServiceClient as jest.Mock).mockReturnValue({ rpc })
+    await expect(getPlayerStats(LEAGUE)).rejects.toThrow('statement timeout')
+    expect(consoleError).toHaveBeenCalled()
+  })
+
+  it('getWeeks throws and logs when the read fails', async () => {
+    const chain: Record<string, jest.Mock> = {}
+    for (const m of ['select', 'eq']) chain[m] = jest.fn(() => chain)
+    chain.in = jest.fn().mockResolvedValue({ data: null, error: { message: 'upstream timeout' } })
+    ;(createServiceClient as jest.Mock).mockReturnValue({ from: jest.fn(() => chain) })
+    await expect(getWeeks(LEAGUE)).rejects.toThrow('upstream timeout')
+    expect(consoleError).toHaveBeenCalled()
   })
 })

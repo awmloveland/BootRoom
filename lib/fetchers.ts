@@ -121,9 +121,19 @@ export const getFeatures = cache(async (leagueId: string): Promise<LeagueFeature
 
 // ── Player stats ──────────────────────────────────────────────────────────────
 
+// The cached reads below throw on a failed query rather than return an empty
+// list: unstable_cache stores whatever resolves, so an empty list would show
+// every visitor "0 players" until the entry expired. A throw is not cached;
+// the page shows its error boundary and the next request reads again.
+function readFailed(what: string, error: { message: string }): never {
+  console.error(`[${what}] read failed`, error)
+  throw new Error(`${what} read failed: ${error.message}`)
+}
+
 async function readPlayerStats(leagueId: string): Promise<Player[]> {
   const service = createServiceClient()
-  const { data } = await service.rpc('get_player_stats_public', { p_game_id: leagueId })
+  const { data, error } = await service.rpc('get_player_stats_public', { p_game_id: leagueId })
+  if (error) readFailed('player stats', error)
   return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
     // Roster players are identified by name since the public RPC doesn't expose
     // a DB id. Two identical-name players on the roster would collide here;
@@ -368,11 +378,12 @@ const WEEK_COLUMNS = 'id, season, week, date, status, format, team_a, team_b, wi
 // The uncached read. ensureUnrecordedWeek uses it directly when it finds the
 // cache is behind a row it tried to create.
 async function readWeeks(leagueId: string): Promise<Week[]> {
-  const { data } = await createServiceClient()
+  const { data, error } = await createServiceClient()
     .from('weeks')
     .select(WEEK_COLUMNS)
     .eq('game_id', leagueId)
     .in('status', ['played', 'cancelled', 'unrecorded', 'scheduled', 'dnf'])
+  if (error) readFailed('weeks', error)
   return sortWeeks(((data ?? []) as WeekRow[]).map(mapWeekRow))
 }
 
