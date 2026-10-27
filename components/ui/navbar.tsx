@@ -4,7 +4,7 @@ import type { ReactElement } from 'react'
 import Link from 'next/link'
 import { usePathname, useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Settings, LogOut } from 'lucide-react'
+import { Settings, LogOut, Plus } from 'lucide-react'
 
 import {
   Accordion,
@@ -286,6 +286,14 @@ export function Navbar({
                         </p>
                       )}
                     </div>
+                    <Link
+                      href="/new"
+                      className="flex items-center gap-2 text-sm font-bold text-[#f4f9ff]"
+                      onClick={() => setSheetOpen(false)}
+                    >
+                      <Plus className="size-4" />
+                      Create a league
+                    </Link>
                     <Link
                       href="/settings"
                       className="flex items-center gap-2 text-sm font-bold text-[#f4f9ff]"
