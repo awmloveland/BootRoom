@@ -35,7 +35,7 @@ export function StepShell({ eyebrow, title, sub, children, action, secondary }: 
 }
 
 /** Steps shown in the eyebrow. Grows as later slices add roster and results steps. */
-export const STEP_COUNT = 3
+export const STEP_COUNT = 6
 
 /** `STEP 2/3` in lime. */
 export function StepEyebrow({ n }: { n: number }) {
