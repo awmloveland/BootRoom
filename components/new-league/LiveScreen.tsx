@@ -2,10 +2,10 @@
 import Link from 'next/link'
 import { cookies, headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
-import { getAuthAndRole, getGameBySlug } from '@/lib/fetchers'
+import { getAuthAndRole, getGameBySlug, getWeeks } from '@/lib/fetchers'
 import { createServiceClient } from '@/lib/supabase/service'
-import { dayNameToIndex, formatLongFixtureDate, nextOccurrenceAfterToday } from '@/lib/dates'
-import { leagueLandingPath, VIEWPORT_COOKIE } from '@/lib/utils'
+import { dayNameToIndex, formatLongFixtureDate, getPlayedWeeks, nextOccurrenceAfterToday } from '@/lib/dates'
+import { getNextWeekNumber, leagueLandingPath, seasonOfDate, VIEWPORT_COOKIE } from '@/lib/utils'
 import { OUTLINE_BUTTON, StepShell } from './StepShell'
 import { LiveShareCard } from './LiveShareCard'
 
@@ -19,15 +19,17 @@ export async function LiveScreen({ slug }: { slug: string }) {
   if (userRole !== 'creator' && userRole !== 'admin') redirect(landing)
 
   const service = createServiceClient()
-  const [{ data: roster }, { data: claims }] = await Promise.all([
+  const [{ data: roster }, { data: claims }, weeks] = await Promise.all([
     service.from('player_attributes').select('name').eq('game_id', game.id).order('name'),
     service.from('player_claims').select('player_name, admin_override_name').eq('game_id', game.id).eq('status', 'approved'),
+    getWeeks(game.id),
   ])
   const claimed = new Set((claims ?? []).map((c) => (c.admin_override_name as string | null) ?? (c.player_name as string)))
   const names = (roster ?? []).map((r) => r.name as string).filter((n) => !claimed.has(n))
 
   const dayIndex = dayNameToIndex(game.day)
   const nextDate = dayIndex === null ? null : nextOccurrenceAfterToday(dayIndex)
+  const played = getPlayedWeeks(weeks).length
 
   return (
     <StepShell
@@ -38,7 +40,7 @@ export async function LiveScreen({ slug }: { slug: string }) {
         </span>
       }
       title={<>{game.name}<br /><span className="text-[#bef264]">is live.</span></>}
-      sub={nextDate ? `Week 1 is in the diary for ${formatLongFixtureDate(nextDate)}.` : 'Set a match day in Settings to put week 1 in the diary.'}
+      sub={nextDate ? `${played > 0 ? `${played} ${played === 1 ? 'game' : 'games'} imported. ` : ''}Week ${getNextWeekNumber(weeks, seasonOfDate(nextDate))} is in the diary for ${formatLongFixtureDate(nextDate)}.` : 'Set a match day in Settings to put week 1 in the diary.'}
       action={<Link href={landing} className={OUTLINE_BUTTON}>Go to {game.name}</Link>}
     >
       <LiveShareCard leagueName={game.name} url={`https://craft-football.com/${slug}`} names={names} day={game.day} />

@@ -35,7 +35,7 @@ export function StepShell({ eyebrow, title, sub, children, action, secondary }: 
 }
 
 /** Steps shown in the eyebrow. Grows as later slices add roster and results steps. */
-export const STEP_COUNT = 6
+export const STEP_COUNT = 7
 
 /** Set by the Account step before its reload, so the rest of the flow counts it as step 1. Session cookie, path /new. */
 export const NEW_VISITOR_COOKIE = 'new-visitor'
