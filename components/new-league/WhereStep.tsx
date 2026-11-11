@@ -5,17 +5,18 @@ import { FIELD, PRIMARY_BUTTON, StepEyebrow, StepShell } from './StepShell'
 import type { LeagueDraft } from './NewLeagueWizard'
 
 interface Props {
+  stepOffset: number
   draft: LeagueDraft
   onChange: (patch: Partial<LeagueDraft>) => void
   onNext: () => void
 }
 
 // shortcut: free text only, Places autocomplete and the map preview arrive in slice 5
-export function WhereStep({ draft, onChange, onNext }: Props) {
+export function WhereStep({ draft, onChange, onNext, stepOffset }: Props) {
   const canContinue = draft.location.trim().length > 0
   return (
     <StepShell
-      eyebrow={<StepEyebrow n={2} />}
+      eyebrow={<StepEyebrow n={2} offset={stepOffset} />}
       title="Where do you play?"
       sub="Name the pitch or venue. We save it so it reads well on your league page."
       action={<button type="button" className={PRIMARY_BUTTON} disabled={!canContinue} onClick={onNext}>Continue</button>}

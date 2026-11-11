@@ -41,7 +41,11 @@ function postLeague(d: LeagueDraft) {
  * usePathname, so the browser's back button steps backwards. A refresh
  * starts again at Name.
  */
-export function NewLeagueWizard() {
+interface Props {
+  stepOffset: number
+}
+
+export function NewLeagueWizard({ stepOffset }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const [draft, setDraft] = useState<LeagueDraft>(EMPTY)
@@ -80,7 +84,7 @@ export function NewLeagueWizard() {
     router.push(`/new/${data.slug}/players`)
   }
 
-  if (step === 'where') return <WhereStep draft={draft} onChange={update} onNext={() => go('when')} />
-  if (step === 'when') return <WhenStep draft={draft} onChange={update} onSubmit={create} submitting={submitting} error={error} />
-  return <NameStep draft={draft} onChange={update} onNext={() => go('where')} />
+  if (step === 'where') return <WhereStep stepOffset={stepOffset} draft={draft} onChange={update} onNext={() => go('when')} />
+  if (step === 'when') return <WhenStep stepOffset={stepOffset} draft={draft} onChange={update} onSubmit={create} submitting={submitting} error={error} />
+  return <NameStep stepOffset={stepOffset} draft={draft} onChange={update} onNext={() => go('where')} />
 }

@@ -1,8 +1,10 @@
 // app/new/[[...step]]/page.tsx
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
 import { NewLeagueWizard } from '@/components/new-league/NewLeagueWizard'
 import { LiveScreen } from '@/components/new-league/LiveScreen'
 import { RosterScreen } from '@/components/new-league/RosterScreen'
+import { NEW_VISITOR_COOKIE } from '@/components/new-league/StepShell'
 
 interface Props {
   params: Promise<{ step?: string[] }>
@@ -28,5 +30,6 @@ export default async function NewLeaguePage({ params }: Props) {
   const { step = [] } = await params
   if (isLive(step)) return <LiveScreen slug={step[0]} />
   if (isRoster(step)) return <RosterScreen slug={step[0]} />
-  return <NewLeagueWizard />
+  const stepOffset = (await cookies()).get(NEW_VISITOR_COOKIE) ? 1 : 0
+  return <NewLeagueWizard stepOffset={stepOffset} />
 }

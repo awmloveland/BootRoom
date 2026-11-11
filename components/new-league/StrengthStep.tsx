@@ -8,6 +8,7 @@ import { PlayerRow } from './PlayerRow'
 import type { RosterPlayer } from './RosterWizard'
 
 interface Props {
+  stepOffset: number
   players: RosterPlayer[]
   onChange: (id: string, strength: Strength) => void
   onSubmit: () => void
@@ -15,10 +16,10 @@ interface Props {
   error: string | null
 }
 
-export function StrengthStep({ players, onChange, onSubmit, submitting, error }: Props) {
+export function StrengthStep({ players, onChange, onSubmit, submitting, error, stepOffset }: Props) {
   return (
     <StepShell
-      eyebrow={<StepEyebrow n={6} />}
+      eyebrow={<StepEyebrow n={6} offset={stepOffset} />}
       title="Who is above or below average?"
       sub="A gut call to seed the first lineups. It fades out over each player's first ten games. Members can see it, so keep it fair."
       action={
