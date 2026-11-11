@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import type { PlayerAttribute, Winner } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { parseWeekDate } from '@/lib/dates'
+import { DAY_LONG, parseWeekDate } from '@/lib/dates'
 import { LineupEditor, ResultPicker } from '@/components/EditWeekModal'
 import { AddRosterPlayerModal } from '@/components/AddRosterPlayerModal'
 import { shiftWeeks } from './confidence'
@@ -21,8 +21,8 @@ export interface DraftGame {
 
 interface Props {
   leagueId: string
-  /** "Game 3" in the header. */
-  number: number
+  /** "Game 3" in the header; a fresh draft has no number yet. */
+  number: number | null
   draft: DraftGame
   /** True when the draft is already in the saved list. */
   editing: boolean
@@ -37,7 +37,6 @@ interface Props {
   onClose: () => void
 }
 
-const DAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 export function ImportGameModal({ leagueId, number, draft, editing, roster, latestMatchDay, takenDates, onRosterAdd, onSave, onDelete, onClose }: Props) {
   const [date, setDate] = useState(draft.date)
@@ -69,7 +68,7 @@ export function ImportGameModal({ leagueId, number, draft, editing, roster, late
       <div className="absolute inset-0 bg-[#030710]/80" onClick={onClose} />
       <div className="relative z-10 flex max-h-[90vh] w-full max-w-[440px] flex-col overflow-hidden rounded-[14px] border border-[#1b2c46] bg-[#0a1421] shadow-[0_34px_80px_rgba(0,0,0,.65)]">
         <div className="flex items-center justify-between border-b border-[#1b2c46] bg-[#0c1728] px-5 pb-3.5 pt-4">
-          <h2 className="text-[15px] font-bold tracking-[-.02em] text-[#f4f9ff]">Game {number}</h2>
+          <h2 className="text-[15px] font-bold tracking-[-.02em] text-[#f4f9ff]">{number === null ? 'New game' : `Game ${number}`}</h2>
           <button type="button" onClick={onClose} aria-label="Close" className="inline-flex size-7 items-center justify-center text-[#8ba4c4] transition-colors hover:text-white">
             <X className="size-4" strokeWidth={2.2} />
           </button>

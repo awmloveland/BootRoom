@@ -133,8 +133,9 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, latestMatch
 
       {open && (
         <ImportGameModal
+          key={open.draft.id}
           leagueId={leagueId}
-          number={open.editing ? sorted.length - sorted.findIndex((g) => g.id === open.draft.id) : count + 1}
+          number={open.editing ? sorted.length - sorted.findIndex((g) => g.id === open.draft.id) : null}
           draft={open.draft}
           editing={open.editing}
           roster={roster}
