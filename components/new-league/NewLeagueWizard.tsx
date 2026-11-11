@@ -35,16 +35,16 @@ function postLeague(d: LeagueDraft) {
   })
 }
 
+interface Props {
+  stepOffset: number
+}
+
 /**
  * Name, Where and When, before the league exists. The answers live here;
  * each step gets its own URL through pushState, which Next syncs to
  * usePathname, so the browser's back button steps backwards. A refresh
  * starts again at Name.
  */
-interface Props {
-  stepOffset: number
-}
-
 export function NewLeagueWizard({ stepOffset }: Props) {
   const pathname = usePathname()
   const router = useRouter()
