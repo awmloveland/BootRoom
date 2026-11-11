@@ -25,6 +25,7 @@ interface Props {
   slug: string
   /** The roster as saved so far: the creator first, then anyone already written. */
   initial: RosterPlayer[]
+  stepOffset: number
 }
 
 function stepFromPath(pathname: string): Step {
@@ -42,7 +43,7 @@ const isNamed = (p: RosterPlayer) => p.name.trim() !== ''
  * pushState like the pre-creation wizard; a hard load with only the creator
  * goes back to players.
  */
-export function RosterWizard({ leagueId, slug, initial }: Props) {
+export function RosterWizard({ leagueId, slug, initial, stepOffset }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const [players, setPlayers] = useState<RosterPlayer[]>(() => [...initial, newPlayer('')])
@@ -87,13 +88,14 @@ export function RosterWizard({ leagueId, slug, initial }: Props) {
   }
 
   if (step === 'mentality') {
-    return <MentalityStep players={named} onChange={(id, mentality) => patch(id, { mentality })} onNext={() => go('strength')} />
+    return <MentalityStep stepOffset={stepOffset} players={named} onChange={(id, mentality) => patch(id, { mentality })} onNext={() => go('strength')} />
   }
   if (step === 'strength') {
-    return <StrengthStep players={named} onChange={(id, strength) => patch(id, { strength })} onSubmit={save} submitting={submitting} error={error} />
+    return <StrengthStep stepOffset={stepOffset} players={named} onChange={(id, strength) => patch(id, { strength })} onSubmit={save} submitting={submitting} error={error} />
   }
   return (
     <PlayersStep
+      stepOffset={stepOffset}
       players={players}
       onAdd={(names) => setPlayers((ps) => [...ps.filter(isNamed), ...names.map(newPlayer), ...ps.filter((p) => !isNamed(p))])}
       onAddBlank={() => setPlayers((ps) => [...ps, newPlayer('')])}

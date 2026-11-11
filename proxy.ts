@@ -31,7 +31,7 @@ function next(request: NextRequest) {
  * the JWT.
  *
  * Three routes also need a session with a profiles row before they render:
- * the account page, the league setup flow at /new, and a league's settings
+ * the account page, the league setup steps after creation under /new/[slug], and a league's settings
  * page, whose server component checks the admin role itself and redirects
  * members. Everything else is public.
  */
@@ -52,7 +52,9 @@ export async function proxy(request: NextRequest) {
 
   const isAccountSettings = pathname === '/settings' || pathname.startsWith('/settings/')
   const isLeagueSettings = /^\/[^/]+\/settings(\/|$)/.test(pathname)
-  const isNewLeague = pathname === '/new' || pathname.startsWith('/new/')
+  // Only the steps after a league exists (/new/[slug]/players…live); the
+  // pre-creation steps sign a visitor up inline.
+  const isNewLeague = /^\/new\/[^/]+\/[^/]+/.test(pathname)
   const needsSession = isAccountSettings || isLeagueSettings || isNewLeague
   if (!needsSession && !hasSessionCookie(request)) {
     return next(request)

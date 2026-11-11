@@ -37,12 +37,15 @@ export function StepShell({ eyebrow, title, sub, children, action, secondary }: 
 /** Steps shown in the eyebrow. Grows as later slices add roster and results steps. */
 export const STEP_COUNT = 6
 
-/** `STEP 2/3` in lime. */
-export function StepEyebrow({ n }: { n: number }) {
+/** Set by the Account step before its reload, so the rest of the flow counts it as step 1. Session cookie, path /new. */
+export const NEW_VISITOR_COOKIE = 'new-visitor'
+
+/** `STEP 2/6`, or `STEP 3/7` for a visitor who came through the Account step. */
+export function StepEyebrow({ n, offset = 0 }: { n: number; offset?: number }) {
   return (
     <p className="inline-flex items-center gap-2 font-plex text-[9.5px] font-bold uppercase tracking-[.18em] text-[#bef264]">
       <span className="h-0.5 w-[18px] bg-[#bef264]" />
-      Step {n}/{STEP_COUNT}
+      Step {n + offset}/{STEP_COUNT + offset}
     </p>
   )
 }

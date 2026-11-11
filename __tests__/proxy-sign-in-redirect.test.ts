@@ -49,11 +49,18 @@ describe('proxy', () => {
     expect([...location.searchParams]).toEqual([['redirect', '/craft-football/settings?tab=members']])
   })
 
-  it('sends signed-out visitors on /new to /sign-in', async () => {
-    const res = await proxy(new NextRequest('https://craft-football.com/new'))
+  it('leaves the pre-creation league setup steps to the page, which signs the visitor up', async () => {
+    for (const path of ['/new', '/new/name', '/new/when']) {
+      const res = await proxy(new NextRequest(`https://craft-football.com${path}`))
+      expect(res.headers.get('location')).toBeNull()
+    }
+  })
+
+  it('sends signed-out visitors on a league setup step after creation to /sign-in', async () => {
+    const res = await proxy(new NextRequest('https://craft-football.com/new/hackney-thursdays/players'))
     const location = new URL(res.headers.get('location')!)
     expect(location.pathname).toBe('/sign-in')
-    expect([...location.searchParams]).toEqual([['redirect', '/new']])
+    expect([...location.searchParams]).toEqual([['redirect', '/new/hackney-thursdays/players']])
   })
 
   it('does not guard a league slug that merely starts with "new"', async () => {
