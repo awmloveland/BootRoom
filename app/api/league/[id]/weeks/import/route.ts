@@ -59,7 +59,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       goal_difference: g.goalDifference,
     })),
   })
-  if (error) return NextResponse.json({ error: error.message }, { status: rpcErrorStatus(error.message) })
+  if (error) {
+    // The RPC raises terse codes; the two a careful admin can still hit get written for people.
+    const text = error.message.includes('already_exists') ? 'You already have a game on one of those dates'
+      : error.message.includes('invalid_date') ? 'One of the dates is in the future'
+      : error.message
+    return NextResponse.json({ error: text }, { status: rpcErrorStatus(error.message) })
+  }
 
   revalidateLeague(id)
   return NextResponse.json({ ok: true, count })

@@ -103,8 +103,9 @@ BEGIN
     VALUES (
       p_game_id,
       to_char(d, 'YYYY'),
-      -- Placeholder; renumbered below. Offset so it cannot collide meanwhile.
-      100000 + inserted,
+      -- Placeholder; renumbered below. Above the 100000 offset the renumber
+      -- pass adds to existing rows, so neither can collide with the other.
+      200000 + inserted,
       w->>'date',
       'played',
       CASE WHEN a = b THEN a || '-a-side' ELSE greatest(a, b) || 'v' || least(a, b) END,

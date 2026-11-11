@@ -68,7 +68,9 @@ describe('POST /api/league/[id]/weeks/import', () => {
 
   it('maps already_exists to 409 and invalid_* to 400', async () => {
     setup(USER, true, { data: null, error: { message: 'already_exists' } })
-    expect((await post({ games: [GAME] })).status).toBe(409)
+    const dup = await post({ games: [GAME] })
+    expect(dup.status).toBe(409)
+    await expect(dup.json()).resolves.toEqual({ error: 'You already have a game on one of those dates' })
     setup(USER, true, { data: null, error: { message: 'invalid_margin' } })
     expect((await post({ games: [GAME] })).status).toBe(400)
   })

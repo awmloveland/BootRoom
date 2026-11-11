@@ -64,7 +64,7 @@ call. Four to six games is the sweet spot."
 
 ## Game modal (`ImportGameModal`)
 
-Dialog like `EditWeekModal` (same frame, header "Game n", close). Sections:
+Dialog like `EditWeekModal` (same frame, header "Game n" when editing a saved game and "New game" for a fresh draft, close). Sections:
 
 - **Date**: `‹ 8 Oct 2026 / Thursday ›` stepping one week on the league's match
   day. Forward is disabled past the most recent match day on or before today.
@@ -132,9 +132,10 @@ when the league has played weeks, else as today.
   on or after: the row is created); the old "no weeks" case now passes a
   `createdAt` after the candidate date.
 - `lib/__tests__/fees.weeksSinceCreation.test.ts`.
-- `__tests__/results-step.test.tsx` (jsdom): confidence copy and percent by
-  count; the date stepper's forward bound; a fresh draft copying the oldest
-  game's line-ups and stepping a week earlier.
+- `__tests__/results-step.test.tsx`: the pure helpers only: confidence copy
+  and percent by count, week stepping, where a fresh draft starts, the format
+  label. The line-up copy into a fresh draft and the stepper's forward bound
+  are covered by the manual pass.
 - `__tests__/edit-week-modal-tap-to-move.test.tsx` still passes after the
   export refactor.
 - Manual (Will): create a league, add players, enter three past games (one a
