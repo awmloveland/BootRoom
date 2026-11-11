@@ -1,8 +1,8 @@
 -- supabase/migrations/20261111000001_create_game_first_name.sql
 --
 -- The creator's player was named "First Last"; teammates know each other by
--- first name and every other roster entry is typed that way, so the creator's
--- row and claim now use the first name alone. Same function otherwise.
+-- first name, so the creator's row and claim now use the first name plus the
+-- surname's initial ("Will L"). Same function otherwise.
 
 CREATE OR REPLACE FUNCTION public.create_game(
   p_name text,
@@ -31,11 +31,11 @@ BEGIN
     RAISE EXCEPTION 'invalid_slug';
   END IF;
 
-  -- The player name the roster and claim use: the first name, as teammates
-  -- say it, falling back to the display name's first word, then the email's
-  -- local part.
+  -- The player name the roster and claim use: first name plus the surname's
+  -- initial ("Will L"), falling back to the display name's first word, then
+  -- the email's local part. A null first name makes the whole concat null.
   SELECT coalesce(
-           nullif(trim(first_name), ''),
+           nullif(trim(first_name), '') || coalesce(' ' || nullif(left(trim(last_name), 1), ''), ''),
            nullif(split_part(trim(display_name), ' ', 1), ''),
            split_part(email, '@', 1)
          )
