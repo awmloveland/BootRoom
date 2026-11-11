@@ -32,9 +32,15 @@ branch and is retargeted to main once #194 merges.
    with `pushState` for step changes, exactly as slice 1's wizard. A hard load
    of mentality or strength with only the creator on the list goes back to
    players. A refresh loses unsaved names, same as slice 1.
-5. **Existing roster names are only used for duplicate checks.** The flow is
-   reached right after creation, when the roster is the creator alone; it is
-   not a tool for editing an established roster.
+5. **The wizard is seeded from the saved roster.** `RosterScreen` passes every
+   `player_attributes` row (creator first, strength from the rating) so coming
+   back from Live, or refreshing after a save, shows the list rather than an
+   empty one. Saving again upserts the same names. It is still not a tool for
+   editing an established roster.
+6. **The list always ends in a blank row.** There is no Add button: the last
+   row is an empty input, focusing it appends another blank beneath, Enter
+   moves to the next row, and a blank row that is not last disappears on blur.
+   Blank rows never leave the client.
 
 ## Routing
 
@@ -58,12 +64,12 @@ H1 "Who plays?", sub "Add the regulars by name. They do not need an account yet.
 - List, gap 8px: creator row first (50px, `border-[#38bdf8]/45`, name, `YOU`
   badge), then player rows (50px, `border-[#1b2c46]`, inline-editable name
   input that trims on blur and removes the row when left blank, an `X`
-  remove button). The add row is dashed (`border-[#223a5c]`): input
-  "Add a player and press Enter" plus a sky "Add" button. Enter adds and
-  clears. A name already on the list, or already in the league's roster,
-  shows "Already on the list" under the add row and is not added
-  (case-insensitive).
-- Secondary link "Paste a list instead" swaps the add row for a 5-row
+  remove button), then a dashed blank row with placeholder "Add a player".
+  Focusing the blank row appends another beneath it; Enter moves focus down
+  a row; a blank row that is not last is removed on blur. A name that
+  duplicates another row (case-insensitive) shows "{name} is already on the
+  list" under the list and disables Continue.
+- Secondary link "Paste a list instead" adds, under the rows, a 5-row
   textarea in a `border-[#38bdf8]/45` box, placeholder "One name per line,
   or separated by commas", with a full-width "Add N players" button where N
   counts the new names after splitting and de-duplicating. The link then

@@ -23,10 +23,8 @@ export interface RosterPlayer {
 interface Props {
   leagueId: string
   slug: string
-  /** The creator's player name, from their approved claim. */
-  you: string
-  /** Names already in player_attributes, used only for the duplicate check. */
-  existingNames: string[]
+  /** The roster as saved so far: the creator first, then anyone already written. */
+  initial: RosterPlayer[]
 }
 
 function stepFromPath(pathname: string): Step {
@@ -35,23 +33,27 @@ function stepFromPath(pathname: string): Step {
 }
 
 const newPlayer = (name: string): RosterPlayer => ({ id: crypto.randomUUID(), name, mentality: 'balanced', strength: 'average' })
+const isNamed = (p: RosterPlayer) => p.name.trim() !== ''
 
 /**
  * Who plays, Mentality and Strength. The roster lives here and is written
- * once, at the end of Strength. Step URLs change through pushState like the
- * pre-creation wizard; a hard load with only the creator goes back to players.
+ * once, at the end of Strength. The list always ends in a blank row to type
+ * into; blank rows never leave this component. Step URLs change through
+ * pushState like the pre-creation wizard; a hard load with only the creator
+ * goes back to players.
  */
-export function RosterWizard({ leagueId, slug, you, existingNames }: Props) {
+export function RosterWizard({ leagueId, slug, initial }: Props) {
   const pathname = usePathname()
   const router = useRouter()
-  const [players, setPlayers] = useState<RosterPlayer[]>([{ ...newPlayer(you), id: 'you', you: true }])
+  const [players, setPlayers] = useState<RosterPlayer[]>(() => [...initial, newPlayer('')])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const step = players.length < 2 ? 'players' : stepFromPath(pathname)
+  const named = players.filter(isNamed)
+  const step = named.length < 2 ? 'players' : stepFromPath(pathname)
 
   useEffect(() => {
-    if (players.length < 2 && stepFromPath(pathname) !== 'players') router.replace(`/new/${slug}/players`)
-  }, [pathname, players.length, router, slug])
+    if (named.length < 2 && stepFromPath(pathname) !== 'players') router.replace(`/new/${slug}/players`)
+  }, [pathname, named.length, router, slug])
 
   const go = (next: Step) => window.history.pushState(null, '', `/new/${slug}/${next}`)
   const patch = (id: string, change: Partial<RosterPlayer>) =>
@@ -65,7 +67,7 @@ export function RosterWizard({ leagueId, slug, you, existingNames }: Props) {
       res = await fetch(`/api/league/${leagueId}/roster`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ players: players.map(({ name, strength, mentality }) => ({ name, strength, mentality })) }),
+        body: JSON.stringify({ players: named.map(({ name, strength, mentality }) => ({ name, strength, mentality })) }),
       })
     } catch {
       setError('Could not save the roster. Check your connection and try again.')
@@ -82,16 +84,16 @@ export function RosterWizard({ leagueId, slug, you, existingNames }: Props) {
   }
 
   if (step === 'mentality') {
-    return <MentalityStep players={players} onChange={(id, mentality) => patch(id, { mentality })} onNext={() => go('strength')} />
+    return <MentalityStep players={named} onChange={(id, mentality) => patch(id, { mentality })} onNext={() => go('strength')} />
   }
   if (step === 'strength') {
-    return <StrengthStep players={players} onChange={(id, strength) => patch(id, { strength })} onSubmit={save} submitting={submitting} error={error} />
+    return <StrengthStep players={named} onChange={(id, strength) => patch(id, { strength })} onSubmit={save} submitting={submitting} error={error} />
   }
   return (
     <PlayersStep
       players={players}
-      existingNames={existingNames}
-      onAdd={(names) => setPlayers((ps) => [...ps, ...names.map(newPlayer)])}
+      onAdd={(names) => setPlayers((ps) => [...ps.filter(isNamed), ...names.map(newPlayer), ...ps.filter((p) => !isNamed(p))])}
+      onAddBlank={() => setPlayers((ps) => [...ps, newPlayer('')])}
       onRename={(id, name) => patch(id, { name })}
       onRemove={(id) => setPlayers((ps) => ps.filter((p) => p.id !== id))}
       onNext={() => go('mentality')}
