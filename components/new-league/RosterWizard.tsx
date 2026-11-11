@@ -80,6 +80,9 @@ export function RosterWizard({ leagueId, slug, initial }: Props) {
       setSubmitting(false)
       return
     }
+    // Back from Live reuses this page from the client cache, which still holds
+    // the pre-save roster; refresh drops that entry so Back re-reads the saved list.
+    router.refresh()
     router.push(`/new/${slug}/live`)
   }
 
