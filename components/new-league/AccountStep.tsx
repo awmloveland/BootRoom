@@ -3,10 +3,13 @@
 
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
-import { NO_ACCOUNT, resendCode, sendSignInCode, sendSignUpCode, verifyCode } from '@/lib/supabase/otp'
 import { FIELD, NEW_VISITOR_COOKIE, OUTLINE_BUTTON, PRIMARY_BUTTON, SECONDARY_LINK, StepEyebrow, StepShell } from './StepShell'
 
 type Stage = 'signup' | 'signin' | 'code'
+
+// Loaded when a code is sent, not with the page, so signed-in users never
+// download the Supabase browser client for this route (the dialog does the same).
+const otp = () => import('@/lib/supabase/otp')
 
 /**
  * Step 1 for a signed-out visitor: create an account or sign in with an
@@ -36,6 +39,7 @@ export function AccountStep() {
     if (!canSend || busy) return
     setBusy(true)
     setMessage(null)
+    const { NO_ACCOUNT, sendSignInCode, sendSignUpCode } = await otp()
     const err = stage === 'signin'
       ? await sendSignInCode(cleanEmail)
       : await sendSignUpCode(first.trim(), last.trim(), cleanEmail)
@@ -52,7 +56,7 @@ export function AccountStep() {
   async function resend() {
     setBusy(true)
     setMessage(null)
-    const err = await resendCode(cleanEmail)
+    const err = await (await otp()).resendCode(cleanEmail)
     setBusy(false)
     setMessage(err ? { error: true, text: err } : { error: false, text: 'Code resent. Check your email.' })
   }
@@ -62,7 +66,7 @@ export function AccountStep() {
     if (code.length !== 6 || busy) return
     setBusy(true)
     setMessage(null)
-    const err = await verifyCode(cleanEmail, code)
+    const err = await (await otp()).verifyCode(cleanEmail, code)
     if (err) {
       setMessage({ error: true, text: err })
       setBusy(false)
