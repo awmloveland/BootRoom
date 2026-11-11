@@ -65,6 +65,13 @@ export function leagueNow(at: number | Date = Date.now()): Date {
   return new Date(parts.year, parts.month - 1, parts.day, parts.hour % 24, parts.minute, parts.second)
 }
 
+/** Midnight, league time, of the day an ISO timestamp falls on. */
+export function startOfLeagueDay(iso: string): Date {
+  const d = leagueNow(new Date(iso))
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
 /** Parse a 'DD MMM YYYY' date string into a Date at midnight on that day (compare it with leagueNow()). */
 export function parseWeekDate(date: string): Date {
   const [d, m, y] = date.split(' ')

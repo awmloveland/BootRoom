@@ -53,7 +53,7 @@ export default async function LeagueOverviewPage({ params }: Props) {
   // Overview is the small-screen landing page, so it must keep week numbers and
   // "games left" honest the same way Results does.
   const weeks = tier !== 'public'
-    ? await ensureUnrecordedWeek(leagueId, rawWeeks, leagueDayIndex)
+    ? await ensureUnrecordedWeek(leagueId, rawWeeks, leagueDayIndex, game.created_at)
     : rawWeeks
 
   // claim.playerName is only set for an approved claim.

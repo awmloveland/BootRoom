@@ -55,7 +55,7 @@ export default async function LeagueResultsPage({ params }: Props) {
   // Lazily create an unrecorded row if the most recent expected game day passed
   // with no row. Shared with the Overview tab.
   const weeks: Week[] = tier !== 'public'
-    ? await ensureUnrecordedWeek(leagueId, rawWeeks, leagueDayIndex)
+    ? await ensureUnrecordedWeek(leagueId, rawWeeks, leagueDayIndex, game.created_at)
     : rawWeeks
 
   // The next match card's starting week. Once a game has kicked off the week
