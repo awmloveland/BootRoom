@@ -14,6 +14,8 @@ interface Props {
   leagueId: string
   slug: string
   roster: string[]
+  /** Played weeks already in the league, shown but not re-imported. */
+  imported: DraftGame[]
   latestMatchDay: string
   stepOffset: number
 }
@@ -24,7 +26,7 @@ const TICKS: [number, string][] = [[0, '0'], [3, '3 · useful'], [6, '6 · good'
 // Where each tick sits under the ten-segment bar, as a share of its width.
 const TICK_POSITION: Record<number, string> = { 0: 'left-0', 3: 'left-[30%] -translate-x-1/2', 6: 'left-[60%] -translate-x-1/2', 10: 'right-0' }
 
-export function ResultsStep({ leagueId, slug, roster: initialRoster, latestMatchDay, stepOffset }: Props) {
+export function ResultsStep({ leagueId, slug, roster: initialRoster, imported, latestMatchDay, stepOffset }: Props) {
   const router = useRouter()
   const [roster, setRoster] = useState(initialRoster)
   const [games, setGames] = useState<DraftGame[]>([])
@@ -32,14 +34,16 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, latestMatch
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const sorted = [...games].sort((a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime())
-  const { percent, line, tone } = lineupConfidence(games.length)
+  // Everything on the list: what the league already holds plus this visit's drafts.
+  const all = [...imported, ...games]
+  const sorted = [...all].sort((a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime())
+  const importedIds = new Set(imported.map((g) => g.id))
+  const { percent, line, tone } = lineupConfidence(all.length)
 
   function newDraft() {
-    const oldest = sorted[sorted.length - 1]
     setOpen({
       editing: false,
-      draft: { id: crypto.randomUUID(), date: nextDraftDate(games.map((g) => g.date), latestMatchDay), teamA: oldest?.teamA ?? [], teamB: oldest?.teamB ?? [], winner: null, goalDifference: 0 },
+      draft: { id: crypto.randomUUID(), date: nextDraftDate(all.map((g) => g.date), latestMatchDay), teamA: [], teamB: [], winner: null, goalDifference: 0 },
     })
   }
 
@@ -73,7 +77,8 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, latestMatch
     router.push(`/new/${slug}/live`)
   }
 
-  const count = games.length
+  const count = all.length
+  const pending = games.length
   return (
     <StepShell
       eyebrow={<StepEyebrow n={7} offset={stepOffset} />}
@@ -81,9 +86,13 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, latestMatch
       sub="Every game you add makes your first lineups fairer. After five games a player's rating stands on results, not your gut call. Four to six games is the sweet spot."
       action={
         <>
-          <button type="button" className={PRIMARY_BUTTON} disabled={count === 0 || importing} onClick={importAll}>
-            {importing ? 'Importing…' : count === 0 ? 'Import games and finish' : `Import ${count} ${count === 1 ? 'game' : 'games'} and finish`}
-          </button>
+          {pending === 0 && imported.length > 0 ? (
+            <button type="button" className={PRIMARY_BUTTON} onClick={() => router.push(`/new/${slug}/live`)}>Finish</button>
+          ) : (
+            <button type="button" className={PRIMARY_BUTTON} disabled={pending === 0 || importing} onClick={importAll}>
+              {importing ? 'Importing…' : pending === 0 ? 'Import games and finish' : `Import ${pending} ${pending === 1 ? 'game' : 'games'} and finish`}
+            </button>
+          )}
           {error && <p role="alert" className="mt-3 text-center font-inter-body text-[13px] text-[#e2686f]">{error}</p>}
         </>
       }
@@ -113,10 +122,18 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, latestMatch
         <ul className="mt-3 flex flex-col gap-2">
           {sorted.map((g, i) => (
             <li key={g.id}>
-              <button type="button" onClick={() => setOpen({ draft: g, editing: true })} className="flex w-full items-center justify-between gap-3 rounded-xl border border-[#1b2c46] bg-[#0a1421] px-[18px] py-3 text-left transition-colors hover:border-[#2c4a72]">
+              {/* Imported games are the Results tab's to edit; only this visit's drafts open the modal. */}
+              <button
+                type="button"
+                disabled={importedIds.has(g.id)}
+                onClick={() => setOpen({ draft: g, editing: true })}
+                className="flex w-full items-center justify-between gap-3 rounded-xl border border-[#1b2c46] bg-[#0a1421] px-[18px] py-3 text-left transition-colors enabled:hover:border-[#2c4a72] disabled:cursor-default"
+              >
                 <span>
                   <span className="block text-sm font-bold text-[#f4f9ff]">Game {sorted.length - i}</span>
-                  <span className="mt-0.5 block font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">{parseInt(g.date, 10)} {g.date.slice(3)} · {sidesFormat(g.teamA.length, g.teamB.length)}</span>
+                  <span className="mt-0.5 block font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">
+                    {parseInt(g.date, 10)} {g.date.slice(3)} · {sidesFormat(g.teamA.length, g.teamB.length)}{importedIds.has(g.id) && ' · imported'}
+                  </span>
                 </span>
                 <ResultChip winner={g.winner} goalDifference={g.goalDifference} />
               </button>
@@ -129,7 +146,7 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, latestMatch
         <Plus className="size-4" />
         {count === 0 ? 'Add a game' : 'Add another game'}
       </button>
-      <p className="mt-3 text-center font-inter-body text-[12.5px] text-[#6f88a8]">Each new game starts a week earlier with the last lineups in place, so you only move who changed.</p>
+      <p className="mt-3 text-center font-inter-body text-[12.5px] text-[#6f88a8]">Each new game starts a week before the earliest one on the list.</p>
 
       {open && (
         <ImportGameModal
@@ -140,7 +157,7 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, latestMatch
           editing={open.editing}
           roster={roster}
           latestMatchDay={latestMatchDay}
-          takenDates={games.filter((g) => g.id !== open.draft.id).map((g) => g.date)}
+          takenDates={all.filter((g) => g.id !== open.draft.id).map((g) => g.date)}
           onRosterAdd={(name) => setRoster((r) => [...r, name].sort())}
           onSave={saveDraft}
           onDelete={() => { setGames((gs) => gs.filter((g) => g.id !== open.draft.id)); setOpen(null) }}

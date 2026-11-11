@@ -17,9 +17,11 @@ on Live. Every imported game seeds the first line-ups. Branch
    week-by-week date stepper and a Save / Delete footer. No pitch drawing, no
    goalkeeper glove on chips. "+ Add player" opens the existing
    `AddRosterPlayerModal`, which writes the player immediately as Settings does.
-2. **Games stay in client state until "Import N games and finish"**, which
-   sends them all to `POST /api/league/[id]/weeks/import` → `import_weeks`.
-   "Skip for now" goes to Live with nothing written.
+2. **Drafts stay in client state until "Import N games and finish"**, which
+   sends them to `POST /api/league/[id]/weeks/import` → `import_weeks`.
+   Played weeks the league already holds are listed and counted but not
+   re-imported or editable here; with no new drafts the primary reads
+   "Finish". "Skip for now" goes to Live with nothing written.
 3. **Fees cut off at the league's creation, no new column.** The Admin money
    page leaves out weeks dated before `games.created_at`. That page is the one
    entry point to fee computation.
@@ -56,8 +58,7 @@ call. Four to six games is the sweet spot."
 - **Saved games**, newest first: "Game n", `8 Oct 2026 · 4v3` (or `5-a-side`),
   the `ResultChip`. Tapping opens the modal in edit mode.
 - Dashed "Add a game" / "Add another game" button, footnote "Each new game
-  starts a week earlier with the last lineups in place, so you only move who
-  changed."
+  starts a week before the earliest one on the list."
 - Primary "Import N games and finish" (disabled "Import games and finish" at
   0). Secondary "Skip for now" → `/new/[slug]/live`. While importing the
   button reads "Importing…"; a failure shows the API message under it.
@@ -68,8 +69,8 @@ Dialog like `EditWeekModal` (same frame, header "Game n" when editing a saved ga
 
 - **Date**: `‹ 8 Oct 2026 / Thursday ›` stepping one week on the league's match
   day. Forward is disabled past the most recent match day on or before today.
-  A fresh draft starts one week before the oldest saved game, or at the most
-  recent match day if none, with the oldest saved game's line-ups copied in.
+  A fresh draft starts one week before the earliest game on the list, or at
+  the most recent match day if none, with empty line-ups.
 - **Lineups**: `LineupEditor` with the roster plus a dashed "+ Add player" pill
   under it that opens `AddRosterPlayerModal`; a new player joins the roster
   list and the smaller side.
