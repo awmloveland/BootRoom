@@ -122,8 +122,8 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 -- 1. auth.uid() required; trimmed name and slug non-empty
 -- 2. INSERT games (name, slug, location, day, kickoff_time, bio, created_by)
 -- 3. INSERT game_members (game_id, user_id, 'creator')
--- 4. v_player := trim(coalesce(first_name,'') || ' ' || coalesce(last_name,''))
---    from profiles, falling back to display_name
+-- 4. v_player := first_name from profiles (migration 20261111000001; was "First Last"),
+--    falling back to the display name's first word, then the email's local part
 -- 5. INSERT player_attributes (game_id, name, rating 2, mentality 'balanced', goalkeeper false)
 -- 6. INSERT player_claims (game_id, user_id, player_name, status 'approved', reviewed_by = auth.uid())
 -- 7. RETURN game id
