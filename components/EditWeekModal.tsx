@@ -74,7 +74,7 @@ function PlayerChip({
 
 type ChipSource = 'teamA' | 'teamB' | 'roster'
 
-function LineupEditor({
+export function LineupEditor({
   teamA,
   teamB,
   allPlayers,
@@ -83,7 +83,7 @@ function LineupEditor({
 }: {
   teamA: string[]
   teamB: string[]
-  allPlayers: Player[]
+  allPlayers: { name: string }[]
   onChangeTeamA: (names: string[]) => void
   onChangeTeamB: (names: string[]) => void
 }) {
@@ -228,6 +228,79 @@ function LineupEditor({
         </div>
       </div>
     </div>
+  )
+}
+
+/** Team A / Draw / Team B with the margin stepper. Shared with the league setup import modal. */
+export function ResultPicker({
+  winner,
+  margin,
+  onWinner,
+  onMargin,
+}: {
+  winner: Winner
+  margin: number
+  onWinner: (w: Winner) => void
+  onMargin: (m: number) => void
+}) {
+  return (
+    <>
+      {/* Result */}
+      <div>
+        <label className="block font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-1.5">
+          Result
+        </label>
+        <div className="grid grid-cols-3 gap-1.5">
+          {RESULT_OPTIONS.map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => onWinner(opt)}
+              className={cn(
+                'h-9 rounded border text-xs font-bold transition-colors',
+                winner === opt
+                  ? opt === 'teamA'
+                    ? 'bg-[rgba(8,47,73,.6)] border-[#38bdf8]/50 text-[#7dd3fc]'
+                    : opt === 'teamB'
+                    ? 'bg-[rgba(46,16,101,.5)] border-[#a78bfa]/50 text-[#c4b5fd]'
+                    : 'bg-[#1b2c46] border-[#2c4a72] text-[#cfe0f4]'
+                  : 'bg-[#0c1728] border-[#223a5c] text-[#8ba4c4] hover:border-[#38bdf8]'
+              )}
+            >
+              {opt === 'teamA' ? 'Team A' : opt === 'teamB' ? 'Team B' : 'Draw'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Margin */}
+      {winner !== 'draw' && (
+        <div>
+          <label className="block font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-1.5">
+            Margin of victory
+          </label>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => onMargin(Math.max(1, margin - 1))}
+              className="h-8 w-8 rounded border border-[#223a5c] bg-[#0c1728] text-[#8ba4c4] text-base leading-none hover:text-white transition-colors"
+            >
+              −
+            </button>
+            <span className="w-7 text-center font-plex text-sm font-bold text-[#f4f9ff]">
+              {margin}
+            </span>
+            <button
+              type="button"
+              onClick={() => onMargin(Math.min(20, margin + 1))}
+              className="h-8 w-8 rounded border border-[#223a5c] bg-[#0c1728] text-[#8ba4c4] text-base leading-none hover:text-white transition-colors"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
@@ -386,61 +459,7 @@ export function EditWeekModal({
           {/* Played-only fields */}
           {status === 'played' && (
             <>
-              {/* Result */}
-              <div>
-                <label className="block font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-1.5">
-                  Result
-                </label>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {RESULT_OPTIONS.map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setWinner(opt)}
-                      className={cn(
-                        'h-9 rounded border text-xs font-bold transition-colors',
-                        winner === opt
-                          ? opt === 'teamA'
-                            ? 'bg-[rgba(8,47,73,.6)] border-[#38bdf8]/50 text-[#7dd3fc]'
-                            : opt === 'teamB'
-                            ? 'bg-[rgba(46,16,101,.5)] border-[#a78bfa]/50 text-[#c4b5fd]'
-                            : 'bg-[#1b2c46] border-[#2c4a72] text-[#cfe0f4]'
-                          : 'bg-[#0c1728] border-[#223a5c] text-[#8ba4c4] hover:border-[#38bdf8]'
-                      )}
-                    >
-                      {opt === 'teamA' ? 'Team A' : opt === 'teamB' ? 'Team B' : 'Draw'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Margin */}
-              {winner !== 'draw' && (
-                <div>
-                  <label className="block font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8] mb-1.5">
-                    Margin of victory
-                  </label>
-                  <div className="flex items-center gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setMargin((m) => Math.max(1, m - 1))}
-                      className="h-8 w-8 rounded border border-[#223a5c] bg-[#0c1728] text-[#8ba4c4] text-base leading-none hover:text-white transition-colors"
-                    >
-                      −
-                    </button>
-                    <span className="w-7 text-center font-plex text-sm font-bold text-[#f4f9ff]">
-                      {margin}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setMargin((m) => Math.min(20, m + 1))}
-                      className="h-8 w-8 rounded border border-[#223a5c] bg-[#0c1728] text-[#8ba4c4] text-base leading-none hover:text-white transition-colors"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              )}
+              <ResultPicker winner={winner} margin={margin} onWinner={setWinner} onMargin={setMargin} />
 
               {/* Lineups */}
               <div>
