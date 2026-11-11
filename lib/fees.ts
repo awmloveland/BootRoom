@@ -2,7 +2,7 @@
 // Pitch fees for the admin-only Admin tab: who owes what over a date range.
 // Pure functions only, shared by the Admin page, its client view (which
 // recomputes after every optimistic tick) and the fee API routes.
-import { parseWeekDate } from '@/lib/utils'
+import { parseWeekDate, startOfLeagueDay } from '@/lib/utils'
 import type {
   AdminMoneyData,
   FeeEntry,
@@ -345,4 +345,11 @@ export function buildShareText(data: AdminMoneyData, leagueName: string): string
 
   lines.push('', `Total outstanding · ${formatMoney(data.totals.owed)}`, perGame)
   return lines.join('\n')
+}
+
+/** Weeks on or after the day the league was created. Imported history is not fee debt. */
+export function weeksSinceCreation(weeks: Week[], createdAt: string | null | undefined): Week[] {
+  if (!createdAt) return weeks
+  const start = startOfLeagueDay(createdAt)
+  return weeks.filter((w) => parseWeekDate(w.date) >= start)
 }

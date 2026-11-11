@@ -69,8 +69,8 @@ describe('AccountStep', () => {
 describe('StepEyebrow', () => {
   it('counts the Account step for visitors who came through it', () => {
     const { rerender } = render(<StepEyebrow n={2} />)
-    expect(screen.getByText('Step 2/6')).toBeInTheDocument()
+    expect(screen.getByText('Step 2/7')).toBeInTheDocument()
     rerender(<StepEyebrow n={2} offset={1} />)
-    expect(screen.getByText('Step 3/7')).toBeInTheDocument()
+    expect(screen.getByText('Step 3/8')).toBeInTheDocument()
   })
 })

@@ -287,16 +287,26 @@ describe('ensureUnrecordedWeek', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('does nothing for a league with no weeks yet', async () => {
-    // A league created on Friday 10 Apr with Thursday as its day must not
-    // start life with an unrecorded week for Thursday 9 Apr.
+  it('does nothing for a game day before the league was created', async () => {
+    // Created Friday 10 Apr 2026 at 09:00 London; Thursday 9 Apr is before that day.
     jest.useFakeTimers().setSystemTime(new Date(2026, 3, 10, 12))
     const rpc = jest.fn()
     ;(createServiceClient as jest.Mock).mockReturnValue({ rpc })
     const weeks: Week[] = []
 
-    await expect(ensureUnrecordedWeek(LEAGUE, weeks, 4)).resolves.toBe(weeks)
+    await expect(ensureUnrecordedWeek(LEAGUE, weeks, 4, '2026-04-10T08:00:00.000Z')).resolves.toBe(weeks)
     expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('creates the row for a game day on or after the creation day', async () => {
+    // Created Thursday 9 Apr 2026 in the morning; that evening's game passed with no row.
+    jest.useFakeTimers().setSystemTime(new Date(2026, 3, 10, 12))
+    const rpc = jest.fn().mockResolvedValue({ data: 'new-id', error: null })
+    ;(createServiceClient as jest.Mock).mockReturnValue({ rpc })
+
+    const result = await ensureUnrecordedWeek(LEAGUE, [], 4, '2026-04-09T08:00:00.000Z')
+    expect(rpc).toHaveBeenCalledWith('create_unrecorded_week', expect.objectContaining({ p_date: '09 Apr 2026', p_week: 1 }))
+    expect(result).toHaveLength(1)
   })
 })
 

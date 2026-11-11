@@ -4,7 +4,7 @@ import { unstable_cache } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionUser, type SessionUser } from '@/lib/supabase/session'
 import { createServiceClient } from '@/lib/supabase/service'
-import { sortWeeks, seasonOfDate, getMostRecentExpectedGameDate, getNextWeekNumber, isPastDeadline } from '@/lib/utils'
+import { sortWeeks, seasonOfDate, getMostRecentExpectedGameDate, getNextWeekNumber, isPastDeadline, parseWeekDate, startOfLeagueDay } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
 import type { GameRole, LeagueFeature, NavSession, Player, Week, JoinRequestStatus, PendingJoinRequest, PendingRequestSummary, PlayerClaimStatus, LeagueMember, PlayerAttribute, PlayerClaim } from '@/lib/types'
 import { ratingToStrength } from '@/lib/strength'
@@ -13,7 +13,7 @@ import { LEAGUE_CACHE_SECONDS, leagueTag, leagueSlugTag } from '@/lib/leagueCach
 
 // ── Game ─────────────────────────────────────────────────────────────────────
 
-const GAME_COLUMNS = 'id, name, slug, location, day, kickoff_time, bio'
+const GAME_COLUMNS = 'id, name, slug, location, day, kickoff_time, bio, created_at'
 
 async function readGame(leagueId: string) {
   const { data } = await createServiceClient().from('games').select(GAME_COLUMNS).eq('id', leagueId).maybeSingle()
@@ -403,18 +403,21 @@ export const getWeeks = cache((leagueId: string): Promise<Week[]> =>
  * is no second fetch. Returns the same list when nothing needed creating, and a
  * fresh uncached read when another request created the row first.
  *
+ * Game days before `createdAt` (the league's creation day) are history, never
+ * missed games.
+ *
  * Not cached: it writes. Callers skip it for the public tier.
  */
 export async function ensureUnrecordedWeek(
   leagueId: string,
   weeks: Week[],
   leagueDayIndex?: number,
+  createdAt?: string | null,
 ): Promise<Week[]> {
-  // A brand-new league has nothing to be unrecorded against; without this the
-  // admin's first visit would stamp last week's match day as a missed game.
-  if (weeks.length === 0) return weeks
   const recentDate = getMostRecentExpectedGameDate(weeks, leagueDayIndex)
   if (!recentDate || !isPastDeadline(recentDate)) return weeks
+  // Game days before the league existed are history, imported or not, never missed games.
+  if (createdAt && parseWeekDate(recentDate) < startOfLeagueDay(createdAt)) return weeks
   if (weeks.some((w) => w.date === recentDate)) return weeks
 
   const season = seasonOfDate(recentDate)
