@@ -17,7 +17,7 @@ interface ImportGame {
 }
 
 const isNames = (v: unknown): v is string[] =>
-  Array.isArray(v) && v.length > 0 && v.every((n) => typeof n === 'string' && n.trim() !== '')
+  Array.isArray(v) && v.length > 0 && v.every((n) => typeof n === 'string' && n.trim() !== '') && new Set(v).size === v.length
 
 function parseGame(v: unknown): ImportGame | null {
   const g = v as Record<string, unknown>

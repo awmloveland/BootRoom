@@ -13,3 +13,11 @@ it('keeps everything when there is no creation date', () => {
   const weeks = [week('02 Apr 2026')]
   expect(weeksSinceCreation(weeks, null)).toBe(weeks)
 })
+
+it('reads the creation day on the league clock, not UTC', () => {
+  const weeks = [week('09 Apr 2026')]
+  // 00:30 BST on 9 Apr is still 8 Apr in UTC; the week is on the creation day.
+  expect(weeksSinceCreation(weeks, '2026-04-08T23:30:00.000Z')).toHaveLength(1)
+  // 00:30 BST on 10 Apr: created the day after the game.
+  expect(weeksSinceCreation(weeks, '2026-04-09T23:30:00.000Z')).toHaveLength(0)
+})

@@ -34,7 +34,7 @@ BEGIN
     EXCEPTION WHEN OTHERS THEN
       RAISE EXCEPTION 'invalid_date';
     END;
-    IF d IS NULL OR d > current_date OR to_char(d, 'DD Mon YYYY') <> (w->>'date') THEN
+    IF d IS NULL OR d > (now() AT TIME ZONE 'Europe/London')::date OR to_char(d, 'DD Mon YYYY') <> (w->>'date') THEN
       RAISE EXCEPTION 'invalid_date';
     END IF;
 
@@ -66,8 +66,9 @@ BEGIN
     VALUES (
       p_game_id,
       to_char(d, 'YYYY'),
-      -- Placeholder; renumbered below. Offset so it cannot collide meanwhile.
-      100000 + inserted,
+      -- Placeholder; renumbered below. Above the 100000 offset the renumber
+      -- pass adds to existing rows, so neither can collide with the other.
+      200000 + inserted,
       w->>'date',
       'played',
       CASE WHEN a = b THEN a || '-a-side' ELSE greatest(a, b) || 'v' || least(a, b) END,
@@ -88,8 +89,9 @@ BEGIN
     ON CONFLICT (game_id, name) DO NOTHING;
   END LOOP;
 
-  -- Renumber 1..n per season by date. Two passes so (game_id, season, week)
-  -- stays unique while rows move.
+  -- Renumber 1..n per season by date, scheduled and unrecorded rows included.
+  -- Two passes so (game_id, season, week) stays unique while rows move; dates
+  -- are unique per league after the check above, so created_at is only a tiebreak.
   UPDATE weeks SET week = week + 100000 WHERE game_id = p_game_id AND week < 100000;
   UPDATE weeks x
      SET week = r.rn

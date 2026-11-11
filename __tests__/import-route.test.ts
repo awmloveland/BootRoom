@@ -42,6 +42,7 @@ describe('POST /api/league/[id]/weeks/import', () => {
     ['a bad date', { games: [{ ...GAME, date: '2026-10-08' }] }],
     ['an empty side', { games: [{ ...GAME, teamB: [] }] }],
     ['a blank name', { games: [{ ...GAME, teamA: ['Alice', ' '] }] }],
+    ['a name twice on one side', { games: [{ ...GAME, teamA: ['Alice', 'Alice'] }] }],
     ['an unknown winner', { games: [{ ...GAME, winner: 'A' }] }],
     ['a fractional margin', { games: [{ ...GAME, goalDifference: 1.5 }] }],
   ])('returns 400 for %s', async (_label, body) => {
