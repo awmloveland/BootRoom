@@ -145,11 +145,12 @@ export function AccountStep() {
           </>
         }
       >
-        <div className="flex flex-col gap-3">
+        {/* Keyed by stage so switching modes remounts the fields and autoFocus lands on the email. */}
+        <div key={stage} className="flex flex-col gap-3">
           {!signin && (
             <div className="grid gap-3 sm:grid-cols-2">
-              <input aria-label="First name" className={FIELD} placeholder="First name" autoComplete="given-name" value={first} onChange={(e) => setFirst(e.target.value)} autoFocus />
-              <input aria-label="Last name" className={FIELD} placeholder="Last name" autoComplete="family-name" value={last} onChange={(e) => setLast(e.target.value)} />
+              <input aria-label="First name" className={FIELD} placeholder="First name" maxLength={40} autoComplete="given-name" value={first} onChange={(e) => setFirst(e.target.value)} autoFocus />
+              <input aria-label="Last name" className={FIELD} placeholder="Last name" maxLength={40} autoComplete="family-name" value={last} onChange={(e) => setLast(e.target.value)} />
             </div>
           )}
           <input aria-label="Email" type="email" className={FIELD} placeholder="Email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus={signin} />

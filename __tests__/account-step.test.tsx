@@ -3,7 +3,8 @@
  */
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { AccountStep } from '@/components/new-league/AccountStep'
-import { sendSignUpCode } from '@/lib/supabase/otp'
+import { sendSignInCode, sendSignUpCode } from '@/lib/supabase/otp'
+import { StepEyebrow } from '@/components/new-league/StepShell'
 
 jest.mock('@/lib/supabase/otp', () => ({
   NO_ACCOUNT: /no user/i,
@@ -52,5 +53,24 @@ describe('AccountStep', () => {
     expect(sendSignUpCode).toHaveBeenCalledWith('Ada', 'Lovelace', 'ada@example.com')
     expect(screen.getByText('ada@example.com')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
+  })
+
+  it('explains a sign-in for an unknown email and re-enables Send code', async () => {
+    ;(sendSignInCode as jest.Mock).mockResolvedValue('No user found')
+    render(<AccountStep />)
+    fireEvent.click(screen.getByRole('button', { name: 'I already have an account' }))
+    fill('Email', 'new@example.com')
+    fireEvent.click(screen.getByRole('button', { name: 'Send code' }))
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('No account found for this email. Create one instead.'))
+    expect(screen.getByRole('button', { name: 'Send code' })).toBeEnabled()
+  })
+})
+
+describe('StepEyebrow', () => {
+  it('counts the Account step for visitors who came through it', () => {
+    const { rerender } = render(<StepEyebrow n={2} />)
+    expect(screen.getByText('Step 2/6')).toBeInTheDocument()
+    rerender(<StepEyebrow n={2} offset={1} />)
+    expect(screen.getByText('Step 3/7')).toBeInTheDocument()
   })
 })
