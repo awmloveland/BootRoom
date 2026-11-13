@@ -1,7 +1,7 @@
 // components/new-league/NameStep.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { cn, generateSlug } from '@/lib/utils'
 import { FIELD, PRIMARY_BUTTON, SECONDARY_LINK, StepEyebrow, StepShell } from './StepShell'
 import type { LeagueDraft } from './NewLeagueWizard'
@@ -15,26 +15,10 @@ interface Props {
 
 export function NameStep({ draft, onChange, onNext, stepOffset }: Props) {
   const [showBio, setShowBio] = useState(draft.bio !== '')
-  // The server's resolved address (adds -2 when the name is taken), keyed by
-  // the name it was asked for so a stale answer never shows for a newer name.
-  // The local slug stands in while it loads or if the request fails.
-  const [server, setServer] = useState<{ name: string; slug: string } | null>(null)
-  const slug = server?.name === draft.name ? server.slug : generateSlug(draft.name)
+  const base = generateSlug(draft.name)
   // The server rejects a name with no letters or digits, so stop it here, not two steps later.
-  const canContinue = slug !== ''
-
-  useEffect(() => {
-    const name = draft.name
-    if (!generateSlug(name)) return
-    const ctrl = new AbortController()
-    const timer = setTimeout(() => {
-      fetch(`/api/games/slug?name=${encodeURIComponent(name)}`, { signal: ctrl.signal })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => { if (typeof d?.slug === 'string') setServer({ name, slug: d.slug }) })
-        .catch(() => {})
-    }, 300)
-    return () => { clearTimeout(timer); ctrl.abort() }
-  }, [draft.name])
+  const canContinue = base !== ''
+  const slug = base && `${base}-${draft.code}`
 
   return (
     <StepShell

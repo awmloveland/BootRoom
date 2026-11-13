@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { slugCode } from '@/lib/utils'
 import { NameStep } from './NameStep'
 import { WhereStep } from './WhereStep'
 import { WhenStep } from './WhenStep'
@@ -18,9 +19,11 @@ export interface LeagueDraft {
   day: string
   /** 'HH:MM', as games.kickoff_time stores it. */
   time: string
+  /** The address suffix, picked once so the Name step's preview is the real address. */
+  code: string
 }
 
-const EMPTY: LeagueDraft = { name: '', bio: '', location: '', day: 'Thursday', time: '20:00' }
+const EMPTY: LeagueDraft = { name: '', bio: '', location: '', day: 'Thursday', time: '20:00', code: '' }
 
 function stepFromPath(pathname: string): Step {
   const last = pathname.split('/').pop() ?? ''
@@ -31,7 +34,7 @@ function postLeague(d: LeagueDraft) {
   return fetch('/api/games', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: d.name, bio: d.bio, location: d.location, day: d.day, kickoff_time: d.time }),
+    body: JSON.stringify({ name: d.name, bio: d.bio, location: d.location, day: d.day, kickoff_time: d.time, code: d.code }),
   })
 }
 
@@ -59,7 +62,7 @@ export function NewLeagueWizard({ stepOffset }: Props) {
   }, [pathname, draft.name, router])
 
   const go = (next: Step) => window.history.pushState(null, '', `/new/${next}`)
-  const update = (patch: Partial<LeagueDraft>) => setDraft((d) => ({ ...d, ...patch }))
+  const update = (patch: Partial<LeagueDraft>) => setDraft((d) => ({ ...d, ...patch, code: d.code || slugCode() }))
 
   async function create() {
     setSubmitting(true)
@@ -67,8 +70,6 @@ export function NewLeagueWizard({ stepOffset }: Props) {
     let res: Response
     try {
       res = await postLeague(draft)
-      // The server re-resolves the slug, so one retry clears a race on the name.
-      if (res.status === 409) res = await postLeague(draft)
     } catch {
       setError('Could not create the league. Check your connection and try again.')
       setSubmitting(false)
