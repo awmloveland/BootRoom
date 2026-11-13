@@ -103,8 +103,8 @@ Keys, exported from the same file:
     `lib/playerUtils.ts` returns rows whose `id` is a saved name and whose
     trimmed `name` now differs.
 - `save()` then runs, in order: each removal through
-  `DELETE /api/league/[id]/players/[name]` (skipped when the same name is
-  back on the list), each rename through
+  `DELETE /api/league/[id]/players/[name]` (skipped when the same name has
+  been typed back in as a new row), each rename through
   `PATCH /api/league/[id]/players/[name]/rename`, then the existing
   `PUT …/roster`. Deletes go first so a rename can take a removed name.
 - **Retry safety.** After a rename succeeds, that row's `id` is set to the new

@@ -83,14 +83,16 @@ export function RosterWizard({ leagueId, slug, initial, stepOffset }: Props) {
       router.refresh()
     }
     const api = `/api/league/${leagueId}`
-    const names = named.map((p) => p.name.trim())
+    const renames = rosterRenames(saved, named)
+    // A removed name typed back in as a new row keeps its saved player. One taken by a rename does not.
+    const retyped = named.filter((p) => !renames.includes(p)).map((p) => p.name.trim())
     try {
-      // Deletes first, so a rename can take a removed player's name. A name back on the list is kept.
-      for (const name of roster.removed.filter((n) => saved.includes(n) && !names.includes(n))) {
+      // Deletes first, so a rename can take a removed player's name.
+      for (const name of roster.removed.filter((n) => saved.includes(n) && !retyped.includes(n))) {
         const res = await fetch(`${api}/players/${encodeURIComponent(name)}`, { method: 'DELETE' })
         if (!res.ok && res.status !== 404) return fail()
       }
-      for (const p of rosterRenames(saved, named)) {
+      for (const p of renames) {
         const name = p.name.trim()
         const res = await fetch(`${api}/players/${encodeURIComponent(p.id)}/rename`, {
           method: 'PATCH',

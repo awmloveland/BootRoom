@@ -62,6 +62,22 @@ describe('RosterWizard', () => {
     expect(sessionStorage.getItem(rosterKey('hackney'))).toBeNull()
   })
 
+  it('deletes a removed player whose name a rename takes, and keeps one typed back in', async () => {
+    sessionStorage.setItem(
+      rosterKey('hackney'),
+      JSON.stringify({ players: [INITIAL[0], { ...INITIAL[1], name: 'Carl' }, player('Dan', { id: 'new-1' })], removed: ['Carl', 'Dan'] }),
+    )
+    render(<RosterWizard leagueId="g1" slug="hackney" initial={[...INITIAL, player('Dan')]} stepOffset={0} />)
+    await screen.findByText('Dan')
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/new/hackney/results'))
+    expect(fetchMock.mock.calls.map(([url, init]) => `${init.method} ${url}`)).toEqual([
+      'DELETE /api/league/g1/players/Carl',
+      'PATCH /api/league/g1/players/Bob/rename',
+      'PUT /api/league/g1/roster',
+    ])
+  })
+
   it('treats a delete that finds nobody as done', async () => {
     sessionStorage.setItem(rosterKey('hackney'), JSON.stringify({ players: [INITIAL[0], INITIAL[1]], removed: ['Carl'] }))
     fetchMock.mockImplementation((_url: string, init: { method: string }) => respond(init.method === 'DELETE' ? 404 : 200))
