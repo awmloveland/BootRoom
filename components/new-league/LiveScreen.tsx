@@ -8,6 +8,7 @@ import { dayNameToIndex, formatLongFixtureDate, getPlayedWeeks, nextOccurrenceAf
 import { getNextWeekNumber, leagueLandingPath, seasonOfDate, VIEWPORT_COOKIE } from '@/lib/utils'
 import { OUTLINE_BUTTON, StepShell } from './StepShell'
 import { LiveShareCard } from './LiveShareCard'
+import { Confetti } from './Confetti'
 
 /** The screen after creation. Admins only; everyone else goes to the league itself. */
 export async function LiveScreen({ slug }: { slug: string }) {
@@ -42,7 +43,9 @@ export async function LiveScreen({ slug }: { slug: string }) {
       title={<>{game.name}<br /><span className="text-[#bef264]">is live.</span></>}
       sub={nextDate ? `${played > 0 ? `${played} ${played === 1 ? 'game' : 'games'} imported. ` : ''}Week ${getNextWeekNumber(weeks, seasonOfDate(nextDate))} is in the diary for ${formatLongFixtureDate(nextDate)}.` : 'Set a match day in Settings to put week 1 in the diary.'}
       action={<Link href={landing} className={OUTLINE_BUTTON}>Go to {game.name}</Link>}
+      rise
     >
+      <Confetti />
       <LiveShareCard leagueName={game.name} url={`https://craft-football.com/${slug}`} names={names} day={game.day} />
     </StepShell>
   )
