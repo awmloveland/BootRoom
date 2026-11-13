@@ -91,6 +91,8 @@ export function RosterWizard({ leagueId, slug, initial, stepOffset }: Props) {
       for (const name of roster.removed.filter((n) => saved.includes(n) && !retyped.includes(n))) {
         const res = await fetch(`${api}/players/${encodeURIComponent(name)}`, { method: 'DELETE' })
         if (!res.ok && res.status !== 404) return fail()
+        // Done: a retry must not delete whoever holds this name next.
+        setRoster((r) => ({ ...r, removed: r.removed.filter((n) => n !== name) }))
       }
       for (const p of renames) {
         const name = p.name.trim()
@@ -128,7 +130,7 @@ export function RosterWizard({ leagueId, slug, initial, stepOffset }: Props) {
     return <MentalityStep stepOffset={stepOffset} players={named} onChange={(id, mentality) => patch(id, { mentality })} onNext={() => go('strength')} />
   }
   if (step === 'strength') {
-    return <StrengthStep stepOffset={stepOffset} players={named} onChange={(id, strength) => patch(id, { strength })} onSubmit={save} submitting={submitting} error={error} />
+    return <StrengthStep stepOffset={stepOffset} players={named} onChange={(id, strength) => { if (!submitting) patch(id, { strength }) }} onSubmit={save} submitting={submitting} error={error} />
   }
   return (
     <PlayersStep

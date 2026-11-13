@@ -62,7 +62,7 @@ Keys, exported from the same file:
 | Key | Holds | Cleared when |
 |---|---|---|
 | `new-league:draft` | `LeagueDraft` | the Live screen mounts |
-| `new-league:roster:{slug}` | `RosterPlayer[]` | the roster save succeeds |
+| `new-league:roster:{slug}` | `{ players, removed }` | the roster save succeeds |
 | `new-league:results:{slug}` | `DraftGame[]` | the import succeeds |
 
 ### Pre-creation wizard (`NewLeagueWizard`, `NameStep`, `WhenStep`)
@@ -122,6 +122,9 @@ Keys, exported from the same file:
 - On a successful import: `clear()`, then the existing refresh and push.
   "Skip for now" leaves the stored drafts alone, so Back from Live shows them.
 - Edits inside an open game modal are not mirrored; only saved drafts are.
+- A stored draft can outlive a removal or rename made on the roster steps.
+  Import is held back, with a message naming the game, while any draft lists
+  a player who is not on the roster.
 
 ### Out of scope
 

@@ -78,6 +78,33 @@ describe('RosterWizard', () => {
     ])
   })
 
+  it('records a removal made on Who plays', async () => {
+    pathname = '/new/hackney/players'
+    mount()
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove Carl' }))
+    await waitFor(() => expect(JSON.parse(sessionStorage.getItem(rosterKey('hackney'))!).removed).toEqual(['Carl']))
+  })
+
+  it('forgets a delete and a rename that landed, so a retry cannot repeat them', async () => {
+    sessionStorage.setItem(
+      rosterKey('hackney'),
+      JSON.stringify({ players: [INITIAL[0], { ...INITIAL[2], name: 'Bob' }], removed: ['Bob'] }),
+    )
+    fetchMock.mockImplementation((_url: string, init: { method: string }) => respond(init.method === 'PUT' ? 500 : 200))
+    mount()
+    await screen.findByText('Bob')
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not save the roster. Try again.')
+    expect(fetchMock.mock.calls.map(([url, init]) => `${init.method} ${url}`)).toEqual([
+      'DELETE /api/league/g1/players/Bob',
+      'PATCH /api/league/g1/players/Carl/rename',
+      'PUT /api/league/g1/roster',
+    ])
+    const stored = JSON.parse(sessionStorage.getItem(rosterKey('hackney'))!)
+    expect(stored.removed).toEqual([])
+    expect(stored.players.map((p: RosterPlayer) => p.id)).toEqual(['Will L', 'Bob'])
+  })
+
   it('treats a delete that finds nobody as done', async () => {
     sessionStorage.setItem(rosterKey('hackney'), JSON.stringify({ players: [INITIAL[0], INITIAL[1]], removed: ['Carl'] }))
     fetchMock.mockImplementation((_url: string, init: { method: string }) => respond(init.method === 'DELETE' ? 404 : 200))
