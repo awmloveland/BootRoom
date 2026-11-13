@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { LoginLink } from '@/components/landing/LoginLink'
 
@@ -156,12 +157,12 @@ export function Hero() {
             auto-picked teams.
           </p>
           <div className="flex flex-col md:flex-row items-stretch gap-3.5 mt-[30px]">
-            <a
-              href="#waitlist"
+            <Link
+              href="/new"
               className="inline-flex items-center justify-center w-full md:w-auto box-border h-[52px] px-[26px] bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] rounded text-[15px] font-bold transition-colors"
             >
-              Register your interest
-            </a>
+              Start your league
+            </Link>
             <LoginLink className="inline-flex items-center justify-center w-full md:w-auto box-border h-[52px] px-[22px] border border-[#223a5c] hover:border-[#38bdf8] rounded text-[#cfe0f4] hover:text-white text-[15px] font-semibold transition-colors cursor-pointer">
               Log in
             </LoginLink>
