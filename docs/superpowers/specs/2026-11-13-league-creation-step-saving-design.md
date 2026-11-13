@@ -10,7 +10,8 @@ A refresh or the Back button in between loses work, and Back from Who plays
 restarts the flow and creates a second league. This change keeps answers in
 the browser tab as they are typed, and makes going back edit the league that
 already exists. Branch `awmloveland/league-creation-step-saving` stacks on
-slice 5 (PR #198). No migration, no new API route.
+slice 5 (PR #198) and lands after the address change on the same branch
+(`2026-11-13-league-address-code-design.md`). No migration, no new API route.
 
 ## Problems being fixed
 
@@ -42,18 +43,21 @@ slice 5 (PR #198). No migration, no new API route.
 `components/new-league/useSessionState.ts`:
 
 ```ts
-function useSessionState<T>(key: string, initial: T): [T, Dispatch<SetStateAction<T>>, { loaded: boolean; clear: () => void }]
+function useSessionState<T>(key: string, initial: T | (() => T)): [T, Dispatch<SetStateAction<T>>, { loaded: boolean; clear: () => void }]
 ```
 
 - Renders `initial` on the server and on first client render, so hydration
   matches. An effect then reads `sessionStorage[key]`; a stored value replaces
   `initial`, and `loaded` turns true either way.
-- After `loaded`, every change is written back as JSON.
+- Only changes made through the setter are written back, as JSON. A page that
+  is merely visited stores nothing, so it cannot shadow newer server data.
 - `clear()` removes the key. It does not reset the in-memory value.
 - Storage that throws (private mode, quota) or holds unparseable JSON is
   ignored: the hook behaves as plain `useState`.
+- A step other than the first of its wizard renders nothing until `loaded`,
+  so a refresh does not flash the wrong step.
 
-Keys, exported from `StepShell.tsx` beside `NEW_VISITOR_COOKIE`:
+Keys, exported from the same file:
 
 | Key | Holds | Cleared when |
 |---|---|---|
@@ -73,31 +77,36 @@ Keys, exported from `StepShell.tsx` beside `NEW_VISITOR_COOKIE`:
   - When's button reads **Continue**. It sends the five fields to the existing
     `PATCH /api/league/[id]/details`, then routes to
     `/new/{created.slug}/players`. It never posts to `/api/games`.
-  - Name shows `created.slug` as the address and skips the slug lookup, which
-    would otherwise report the league's own address as taken. The sub copy
-    already says the link stays put on rename.
+  - Name shows `created.slug` as the address. The sub copy already says the
+    link stays put on rename.
   - A 403 or 404 from the PATCH (league deleted, or a different user in the
     same tab) drops `created` and the button returns to **Create league**.
-- A small client component on the Live screen clears `new-league:draft` on
-  mount, so the next visit to `/new` starts empty.
+- `LiveShareCard` (already a client component on the Live screen) clears
+  `new-league:draft` on mount, so the next visit to `/new` starts empty.
 - Known limit: abandoning a created league mid-flow and pressing Create a
   league again in the same tab resumes that league. Reaching Live, or a new
   tab, starts fresh.
 
 ### Roster steps (`RosterWizard`)
 
-- `players` moves to `useSessionState('new-league:roster:{slug}', [...initial, blank])`.
-  A stored list wins over the server's `initial`. The "fewer than two named
-  players → Who plays" guard waits for `loaded`.
+- The wizard's state becomes `{ players, removed }` in
+  `useSessionState('new-league:roster:{slug}', …)`. A stored value wins over
+  the server's `initial`. The "fewer than two named players → Who plays"
+  guard waits for `loaded`.
 - Saving applies edits to players the league already holds before the upsert.
-  Server-seeded rows use the saved name as their `id`, so a pure helper
-  `rosterChanges(saved: string[], current: RosterPlayer[])` in
-  `lib/playerUtils.ts` returns:
-  - `renames`: rows whose `id` is a saved name and whose `name` now differs.
-  - `removed`: saved names with no row carrying that `id`.
-- `save()` then runs, in order: each rename through
-  `PATCH /api/league/[id]/players/[name]/rename`, each removal through
-  `DELETE /api/league/[id]/players/[name]`, then the existing `PUT …/roster`.
+  Server-seeded rows use the saved name as their `id`.
+  - **Removals are recorded, not inferred.** Removing a server-seeded row adds
+    its name to `removed`. A saved player merely missing from a stale stored
+    list (for example one added from the Results step's game modal) is never
+    deleted.
+  - **Renames are derived.** A pure helper `rosterRenames(saved, players)` in
+    `lib/playerUtils.ts` returns rows whose `id` is a saved name and whose
+    trimmed `name` now differs.
+- `save()` then runs, in order: each removal through
+  `DELETE /api/league/[id]/players/[name]` (skipped when the same name is
+  back on the list), each rename through
+  `PATCH /api/league/[id]/players/[name]/rename`, then the existing
+  `PUT …/roster`. Deletes go first so a rename can take a removed name.
 - **Retry safety.** After a rename succeeds, that row's `id` is set to the new
   name. A delete that answers "not found" counts as done. If any call fails,
   the error shows, the stored list is kept, and `router.refresh()` reloads
@@ -130,9 +139,11 @@ shows the existing "Could not save the roster. Try again."
 
 - `useSessionState`: restores a stored value, writes on change, `clear`
   removes the key, corrupt JSON falls back to `initial`.
-- `rosterChanges`: rename, removal, both, untouched roster, new rows ignored.
+- `rosterRenames`: a renamed saved row, an untouched roster, new rows ignored.
 - `NewLeagueWizard` with a `created` draft in storage: Continue on When calls
   the details PATCH and never `POST /api/games`; a 404 drops `created`.
+- `RosterWizard` with a stored removal and rename: save sends the DELETE, then
+  the rename, then the PUT, in that order.
 - No browser tests. The manual pass: refresh on every step, Back from Who
   plays through to Name and forward again (one league only), remove and
   rename a saved player after coming back from Results, refresh Results with
