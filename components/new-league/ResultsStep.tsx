@@ -9,6 +9,7 @@ import { ResultChip } from '@/components/WinnerBadge'
 import { PRIMARY_BUTTON, SECONDARY_LINK, StepEyebrow, StepShell } from './StepShell'
 import { ImportGameModal, type DraftGame } from './ImportGameModal'
 import { lineupConfidence, nextDraftDate, sidesFormat } from './confidence'
+import { resultsKey, useSessionState } from './useSessionState'
 
 interface Props {
   leagueId: string
@@ -29,7 +30,8 @@ const TICK_POSITION: Record<number, string> = { 0: 'left-0', 3: 'left-[30%] -tra
 export function ResultsStep({ leagueId, slug, roster: initialRoster, imported, latestMatchDay, stepOffset }: Props) {
   const router = useRouter()
   const [roster, setRoster] = useState(initialRoster)
-  const [games, setGames] = useState<DraftGame[]>([])
+  // Unimported games survive a refresh; the stored list goes once they are imported.
+  const [games, setGames, { clear }] = useSessionState<DraftGame[]>(resultsKey(slug), [])
   const [open, setOpen] = useState<{ draft: DraftGame; editing: boolean } | null>(null)
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -41,6 +43,8 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, imported, l
   const { percent, line, tone } = lineupConfidence(all.length)
 
   function newDraft() {
+    // An import is under way or done: a draft saved now would be stored again after the list was cleared.
+    if (importing) return
     setOpen({
       editing: false,
       draft: { id: crypto.randomUUID(), date: nextDraftDate(all.map((g) => g.date), latestMatchDay), teamA: [], teamB: [], winner: null, goalDifference: 0 },
@@ -73,10 +77,15 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, imported, l
       setImporting(false)
       return
     }
+    clear()
     router.refresh()
     router.push(`/new/${slug}/live`)
   }
 
+  // A stored draft can outlive a removal or rename made on the roster steps. import_weeks adds a
+  // roster row for any unknown name, so such a game is held back until its line-up is fixed.
+  const stale = games.find((g) => [...g.teamA, ...g.teamB].some((n) => !roster.includes(n)))
+  const strangers = stale ? [...stale.teamA, ...stale.teamB].filter((n) => !roster.includes(n)) : []
   const count = all.length
   const pending = games.length
   return (
@@ -89,9 +98,14 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, imported, l
           {pending === 0 && imported.length > 0 ? (
             <button type="button" className={PRIMARY_BUTTON} onClick={() => router.push(`/new/${slug}/live`)}>Finish</button>
           ) : (
-            <button type="button" className={PRIMARY_BUTTON} disabled={pending === 0 || importing} onClick={importAll}>
+            <button type="button" className={PRIMARY_BUTTON} disabled={pending === 0 || importing || !!stale} onClick={importAll}>
               {importing ? 'Importing…' : pending === 0 ? 'Import games and finish' : `Import ${pending} ${pending === 1 ? 'game' : 'games'} and finish`}
             </button>
+          )}
+          {stale && (
+            <p role="alert" className="mt-3 text-center font-inter-body text-[13px] text-[#e2686f]">
+              {strangers.join(', ')} {strangers.length === 1 ? 'is' : 'are'} no longer on the roster. Open the game on {parseInt(stale.date, 10)} {stale.date.slice(3)} and fix the line-up.
+            </p>
           )}
           {error && <p role="alert" className="mt-3 text-center font-inter-body text-[13px] text-[#e2686f]">{error}</p>}
         </>
@@ -125,7 +139,7 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, imported, l
               {/* Imported games are the Results tab's to edit; only this visit's drafts open the modal. */}
               <button
                 type="button"
-                disabled={importedIds.has(g.id)}
+                disabled={importedIds.has(g.id) || importing}
                 onClick={() => setOpen({ draft: g, editing: true })}
                 className="flex w-full items-center justify-between gap-3 rounded-xl border border-[#1b2c46] bg-[#0a1421] px-[18px] py-3 text-left transition-colors enabled:hover:border-[#2c4a72] disabled:cursor-default"
               >

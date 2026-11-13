@@ -1,7 +1,7 @@
 // components/new-league/NameStep.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { cn, generateSlug } from '@/lib/utils'
 import { FIELD, PRIMARY_BUTTON, SECONDARY_LINK, StepEyebrow, StepShell } from './StepShell'
 import type { LeagueDraft } from './NewLeagueWizard'
@@ -14,27 +14,14 @@ interface Props {
 }
 
 export function NameStep({ draft, onChange, onNext, stepOffset }: Props) {
-  const [showBio, setShowBio] = useState(draft.bio !== '')
-  // The server's resolved address (adds -2 when the name is taken), keyed by
-  // the name it was asked for so a stale answer never shows for a newer name.
-  // The local slug stands in while it loads or if the request fails.
-  const [server, setServer] = useState<{ name: string; slug: string } | null>(null)
-  const slug = server?.name === draft.name ? server.slug : generateSlug(draft.name)
+  const [bioOpen, setBioOpen] = useState(false)
+  // Derived, not initial state: a stored draft arrives after the first render.
+  const showBio = bioOpen || draft.bio !== ''
+  const base = generateSlug(draft.name)
   // The server rejects a name with no letters or digits, so stop it here, not two steps later.
-  const canContinue = slug !== ''
-
-  useEffect(() => {
-    const name = draft.name
-    if (!generateSlug(name)) return
-    const ctrl = new AbortController()
-    const timer = setTimeout(() => {
-      fetch(`/api/games/slug?name=${encodeURIComponent(name)}`, { signal: ctrl.signal })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => { if (typeof d?.slug === 'string') setServer({ name, slug: d.slug }) })
-        .catch(() => {})
-    }, 300)
-    return () => { clearTimeout(timer); ctrl.abort() }
-  }, [draft.name])
+  const canContinue = base !== ''
+  // Once the league exists its address is fixed, whatever the name becomes.
+  const slug = draft.created?.slug ?? (base && `${base}-${draft.code}`)
 
   return (
     <StepShell
@@ -42,7 +29,7 @@ export function NameStep({ draft, onChange, onNext, stepOffset }: Props) {
       title="What is your league called?"
       sub="This becomes your link too. It is set now and stays put if you rename the league later."
       action={<button type="button" className={PRIMARY_BUTTON} disabled={!canContinue} onClick={onNext}>Continue</button>}
-      secondary={!showBio && <button type="button" className={SECONDARY_LINK} onClick={() => setShowBio(true)}>Add a short bio</button>}
+      secondary={!showBio && <button type="button" className={SECONDARY_LINK} onClick={() => setBioOpen(true)}>Add a short bio</button>}
     >
       <input
         aria-label="League name"
@@ -64,7 +51,7 @@ export function NameStep({ draft, onChange, onNext, stepOffset }: Props) {
           rows={2}
           placeholder="A line or two about the game. Optional."
           value={draft.bio}
-          onChange={(e) => onChange({ bio: e.target.value })}
+          onChange={(e) => { setBioOpen(true); onChange({ bio: e.target.value }) }}
         />
       )}
     </StepShell>

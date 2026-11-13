@@ -57,6 +57,8 @@ export function ImportGameModal({ leagueId, number, draft, editing, roster, late
 
   function addPlayer(p: PlayerAttribute) {
     onRosterAdd(p.name)
+    // Re-adding someone a stored draft still lists (removed from the roster since) must not double them up.
+    if (teamA.includes(p.name) || teamB.includes(p.name)) return
     if (teamA.length <= teamB.length) setTeamA([...teamA, p.name])
     else setTeamB([...teamB, p.name])
   }

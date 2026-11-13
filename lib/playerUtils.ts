@@ -129,3 +129,12 @@ export function splitPastedNames(text: string): string[] {
   }
   return names
 }
+
+/**
+ * Setup-wizard rows that rename a player the league already holds. A row
+ * seeded from the server keeps the saved name as its id, so a different
+ * (trimmed) name on that row is a rename.
+ */
+export function rosterRenames<T extends { id: string; name: string }>(saved: string[], players: T[]): T[] {
+  return players.filter((p) => saved.includes(p.id) && p.name.trim() !== p.id)
+}
