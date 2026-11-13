@@ -22,6 +22,8 @@ export function useSessionState<T>(key: string, initial: T | (() => T)) {
   const dirty = useRef(false)
 
   useEffect(() => {
+    // A new key starts clean: the old key's value must not be written under it.
+    dirty.current = false
     try {
       const raw = sessionStorage.getItem(key)
       // eslint-disable-next-line react-hooks/set-state-in-effect -- storage can only be read after hydration

@@ -65,13 +65,24 @@ describe('NewLeagueWizard', () => {
     expect(JSON.parse(init.body)).toEqual({ name: 'Hackney Thursdays', bio: '', location: 'Mabley Green', day: 'Thursday', kickoff_time: '20:00' })
   })
 
-  it('falls back to creating when the league is gone', async () => {
+  it.each([403, 404])('forgets the league on a %i and creates a new one on the next press', async (status) => {
     sessionStorage.setItem(DRAFT_KEY, JSON.stringify(CREATED))
-    fetchMock.mockReturnValue(respond(404, { error: 'Not found' }))
+    fetchMock.mockReturnValueOnce(respond(status, { error: 'Nope' })).mockReturnValueOnce(respond(200, { id: 'g2', slug: 'hackney-thursdays-zzz' }))
     render(<NewLeagueWizard stepOffset={0} />)
     fireEvent.click(await screen.findByRole('button', { name: 'Continue' }))
-    expect(await screen.findByRole('button', { name: 'Create league' })).toBeInTheDocument()
+    const create = await screen.findByRole('button', { name: 'Create league' })
     expect(push).not.toHaveBeenCalled()
+    expect(JSON.parse(sessionStorage.getItem(DRAFT_KEY)!).created).toBeUndefined()
+    fireEvent.click(create)
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/new/hackney-thursdays-zzz/players'))
+    expect(fetchMock).toHaveBeenLastCalledWith('/api/games', expect.objectContaining({ method: 'POST' }))
+  })
+
+  it('keeps the bio open after a refresh on Name', async () => {
+    pathname = '/new/name'
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ ...DRAFT, bio: 'Thursday nights' }))
+    render(<NewLeagueWizard stepOffset={0} />)
+    expect(await screen.findByDisplayValue('Thursday nights')).toBeInTheDocument()
   })
 
   it('shows the fixed address on Name once the league exists', async () => {

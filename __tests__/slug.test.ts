@@ -1,3 +1,5 @@
+import { readdirSync } from 'fs'
+import { join } from 'path'
 import { generateSlug, SLUG_CODE, slugCode } from '@/lib/utils'
 
 describe('generateSlug', () => {
@@ -34,4 +36,13 @@ describe('slugCode', () => {
   it('rejects vowels, capitals, 0, 1 and l', () => {
     for (const bad of ['abc', 'K7X', 'k0x', 'k1x', 'klx', 'k7', 'k7xx']) expect(SLUG_CODE.test(bad)).toBe(false)
   })
+})
+
+// A league address always ends in a hyphen and a code. A top-level route
+// folder shaped like that could be shadowed by, or shadow, a league.
+it('no top-level route in app/ ends like a league address', () => {
+  const routes = readdirSync(join(process.cwd(), 'app'), { withFileTypes: true })
+    .filter((d) => d.isDirectory() && !d.name.startsWith('['))
+    .map((d) => d.name)
+  for (const route of routes) expect(SLUG_CODE.test(route.split('-').pop() ?? '') && route.includes('-')).toBe(false)
 })
