@@ -9,6 +9,7 @@ import { ResultChip } from '@/components/WinnerBadge'
 import { PRIMARY_BUTTON, SECONDARY_LINK, StepEyebrow, StepShell } from './StepShell'
 import { ImportGameModal, type DraftGame } from './ImportGameModal'
 import { lineupConfidence, nextDraftDate, sidesFormat } from './confidence'
+import { resultsKey, useSessionState } from './useSessionState'
 
 interface Props {
   leagueId: string
@@ -29,7 +30,8 @@ const TICK_POSITION: Record<number, string> = { 0: 'left-0', 3: 'left-[30%] -tra
 export function ResultsStep({ leagueId, slug, roster: initialRoster, imported, latestMatchDay, stepOffset }: Props) {
   const router = useRouter()
   const [roster, setRoster] = useState(initialRoster)
-  const [games, setGames] = useState<DraftGame[]>([])
+  // Unimported games survive a refresh; the stored list goes once they are imported.
+  const [games, setGames, { clear }] = useSessionState<DraftGame[]>(resultsKey(slug), [])
   const [open, setOpen] = useState<{ draft: DraftGame; editing: boolean } | null>(null)
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -73,6 +75,7 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, imported, l
       setImporting(false)
       return
     }
+    clear()
     router.refresh()
     router.push(`/new/${slug}/live`)
   }
