@@ -1,4 +1,4 @@
-import { generateSlug } from '@/lib/utils'
+import { generateSlug, SLUG_CODE, slugCode } from '@/lib/utils'
 
 describe('generateSlug', () => {
   it('lowercases and hyphenates a simple name', () => {
@@ -23,5 +23,15 @@ describe('generateSlug', () => {
 
   it('handles special characters', () => {
     expect(generateSlug("Lads' FC — Sunday")).toBe('lads-fc-sunday')
+  })
+})
+
+describe('slugCode', () => {
+  it('always returns three characters from the vowel-free alphabet', () => {
+    for (let i = 0; i < 200; i++) expect(slugCode()).toMatch(SLUG_CODE)
+  })
+
+  it('rejects vowels, capitals, 0, 1 and l', () => {
+    for (const bad of ['abc', 'K7X', 'k0x', 'k1x', 'klx', 'k7', 'k7xx']) expect(SLUG_CODE.test(bad)).toBe(false)
   })
 })

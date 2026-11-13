@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser, rpcErrorStatus } from '@/lib/apiAuth'
-import { resolveUniqueSlug } from '@/lib/slug'
-import { generateSlug } from '@/lib/utils'
+import { generateSlug, SLUG_CODE, slugCode } from '@/lib/utils'
 import { revalidateLeague } from '@/lib/leagueCache'
 
 const VALID_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -12,8 +11,8 @@ const PG_UNIQUE_VIOLATION = '23505'
 /**
  * POST — any signed-in user. Creates a league through create_game, which also
  * makes the caller its creator and first player. Returns { id, slug }.
- * 409 slug_taken means another league took the slug between the wizard's
- * preview and this request; the client retries once.
+ * The address is the name plus a three-character code: the wizard's when it
+ * sends a valid one, so its preview holds, otherwise a fresh one.
  */
 export async function POST(req: Request) {
   const gate = await requireUser()
@@ -30,20 +29,26 @@ export async function POST(req: Request) {
   const location = typeof b?.location === 'string' ? b.location.trim() || null : null
   const bio = typeof b?.bio === 'string' ? b.bio.trim() || null : null
 
-  const slug = await resolveUniqueSlug(name)
+  const sentCode = typeof b?.code === 'string' && SLUG_CODE.test(b.code) ? b.code : null
   const supabase = await createClient()
-  const { data: id, error } = await supabase.rpc('create_game', {
-    p_name: name,
-    p_slug: slug,
-    p_location: location,
-    p_day: day,
-    p_kickoff_time: kickoff_time,
-    p_bio: bio,
-  })
-  if (error) {
-    if (error.code === PG_UNIQUE_VIOLATION) return NextResponse.json({ error: 'slug_taken' }, { status: 409 })
-    return NextResponse.json({ error: error.message }, { status: rpcErrorStatus(error.message) })
+  // No look-up first: the unique constraint is the check. One retry with a fresh code covers a clash.
+  for (const code of [sentCode ?? slugCode(), slugCode()]) {
+    const slug = `${generateSlug(name)}-${code}`
+    const { data: id, error } = await supabase.rpc('create_game', {
+      p_name: name,
+      p_slug: slug,
+      p_location: location,
+      p_day: day,
+      p_kickoff_time: kickoff_time,
+      p_bio: bio,
+    })
+    if (!error) {
+      revalidateLeague(id as string, [slug])
+      return NextResponse.json({ id, slug })
+    }
+    if (error.code !== PG_UNIQUE_VIOLATION) {
+      return NextResponse.json({ error: error.message }, { status: rpcErrorStatus(error.message) })
+    }
   }
-  revalidateLeague(id as string, [slug])
-  return NextResponse.json({ id, slug })
+  return NextResponse.json({ error: 'slug_taken' }, { status: 409 })
 }
