@@ -82,7 +82,10 @@ describe('NewLeagueWizard', () => {
     pathname = '/new/name'
     sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ ...DRAFT, bio: 'Thursday nights' }))
     render(<NewLeagueWizard stepOffset={0} />)
-    expect(await screen.findByDisplayValue('Thursday nights')).toBeInTheDocument()
+    const bio = await screen.findByDisplayValue('Thursday nights')
+    // Emptying it must not close the field mid-edit.
+    fireEvent.change(bio, { target: { value: '' } })
+    expect(screen.getByLabelText('Short bio')).toBeInTheDocument()
   })
 
   it('shows the fixed address on Name once the league exists', async () => {

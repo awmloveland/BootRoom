@@ -51,7 +51,7 @@ export function NameStep({ draft, onChange, onNext, stepOffset }: Props) {
           rows={2}
           placeholder="A line or two about the game. Optional."
           value={draft.bio}
-          onChange={(e) => onChange({ bio: e.target.value })}
+          onChange={(e) => { setBioOpen(true); onChange({ bio: e.target.value }) }}
         />
       )}
     </StepShell>

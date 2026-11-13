@@ -63,7 +63,8 @@ export function RosterWizard({ leagueId, slug, initial, stepOffset }: Props) {
   const named = players.filter(isNamed)
   // Names the league already holds; a server-seeded row's id is its saved name.
   const saved = initial.map((p) => p.id)
-  const step = named.length < 2 ? 'players' : stepFromPath(pathname)
+  // Once a save is under way the screen stays on Strength: edits made after Back would miss the write.
+  const step = submitting ? 'strength' : named.length < 2 ? 'players' : stepFromPath(pathname)
 
   useEffect(() => {
     if (loaded && named.length < 2 && stepFromPath(pathname) !== 'players') router.replace(`/new/${slug}/players`)
