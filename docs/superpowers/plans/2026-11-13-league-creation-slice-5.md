@@ -94,7 +94,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - [ ] **Step 1: Keyframes.** In `app/globals.css`, inside the `@theme` block next to `--animate-cf-pulse`, add
 
 ```css
-  --animate-cf-rise: cf-rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-cf-rise: cf-rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) var(--cf-rise-delay, 0s) both;
   @keyframes cf-rise {
     from { opacity: 0; transform: translateY(14px); }
     to { opacity: 1; transform: none; }
@@ -104,7 +104,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - [ ] **Step 2: StepShell `rise` prop.** Add `rise?: boolean` to the props ("Elements rise in one after another; the Live screen only."). Define inside the component
 
 ```ts
-  const riseAt = (step: number) => rise && cn('motion-safe:animate-cf-rise', ['[animation-delay:0s]', '[animation-delay:.1s]', '[animation-delay:.2s]', '[animation-delay:.3s]', '[animation-delay:.4s]', '[animation-delay:.5s]'][step])
+  const riseAt = (step: number) => rise && cn('motion-safe:animate-cf-rise', ['[--cf-rise-delay:0s]', '[--cf-rise-delay:.1s]', '[--cf-rise-delay:.2s]', '[--cf-rise-delay:.3s]', '[--cf-rise-delay:.4s]', '[--cf-rise-delay:.5s]'][step])
 ```
 
 and apply `riseAt(0)` to the logo tile `div`, `riseAt(1)` to the eyebrow wrapper, `riseAt(2)` to the `h1`, `riseAt(3)` to the sub `p`, `riseAt(4)` to the children wrapper and `riseAt(5)` to the action wrapper, via `cn(existingClasses, riseAt(n))`. Import `cn` from `@/lib/utils`.
@@ -234,7 +234,7 @@ export function Confetti() {
 }
 ```
 
-- [ ] **Step 5: LiveScreen.** Import `Confetti`, pass `rise` to `StepShell`, and render `<Confetti />` as the first child inside `StepShell` (before `LiveShareCard`); the canvas is `fixed`, so its position in the tree does not matter.
+- [ ] **Step 5: LiveScreen.** Import `Confetti`, pass `rise` to `StepShell`, and render `<Confetti />` as a sibling before `StepShell` (wrap both in a fragment): inside the shell, an animated ancestor's transform would become the fixed canvas's containing block.
 
 - [ ] **Step 6: Check.** `npm test -- __tests__/confetti.test.tsx` (2 pass), `npx tsc --noEmit`, `npx eslint components/new-league`. If the lint rule `react-hooks/exhaustive-deps` or `set-state-in-effect` fires, report the message; the effect sets no React state.
 

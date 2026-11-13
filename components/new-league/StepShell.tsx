@@ -19,7 +19,7 @@ interface StepShellProps {
 }
 
 export function StepShell({ eyebrow, title, sub, children, action, secondary, rise }: StepShellProps) {
-  const riseAt = (step: number) => rise && cn('motion-safe:animate-cf-rise', ['[animation-delay:0s]', '[animation-delay:.1s]', '[animation-delay:.2s]', '[animation-delay:.3s]', '[animation-delay:.4s]', '[animation-delay:.5s]'][step])
+  const riseAt = (step: number) => rise && cn('motion-safe:animate-cf-rise', ['[--cf-rise-delay:0s]', '[--cf-rise-delay:.1s]', '[--cf-rise-delay:.2s]', '[--cf-rise-delay:.3s]', '[--cf-rise-delay:.4s]', '[--cf-rise-delay:.5s]'][step])
   return (
     <main className="mx-auto w-full max-w-[520px] px-4 py-9 sm:px-6 sm:py-[72px]">
       <div className={cn('mx-auto flex size-16 items-center justify-center rounded-2xl border border-[#223a5c] bg-[linear-gradient(160deg,#0e2a44_0%,#0a1628_55%,#081020_100%)] shadow-[0_14px_36px_rgba(0,0,0,.55),inset_0_1px_0_rgba(255,255,255,.08)]', riseAt(0))}>

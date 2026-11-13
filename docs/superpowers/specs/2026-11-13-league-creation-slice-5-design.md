@@ -46,14 +46,15 @@ Under Linked leagues (and also when the user has no leagues), a dashed row
 - `globals.css` gains `--animate-cf-rise: cf-rise .6s cubic-bezier(.2,.7,.2,1) both`
   with `@keyframes cf-rise { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }`.
 - `StepShell` takes `rise?: boolean`. When set, the logo tile, eyebrow, title,
-  sub, children and action wrappers get `motion-safe:animate-cf-rise` with
-  `[animation-delay:…]` of 0, .1s, .2s, .3s, .4s and .5s.
+  sub, children and action wrappers get `motion-safe:animate-cf-rise` with a
+  `--cf-rise-delay` of 0, .1s, .2s, .3s, .4s and .5s, read inside the shorthand.
 - `Confetti` (client): a `fixed inset-0 -z-10 pointer-events-none` canvas.
   On mount, unless `matchMedia('(prefers-reduced-motion: reduce)')` matches,
   42 pieces of 5 to 11px in `#bef264 #38bdf8 #a78bfa #f4f9ff #7dd3fc` burst
   from just above the logo tile (top centre of the column), each with its own
   velocity, spin and lifetime between 1.4 and 2.3 seconds, fading out; the
-  canvas is cleared when the last piece dies. Rendered once by `LiveScreen`.
+  canvas is cleared when the last piece dies. Rendered once by `LiveScreen`,
+  as a sibling of the shell so no animated ancestor captures the fixed canvas.
 
 ## Testing
 

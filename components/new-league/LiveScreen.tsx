@@ -32,7 +32,11 @@ export async function LiveScreen({ slug }: { slug: string }) {
   const nextDate = dayIndex === null ? null : nextOccurrenceAfterToday(dayIndex)
   const played = getPlayedWeeks(weeks).length
 
+  // The canvas sits outside the shell: a transform on an animated ancestor would make it the
+  // containing block for the fixed canvas and squash the burst into that box.
   return (
+    <>
+    <Confetti />
     <StepShell
       eyebrow={
         <span className="inline-flex items-center gap-2 rounded-full border border-[#bef264]/40 bg-[#bef264]/10 px-3 py-1 font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#bef264]">
@@ -45,8 +49,8 @@ export async function LiveScreen({ slug }: { slug: string }) {
       action={<Link href={landing} className={OUTLINE_BUTTON}>Go to {game.name}</Link>}
       rise
     >
-      <Confetti />
       <LiveShareCard leagueName={game.name} url={`https://craft-football.com/${slug}`} names={names} day={game.day} />
     </StepShell>
+    </>
   )
 }

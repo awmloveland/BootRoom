@@ -99,7 +99,8 @@
 
   --animate-cf-tick: cf-tick 34s linear infinite;
   --animate-cf-pulse: cf-pulse 2.4s ease-in-out infinite;
-  --animate-cf-rise: cf-rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  /* The delay lives inside the shorthand: a separate animation-delay utility would be reset by it. */
+  --animate-cf-rise: cf-rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) var(--cf-rise-delay, 0s) both;
 
   @keyframes cf-tick {
     from { transform: translateX(0); }
