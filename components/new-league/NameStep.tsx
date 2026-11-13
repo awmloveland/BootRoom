@@ -18,7 +18,8 @@ export function NameStep({ draft, onChange, onNext, stepOffset }: Props) {
   const base = generateSlug(draft.name)
   // The server rejects a name with no letters or digits, so stop it here, not two steps later.
   const canContinue = base !== ''
-  const slug = base && `${base}-${draft.code}`
+  // Once the league exists its address is fixed, whatever the name becomes.
+  const slug = draft.created?.slug ?? (base && `${base}-${draft.code}`)
 
   return (
     <StepShell

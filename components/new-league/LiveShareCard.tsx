@@ -1,10 +1,11 @@
 // components/new-league/LiveShareCard.tsx
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { OUTLINE_BUTTON, PRIMARY_BUTTON } from './StepShell'
+import { DRAFT_KEY } from './useSessionState'
 
 interface Props {
   leagueName: string
@@ -22,6 +23,14 @@ function initials(name: string): string {
 
 export function LiveShareCard({ leagueName, url, names, day }: Props) {
   const [copied, setCopied] = useState(false)
+  // Setup is finished: the next visit to /new starts a new league, not this one.
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem(DRAFT_KEY)
+    } catch {
+      // storage unavailable: nothing was stored either
+    }
+  }, [])
   const matchDay = day ?? 'match day'
 
   async function copy() {

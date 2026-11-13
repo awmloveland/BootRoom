@@ -16,6 +16,8 @@ interface Props {
   onChange: (patch: Partial<LeagueDraft>) => void
   onSubmit: () => void
   submitting: boolean
+  /** The league already exists: this step saves changes to it. */
+  editing: boolean
   error: string | null
 }
 
@@ -32,7 +34,7 @@ function stepTime(time: string, minutes: number): string {
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 }
 
-export function WhenStep({ draft, onChange, onSubmit, submitting, error, stepOffset }: Props) {
+export function WhenStep({ draft, onChange, onSubmit, submitting, editing, error, stepOffset }: Props) {
   const [display, suffix] = to12h(draft.time)
   // The text while the kick-off input is being edited; null when it shows the saved time.
   const [typed, setTyped] = useState<string | null>(null)
@@ -62,7 +64,7 @@ export function WhenStep({ draft, onChange, onSubmit, submitting, error, stepOff
       action={
         <>
           <button type="button" className={PRIMARY_BUTTON} disabled={submitting} onClick={onSubmit}>
-            {submitting ? 'Creating…' : 'Create league'}
+            {submitting ? (editing ? 'Saving…' : 'Creating…') : editing ? 'Continue' : 'Create league'}
           </button>
           {error && <p role="alert" className="mt-3 text-center font-inter-body text-[13px] text-[#e2686f]">{error}</p>}
         </>
