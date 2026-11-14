@@ -286,6 +286,18 @@ describe('ensureUnrecordedWeek', () => {
     await expect(ensureUnrecordedWeek(LEAGUE, weeks, 4)).resolves.toBe(weeks)
     expect(rpc).not.toHaveBeenCalled()
   })
+
+  it('does nothing for a league with no weeks yet', async () => {
+    // A league created on Friday 10 Apr with Thursday as its day must not
+    // start life with an unrecorded week for Thursday 9 Apr.
+    jest.useFakeTimers().setSystemTime(new Date(2026, 3, 10, 12))
+    const rpc = jest.fn()
+    ;(createServiceClient as jest.Mock).mockReturnValue({ rpc })
+    const weeks: Week[] = []
+
+    await expect(ensureUnrecordedWeek(LEAGUE, weeks, 4)).resolves.toBe(weeks)
+    expect(rpc).not.toHaveBeenCalled()
+  })
 })
 
 describe('getNavSession', () => {

@@ -8,8 +8,9 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 import { cookies, headers } from 'next/headers'
 import Link from 'next/link'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Plus } from 'lucide-react'
 import { LandingPage } from '@/components/landing/LandingPage'
+import { Button } from '@/components/ui/button'
 import { cn, leagueLandingPath, VIEWPORT_COOKIE } from '@/lib/utils'
 import { parseWeekDate, formatWeekDate, leagueNow } from '@/lib/dates'
 
@@ -180,7 +181,15 @@ export default async function HomePage() {
             Your leagues
           </h1>
           {leagues.length === 0 ? (
-            <p className="mt-6 font-inter-body text-[13px] text-[#6f88a8]">You&apos;re not in any leagues yet.</p>
+            <div className="mt-6">
+              <p className="font-inter-body text-[13px] text-[#6f88a8]">You&apos;re not in any leagues yet.</p>
+              <Button asChild className="mt-4 gap-2">
+                <Link href="/new">
+                  <Plus className="size-4" />
+                  Create a league
+                </Link>
+              </Button>
+            </div>
           ) : (
             <div className="mt-6 flex flex-col gap-2">
               {leagueCards.map(({ league, nextDate, format }) => (
@@ -213,6 +222,13 @@ export default async function HomePage() {
                   <ChevronRight className={cn('size-4 shrink-0', nextDate ? 'text-[#6f88a8]' : 'text-[#4f688a]')} />
                 </Link>
               ))}
+              <Link
+                href="/new"
+                className="flex items-center justify-between gap-4 rounded-xl border border-dashed border-[#223a5c] px-[18px] py-4 text-[15px] font-bold text-[#8ba4c4] transition-colors hover:border-[#38bdf8] hover:text-[#f4f9ff]"
+              >
+                Create a league
+                <Plus className="size-4 shrink-0" />
+              </Link>
             </div>
           )}
         </div>
