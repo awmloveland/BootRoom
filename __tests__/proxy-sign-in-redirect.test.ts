@@ -68,6 +68,28 @@ describe('proxy', () => {
     expect(res.headers.get('location')).toBeNull()
   })
 
+  it('guards the settings of a league whose address starts with "api" or "auth"', async () => {
+    for (const slug of ['api-fives-k7x', 'authentic-fc-k7x']) {
+      const res = await proxy(new NextRequest(`https://craft-football.com/${slug}/settings`))
+      expect(new URL(res.headers.get('location')!).pathname).toBe('/sign-in')
+    }
+  })
+
+  it('refreshes the session on a league whose address starts with "auth"', async () => {
+    claims = { sub: 'u1' }
+    refreshedSession = 'fresh'
+    const res = await proxy(signedInRequest('https://craft-football.com/authentic-fc-k7x/results'))
+    expect(res.cookies.get('sb-ref-auth-token')?.value).toBe('fresh')
+  })
+
+  it('still skips API routes and the auth callback', async () => {
+    for (const path of ['/api/health', '/auth/callback']) {
+      const res = await proxy(signedInRequest(`https://craft-football.com${path}`))
+      expect(res.headers.get('location')).toBeNull()
+    }
+    expect(createServerClient).not.toHaveBeenCalled()
+  })
+
   it('sends signed-in users with no profile to /profile-required', async () => {
     claims = { sub: 'u1' }
     const res = await proxy(signedInRequest('https://craft-football.com/settings?tab=leagues'))

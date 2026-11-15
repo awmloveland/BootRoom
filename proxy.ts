@@ -38,7 +38,8 @@ function next(request: NextRequest) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  if (pathname.startsWith('/api') || pathname.startsWith('/auth') || pathname.startsWith('/_next')) {
+  // The trailing slash matters: a league at /api-fives-k7x or /authentic-fc-k7x is a page like any other.
+  if (/^\/(api|auth|_next)\//.test(pathname)) {
     return next(request)
   }
 
