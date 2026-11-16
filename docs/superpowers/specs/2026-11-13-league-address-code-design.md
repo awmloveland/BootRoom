@@ -58,7 +58,12 @@ In `lib/utils.ts`, beside `generateSlug`:
 - `lib/slug.ts` and `lib/__tests__/slug.reserved.test.ts`: `resolveUniqueSlug`
   has no callers, and the reserved-name list guarded bare names such as `new`
   or `settings`. A slug now always ends in a hyphen and three vowel-free
-  characters, which no route in `app/` matches.
+  characters, which no route in `app/` matches. A slug written any other way
+  is checked by the table itself: migration
+  `20261116000001_league_creation_hardening.sql` adds a shape check and the
+  reserved route names to `games.slug`, removes the direct insert policy, and
+  limits `create_game` to five leagues per account in 24 hours (the route
+  answers 429).
 
 ## Tests
 
