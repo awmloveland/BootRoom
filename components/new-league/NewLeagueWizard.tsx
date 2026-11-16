@@ -83,8 +83,8 @@ export function NewLeagueWizard({ stepOffset }: Props) {
     if (!res.ok) {
       // The league was deleted, or someone else is signed in on this tab: the next press creates a new one.
       if (created && (res.status === 403 || res.status === 404)) setDraft((d) => ({ ...d, created: undefined }))
-      // Only validation messages are written for people; anything else gets the generic line.
-      setError(res.status === 400 && typeof data.error === 'string' ? data.error : `Could not ${verb} the league. Try again.`)
+      // Only validation and the daily limit are written for people; anything else gets the generic line.
+      setError((res.status === 400 || res.status === 429) && typeof data.error === 'string' ? data.error : `Could not ${verb} the league. Try again.`)
       setSubmitting(false)
       return
     }

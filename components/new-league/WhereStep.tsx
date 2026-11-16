@@ -1,6 +1,7 @@
 // components/new-league/WhereStep.tsx
 'use client'
 
+import { LEAGUE_LOCATION_MAX } from '@/lib/leagueDetails'
 import { FIELD, PRIMARY_BUTTON, StepEyebrow, StepShell } from './StepShell'
 import type { LeagueDraft } from './NewLeagueWizard'
 
@@ -11,7 +12,7 @@ interface Props {
   onNext: () => void
 }
 
-// shortcut: free text only, Places autocomplete and the map preview arrive in slice 5
+// Free text by decision: Places autocomplete and the map preview were dropped (slice 5 spec).
 export function WhereStep({ draft, onChange, onNext, stepOffset }: Props) {
   const canContinue = draft.location.trim().length > 0
   return (
@@ -25,7 +26,7 @@ export function WhereStep({ draft, onChange, onNext, stepOffset }: Props) {
         aria-label="Venue"
         className={FIELD}
         placeholder="e.g. Mabley Green"
-        maxLength={120}
+        maxLength={LEAGUE_LOCATION_MAX}
         value={draft.location}
         onChange={(e) => onChange({ location: e.target.value })}
         onKeyDown={(e) => { if (e.key === 'Enter' && canContinue) onNext() }}

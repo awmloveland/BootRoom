@@ -65,6 +65,14 @@ describe('NewLeagueWizard', () => {
     expect(JSON.parse(init.body)).toEqual({ name: 'Hackney Thursdays', bio: '', location: 'Mabley Green', day: 'Thursday', kickoff_time: '20:00' })
   })
 
+  it('says why when the account has made too many leagues', async () => {
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(DRAFT))
+    fetchMock.mockReturnValue(respond(429, { error: 'You have created five leagues in the last day. Try again tomorrow.' }))
+    render(<NewLeagueWizard stepOffset={0} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Create league' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('You have created five leagues in the last day. Try again tomorrow.')
+  })
+
   it.each([403, 404])('forgets the league on a %i and creates a new one on the next press', async (status) => {
     sessionStorage.setItem(DRAFT_KEY, JSON.stringify(CREATED))
     fetchMock.mockReturnValueOnce(respond(status, { error: 'Nope' })).mockReturnValueOnce(respond(200, { id: 'g2', slug: 'hackney-thursdays-zzz' }))

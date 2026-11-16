@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { splitPastedNames } from '@/lib/playerUtils'
+import { MAX_PLAYER_NAME, splitPastedNames } from '@/lib/playerUtils'
 import { FIELD, PRIMARY_BUTTON, SECONDARY_LINK, StepEyebrow, StepShell } from './StepShell'
 import { PlayerRow } from './PlayerRow'
 import type { RosterPlayer } from './RosterWizard'
@@ -77,6 +77,7 @@ export function PlayersStep({ players, onAdd, onAddBlank, onRename, onRemove, on
                       aria-label={blank ? 'Add a player' : `Player name ${p.name}`}
                       className="h-[38px] w-full rounded-md border border-transparent bg-transparent px-2.5 font-inter-body text-[15px] font-semibold text-[#f4f9ff] placeholder:font-normal placeholder:text-[#4f688a] focus:border-[#38bdf8] focus:bg-[#0c1728] focus:outline-none"
                       placeholder="Add a player"
+                      maxLength={MAX_PLAYER_NAME}
                       value={p.name}
                       autoFocus={last && i === 1}
                       onFocus={() => { if (last) onAddBlank() }}

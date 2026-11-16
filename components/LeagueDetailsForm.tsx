@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import { LeagueInfoBar } from '@/components/LeagueInfoBar'
 import { cn, dayNameToIndex, nextOccurrenceAfterToday } from '@/lib/utils'
 import type { LeagueDetails } from '@/lib/types'
+import { LEAGUE_BIO_MAX, LEAGUE_LOCATION_MAX } from '@/lib/leagueDetails'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-const TIMES = Array.from({ length: 48 }, (_, i) => {
-  const h = String(Math.floor(i / 2)).padStart(2, '0')
-  const m = i % 2 === 0 ? '00' : '30'
+// Quarter hours, the steps league setup offers.
+const TIMES = Array.from({ length: 96 }, (_, i) => {
+  const h = String(Math.floor(i / 4)).padStart(2, '0')
+  const m = String((i % 4) * 15).padStart(2, '0')
   return `${h}:${m}`
 })
 
@@ -250,6 +252,7 @@ export function LeagueDetailsForm({
               value={location}
               onChange={(e) => { setLocation(e.target.value); markDirty() }}
               placeholder="e.g. Hackney Marshes"
+              maxLength={LEAGUE_LOCATION_MAX}
               className="w-full rounded border border-[#223a5c] bg-[#0c1728] px-3 py-2 text-sm text-[#f4f9ff] placeholder:text-[#4f688a] focus:outline-none focus:ring-0 focus:border-[#38bdf8]"
             />
           </div>
@@ -315,6 +318,7 @@ export function LeagueDetailsForm({
               onChange={(e) => { setBio(e.target.value); markDirty() }}
               placeholder="A short description of your league..."
               rows={3}
+              maxLength={LEAGUE_BIO_MAX}
               className="w-full rounded border border-[#223a5c] bg-[#0c1728] px-3 py-2 text-sm text-[#f4f9ff] placeholder:text-[#4f688a] focus:outline-none focus:ring-0 focus:border-[#38bdf8] resize-none"
             />
             <p className="text-xs text-[#4f688a]">Keep it short: one or two sentences works best.</p>

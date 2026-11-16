@@ -3,6 +3,7 @@
 
 import { useState } from 'react'
 import { cn, generateSlug } from '@/lib/utils'
+import { LEAGUE_BIO_MAX, LEAGUE_NAME_MAX } from '@/lib/leagueDetails'
 import { FIELD, PRIMARY_BUTTON, SECONDARY_LINK, StepEyebrow, StepShell } from './StepShell'
 import type { LeagueDraft } from './NewLeagueWizard'
 
@@ -35,7 +36,7 @@ export function NameStep({ draft, onChange, onNext, stepOffset }: Props) {
         aria-label="League name"
         className={cn(FIELD, 'h-[54px] text-[17px] font-semibold')}
         placeholder="e.g. Hackney Thursdays"
-        maxLength={80}
+        maxLength={LEAGUE_NAME_MAX}
         value={draft.name}
         onChange={(e) => onChange({ name: e.target.value })}
         onKeyDown={(e) => { if (e.key === 'Enter' && canContinue) onNext() }}
@@ -49,6 +50,7 @@ export function NameStep({ draft, onChange, onNext, stepOffset }: Props) {
           aria-label="Short bio"
           className={cn(FIELD, 'mt-5 h-auto py-3 text-sm')}
           rows={2}
+          maxLength={LEAGUE_BIO_MAX}
           placeholder="A line or two about the game. Optional."
           value={draft.bio}
           onChange={(e) => { setBioOpen(true); onChange({ bio: e.target.value }) }}
