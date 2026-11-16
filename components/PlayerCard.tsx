@@ -102,9 +102,8 @@ export function PlayerCard({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  useEffect(() => {
-    if (!isOpen) setDropdownOpen(false)
-  }, [isOpen])
+  // A collapsed card closes its year dropdown, so it is not open on return
+  if (!isOpen && dropdownOpen) setDropdownOpen(false)
 
   const borderClass = isOpen
     ? 'border-[#2c4a72] shadow-[0_18px_44px_rgba(0,0,0,.42)]'
