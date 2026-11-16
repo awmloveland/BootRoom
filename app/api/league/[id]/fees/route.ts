@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getWeeks } from '@/lib/fetchers'
-import { computeFees, parseFeeRange } from '@/lib/fees'
+import { getGame, getWeeks } from '@/lib/fetchers'
+import { computeFees, parseFeeRange, weeksSinceCreation } from '@/lib/fees'
 import { getFeeRows, parseFee, requireLeagueAdmin } from '@/lib/feesServer'
 import { revalidateLeague } from '@/lib/leagueCache'
 
@@ -16,9 +16,10 @@ export async function GET(
 
   const search = new URL(req.url).searchParams
   const range = parseFeeRange({ range: search.get('range'), from: search.get('from'), to: search.get('to') })
-  const [weeks, { defaultFee, fees, payments }] = await Promise.all([getWeeks(id), getFeeRows(id)])
+  const [game, weeks, { defaultFee, fees, payments }] = await Promise.all([getGame(id), getWeeks(id), getFeeRows(id)])
 
-  return NextResponse.json(computeFees(weeks, fees, payments, defaultFee, range))
+  // Imported history is not fee debt: the same cut-off the Admin page applies.
+  return NextResponse.json(computeFees(weeksSinceCreation(weeks, game?.created_at), fees, payments, defaultFee, range))
 }
 
 /** PATCH — admin-only. Sets the league's default fee per player. Body: { defaultFee: number } */

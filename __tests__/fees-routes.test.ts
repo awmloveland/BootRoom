@@ -1,13 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { mockAuthNamespace } from '@/lib/__tests__/helpers/supabase-auth'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getWeeks } from '@/lib/fetchers'
+import { getGame, getWeeks } from '@/lib/fetchers'
 import type { Week } from '@/lib/types'
 
 jest.mock('next/cache', () => ({ revalidateTag: jest.fn() }))
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 jest.mock('@/lib/supabase/service', () => ({ createServiceClient: jest.fn() }))
-jest.mock('@/lib/fetchers', () => ({ getWeeks: jest.fn() }))
+jest.mock('@/lib/fetchers', () => ({ getGame: jest.fn(), getWeeks: jest.fn() }))
 
 import { GET as getFees, PATCH as patchFees } from '@/app/api/league/[id]/fees/route'
 import { PUT as putFee, DELETE as deleteFee } from '@/app/api/league/[id]/weeks/[weekId]/fee/route'
@@ -95,6 +95,12 @@ describe('GET /api/league/[id]/fees', () => {
     expect(data.range.preset).toBe('all')
     expect(data.defaultFee).toBe(6)
     expect(data.totals).toEqual({ owed: 33, collected: 6, expected: 39, playedGames: 3 })
+  })
+  it('leaves out games from before the league was created', async () => {
+    setup({ tables: { games: query({ data: { fee_per_player: '6.00' } }) } })
+    ;(getGame as jest.Mock).mockResolvedValue({ created_at: '2026-09-20T09:00:00Z' })
+    const data = await (await getFees(new Request('http://localhost/api?range=all'), league)).json()
+    expect(data.totals.playedGames).toBe(2)
   })
   it('falls back to the £7 league default when no fee has been read', async () => {
     setup({ tables: { games: query({ data: null }) } })
