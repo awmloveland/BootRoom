@@ -43,6 +43,10 @@ describe('POST /api/league/[id]/weeks/import', () => {
     ['an empty side', { games: [{ ...GAME, teamB: [] }] }],
     ['a blank name', { games: [{ ...GAME, teamA: ['Alice', ' '] }] }],
     ['a name twice on one side', { games: [{ ...GAME, teamA: ['Alice', 'Alice'] }] }],
+    ['a name twice on one side once trimmed', { games: [{ ...GAME, teamA: ['Alice', ' Alice '] }] }],
+    ['a name on both sides', { games: [{ ...GAME, teamB: ['Alice', 'Dan'] }] }],
+    ['a name over 50 characters', { games: [{ ...GAME, teamA: ['x'.repeat(51), 'Bob'] }] }],
+    ['more than 30 a side', { games: [{ ...GAME, teamA: Array.from({ length: 31 }, (_, i) => `P${i}`) }] }],
     ['an unknown winner', { games: [{ ...GAME, winner: 'A' }] }],
     ['a fractional margin', { games: [{ ...GAME, goalDifference: 1.5 }] }],
   ])('returns 400 for %s', async (_label, body) => {
@@ -64,6 +68,23 @@ describe('POST /api/league/[id]/weeks/import', () => {
       ],
     })
     expect(revalidateTag).toHaveBeenCalledWith('league:g1', expect.anything())
+  })
+
+  it('trims names before they reach the RPC', async () => {
+    setup(USER)
+    await post({ games: [{ ...GAME, teamA: [' Alice ', 'Bob'] }] })
+    expect(rpc).toHaveBeenCalledWith('import_weeks', {
+      p_game_id: LEAGUE,
+      p_weeks: [{ date: '08 Oct 2026', team_a: ['Alice', 'Bob'], team_b: ['Carl', 'Dan'], winner: 'teamA', goal_difference: 2 }],
+    })
+  })
+
+  it('keeps database detail out of an unexpected failure', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {})
+    setup(USER, true, { data: null, error: { message: 'null value in column "week" violates not-null constraint' } })
+    const res = await post({ games: [GAME] })
+    expect(res.status).toBe(500)
+    await expect(res.json()).resolves.toEqual({ error: 'Could not import the games. Try again.' })
   })
 
   it('maps already_exists to 409 and invalid_* to 400', async () => {

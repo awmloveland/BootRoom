@@ -40,14 +40,18 @@ export function parsePlayerPatch(body: unknown): PlayerPatch | null {
   return patch
 }
 
+/** The longest player name any route accepts. */
+export const MAX_PLAYER_NAME = 50
+
 /**
  * Validates and trims a player rename input.
- * Returns the trimmed name, or null if the value is not a non-empty string.
+ * Returns the trimmed name, or null if the value is not a non-empty string
+ * of at most MAX_PLAYER_NAME characters.
  */
 export function parseRenameName(value: unknown): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : null
+  return trimmed.length > 0 && trimmed.length <= MAX_PLAYER_NAME ? trimmed : null
 }
 
 export interface AddPlayerInput {
@@ -67,7 +71,7 @@ export function parseAddPlayerBody(body: unknown): AddPlayerInput | null {
 
   if (typeof b.name !== 'string') return null
   const name = b.name.trim()
-  if (name.length === 0) return null
+  if (name.length === 0 || name.length > MAX_PLAYER_NAME) return null
 
   if (typeof b.strength !== 'string' || !VALID_STRENGTHS.includes(b.strength as Strength)) return null
   if (typeof b.mentality !== 'string' || !VALID_MENTALITIES.includes(b.mentality as Mentality)) return null

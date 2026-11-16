@@ -31,6 +31,17 @@ export async function requireLeagueAdmin(leagueId: string): Promise<AuthGate> {
   return gate
 }
 
+/**
+ * The response for a failed RPC. The SQL's own message goes back for the
+ * statuses it raises on purpose; anything unexpected is logged and answered
+ * with `fallback`, so constraint and column names stay on the server.
+ */
+export function rpcErrorResponse(error: { message: string }, fallback: string): NextResponse {
+  const status = rpcErrorStatus(error.message)
+  if (status === 500) console.error('[api] rpc failed', error)
+  return NextResponse.json({ error: status === 500 ? fallback : error.message }, { status })
+}
+
 /** Status for a Supabase RPC error, by the message the SQL raised. */
 export function rpcErrorStatus(message: string): number {
   if (/Access denied/i.test(message)) return 403

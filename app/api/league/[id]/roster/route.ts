@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { requireLeagueAdmin, rpcErrorStatus } from '@/lib/apiAuth'
+import { requireLeagueAdmin, rpcErrorResponse } from '@/lib/apiAuth'
 import { revalidateLeague } from '@/lib/leagueCache'
 import { strengthToRating } from '@/lib/strength'
 import { parseAddPlayerBody, type AddPlayerInput } from '@/lib/playerUtils'
@@ -47,7 +47,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       goalkeeper: p.mentality === 'goalkeeper',
     })),
   })
-  if (error) return NextResponse.json({ error: error.message }, { status: rpcErrorStatus(error.message) })
+  if (error) return rpcErrorResponse(error, 'Could not save the roster. Try again.')
 
   revalidateLeague(id)
   return NextResponse.json({ ok: true, count: players.length })

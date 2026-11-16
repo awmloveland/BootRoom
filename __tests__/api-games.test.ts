@@ -43,11 +43,31 @@ describe('POST /api/games', () => {
     ['an unknown day', { ...VALID, day: 'Thu' }],
     ['a 12-hour time', { ...VALID, kickoff_time: '8pm' }],
     ['a missing time', { ...VALID, kickoff_time: undefined }],
+    ['a venue over 120 characters', { ...VALID, location: 'x'.repeat(121) }],
+    ['a bio over 500 characters', { ...VALID, bio: 'x'.repeat(501) }],
   ])('returns 400 for %s', async (_label, body) => {
     setup(USER)
     const res = await post(body)
     expect(res.status).toBe(400)
     expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('answers 429 in plain words once the caller has made too many leagues today', async () => {
+    setup(USER)
+    rpc.mockResolvedValue({ data: null, error: { code: 'P0001', message: 'too_many_leagues' } })
+    const res = await post(VALID)
+    expect(res.status).toBe(429)
+    await expect(res.json()).resolves.toEqual({ error: 'You have created five leagues in the last day. Try again tomorrow.' })
+    expect(rpc).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps database detail out of an unexpected failure', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {})
+    setup(USER)
+    rpc.mockResolvedValue({ data: null, error: { code: '23514', message: 'new row for relation "games" violates check constraint "games_slug_format"' } })
+    const res = await post(VALID)
+    expect(res.status).toBe(500)
+    await expect(res.json()).resolves.toEqual({ error: 'Could not create the league. Try again.' })
   })
 
   it('creates the league at name plus the sent code and returns id and slug', async () => {
