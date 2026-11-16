@@ -36,8 +36,10 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, imported, l
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // A stored draft on a date the league already holds is an import whose reply was lost: it landed.
+  const drafts = games.filter((g) => !imported.some((i) => i.date === g.date))
   // Everything on the list: what the league already holds plus this visit's drafts.
-  const all = [...imported, ...games]
+  const all = [...imported, ...drafts]
   const sorted = [...all].sort((a, b) => parseWeekDate(b.date).getTime() - parseWeekDate(a.date).getTime())
   const importedIds = new Set(imported.map((g) => g.id))
   const { percent, line, tone } = lineupConfidence(all.length)
@@ -64,7 +66,7 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, imported, l
       res = await fetch(`/api/league/${leagueId}/weeks/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ games: games.map(({ date, teamA, teamB, winner, goalDifference }) => ({ date, teamA, teamB, winner, goalDifference })) }),
+        body: JSON.stringify({ games: drafts.map(({ date, teamA, teamB, winner, goalDifference }) => ({ date, teamA, teamB, winner, goalDifference })) }),
       })
     } catch {
       setError('Could not import the games. Check your connection and try again.')
@@ -73,7 +75,10 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, imported, l
     }
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      setError(typeof data.error === 'string' ? data.error : 'Could not import the games. Try again.')
+      // A date is taken: re-read what the league holds, so drafts that already landed leave the list.
+      if (res.status === 409) router.refresh()
+      // Only messages written for people are shown; anything else gets the generic line.
+      setError((res.status === 400 || res.status === 409) && typeof data.error === 'string' ? data.error : 'Could not import the games. Try again.')
       setImporting(false)
       return
     }
@@ -84,10 +89,10 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, imported, l
 
   // A stored draft can outlive a removal or rename made on the roster steps. import_weeks adds a
   // roster row for any unknown name, so such a game is held back until its line-up is fixed.
-  const stale = games.find((g) => [...g.teamA, ...g.teamB].some((n) => !roster.includes(n)))
+  const stale = drafts.find((g) => [...g.teamA, ...g.teamB].some((n) => !roster.includes(n)))
   const strangers = stale ? [...stale.teamA, ...stale.teamB].filter((n) => !roster.includes(n)) : []
   const count = all.length
-  const pending = games.length
+  const pending = drafts.length
   return (
     <StepShell
       eyebrow={<StepEyebrow n={7} offset={stepOffset} />}
@@ -107,7 +112,7 @@ export function ResultsStep({ leagueId, slug, roster: initialRoster, imported, l
               {strangers.join(', ')} {strangers.length === 1 ? 'is' : 'are'} no longer on the roster. Open the game on {parseInt(stale.date, 10)} {stale.date.slice(3)} and fix the line-up.
             </p>
           )}
-          {error && <p role="alert" className="mt-3 text-center font-inter-body text-[13px] text-[#e2686f]">{error}</p>}
+          {error && pending > 0 && <p role="alert" className="mt-3 text-center font-inter-body text-[13px] text-[#e2686f]">{error}</p>}
         </>
       }
       secondary={<button type="button" className={SECONDARY_LINK} onClick={() => router.push(`/new/${slug}/live`)}>Skip for now</button>}

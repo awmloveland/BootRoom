@@ -1,7 +1,7 @@
 // components/new-league/confidence.ts
 // Copy and numbers for the Lineup confidence card, and the draft-date rules
 // for the import modal. Pure, so the step can be tested without a browser.
-import { formatWeekDate, parseWeekDate } from '@/lib/dates'
+import { formatWeekDate, getMostRecentExpectedGameDate, isPastDeadline, leagueNow, parseWeekDate } from '@/lib/dates'
 
 export type Tone = 'muted' | 'sky' | 'lime'
 
@@ -22,6 +22,17 @@ export function shiftWeeks(date: string, weeks: number): string {
   const d = parseWeekDate(date)
   d.setDate(d.getDate() + 7 * weeks)
   return formatWeekDate(d)
+}
+
+/**
+ * The latest date a past game can carry: the most recent match day whose
+ * kick-off has passed, so tonight's game is never offered as a past result.
+ * Today for a league with no match day.
+ */
+export function latestPlayedMatchDay(dayIndex: number | null, kickoffTime: string | null | undefined): string {
+  const recent = dayIndex === null ? null : getMostRecentExpectedGameDate([], dayIndex)
+  if (!recent) return formatWeekDate(leagueNow())
+  return isPastDeadline(recent, kickoffTime) ? recent : shiftWeeks(recent, -1)
 }
 
 /** Where a new draft starts: a week before the oldest saved game, else the latest match day. */
