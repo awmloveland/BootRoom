@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { clearSetupDrafts } from '@/components/new-league/useSessionState'
 import { createClient } from '@/lib/supabase/client'
 
 /**
@@ -28,6 +29,7 @@ export default function ProfileRequiredPage() {
   async function signOut() {
     setBusy(true)
     await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' }).catch(() => {})
+    clearSetupDrafts()
     window.location.href = '/sign-in'
   }
 

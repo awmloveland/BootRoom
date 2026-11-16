@@ -4,9 +4,19 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 
 /** sessionStorage keys for league-setup answers not yet saved to the database. */
-export const DRAFT_KEY = 'new-league:draft'
-export const rosterKey = (slug: string) => `new-league:roster:${slug}`
-export const resultsKey = (slug: string) => `new-league:results:${slug}`
+const PREFIX = 'new-league:'
+export const DRAFT_KEY = `${PREFIX}draft`
+export const rosterKey = (slug: string) => `${PREFIX}roster:${slug}`
+export const resultsKey = (slug: string) => `${PREFIX}results:${slug}`
+
+/** Forgets every league setup draft in this tab. Run on sign-out, so the next person to sign in here starts clean. */
+export function clearSetupDrafts() {
+  try {
+    for (const key of Object.keys(sessionStorage)) if (key.startsWith(PREFIX)) sessionStorage.removeItem(key)
+  } catch {
+    // storage unavailable: nothing was stored either
+  }
+}
 
 /**
  * useState mirrored to the tab's sessionStorage, so a refresh or the Back

@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import { act, renderHook } from '@testing-library/react'
-import { useSessionState } from '@/components/new-league/useSessionState'
+import { clearSetupDrafts, DRAFT_KEY, resultsKey, rosterKey, useSessionState } from '@/components/new-league/useSessionState'
 
 beforeEach(() => sessionStorage.clear())
 
@@ -40,5 +40,13 @@ describe('useSessionState', () => {
     const { result } = renderHook(() => useSessionState('k', { n: 1 }))
     expect(result.current[0]).toEqual({ n: 1 })
     expect(result.current[2].loaded).toBe(true)
+  })
+})
+
+describe('clearSetupDrafts', () => {
+  it('removes every league setup draft and nothing else', () => {
+    for (const key of [DRAFT_KEY, rosterKey('hackney'), resultsKey('hackney'), 'something-else']) sessionStorage.setItem(key, '1')
+    clearSetupDrafts()
+    expect(Object.keys(sessionStorage)).toEqual(['something-else'])
   })
 })

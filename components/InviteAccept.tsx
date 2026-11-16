@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { AuthDialog } from '@/components/AuthDialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
+import { clearSetupDrafts } from '@/components/new-league/useSessionState'
 
 type Preview = {
   league_name: string
@@ -78,6 +79,7 @@ function MismatchCard({ token, targetEmail, currentEmail }: {
     await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' })
     const supabase = createClient()
     await supabase.auth.signOut()
+    clearSetupDrafts()
     window.location.href = `/invite?token=${encodeURIComponent(token)}`
   }
 
