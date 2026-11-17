@@ -4,7 +4,7 @@ import type { ReactElement } from 'react'
 import Link from 'next/link'
 import { usePathname, useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Settings, LogOut, Plus } from 'lucide-react'
+import { Settings, LogOut, Plus, Radar } from 'lucide-react'
 import { clearSetupDrafts } from '@/components/new-league/useSessionState'
 
 import {
@@ -215,7 +215,17 @@ export function Navbar({
             <AuthDialog redirect={slug ? `/${slug}` : '/'} size="xs" signinOnly />
           )}
           {showNav && user && (
-            <div className="flex items-center gap-0.5">
+            <div className="flex items-center gap-1.5">
+              {user.platformAdmin && (
+                <Link
+                  href="/platform"
+                  title="Platform"
+                  aria-label="Platform"
+                  className="flex size-[34px] shrink-0 items-center justify-center rounded-full border border-[#223a5c] bg-[#0c1728] text-[#7dd3fc] transition-colors hover:border-[#38bdf8] focus-visible:border-[#38bdf8] focus-visible:outline-none"
+                >
+                  <Radar className="size-4" />
+                </Link>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <AvatarButton name={displayName ?? ''} />
@@ -323,6 +333,16 @@ export function Navbar({
                         </p>
                       )}
                     </div>
+                    {user.platformAdmin && (
+                      <Link
+                        href="/platform"
+                        className="flex items-center gap-2 text-sm font-bold text-[#f4f9ff]"
+                        onClick={() => setSheetOpen(false)}
+                      >
+                        <Radar className="size-4" />
+                        Platform
+                      </Link>
+                    )}
                     <Link
                       href="/new"
                       className="flex items-center gap-2 text-sm font-bold text-[#f4f9ff]"

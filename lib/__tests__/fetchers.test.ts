@@ -342,7 +342,29 @@ describe('getNavSession', () => {
         { slug: 'boot-room', name: 'Boot Room', role: 'admin' },
         { slug: 'sunday', name: 'Sunday Sevens', role: 'member' },
       ],
+      platformAdmin: false,
     })
+  })
+
+  it('marks a viewer listed in PLATFORM_ADMIN_IDS as a platform admin', async () => {
+    const saved = process.env.PLATFORM_ADMIN_IDS
+    process.env.PLATFORM_ADMIN_IDS = 'someone-else, user-1'
+    try {
+      mockAuth(USER)
+      const profile = queryReturning({ first_name: 'Ada', last_name: 'Lovelace' })
+      const memberships = {
+        select: jest.fn(() => memberships),
+        eq: jest.fn(() => memberships),
+        overrideTypes: jest.fn().mockResolvedValue({ data: [], error: null }),
+      }
+      ;(createServiceClient as jest.Mock).mockReturnValue({
+        from: jest.fn((table: string) => (table === 'profiles' ? profile : memberships)),
+      })
+      await expect(getNavSession()).resolves.toMatchObject({ platformAdmin: true })
+    } finally {
+      if (saved === undefined) delete process.env.PLATFORM_ADMIN_IDS
+      else process.env.PLATFORM_ADMIN_IDS = saved
+    }
   })
 
   it('falls back to the email when the profile has no name', async () => {

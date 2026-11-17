@@ -38,7 +38,7 @@ const TAG_TONE = {
   amber: 'border-[#fbbf24]/40 bg-[#fbbf24]/10 text-[#fbbf24]',
 }
 
-function Tag({ tone = 'muted', children }: { tone?: keyof typeof TAG_TONE; children: React.ReactNode }) {
+export function Tag({ tone = 'muted', children }: { tone?: keyof typeof TAG_TONE; children: React.ReactNode }) {
   return (
     <span className={cn('rounded border px-1.5 py-[3px] font-plex text-[8.5px] font-bold uppercase tracking-[.14em]', TAG_TONE[tone])}>
       {children}
@@ -46,7 +46,7 @@ function Tag({ tone = 'muted', children }: { tone?: keyof typeof TAG_TONE; child
   )
 }
 
-function Cell({ label, children }: { label: string; children: React.ReactNode }) {
+export function Cell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="px-3 py-2.5">
       <p className="font-plex text-[8px] font-bold uppercase tracking-[.16em] text-[#6f88a8]">{label}</p>

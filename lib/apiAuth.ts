@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionUser, type SessionUser } from '@/lib/supabase/session'
+import { isPlatformAdmin } from '@/lib/platform'
 
 /** The subset of the session a route handler needs. */
 export type ApiUser = SessionUser
@@ -29,6 +30,19 @@ export async function requireLeagueAdmin(leagueId: string): Promise<AuthGate> {
   if (error) console.error('[apiAuth] is_game_admin failed', error)
   if (!isAdmin) return { response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
   return gate
+}
+
+/**
+ * The signed-in caller if they are a platform admin. Everyone else, signed
+ * in or not, gets a 404, so the routes look like they do not exist.
+ */
+export async function requirePlatformAdmin(): Promise<AuthGate> {
+  const supabase = await createClient()
+  const user = await getSessionUser(supabase)
+  if (!user || !isPlatformAdmin(user.id)) {
+    return { response: NextResponse.json({ error: 'Not found' }, { status: 404 }) }
+  }
+  return { user }
 }
 
 /**

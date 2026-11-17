@@ -196,6 +196,27 @@ export interface NavSession {
   displayName: string | null
   /** Every league the viewer belongs to: the navbar labels the current one Admin or Member and lists the rest to switch to. */
   leagues: { slug: string; name: string; role: GameRole }[]
+  /** True for the accounts in PLATFORM_ADMIN_IDS: the header shows them the Platform button. The list itself never leaves the server. */
+  platformAdmin: boolean
+}
+
+/** One row of platform_leagues(): a league as the platform admin portal lists it. */
+export interface PlatformLeague {
+  id: string
+  name: string
+  slug: string
+  created_at: string
+  location: string | null
+  day: string | null
+  kickoff_time: string | null
+  creator_name: string | null
+  creator_email: string | null
+  members: number
+  players: number
+  /** Weeks that were played or abandoned. */
+  results: number
+  /** When the newest week row was saved, or null with no weeks. */
+  last_activity: string | null
 }
 
 export interface ScheduledWeek {

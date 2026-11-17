@@ -45,6 +45,7 @@ BootRoom/
 │   ├── results/[id]/         # Legacy UUID URLs, redirect to /[slug]
 │   ├── settings/             # Account settings
 │   ├── invite/               # Invite accept page (consumes ?token=)
+│   ├── platform/             # Platform admin portal: every league, usage, delete (PLATFORM_ADMIN_IDS only)
 │   ├── api/                  # API routes
 │   └── globals.css           # Tailwind import, theme tokens, font utilities
 ├── components/
@@ -190,6 +191,7 @@ export interface LeagueMember {
 
 - **Proxy** (`proxy.ts`, Next 16's name for middleware) guards `/settings` and `/[slug]/settings`
 - Both require a Supabase session with a `profiles` row (checked in the proxy); `/[slug]/settings` also requires a creator or admin role (checked by the page, which redirects members to the league's results)
+- `/platform` and `/api/platform/*` are for platform admins: the user ids in `PLATFORM_ADMIN_IDS`, checked by `isPlatformAdmin()` in `lib/platform.ts`. Each page and route checks it itself and answers 404 to everyone else. They read and delete across leagues with the service-role client; never add an RLS policy for this, and never store the role in the database
 - Unauthenticated → redirect to `/sign-in?redirect=...`; authenticated but no profile → `/profile-required`
 - On every other page the proxy only refreshes a signed-in visitor's session and saves it back to the cookie (server components cannot write cookies, so they must never be the ones to refresh it); `SessionKeepAlive` in the root layout keeps it fresh in the browser while the site is open. Overview, Results and Players render read-only for signed-out visitors; Honours, Records, Line-up Lab and Admin check the session in the page and show a sign-in prompt instead (Admin also requires the admin tier)
 - Game days and kick-off deadlines are read on the league's clock (`leagueNow()` in `lib/utils.ts`, Europe/London), never the server's; Vercel runs functions in UTC and reserves the `TZ` variable
@@ -214,6 +216,7 @@ deploys. `.env.example` lists them with placeholders. Never commit real values.
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only | Service-role client (`lib/supabase/service`) and data scripts |
 | `RESEND_API_KEY` | Server only | Transactional email |
 | `SHARE_SIGNING_SECRET` | Server only | HMAC key for signed share links (line-ups, results, quarters, league) and their preview images (see `docs/superpowers/specs/2026-10-05-lineup-share-preview-image-design.md` and `2026-10-06-share-preview-images-design.md`). Missing → Share falls back to plain links and previews render the generic card. Rotating it invalidates every previously shared preview. |
+| `PLATFORM_ADMIN_IDS` | Server only | Comma-separated Supabase user ids allowed into the platform admin portal at `/platform`. Missing → the portal is a 404 for everyone. |
 
 Server-only variables must never be prefixed `NEXT_PUBLIC_` or read in client
 components.
