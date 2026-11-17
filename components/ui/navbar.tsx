@@ -30,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { AvatarButton } from '@/components/ui/AvatarButton'
+import { LeagueMenuItems, LeagueRows, MobileLeagueSwitcher, NavLeagueSwitcher } from '@/components/LeagueSwitcher'
 import { cn } from '@/lib/utils'
 import type { NavSession } from '@/lib/types'
 
@@ -134,7 +135,11 @@ export function Navbar({
 
   const user = session
   const displayName = session?.displayName ?? null
-  const currentRole = slug ? session?.leagues.find((l) => l.slug === slug)?.role : undefined
+  const leagues = session?.leagues ?? []
+  const currentLeague = slug ? leagues.find((l) => l.slug === slug) : undefined
+  const currentRole = currentLeague?.role
+  // The league this page belongs to, when the viewer has another to switch to.
+  const switchFrom = leagues.length > 1 ? currentLeague : undefined
   const isLeagueAdmin = currentRole === 'creator' || currentRole === 'admin'
 
   const showNav = pathname !== '/sign-in'
@@ -174,11 +179,19 @@ export function Navbar({
     <header className="sticky top-0 z-50 border-b border-[#101d31] bg-[rgba(6,11,20,.92)] backdrop-blur-[10px]">
       {/* Action bar — desktop: 3-column grid to centre nav tabs */}
       <div className="hidden sm:grid grid-cols-[1fr_auto_1fr] h-[60px] w-full max-w-[936px] mx-auto px-6 items-center">
-        {/* Left: logo */}
-        <Link href={logo.url} className="flex items-center gap-2.5 shrink-0 text-[#f4f9ff]">
-          <img src="/logo.png" alt="Craft Football" className="block h-[30px] w-[30px]" />
-          <span className="text-base font-bold tracking-[-.02em]">Craft Football</span>
-        </Link>
+        {/* Left: logo, then the league switcher */}
+        <div className="flex min-w-0 items-center gap-3">
+          <Link href={logo.url} className="flex items-center gap-2.5 shrink-0 text-[#f4f9ff]">
+            <img src="/logo.png" alt="Craft Football" className="block h-[30px] w-[30px]" />
+            <span className="text-base font-bold tracking-[-.02em]">Craft Football</span>
+          </Link>
+          {switchFrom && (
+            <>
+              <span aria-hidden className="text-lg font-light text-[#223a5c]">/</span>
+              <NavLeagueSwitcher leagues={leagues} current={switchFrom} />
+            </>
+          )}
+        </div>
 
         {/* Centre: nav tabs */}
         <div className="flex items-center justify-center gap-6">
@@ -207,7 +220,7 @@ export function Navbar({
                 <DropdownMenuTrigger asChild>
                   <AvatarButton name={displayName ?? ''} />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className={cn(leagues.length > 1 && 'w-[270px]')}>
                   <div className="px-2 py-1.5">
                     {displayName && (
                       <p className="font-inter-body text-[13px] font-semibold text-[#f4f9ff]">{displayName}</p>
@@ -218,6 +231,13 @@ export function Navbar({
                       </p>
                     )}
                   </div>
+                  {leagues.length > 1 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <LeagueMenuItems leagues={leagues} currentSlug={slug} />
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
                   <DropdownMenuItem asChild>
                     <Link href="/new">
                       <Plus className="size-4" />
@@ -244,10 +264,13 @@ export function Navbar({
 
       {/* Mobile action bar */}
       <div className="flex sm:hidden h-14 w-full items-center justify-between px-4">
-          <Link href={logo.url} className="flex items-center gap-2.5 shrink-0 text-[#f4f9ff]">
-            <img src="/logo.png" alt="Craft Football" className="block h-[30px] w-[30px]" />
-            <span className="text-[15px] font-bold tracking-[-.02em]">Craft Football</span>
-          </Link>
+          <div className="flex min-w-0 items-center gap-2.5 pr-3">
+            <Link href={logo.url} className="flex items-center gap-2.5 shrink-0 text-[#f4f9ff]">
+              <img src="/logo.png" alt="Craft Football" className="block h-[30px] w-[30px]" />
+              {!switchFrom && <span className="text-[15px] font-bold tracking-[-.02em]">Craft Football</span>}
+            </Link>
+            {switchFrom && <MobileLeagueSwitcher leagues={leagues} current={switchFrom} />}
+          </div>
           {showNav && !pending && !user && (
             <AuthDialog redirect={slug ? `/${slug}` : '/'} size="xs" signinOnly />
           )}
@@ -281,6 +304,12 @@ export function Navbar({
                           </Link>
                         ))}
                       </div>
+                    </div>
+                  )}
+                  {leagues.length > 1 && (
+                    <div>
+                      <p className="px-2 pb-2 font-plex text-[9px] font-bold uppercase tracking-[.16em] text-[#6f88a8]">Your leagues</p>
+                      <LeagueRows leagues={leagues} currentSlug={slug} onNavigate={() => setSheetOpen(false)} />
                     </div>
                   )}
                   <div className="border-t border-[#1b2c46] pt-4 flex flex-col gap-4">

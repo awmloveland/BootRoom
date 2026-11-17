@@ -3,7 +3,7 @@
 
 import type { Week, Winner, YearStats } from './types'
 import type { QuarterlyEntry } from './sidebar-stats'
-import { parseWeekDate } from './dates'
+import { getPlayedWeeks, parseWeekDate, sortWeeks } from './dates'
 
 /** Map winner value to display label. */
 export function formatWinner(winner: Winner): string {
@@ -149,4 +149,18 @@ export function ordinalSuffix(n: number): string {
     case 3: return 'rd'
     default: return 'th'
   }
+}
+
+/**
+ * A player's most recent played game from their side: 'Won by 2', 'Lost by 1',
+ * 'Drew'. The margin is left off when it was not recorded. Null when they have
+ * never played.
+ */
+export function lastGameResult(weeks: Week[], name: string): { result: 'W' | 'D' | 'L'; label: string } | null {
+  const week = sortWeeks(getPlayedWeeks(weeks)).find((w) => w.teamA.includes(name) || w.teamB.includes(name))
+  if (!week?.winner) return null
+  if (week.winner === 'draw') return { result: 'D', label: 'Drew' }
+  const won = (week.winner === 'teamA') === week.teamA.includes(name)
+  const margin = week.goal_difference ? ` by ${week.goal_difference}` : ''
+  return { result: won ? 'W' : 'L', label: `${won ? 'Won' : 'Lost'}${margin}` }
 }

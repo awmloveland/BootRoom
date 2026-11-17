@@ -86,7 +86,7 @@ export const getAuthAndRole = cache(async (leagueId: string) => {
 
 // ── Navbar session ────────────────────────────────────────────────────────────
 
-type MembershipRow = { role: GameRole; games: { slug: string } | null }
+type MembershipRow = { role: GameRole; games: { slug: string; name: string } | null }
 
 // The viewer's name and league roles for the navbar. One profile read and one
 // memberships read per request, both via the service client because the
@@ -99,7 +99,7 @@ export const getNavSession = cache(async (): Promise<NavSession | null> => {
     service.from('profiles').select('first_name, last_name').eq('id', user.id).maybeSingle(),
     service
       .from('game_members')
-      .select('role, games(slug)')
+      .select('role, games(slug, name)')
       .eq('user_id', user.id)
       .overrideTypes<MembershipRow[], { merge: false }>(),
   ])
@@ -114,7 +114,7 @@ export const getNavSession = cache(async (): Promise<NavSession | null> => {
     userId: user.id,
     email: user.email ?? null,
     displayName: fullName || user.email || null,
-    leagues: memberships.flatMap((m) => (m.games ? [{ slug: m.games.slug, role: m.role }] : [])),
+    leagues: memberships.flatMap((m) => (m.games ? [{ ...m.games, role: m.role }] : [])),
   }
 })
 
