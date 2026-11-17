@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import PlayerClaimPicker from '@/components/PlayerClaimPicker'
+import { clearSetupDrafts } from '@/components/new-league/useSessionState'
 import type { AccountData } from '@/lib/fetchers'
 
 function formatDate(iso: string): string {
@@ -89,6 +90,7 @@ export function AccountSettings({ account }: { account: AccountData }) {
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error ?? 'Failed to delete account')
       }
+      clearSetupDrafts()
       window.location.href = '/sign-in'
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete account')

@@ -31,4 +31,20 @@ describe('PATCH /api/league/[id]/details', () => {
     expect(update).toHaveBeenCalledWith({ name: 'Sunday Kickabout', location: null, day: null, kickoff_time: null, bio: null })
     expect(update.mock.calls[0][0]).not.toHaveProperty('slug')
   })
+
+  it.each([
+    ['a name over 80 characters', { name: 'x'.repeat(81) }],
+    ['a venue over 120 characters', { name: 'Sunday Kickabout', location: 'x'.repeat(121) }],
+    ['a bio over 500 characters', { name: 'Sunday Kickabout', bio: 'x'.repeat(501) }],
+    ['a kick-off that is not HH:MM', { name: 'Sunday Kickabout', kickoff_time: '8pm' }],
+  ])('returns 400 for %s and writes nothing', async (_label, body) => {
+    update.mockClear()
+    ;(createClient as jest.Mock).mockResolvedValue({
+      auth: mockAuthNamespace({ id: 'u1' }),
+      rpc: jest.fn().mockResolvedValue({ data: true, error: null }),
+    })
+    const res = await PATCH(patch(body), { params: Promise.resolve({ id: 'g1' }) })
+    expect(res.status).toBe(400)
+    expect(update).not.toHaveBeenCalled()
+  })
 })

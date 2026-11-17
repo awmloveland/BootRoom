@@ -27,6 +27,16 @@ export function generateSlug(name: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
+const SLUG_CODE_ALPHABET = 'bcdfghjkmnpqrstvwxyz23456789'
+
+/** The suffix on a new league's address. No vowels, so it never spells a word; no 0, 1 or l, so it is never misread. */
+export const SLUG_CODE = /^[bcdfghjkmnpqrstvwxyz2-9]{3}$/
+
+/** Three random characters for a league address. Not a secret, so the slight modulo bias does not matter. */
+export function slugCode(): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(3)), (n) => SLUG_CODE_ALPHABET[n % SLUG_CODE_ALPHABET.length]).join('')
+}
+
 /** Season (calendar year) a match date belongs to. `date` is 'DD MMM YYYY'; anything else throws. */
 export function seasonOfDate(date: string): string {
   const year = /^\d{2} [A-Za-z]{3} (\d{4})$/.exec(date)?.[1]

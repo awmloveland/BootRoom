@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Settings, LogOut, Plus } from 'lucide-react'
+import { clearSetupDrafts } from '@/components/new-league/useSessionState'
 
 import {
   Accordion,
@@ -147,6 +148,7 @@ export function Navbar({
 
   async function handleSignOut() {
     await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' })
+    clearSetupDrafts()
     // The server cleared the session cookies; re-render the layout so the
     // navbar and every page re-resolve as signed out.
     router.refresh()

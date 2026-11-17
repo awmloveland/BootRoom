@@ -72,6 +72,18 @@ export function startOfLeagueDay(iso: string): Date {
   return d
 }
 
+/**
+ * True once the league has played a game on or after the day it was created.
+ * Until then it is still being set up and the /new steps may edit it; after,
+ * it is run from Settings and the Results tab. Imported history is dated
+ * before creation, so it never counts. No creation date reads as established.
+ */
+export function isSetupOver(weeks: Week[], createdAt: string | null | undefined): boolean {
+  if (!createdAt) return true
+  const start = startOfLeagueDay(createdAt)
+  return getPlayedWeeks(weeks).some((w) => parseWeekDate(w.date) >= start)
+}
+
 /** Parse a 'DD MMM YYYY' date string into a Date at midnight on that day (compare it with leagueNow()). */
 export function parseWeekDate(date: string): Date {
   const [d, m, y] = date.split(' ')

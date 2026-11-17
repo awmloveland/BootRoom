@@ -47,6 +47,7 @@ describe('PUT /api/league/[id]/roster', () => {
     ['an empty list', { players: [] }],
     ['a bad entry', { players: [{ name: 'X', strength: 'huge', mentality: 'balanced' }] }],
     ['a duplicate name', { players: [ALICE, { ...ALICE, name: 'alice' }] }],
+    ['a name over 50 characters', { players: [{ ...ALICE, name: 'x'.repeat(51) }] }],
     ['too many', { players: Array.from({ length: 61 }, (_, i) => ({ ...ALICE, name: `P${i}` })) }],
   ])('returns 400 for %s', async (_label, body) => {
     setup(USER)
@@ -67,6 +68,17 @@ describe('PUT /api/league/[id]/roster', () => {
       ],
     })
     expect(revalidateTag).toHaveBeenCalledWith('league:g1', expect.anything())
+  })
+
+  it('keeps database detail out of an unexpected failure', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {})
+    setup(USER)
+    rpc.mockImplementation((name: string) =>
+      Promise.resolve(name === 'is_game_admin' ? { data: true, error: null } : { data: null, error: { message: 'deadlock detected' } }),
+    )
+    const res = await put({ players: [ALICE] })
+    expect(res.status).toBe(500)
+    await expect(res.json()).resolves.toEqual({ error: 'Could not save the roster. Try again.' })
   })
 
   it('maps an RPC error through rpcErrorStatus', async () => {

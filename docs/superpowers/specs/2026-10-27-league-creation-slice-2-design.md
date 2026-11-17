@@ -36,7 +36,9 @@ branch and is retargeted to main once #194 merges.
    `player_attributes` row (creator first, strength from the rating) so coming
    back from Live, or refreshing after a save, shows the list rather than an
    empty one. Saving again upserts the same names. It is still not a tool for
-   editing an established roster.
+   editing an established roster: once the league has played a game on or
+   after the day it was created (`isSetupOver` in `lib/dates.ts`, added
+   2026-11-17), these steps redirect to Settings, Players.
 6. **The list always ends in a blank row.** There is no Add button: the last
    row is an empty input, focusing it appends another blank beneath, Enter
    moves to the next row, and a blank row that is not last disappears on blur.

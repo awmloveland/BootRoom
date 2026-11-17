@@ -1,4 +1,4 @@
-import { lineupConfidence, nextDraftDate, shiftWeeks, sidesFormat } from '@/components/new-league/confidence'
+import { latestPlayedMatchDay, lineupConfidence, nextDraftDate, shiftWeeks, sidesFormat } from '@/components/new-league/confidence'
 
 describe('lineupConfidence', () => {
   it.each([
@@ -33,4 +33,27 @@ describe('draft dates', () => {
 it('names the format from the sides', () => {
   expect(sidesFormat(5, 5)).toBe('5-a-side')
   expect(sidesFormat(3, 4)).toBe('4v3')
+})
+
+// Thursday 19 Nov 2026; London is on GMT, so the clock times below are league time.
+describe('latestPlayedMatchDay', () => {
+  afterEach(() => jest.useRealTimers())
+  const at = (iso: string) => jest.useFakeTimers().setSystemTime(new Date(iso))
+
+  it('is last week on a match day before kick-off', () => {
+    at('2026-11-19T15:00:00Z')
+    expect(latestPlayedMatchDay(4, '20:00')).toBe('12 Nov 2026')
+  })
+  it('is today once the game has kicked off', () => {
+    at('2026-11-19T20:01:00Z')
+    expect(latestPlayedMatchDay(4, '20:00')).toBe('19 Nov 2026')
+  })
+  it('is the last match day on any other day', () => {
+    at('2026-11-21T10:00:00Z')
+    expect(latestPlayedMatchDay(4, '20:00')).toBe('19 Nov 2026')
+  })
+  it('is today for a league with no match day', () => {
+    at('2026-11-19T15:00:00Z')
+    expect(latestPlayedMatchDay(null, null)).toBe('19 Nov 2026')
+  })
 })

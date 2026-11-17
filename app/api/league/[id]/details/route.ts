@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { requireLeagueAdmin } from '@/lib/apiAuth'
 import { revalidateLeague } from '@/lib/leagueCache'
 import { NextResponse } from 'next/server'
+import { HH_MM, LEAGUE_DAYS, parseLeagueText } from '@/lib/leagueDetails'
 
 /** GET — public, reads location/day/kickoff_time/bio from games row */
 export async function GET(
@@ -34,8 +35,6 @@ export async function PATCH(
   const gate = await requireLeagueAdmin(id)
   if ('response' in gate) return gate.response
 
-  const VALID_DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
-
   let body: unknown
   try {
     body = await req.json()
@@ -43,13 +42,13 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const b = body as Record<string, unknown>
-  const location    = typeof b.location     === 'string' ? b.location.trim()     || null : null
-  const day         = typeof b.day          === 'string' && VALID_DAYS.includes(b.day) ? b.day : null
-  const kickoff_time = typeof b.kickoff_time === 'string' ? b.kickoff_time.trim() || null : null
-  const bio         = typeof b.bio          === 'string' ? b.bio.trim()          || null : null
-  const name = typeof b.name === 'string' ? b.name.trim() : ''
-  if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+  const b = body as Record<string, unknown> | null
+  const text = parseLeagueText(b)
+  if ('error' in text) return NextResponse.json(text, { status: 400 })
+  const { name, location, bio } = text
+  const day = typeof b?.day === 'string' && LEAGUE_DAYS.includes(b.day) ? b.day : null
+  const kickoff_time = typeof b?.kickoff_time === 'string' ? b.kickoff_time.trim() || null : null
+  if (kickoff_time && !HH_MM.test(kickoff_time)) return NextResponse.json({ error: 'Pick a kick-off time' }, { status: 400 })
 
   const service = createServiceClient()
   // The slug never changes on rename; it is returned so the form's redirect

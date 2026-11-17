@@ -23,8 +23,8 @@ on Live. Every imported game seeds the first line-ups. Branch
    re-imported or editable here; with no new drafts the primary reads
    "Finish". "Skip for now" goes to Live with nothing written.
 3. **Fees cut off at the league's creation, no new column.** The Admin money
-   page leaves out weeks dated before `games.created_at`. That page is the one
-   entry point to fee computation.
+   page leaves out weeks dated before `games.created_at`, and so does
+   `GET /api/league/[id]/fees` (added 2026-11-16).
 4. **Unrecorded weeks are never created for game days before `created_at`.**
    This replaces slice 1's "no weeks yet" guard. Imported history therefore
    never triggers a missed-week row, and a real game day after creation still
@@ -40,6 +40,12 @@ on Live. Every imported game seeds the first line-ups. Branch
 league, roster, day, created_at, admin check) → `ResultsStep` (client).
 `STEP_COUNT` becomes 7; the eyebrow reads 7/7 (8/8 for inline sign-ups).
 Strength's Continue routes here instead of Live.
+
+The step is for setup only (added 2026-11-17). Once the league has played a
+game on or after the day it was created, `ResultsScreen` redirects to the
+league and the import route answers 409: an import renumbers every week, which
+a running league should not have happen from a setup screen. Imported history
+is dated before creation, so importing never closes the step by itself.
 
 ## Results step (`ResultsStep`)
 
@@ -68,9 +74,11 @@ call. Four to six games is the sweet spot."
 Dialog like `EditWeekModal` (same frame, header "Game n" when editing a saved game and "New game" for a fresh draft, close). Sections:
 
 - **Date**: `‹ 8 Oct 2026 / Thursday ›` stepping one week on the league's match
-  day. Forward is disabled past the most recent match day on or before today.
-  A fresh draft starts one week before the earliest game on the list, or at
-  the most recent match day if none, with empty line-ups.
+  day. Forward is disabled past the most recent match day whose kick-off has
+  passed, so tonight's game is never offered as a past result (changed
+  2026-11-16; it was "on or before today"). A fresh draft starts one week
+  before the earliest game on the list, or at that match day if none, with
+  empty line-ups.
 - **Lineups**: `LineupEditor` with the roster plus a dashed "+ Add player" pill
   under it that opens `AddRosterPlayerModal`; a new player joins the roster
   list and the smaller side.
@@ -104,9 +112,12 @@ date then `created_at`, via a temporary offset so the unique constraint holds.
 
 `requireLeagueAdmin`. Body `{ games: [{ date, teamA, teamB, winner,
 goalDifference }] }`, 1 to 200 entries, date matching `/^\d{2} [A-Z][a-z]{2}
-\d{4}$/`, arrays of non-blank strings, winner in the three values, integer
-margin. Calls the RPC once, `revalidateLeague`, returns `{ ok, count }`.
-`already_exists` → 409 via `rpcErrorStatus`.
+\d{4}$/`, each side 1 to 30 names (trimmed, non-blank, at most 50 characters,
+nobody twice in one game), winner in the three values, integer margin. Calls
+the RPC once, `revalidateLeague`, returns `{ ok, count }`.
+`already_exists` → 409 via `rpcErrorStatus`. On a 409 the step re-reads the
+league's games and drops any stored draft on a date the league now holds, so
+an import whose reply was lost does not leave the step stuck.
 
 ### `ensureUnrecordedWeek(leagueId, weeks, leagueDayIndex?, createdAt?)`
 

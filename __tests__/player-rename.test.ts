@@ -22,4 +22,9 @@ describe('parseRenameName', () => {
     expect(parseRenameName(42)).toBeNull()
     expect(parseRenameName(undefined)).toBeNull()
   })
+
+  it('returns null for a name over 50 characters', () => {
+    expect(parseRenameName('x'.repeat(50))).toBe('x'.repeat(50))
+    expect(parseRenameName('x'.repeat(51))).toBeNull()
+  })
 })
