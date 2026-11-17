@@ -13,7 +13,10 @@ export default async function LeagueLayout({ children, params }: Props) {
   const { slug } = await params
   // Resolve slug → game (includes UUID). Warm shared fetchers without awaiting them.
   // Pages call these same cached functions — no extra DB queries.
-  let game = await getGameBySlug(slug)
+  // A failed read is left for the page to rethrow: thrown here it would skip
+  // this segment's error.tsx, which only wraps what the layout renders.
+  const game = await getGameBySlug(slug).catch(() => undefined)
+  if (game === undefined) return <>{children}</>
   if (!game) {
     // Old URLs used /{uuid}/subpath — detect UUID in slug position and redirect,
     // preserving the sub-path (results, players, settings, etc.).
