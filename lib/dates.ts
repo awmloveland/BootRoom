@@ -34,7 +34,7 @@ export function formatMonthYear(date: string): string {
 }
 
 export const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const DAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+export const DAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -63,6 +63,13 @@ export function leagueNow(at: number | Date = Date.now()): Date {
     if (part.type !== 'literal') parts[part.type] = Number(part.value)
   }
   return new Date(parts.year, parts.month - 1, parts.day, parts.hour % 24, parts.minute, parts.second)
+}
+
+/** Midnight, league time, of the day an ISO timestamp falls on. */
+export function startOfLeagueDay(iso: string): Date {
+  const d = leagueNow(new Date(iso))
+  d.setHours(0, 0, 0, 0)
+  return d
 }
 
 /** Parse a 'DD MMM YYYY' date string into a Date at midnight on that day (compare it with leagueNow()). */
