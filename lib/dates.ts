@@ -34,6 +34,7 @@ export function formatMonthYear(date: string): string {
 }
 
 export const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const DAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -163,6 +164,39 @@ export function parseKickoffTime(value: string | null | undefined): { hours: num
 }
 
 /**
+ * A kick-off typed into the league setup stepper: '8', '8:15', '8.30',
+ * '20:15', '8pm', '8.30pm', '8:30 pm'. `period` is the half of the day the
+ * stepper currently shows and applies to bare hours from 6 to 12, so editing
+ * "8:15 pm" to "8:30" keeps the evening; bare hours 1 to 5 are always pm.
+ * Minutes round to the nearest quarter hour. Returns 'HH:MM' (what
+ * games.kickoff_time stores) or null for anything unreadable.
+ */
+export function parseKickoffInput(text: string, period: 'am' | 'pm' = 'pm'): string | null {
+  const m = text.trim().toLowerCase().match(/^(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?$/)
+  if (!m) return null
+  let hours = Number(m[1])
+  const minutes = Number(m[2] ?? 0)
+  if (hours === 0 || minutes > 59) return null
+  const suffix = m[3] as 'am' | 'pm' | undefined
+  if (suffix) {
+    if (hours > 12) return null
+    hours = (hours % 12) + (suffix === 'pm' ? 12 : 0)
+  } else if (hours > 23) {
+    return null
+  } else if (hours < 6) {
+    hours += 12
+  } else if (hours <= 12) {
+    hours = (hours % 12) + (period === 'pm' ? 12 : 0)
+  }
+  let rounded = Math.round(minutes / 15) * 15
+  if (rounded === 60) {
+    rounded = 0
+    hours = (hours + 1) % 24
+  }
+  return `${String(hours).padStart(2, '0')}:${String(rounded).padStart(2, '0')}`
+}
+
+/**
  * True once a game on `dateStr` ('DD MMM YYYY', league time) is waiting for its
  * result: from the league's kick-off time when it has one, otherwise from 20:00.
  */
@@ -187,6 +221,12 @@ export function isAwaitingWindowOver(dateStr: string): boolean {
 export function formatFixtureDate(date: string): string {
   const [day, month] = date.split(' ')
   return `${DAY_SHORT[parseWeekDate(date).getDay()]} ${day.padStart(2, '0')} ${month}`
+}
+
+/** 'DD MMM YYYY' → 'Thursday 30 Oct', for sentences. */
+export function formatLongFixtureDate(date: string): string {
+  const [day, month] = date.split(' ')
+  return `${DAY_LONG[parseWeekDate(date).getDay()]} ${parseInt(day, 10)} ${month}`
 }
 
 /**

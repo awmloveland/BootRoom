@@ -1,7 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireLeagueAdmin } from '@/lib/apiAuth'
 import { revalidateLeague } from '@/lib/leagueCache'
-import { resolveUniqueSlug } from '@/lib/slug'
 import { NextResponse } from 'next/server'
 
 /** GET — public, reads location/day/kickoff_time/bio from games row */
@@ -26,7 +25,7 @@ export async function GET(
   return NextResponse.json({ ...game, player_count })
 }
 
-/** PATCH — admin-only, updates the details and re-slugs the league from its name. Returns { ok, slug }. */
+/** PATCH — admin-only, updates the details. The slug is fixed at creation, so it never changes here. Returns { ok, slug }. */
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -53,20 +52,17 @@ export async function PATCH(
   if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
   const service = createServiceClient()
-  // The slug lookup is cached under its own tag, so the old slug needs
-  // invalidating as well as the new one.
+  // The slug never changes on rename; it is returned so the form's redirect
+  // logic keeps working unchanged.
   const { data: current } = await service.from('games').select('slug').eq('id', id).maybeSingle()
-  const currentSlug = (current?.slug as string | null | undefined) ?? null
-
-  const slug = await resolveUniqueSlug(name, id)
+  const slug = (current?.slug as string | null | undefined) ?? null
 
   const { error } = await service
     .from('games')
-    .update({ name, slug, location, day, kickoff_time, bio })
+    .update({ name, location, day, kickoff_time, bio })
     .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  revalidateLeague(id, [currentSlug, slug].filter((s): s is string => Boolean(s)))
-  // The slug follows the name, so the form can move to the league's new address.
+  revalidateLeague(id, slug ? [slug] : [])
   return NextResponse.json({ ok: true, slug })
 }

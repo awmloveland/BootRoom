@@ -49,6 +49,18 @@ describe('proxy', () => {
     expect([...location.searchParams]).toEqual([['redirect', '/craft-football/settings?tab=members']])
   })
 
+  it('sends signed-out visitors on /new to /sign-in', async () => {
+    const res = await proxy(new NextRequest('https://craft-football.com/new'))
+    const location = new URL(res.headers.get('location')!)
+    expect(location.pathname).toBe('/sign-in')
+    expect([...location.searchParams]).toEqual([['redirect', '/new']])
+  })
+
+  it('does not guard a league slug that merely starts with "new"', async () => {
+    const res = await proxy(new NextRequest('https://craft-football.com/newcastle-fives'))
+    expect(res.headers.get('location')).toBeNull()
+  })
+
   it('sends signed-in users with no profile to /profile-required', async () => {
     claims = { sub: 'u1' }
     const res = await proxy(signedInRequest('https://craft-football.com/settings?tab=leagues'))
