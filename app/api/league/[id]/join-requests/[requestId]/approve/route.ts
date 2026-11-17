@@ -39,10 +39,9 @@ export async function POST(
   // create_player inserts a player_attributes row the public stats read.
   revalidateLeague(id)
 
-  const origin = request.headers.get('origin') ?? 'https://craft-football.com'
   // after() keeps the function alive until the email is sent; Vercel may stop it once the response is out.
   after(() =>
-    notifyRequesterOfReview(requestId, 'approved', origin)
+    notifyRequesterOfReview(requestId, 'approved')
       .catch(err => console.error('[email:notifyRequesterOfReview]', err))
   )
 

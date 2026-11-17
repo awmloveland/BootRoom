@@ -22,7 +22,8 @@ const ENCODED_SIG_RE = /^[A-Za-z0-9_-]{16}$/
 const UUID_HEX_RE = /^[0-9a-f]{32}$/
 const QUARTER_RE = /^(\d{4})([1-4])$/
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const SITE = 'https://craft-football.com'
+// Every link the app hands out uses this, never a request header, which a caller can forge.
+export const SITE = 'https://craft-football.com'
 
 export interface LineupTeams {
   teamA: string[]

@@ -72,13 +72,11 @@ export async function POST(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 
-  const origin = request.headers.get('origin') ?? 'https://craft-football.com'
   // after() keeps the function alive until the email is sent; Vercel may stop it once the response is out.
   after(() =>
     notifyAdminsOfJoinRequest(
       id,
-      { userId: gate.user.id, email: gate.user.email ?? '', message },
-      origin
+      { userId: gate.user.id, email: gate.user.email ?? '', message }
     ).catch(err => console.error('[email:notifyAdminsOfJoinRequest]', err))
   )
 

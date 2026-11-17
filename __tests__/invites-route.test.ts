@@ -49,4 +49,23 @@ describe('POST /api/invites', () => {
     expect(res.status).toBe(403)
     expect(rpc).toHaveBeenCalledWith('is_game_admin', { p_game_id: 'g1' })
   })
+
+  it('builds the invite link on the site domain, ignoring a forged Origin', async () => {
+    setup({ id: 'u1', email: 'a@example.com' }, true)
+    const upsert = jest.fn().mockResolvedValue({ error: null })
+    ;(createClient as jest.Mock).mockResolvedValue({
+      auth: mockAuthNamespace({ id: 'u1', email: 'a@example.com' }),
+      rpc,
+      from: jest.fn(() => ({ upsert })),
+    })
+    const req = new Request('http://localhost/api/invites', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: 'https://evil.example' },
+      body: JSON.stringify({ gameId: 'g1', email: 'b@example.com', role: 'member' }),
+    })
+    const res = await createInvite(req)
+    expect(res.status).toBe(200)
+    const { link } = await res.json()
+    expect(link).toMatch(/^https:\/\/craft-football\.com\/invite\?token=/)
+  })
 })

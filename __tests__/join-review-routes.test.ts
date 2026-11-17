@@ -68,6 +68,23 @@ describe('POST join-requests', () => {
     await submitRequest(post({ played_before: 'yes' }) as never, { params: Promise.resolve({ id: 'g1' }) })
     expect(rpc.mock.calls[0][1].p_played_before).toBeNull()
   })
+
+  it('ignores a forged Origin when notifying admins', async () => {
+    setup()
+    const req = new Request('http://localhost/api', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: 'https://evil.example' },
+      body: JSON.stringify({ message: null }),
+    })
+    const res = await submitRequest(req as never, { params: Promise.resolve({ id: 'g1' }) })
+    expect(res.status).toBe(201)
+    expect(notifyAdminsOfJoinRequest).toHaveBeenCalledWith('g1', {
+      userId: 'u1',
+      email: 'a@example.com',
+      message: null,
+    })
+    expect(JSON.stringify((notifyAdminsOfJoinRequest as jest.Mock).mock.calls)).not.toContain('evil')
+  })
 })
 
 describe('POST join-requests/[requestId]/approve', () => {
@@ -93,7 +110,7 @@ describe('POST join-requests/[requestId]/approve', () => {
       p_player_name: 'John Easton',
       p_create_player: true,
     })
-    expect(notifyRequesterOfReview).toHaveBeenCalledWith('r1', 'approved', expect.any(String))
+    expect(notifyRequesterOfReview).toHaveBeenCalledWith('r1', 'approved')
   })
 
   it('maps a name clash to 409 with a readable message', async () => {
