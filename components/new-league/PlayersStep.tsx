@@ -10,6 +10,7 @@ import { PlayerRow } from './PlayerRow'
 import type { RosterPlayer } from './RosterWizard'
 
 interface Props {
+  stepOffset: number
   /** The list, always ending in at least one blank row. */
   players: RosterPlayer[]
   onAdd: (names: string[]) => void
@@ -28,7 +29,7 @@ function focusNextRow(input: HTMLInputElement) {
   input.closest('li')?.nextElementSibling?.querySelector('input')?.focus()
 }
 
-export function PlayersStep({ players, onAdd, onAddBlank, onRename, onRemove, onNext }: Props) {
+export function PlayersStep({ players, onAdd, onAddBlank, onRename, onRemove, onNext, stepOffset }: Props) {
   const [draft, setDraft] = useState('')
   const [pasteMode, setPasteMode] = useState(false)
 
@@ -50,7 +51,7 @@ export function PlayersStep({ players, onAdd, onAddBlank, onRename, onRemove, on
 
   return (
     <StepShell
-      eyebrow={<StepEyebrow n={4} />}
+      eyebrow={<StepEyebrow n={4} offset={stepOffset} />}
       title="Who plays?"
       sub="Add the regulars by name. They do not need an account yet."
       action={<button type="button" className={PRIMARY_BUTTON} disabled={count < MIN_PLAYERS || !!dupe} onClick={onNext}>Continue</button>}

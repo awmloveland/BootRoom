@@ -7,12 +7,13 @@ import { FIELD, PRIMARY_BUTTON, SECONDARY_LINK, StepEyebrow, StepShell } from '.
 import type { LeagueDraft } from './NewLeagueWizard'
 
 interface Props {
+  stepOffset: number
   draft: LeagueDraft
   onChange: (patch: Partial<LeagueDraft>) => void
   onNext: () => void
 }
 
-export function NameStep({ draft, onChange, onNext }: Props) {
+export function NameStep({ draft, onChange, onNext, stepOffset }: Props) {
   const [showBio, setShowBio] = useState(draft.bio !== '')
   // The server's resolved address (adds -2 when the name is taken), keyed by
   // the name it was asked for so a stale answer never shows for a newer name.
@@ -37,7 +38,7 @@ export function NameStep({ draft, onChange, onNext }: Props) {
 
   return (
     <StepShell
-      eyebrow={<StepEyebrow n={1} />}
+      eyebrow={<StepEyebrow n={1} offset={stepOffset} />}
       title="What is your league called?"
       sub="This becomes your link too. It is set now and stays put if you rename the league later."
       action={<button type="button" className={PRIMARY_BUTTON} disabled={!canContinue} onClick={onNext}>Continue</button>}

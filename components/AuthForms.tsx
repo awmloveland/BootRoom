@@ -3,7 +3,7 @@
 // The three auth forms, in their own module so the Supabase browser client
 // they need is only downloaded when someone opens the sign-in dialog.
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { NO_ACCOUNT, resendCode, sendSignInCode, sendSignUpCode, verifyCode } from '@/lib/supabase/otp'
 import { cn } from '@/lib/utils'
 
 const inputClass =
@@ -33,16 +33,9 @@ export function VerifyStep({
     }
     setLoading(true)
     setMessage(null)
-    const supabase = createClient()
-    const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' })
-    if (error) {
-      setMessage({ type: 'error', text: 'Invalid or expired code. Try sending a new one.' })
-      setLoading(false)
-      return
-    }
-    const { error: claimErr } = await supabase.rpc('claim_profile')
-    if (claimErr) {
-      setMessage({ type: 'error', text: `Profile setup failed: ${claimErr.message}` })
+    const err = await verifyCode(email, code)
+    if (err) {
+      setMessage({ type: 'error', text: err })
       setLoading(false)
       return
     }
@@ -55,10 +48,9 @@ export function VerifyStep({
   async function handleResend() {
     setResending(true)
     setMessage(null)
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOtp({ email })
+    const error = await resendCode(email)
     if (error) {
-      setMessage({ type: 'error', text: error.message })
+      setMessage({ type: 'error', text: error })
     } else {
       setMessage({ type: 'success', text: 'Code resent. Check your email.' })
     }
@@ -138,18 +130,14 @@ export function SignInForm({
     e.preventDefault()
     setLoading(true)
     setError(null)
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: { shouldCreateUser: false },
-    })
+    const error = await sendSignInCode(email.trim().toLowerCase())
     if (error) {
       setError(
-        /user.not.found|no user|signups not allowed/i.test(error.message)
+        NO_ACCOUNT.test(error)
           ? signinOnly
             ? "No account found for this email. Ask your admin for an invite."
             : "No account found for this email. Use 'Create account' to get started."
-          : error.message
+          : error
       )
       setLoading(false)
       return
@@ -225,21 +213,9 @@ export function SignUpForm({
     e.preventDefault()
     setLoading(true)
     setError(null)
-    const supabase = createClient()
-    const displayName = `${firstName.trim()} ${lastName.trim()}`.trim()
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: {
-        shouldCreateUser: true,
-        data: {
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          display_name: displayName,
-        },
-      },
-    })
+    const error = await sendSignUpCode(firstName.trim(), lastName.trim(), email.trim().toLowerCase())
     if (error) {
-      setError(error.message)
+      setError(error)
       setLoading(false)
       return
     }

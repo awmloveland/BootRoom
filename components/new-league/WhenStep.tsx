@@ -11,6 +11,7 @@ import type { LeagueDraft } from './NewLeagueWizard'
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 interface Props {
+  stepOffset: number
   draft: LeagueDraft
   onChange: (patch: Partial<LeagueDraft>) => void
   onSubmit: () => void
@@ -31,7 +32,7 @@ function stepTime(time: string, minutes: number): string {
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 }
 
-export function WhenStep({ draft, onChange, onSubmit, submitting, error }: Props) {
+export function WhenStep({ draft, onChange, onSubmit, submitting, error, stepOffset }: Props) {
   const [display, suffix] = to12h(draft.time)
   // The text while the kick-off input is being edited; null when it shows the saved time.
   const [typed, setTyped] = useState<string | null>(null)
@@ -55,7 +56,7 @@ export function WhenStep({ draft, onChange, onSubmit, submitting, error }: Props
 
   return (
     <StepShell
-      eyebrow={<StepEyebrow n={3} />}
+      eyebrow={<StepEyebrow n={3} offset={stepOffset} />}
       title="When do you play?"
       sub={`Same slot every week. Your first match goes in the diary for the next ${draft.day}.`}
       action={

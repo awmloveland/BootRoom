@@ -8,15 +8,16 @@ import { PlayerRow } from './PlayerRow'
 import type { RosterPlayer } from './RosterWizard'
 
 interface Props {
+  stepOffset: number
   players: RosterPlayer[]
   onChange: (id: string, mentality: Mentality) => void
   onNext: () => void
 }
 
-export function MentalityStep({ players, onChange, onNext }: Props) {
+export function MentalityStep({ players, onChange, onNext, stepOffset }: Props) {
   return (
     <StepShell
-      eyebrow={<StepEyebrow n={5} />}
+      eyebrow={<StepEyebrow n={5} offset={stepOffset} />}
       title="How does each of them play?"
       sub="GK is a dedicated keeper, in goal every game. Defensive, balanced and attacking help spread the shape across both sides."
       action={<button type="button" className={PRIMARY_BUTTON} onClick={onNext}>Continue</button>}

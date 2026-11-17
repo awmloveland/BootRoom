@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { ratingToStrength } from '@/lib/strength'
 import { leagueLandingPath, VIEWPORT_COOKIE } from '@/lib/utils'
 import type { Mentality } from '@/lib/types'
+import { NEW_VISITOR_COOKIE } from './StepShell'
 import { RosterWizard, type RosterPlayer } from './RosterWizard'
 
 /**
@@ -40,5 +41,5 @@ export async function RosterScreen({ slug }: { slug: string }) {
     strength: ratingToStrength(Number(r.rating)) ?? 'average',
   }))
   const initial = [...saved.filter((p) => p.you), ...saved.filter((p) => !p.you)]
-  return <RosterWizard leagueId={game.id} slug={slug} initial={initial} />
+  return <RosterWizard leagueId={game.id} slug={slug} initial={initial} stepOffset={(await cookies()).get(NEW_VISITOR_COOKIE) ? 1 : 0} />
 }
