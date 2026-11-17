@@ -30,3 +30,8 @@ export function cancelWeek(leagueId: string, input: CancelWeekInput): Promise<{ 
 export function recordResult(leagueId: string, weekId: string, input: RecordResultInput): Promise<void> {
   return send(`/api/league/${leagueId}/weeks/${weekId}/result`, 'POST', input)
 }
+
+/** Platform admins only. `confirm` is the league's address, as typed. */
+export function deletePlatformLeague(leagueId: string, confirm: string): Promise<void> {
+  return send(`/api/platform/leagues/${leagueId}`, 'DELETE', { confirm })
+}

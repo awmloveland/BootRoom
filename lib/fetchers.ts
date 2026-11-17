@@ -6,6 +6,7 @@ import { getSessionUser, type SessionUser } from '@/lib/supabase/session'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sortWeeks, seasonOfDate, getMostRecentExpectedGameDate, getNextWeekNumber, isPastDeadline, parseWeekDate, startOfLeagueDay } from '@/lib/utils'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
+import { isPlatformAdmin } from '@/lib/platform'
 import type { GameRole, LeagueFeature, NavSession, Player, Week, JoinRequestStatus, PendingJoinRequest, PendingRequestSummary, PlayerClaimStatus, LeagueMember, PlayerAttribute, PlayerClaim } from '@/lib/types'
 import { ratingToStrength } from '@/lib/strength'
 import { parseLineupMetadata } from '@/lib/lineupMetadata'
@@ -115,6 +116,7 @@ export const getNavSession = cache(async (): Promise<NavSession | null> => {
     email: user.email ?? null,
     displayName: fullName || user.email || null,
     leagues: memberships.flatMap((m) => (m.games ? [{ ...m.games, role: m.role }] : [])),
+    platformAdmin: isPlatformAdmin(user.id),
   }
 })
 
