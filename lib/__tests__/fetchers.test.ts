@@ -324,8 +324,8 @@ describe('getNavSession', () => {
       eq: jest.fn(() => memberships),
       overrideTypes: jest.fn().mockResolvedValue({
         data: [
-          { role: 'admin', games: { slug: 'boot-room' } },
-          { role: 'member', games: { slug: 'sunday' } },
+          { role: 'admin', games: { slug: 'boot-room', name: 'Boot Room' } },
+          { role: 'member', games: { slug: 'sunday', name: 'Sunday Sevens' } },
         ],
         error: null,
       }),
@@ -339,8 +339,8 @@ describe('getNavSession', () => {
       email: 'a@b.c',
       displayName: 'Ada Lovelace',
       leagues: [
-        { slug: 'boot-room', role: 'admin' },
-        { slug: 'sunday', role: 'member' },
+        { slug: 'boot-room', name: 'Boot Room', role: 'admin' },
+        { slug: 'sunday', name: 'Sunday Sevens', role: 'member' },
       ],
     })
   })
@@ -367,7 +367,7 @@ describe('getNavSession', () => {
       eq: jest.fn(() => memberships),
       overrideTypes: jest.fn().mockResolvedValue({
         data: [
-          { role: 'admin', games: { slug: 'boot-room' } },
+          { role: 'admin', games: { slug: 'boot-room', name: 'Boot Room' } },
           { role: 'member', games: null },
         ],
         error: null,
@@ -377,7 +377,7 @@ describe('getNavSession', () => {
       from: jest.fn((table: string) => (table === 'profiles' ? profile : memberships)),
     })
     const session = await getNavSession()
-    expect(session?.leagues).toEqual([{ slug: 'boot-room', role: 'admin' }])
+    expect(session?.leagues).toEqual([{ slug: 'boot-room', name: 'Boot Room', role: 'admin' }])
   })
 
   it('logs and degrades when the memberships read fails', async () => {

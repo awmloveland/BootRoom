@@ -194,8 +194,8 @@ export interface NavSession {
   email: string | null
   /** "First Last", falling back to the email, as the avatar menu shows it. */
   displayName: string | null
-  /** Every league the viewer belongs to, so the navbar can label the current one Admin or Member. */
-  leagues: { slug: string; role: GameRole }[]
+  /** Every league the viewer belongs to: the navbar labels the current one Admin or Member and lists the rest to switch to. */
+  leagues: { slug: string; name: string; role: GameRole }[]
 }
 
 export interface ScheduledWeek {
