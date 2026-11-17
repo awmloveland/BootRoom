@@ -104,6 +104,7 @@ export function LeagueSettings({
   // Both invite links are created when the Members tab is first shown.
   useEffect(() => {
     if (section !== 'members' || memberLink || adminLink) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetches run when the Members tab opens
     fetchInviteLink('member')
     fetchInviteLink('admin')
     // eslint-disable-next-line react-hooks/exhaustive-deps
