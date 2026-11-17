@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/apiAuth'
-import { MAX_PLAYER_NAME } from '@/lib/playerUtils'
 import { notifyAdminsOfJoinRequest } from '@/lib/email/send-join-request-notifications'
+import { MAX_PLAYER_NAME } from '@/lib/playerUtils'
 
 /** GET — return pending join requests for a league. Admin/creator only. */
 export async function GET(
