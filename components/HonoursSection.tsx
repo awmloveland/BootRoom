@@ -368,10 +368,13 @@ export function HonoursSection({ data, leagueName, leagueSlug, liveTable = null,
       yearGroup.quarters.some((q) => `${q.year}-${q.q}` === key)
     )
     if (!exists) return
-    setOpenKey(key)
-    // Wait a frame so the card is rendered/expanded before scrolling to it.
+    // The hash is only readable after hydration, so open the card from a
+    // frame callback, then wait a frame for it to expand before scrolling.
     requestAnimationFrame(() => {
-      document.getElementById(`q-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      setOpenKey(key)
+      requestAnimationFrame(() => {
+        document.getElementById(`q-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
     })
   }, [data])
 
