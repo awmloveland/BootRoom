@@ -10,7 +10,6 @@ import { LineupLabDemo } from '@/components/landing/LineupLabDemo'
 import { Marquee } from '@/components/landing/Marquee'
 import { ResultsShowcase } from '@/components/landing/ResultsShowcase'
 import { StatsDemo } from '@/components/landing/StatsDemo'
-import { WaitlistSection } from '@/components/landing/WaitlistSection'
 
 /** Marketing landing page shown at / for signed-out visitors. */
 export function LandingPage() {
@@ -27,7 +26,6 @@ export function LandingPage() {
       <HowItWorks />
       <FaqAccordion />
       <BetaStats />
-      <WaitlistSection />
       <LandingFooter />
     </div>
   )

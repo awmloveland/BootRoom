@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { LoginLink } from '@/components/landing/LoginLink'
 
 const PRODUCT_LINKS = [
@@ -33,7 +34,7 @@ export function LandingFooter() {
           <div className="flex flex-col gap-[9px]">
             <p className="mb-[3px] font-plex text-[9px] font-semibold tracking-[.18em] text-[#4f688a]">ACCOUNT</p>
             <LoginLink className={footerLinkClass}>Log in</LoginLink>
-            <a href="#waitlist" className={footerLinkClass}>Register interest</a>
+            <Link href="/new" className={footerLinkClass}>Start your league</Link>
           </div>
         </div>
       </div>
