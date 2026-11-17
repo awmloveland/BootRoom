@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireLeagueAdmin, rpcErrorResponse, rpcErrorStatus } from '@/lib/apiAuth'
 import { revalidateLeague } from '@/lib/leagueCache'
+import { getGame, getWeeks } from '@/lib/fetchers'
+import { isSetupOver } from '@/lib/dates'
 import { MAX_PLAYER_NAME } from '@/lib/playerUtils'
 import type { Winner } from '@/lib/types'
 
@@ -41,7 +43,8 @@ function parseGame(v: unknown): ImportGame | null {
 /**
  * POST — admin only. Writes past results entered during league setup through
  * import_weeks, which validates dates, sides, winners and margins again,
- * renumbers the league's weeks and adds roster rows for new names.
+ * renumbers the league's weeks and adds roster rows for new names. Refused
+ * (409) once the league has played a game on or after its creation day.
  * Body: { games: [{ date: 'DD MMM YYYY', teamA, teamB, winner, goalDifference }] }.
  */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -56,6 +59,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
   const games = raw.map(parseGame)
   if (games.some((g) => g === null)) return NextResponse.json({ error: 'Invalid game' }, { status: 400 })
+
+  // The import renumbers every week of the league, so it is for setup only.
+  const [league, weeks] = await Promise.all([getGame(id), getWeeks(id)])
+  if (isSetupOver(weeks, league?.created_at)) {
+    return NextResponse.json({ error: 'This league has already played a game. Record results from the Results tab.' }, { status: 409 })
+  }
 
   const supabase = await createClient()
   const { data: count, error } = await supabase.rpc('import_weeks', {

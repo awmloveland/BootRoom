@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { mockAuthNamespace } from '@/lib/__tests__/helpers/supabase-auth'
 import { revalidateTag } from 'next/cache'
+import { getGame, getWeeks } from '@/lib/fetchers'
 
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 jest.mock('next/cache', () => ({ revalidateTag: jest.fn() }))
+jest.mock('@/lib/fetchers', () => ({ getGame: jest.fn(), getWeeks: jest.fn() }))
 
 import { POST } from '@/app/api/league/[id]/weeks/import/route'
 
@@ -14,6 +16,9 @@ const rpc = jest.fn()
 function setup(user: typeof USER | null, isAdmin = true, result: { data: unknown; error: { message: string } | null } = { data: 2, error: null }) {
   rpc.mockImplementation((name: string) => Promise.resolve(name === 'is_game_admin' ? { data: isAdmin, error: null } : result))
   ;(createClient as jest.Mock).mockResolvedValue({ auth: mockAuthNamespace(user), rpc })
+  // A league created on 9 Nov 2026 with nothing played since.
+  ;(getGame as jest.Mock).mockResolvedValue({ created_at: '2026-11-09T19:30:00Z' })
+  ;(getWeeks as jest.Mock).mockResolvedValue([])
 }
 
 function post(body: unknown) {
@@ -68,6 +73,15 @@ describe('POST /api/league/[id]/weeks/import', () => {
       ],
     })
     expect(revalidateTag).toHaveBeenCalledWith('league:g1', expect.anything())
+  })
+
+  it('refuses a league that has played a game since it was created', async () => {
+    setup(USER)
+    ;(getWeeks as jest.Mock).mockResolvedValue([{ id: 'w1', season: '2026', week: 1, date: '12 Nov 2026', status: 'played', teamA: ['A'], teamB: ['B'], winner: 'teamA' }])
+    const res = await post({ games: [GAME] })
+    expect(res.status).toBe(409)
+    await expect(res.json()).resolves.toEqual({ error: 'This league has already played a game. Record results from the Results tab.' })
+    expect(rpc).not.toHaveBeenCalledWith('import_weeks', expect.anything())
   })
 
   it('trims names before they reach the RPC', async () => {

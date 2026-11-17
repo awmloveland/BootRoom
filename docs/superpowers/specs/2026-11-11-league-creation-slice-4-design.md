@@ -41,6 +41,12 @@ league, roster, day, created_at, admin check) → `ResultsStep` (client).
 `STEP_COUNT` becomes 7; the eyebrow reads 7/7 (8/8 for inline sign-ups).
 Strength's Continue routes here instead of Live.
 
+The step is for setup only (added 2026-11-17). Once the league has played a
+game on or after the day it was created, `ResultsScreen` redirects to the
+league and the import route answers 409: an import renumbers every week, which
+a running league should not have happen from a setup screen. Imported history
+is dated before creation, so importing never closes the step by itself.
+
 ## Results step (`ResultsStep`)
 
 H1 "Any past results?", sub "Every game you add makes your first lineups

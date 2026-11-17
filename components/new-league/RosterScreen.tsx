@@ -1,7 +1,8 @@
 // components/new-league/RosterScreen.tsx
 import { cookies, headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
-import { getAuthAndRole, getGameBySlug } from '@/lib/fetchers'
+import { getAuthAndRole, getGameBySlug, getWeeks } from '@/lib/fetchers'
+import { isSetupOver } from '@/lib/dates'
 import { createServiceClient } from '@/lib/supabase/service'
 import { ratingToStrength } from '@/lib/strength'
 import { leagueLandingPath, VIEWPORT_COOKIE } from '@/lib/utils'
@@ -10,7 +11,7 @@ import { NEW_VISITOR_COOKIE } from './StepShell'
 import { RosterWizard, type RosterPlayer } from './RosterWizard'
 
 /**
- * The roster steps. Admins only. Seeds the wizard with whatever is already
+ * The roster steps. Admins only, and only until the league has played a game. Seeds the wizard with whatever is already
  * saved, so coming back from Live (or a refresh after saving) shows the list
  * rather than an empty one; the viewer's own player comes from their claim.
  */
@@ -22,6 +23,8 @@ export async function RosterScreen({ slug }: { slug: string }) {
   if (!user || (userRole !== 'creator' && userRole !== 'admin')) {
     redirect(leagueLandingPath(slug, (await headers()).get('user-agent'), (await cookies()).get(VIEWPORT_COOKIE)?.value))
   }
+  // Removing a row here deletes the player and their claim: fine during setup, not for a league that has played.
+  if (isSetupOver(await getWeeks(game.id), game.created_at)) redirect(`/${slug}/settings?tab=players`)
 
   const service = createServiceClient()
   const [{ data: claim }, { data: roster }] = await Promise.all([
