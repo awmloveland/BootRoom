@@ -13,7 +13,7 @@ jest.mock('next/cache', () => ({
 }))
 
 // Import after the mocks are registered.
-import { getUser, getPlayerStats, getWeeks, getNavSession, getAuthAndRole, getPendingBadgeCount, getPendingRequests, getMyJoinRequestStatus, getMyClaimInfo, ensureUnrecordedWeek, getLeagueMembers, getRosterPlayers, getAllPlayerClaims, getAccountData } from '@/lib/fetchers'
+import { getUser, getGame, getGameBySlug, getPlayerStats, getWeeks, getNavSession, getAuthAndRole, getPendingBadgeCount, getPendingRequests, getMyJoinRequestStatus, getMyClaimInfo, ensureUnrecordedWeek, getLeagueMembers, getRosterPlayers, getAllPlayerClaims, getAccountData } from '@/lib/fetchers'
 import type { NavSession, Week } from '@/lib/types'
 
 const LEAGUE = '11111111-1111-1111-1111-111111111111'
@@ -534,5 +534,32 @@ describe('league reads', () => {
     ;(createServiceClient as jest.Mock).mockReturnValue({ from: jest.fn(() => chain) })
     await expect(getWeeks(LEAGUE)).rejects.toThrow('upstream timeout')
     expect(consoleError).toHaveBeenCalled()
+  })
+
+  // A league lookup that resolved null on a failed read was cached as "no such
+  // league", so every league page 404'd while the database was unreachable.
+  function failingGameRead() {
+    const chain = queryReturning(null)
+    chain.maybeSingle.mockResolvedValue({ data: null, error: { message: 'upstream timeout' } })
+    ;(createServiceClient as jest.Mock).mockReturnValue({ from: jest.fn(() => chain) })
+  }
+
+  it('getGameBySlug throws and logs when the read fails', async () => {
+    failingGameRead()
+    await expect(getGameBySlug('the-boot-room')).rejects.toThrow('upstream timeout')
+    expect(consoleError).toHaveBeenCalled()
+  })
+
+  it('getGame throws and logs when the read fails', async () => {
+    failingGameRead()
+    await expect(getGame(LEAGUE)).rejects.toThrow('upstream timeout')
+    expect(consoleError).toHaveBeenCalled()
+  })
+
+  it('getGame finds no league for an id that is not a UUID, without querying', async () => {
+    // Postgres rejects a malformed uuid; that must stay a 404 on the legacy
+    // /results/<id> URLs rather than become a failed read.
+    await expect(getGame('not-a-uuid')).resolves.toBeNull()
+    expect(createServiceClient).not.toHaveBeenCalled()
   })
 })

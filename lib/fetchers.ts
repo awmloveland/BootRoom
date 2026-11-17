@@ -10,25 +10,33 @@ import type { GameRole, LeagueFeature, NavSession, Player, Week, JoinRequestStat
 import { ratingToStrength } from '@/lib/strength'
 import { parseLineupMetadata } from '@/lib/lineupMetadata'
 import { LEAGUE_CACHE_SECONDS, leagueTag, leagueSlugTag } from '@/lib/leagueCache'
+import { UUID_RE } from '@/lib/shareLinks'
 
 // ── Game ─────────────────────────────────────────────────────────────────────
 
 const GAME_COLUMNS = 'id, name, slug, location, day, kickoff_time, bio'
 
+// Like the reads below, these throw on a failed query (see readFailed): a null
+// would be cached as "no such league" and 404 every league page.
 async function readGame(leagueId: string) {
-  const { data } = await createServiceClient().from('games').select(GAME_COLUMNS).eq('id', leagueId).maybeSingle()
+  const { data, error } = await createServiceClient().from('games').select(GAME_COLUMNS).eq('id', leagueId).maybeSingle()
+  if (error) readFailed('game', error)
   return data
 }
 
 async function readGameBySlug(slug: string) {
-  const { data } = await createServiceClient().from('games').select(GAME_COLUMNS).eq('slug', slug).maybeSingle()
+  const { data, error } = await createServiceClient().from('games').select(GAME_COLUMNS).eq('slug', slug).maybeSingle()
+  if (error) readFailed('game', error)
   return data
 }
 
 // Cached across requests under the league's tag (see lib/leagueCache.ts), and
-// within a request by React cache().
-export const getGame = cache((leagueId: string) =>
-  unstable_cache(readGame, ['game', leagueId], { tags: [leagueTag(leagueId)], revalidate: LEAGUE_CACHE_SECONDS })(leagueId)
+// within a request by React cache(). Legacy URLs pass whatever was in the
+// path: an id that is not a UUID is no league, not a query Postgres rejects.
+export const getGame = cache(async (leagueId: string) =>
+  UUID_RE.test(leagueId)
+    ? unstable_cache(readGame, ['game', leagueId], { tags: [leagueTag(leagueId)], revalidate: LEAGUE_CACHE_SECONDS })(leagueId)
+    : null
 )
 
 export const getGameBySlug = cache((slug: string) =>

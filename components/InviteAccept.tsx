@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { AuthDialog } from '@/components/AuthDialog'
@@ -55,12 +56,12 @@ function InvalidInviteCard() {
       <p className="text-sm text-[#8ba4c4]">
         It may have expired or been revoked. Ask the league admin for a fresh link.
       </p>
-      <a
+      <Link
         href="/"
         className="inline-block w-full text-center py-2 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] font-bold transition-colors"
       >
         Back to home
-      </a>
+      </Link>
     </InviteCard>
   )
 }
@@ -104,12 +105,12 @@ function GenericErrorCard({ message }: { message: string }) {
     <InviteCard>
       <h1 className="text-lg font-semibold text-[#f4f9ff]">Couldn&apos;t accept this invite</h1>
       <p className="text-sm text-[#8ba4c4]">{message}</p>
-      <a
+      <Link
         href="/"
         className="inline-block w-full text-center py-2 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] font-bold transition-colors"
       >
         Back to home
-      </a>
+      </Link>
     </InviteCard>
   )
 }
@@ -120,10 +121,7 @@ function InviteFlow() {
   const [state, setState] = useState<State>({ kind: 'loading' })
 
   useEffect(() => {
-    if (!token) {
-      setState({ kind: 'invalid' })
-      return
-    }
+    if (!token) return
     let cancelled = false
     async function run() {
       const supabase = createClient()
@@ -186,11 +184,11 @@ function InviteFlow() {
     return () => { cancelled = true }
   }, [token])
 
+  if (!token || state.kind === 'invalid') {
+    return <InvalidInviteCard />
+  }
   if (state.kind === 'loading') {
     return <LoadingInviteCard />
-  }
-  if (state.kind === 'invalid') {
-    return <InvalidInviteCard />
   }
   if (state.kind === 'joining') {
     return (
