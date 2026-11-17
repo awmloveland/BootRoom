@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/apiAuth'
+import { parseRenameName } from '@/lib/playerUtils'
 
 /** POST — directly assign a player link to a member. Admin/creator only. */
 export async function POST(
@@ -14,7 +15,7 @@ export async function POST(
 
   const body = await request.json().catch(() => ({}))
   const target_user_id = typeof body?.user_id === 'string' ? body.user_id : ''
-  const player_name = typeof body?.player_name === 'string' ? body.player_name.trim() : ''
+  const player_name = parseRenameName(body?.player_name)
 
   if (!target_user_id || !player_name) {
     return NextResponse.json({ error: 'user_id and player_name are required' }, { status: 400 })

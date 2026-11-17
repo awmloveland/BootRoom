@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/apiAuth'
+import { MAX_PLAYER_NAME } from '@/lib/playerUtils'
 import { notifyAdminsOfJoinRequest } from '@/lib/email/send-join-request-notifications'
 
 /** GET — return pending join requests for a league. Admin/creator only. */
@@ -43,6 +44,9 @@ export async function POST(
     typeof body?.player_name === 'string' && body.player_name.trim()
       ? body.player_name.trim()
       : null
+  if (playerName && playerName.length > MAX_PLAYER_NAME) {
+    return NextResponse.json({ error: 'player_name is too long' }, { status: 400 })
+  }
 
   const playedBefore = typeof body?.played_before === 'boolean' ? body.played_before : null
 
