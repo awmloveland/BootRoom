@@ -42,6 +42,15 @@ export function rpcErrorResponse(error: { message: string }, fallback: string): 
   return NextResponse.json({ error: status === 500 ? fallback : error.message }, { status })
 }
 
+/**
+ * The response for a failed table query. Its message is never meant for
+ * people, so it is logged and answered with `fallback` and a 500.
+ */
+export function dbErrorResponse(error: unknown, fallback: string): NextResponse {
+  console.error('[api] query failed', error)
+  return NextResponse.json({ error: fallback }, { status: 500 })
+}
+
 /** Status for a Supabase RPC error, by the message the SQL raised. */
 export function rpcErrorStatus(message: string): number {
   if (/Access denied/i.test(message)) return 403

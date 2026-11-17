@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { requireLeagueAdmin, rpcErrorStatus } from '@/lib/apiAuth'
+import { requireLeagueAdmin, rpcErrorResponse } from '@/lib/apiAuth'
 import { revalidateLeague } from '@/lib/leagueCache'
 import type { Mentality, RecordResultInput, Winner } from '@/lib/types'
 
@@ -61,7 +61,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     p_team_a_rating: input.teamARating,
     p_team_b_rating: input.teamBRating,
   })
-  if (resultErr) return NextResponse.json({ error: resultErr.message }, { status: rpcErrorStatus(resultErr.message) })
+  if (resultErr) return rpcErrorResponse(resultErr, 'Could not save the result. Try again.')
 
   // record_result has committed: every return below, errors included, must
   // call revalidateLeague.
@@ -77,7 +77,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
     if (error) {
       revalidateLeague(id)
-      return NextResponse.json({ error: error.message }, { status: rpcErrorStatus(error.message) })
+      return rpcErrorResponse(error, 'The result is saved, but the guest names are not. Save again.')
     }
   }
 
@@ -88,7 +88,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     })
     if (error) {
       revalidateLeague(id)
-      return NextResponse.json({ error: error.message }, { status: rpcErrorStatus(error.message) })
+      return rpcErrorResponse(error, 'The result is saved, but the new players are not. Save again.')
     }
   }
 

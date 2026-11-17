@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { dbErrorResponse } from '@/lib/apiAuth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getGame, getWeeks } from '@/lib/fetchers'
 import { computeFees, parseFeeRange, weeksSinceCreation } from '@/lib/fees'
@@ -44,7 +45,7 @@ export async function PATCH(
   const service = createServiceClient()
   const { error } = await service.from('games').update({ fee_per_player: defaultFee }).eq('id', id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return dbErrorResponse(error, 'Could not save the fee. Try again.')
   revalidateLeague(id)
   return NextResponse.json({ ok: true, defaultFee })
 }

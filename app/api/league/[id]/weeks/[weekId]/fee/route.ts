@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { dbErrorResponse } from '@/lib/apiAuth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { isChargeable } from '@/lib/fees'
 import { parseFee, requireLeagueAdmin } from '@/lib/feesServer'
@@ -35,7 +36,7 @@ export async function PUT(req: Request, { params }: Params) {
     .from('week_fees')
     .upsert({ week_id: weekId, game_id: id, fee_per_player: fee }, { onConflict: 'week_id' })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return dbErrorResponse(error, 'Could not save the fee. Try again.')
   return NextResponse.json({ ok: true, fee })
 }
 
@@ -48,6 +49,6 @@ export async function DELETE(_req: Request, { params }: Params) {
   const service = createServiceClient()
   const { error } = await service.from('week_fees').delete().eq('week_id', weekId).eq('game_id', id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return dbErrorResponse(error, 'Could not reset the fee. Try again.')
   return NextResponse.json({ ok: true })
 }

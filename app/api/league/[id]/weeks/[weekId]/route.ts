@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireLeagueAdmin } from '@/lib/apiAuth'
+import { dbErrorResponse, requireLeagueAdmin } from '@/lib/apiAuth'
 import { revalidateLeague } from '@/lib/leagueCache'
 import { NextResponse } from 'next/server'
 
@@ -33,7 +33,7 @@ export async function PATCH(
     .eq('game_id', id)
     .eq('status', 'scheduled')
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return dbErrorResponse(error, 'Could not change the date. Try again.')
   revalidateLeague(id)
   return NextResponse.json({ ok: true })
 }

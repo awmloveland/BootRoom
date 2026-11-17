@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { requireLeagueAdmin, rpcErrorStatus } from '@/lib/apiAuth'
+import { requireLeagueAdmin, rpcErrorResponse } from '@/lib/apiAuth'
 import { revalidateLeague } from '@/lib/leagueCache'
 
 /** DELETE — admin-only. Removes a scheduled or cancelled week's line-up via cancel_lineup. */
@@ -11,7 +11,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   const supabase = await createClient()
   const { error } = await supabase.rpc('cancel_lineup', { p_week_id: weekId })
-  if (error) return NextResponse.json({ error: error.message }, { status: rpcErrorStatus(error.message) })
+  if (error) return rpcErrorResponse(error, 'Could not remove the line-up. Try again.')
   revalidateLeague(id)
   return NextResponse.json({ ok: true })
 }

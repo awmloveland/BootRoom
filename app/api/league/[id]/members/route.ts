@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
-import { requireUser } from '@/lib/apiAuth'
+import { requireUser, rpcErrorResponse } from '@/lib/apiAuth'
 import { NextResponse } from 'next/server'
+
+// remove_member and update_member_role raise these for people to read.
+const MEMBER_ERRORS = /^(Not an admin of this league|Cannot remove the creator|Cannot change the creator's role|Role must be admin or member)$/
 
 /** GET — returns all members of a league. Admin only (enforced by RPC). */
 export async function GET(
@@ -13,7 +16,7 @@ export async function GET(
   const supabase = await createClient()
 
   const { data, error } = await supabase.rpc('get_league_members', { p_game_id: id })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return rpcErrorResponse(error, 'Could not load the members. Try again.')
 
   return NextResponse.json(data ?? [])
 }
@@ -39,7 +42,10 @@ export async function PATCH(
       p_game_id: id,
       p_user_id: targetUserId,
     })
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    if (error) {
+      if (MEMBER_ERRORS.test(error.message)) return NextResponse.json({ error: error.message }, { status: 400 })
+      return rpcErrorResponse(error, 'Could not remove the member. Try again.')
+    }
     return NextResponse.json({ ok: true })
   }
 
@@ -51,7 +57,10 @@ export async function PATCH(
       p_user_id: targetUserId,
       p_role: role,
     })
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    if (error) {
+      if (MEMBER_ERRORS.test(error.message)) return NextResponse.json({ error: error.message }, { status: 400 })
+      return rpcErrorResponse(error, 'Could not change the role. Try again.')
+    }
     return NextResponse.json({ ok: true })
   }
 

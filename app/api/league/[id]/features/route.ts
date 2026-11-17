@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { requireLeagueAdmin, requireUser } from '@/lib/apiAuth'
+import { dbErrorResponse, requireLeagueAdmin, requireUser } from '@/lib/apiAuth'
 import { NextResponse } from 'next/server'
 import type { FeatureKey } from '@/lib/types'
 import { DEFAULT_FEATURES } from '@/lib/defaults'
@@ -15,7 +15,7 @@ export async function GET(
   const supabase = await createClient()
 
   const { data, error } = await supabase.from('league_features').select('*').eq('game_id', id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return dbErrorResponse(error, 'Could not load the features. Try again.')
 
   const featureMap = Object.fromEntries((data ?? []).map((f) => [f.feature, f]))
   const features = DEFAULT_FEATURES.map((def) => featureMap[def.feature] ?? def)
@@ -56,6 +56,6 @@ export async function PATCH(
     .from('league_features')
     .upsert(rows, { onConflict: 'game_id,feature' })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return dbErrorResponse(error, 'Could not save the features. Try again.')
   return NextResponse.json({ ok: true })
 }

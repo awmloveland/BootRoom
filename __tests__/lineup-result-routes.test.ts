@@ -183,6 +183,18 @@ describe('POST weeks/[weekId]/result', () => {
     expect(revalidateTag).toHaveBeenCalledWith('league:g1', { expire: 0 })
   })
 
+  it('answers an unexpected database error with a generic line, not the raw text', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {})
+    setup()
+    rpc.mockImplementation(async (name: string) => {
+      if (name === 'is_game_admin') return { data: true, error: null }
+      return { data: null, error: { message: 'null value in column "winner" violates not-null constraint "weeks_winner_check"' } }
+    })
+    const res = await recordResult(json(RESULT), week)
+    expect(res.status).toBe(500)
+    await expect(res.json()).resolves.toEqual({ error: 'Could not save the result. Try again.' })
+  })
+
   it('rejects a played result without a winner', async () => {
     setup()
     expect((await recordResult(json({ ...RESULT, winner: null }), week)).status).toBe(400)

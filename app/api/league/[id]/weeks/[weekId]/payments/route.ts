@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { dbErrorResponse } from '@/lib/apiAuth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getWeeks } from '@/lib/fetchers'
 import { weekPayers } from '@/lib/fees'
@@ -49,6 +50,6 @@ export async function PUT(
     { onConflict: 'week_id,payer' }
   )
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return dbErrorResponse(error, 'Could not save the payment. Try again.')
   return NextResponse.json({ ok: true })
 }

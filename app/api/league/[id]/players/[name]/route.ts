@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { requireLeagueAdmin } from '@/lib/apiAuth'
+import { dbErrorResponse, requireLeagueAdmin, rpcErrorResponse } from '@/lib/apiAuth'
 import { revalidateLeague } from '@/lib/leagueCache'
 import { NextResponse } from 'next/server'
 import { parsePlayerPatch } from '@/lib/playerUtils'
@@ -37,7 +37,7 @@ export async function PATCH(
     .select('name, rating, mentality')
     .maybeSingle()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return dbErrorResponse(error, 'Could not save the player. Try again.')
   if (!data) return NextResponse.json({ error: 'Player not found' }, { status: 404 })
 
   revalidateLeague(id)
@@ -64,7 +64,7 @@ export async function DELETE(
     if (error.message.includes('player_not_found')) {
       return NextResponse.json({ error: 'Player not found' }, { status: 404 })
     }
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return rpcErrorResponse(error, 'Could not remove the player. Try again.')
   }
 
   revalidateLeague(id)

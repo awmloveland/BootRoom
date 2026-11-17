@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { requireUser } from '@/lib/apiAuth'
+import { dbErrorResponse, requireUser } from '@/lib/apiAuth'
 import { NextResponse } from 'next/server'
 
 export async function PATCH(request: Request) {
@@ -28,7 +28,7 @@ export async function PATCH(request: Request) {
     .eq('id', gate.user.id)
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return dbErrorResponse(error, 'Could not save your name. Try again.')
   }
 
   return NextResponse.json({ ok: true })
