@@ -3,72 +3,31 @@ export const dynamic = 'force-dynamic'
 
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
-import { getUser } from '@/lib/fetchers'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getMyClaimInfo, getPendingBadgeCount, getPlayerStats, getUser, getWeeks } from '@/lib/fetchers'
 import { redirect } from 'next/navigation'
 import { cookies, headers } from 'next/headers'
-import Link from 'next/link'
-import { ChevronRight, Plus } from 'lucide-react'
 import { LandingPage } from '@/components/landing/LandingPage'
-import { Button } from '@/components/ui/button'
-import { cn, leagueLandingPath, VIEWPORT_COOKIE } from '@/lib/utils'
-import { parseWeekDate, formatWeekDate, leagueNow } from '@/lib/dates'
-
-function formatDisplayDate(weekDateStr: string): string {
-  const date = parseWeekDate(weekDateStr)
-  return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
-}
-
-/** Eyebrow above the page title, e.g. "Thursday · Matchday minus 1". */
-function buildMatchdayEyebrow(nextDates: (string | null)[]): string {
-  const today = leagueNow()
-  today.setHours(0, 0, 0, 0)
-  const weekday = today.toLocaleDateString('en-GB', { weekday: 'long' })
-  const daysAway = nextDates
-    .filter((d): d is string => d !== null)
-    .map((d) => Math.round((parseWeekDate(d).getTime() - today.getTime()) / 86_400_000))
-    .filter((n) => n >= 0)
-  if (daysAway.length === 0) return weekday
-  const soonest = Math.min(...daysAway)
-  return soonest === 0 ? `${weekday} · Matchday` : `${weekday} · Matchday minus ${soonest}`
-}
+import { LeagueList, type LeagueCardData, type PendingLeague } from '@/components/LeagueList'
+import { getNextMatchSeed, leagueLandingPath, VIEWPORT_COOKIE } from '@/lib/utils'
+import { dayNameToIndex, formatKickoffTime, formatWeekDate, getNextMatchDate, leagueNow, parseWeekDate } from '@/lib/dates'
+import { computeQuarterlyTable, getQuarterStanding } from '@/lib/sidebar-stats'
+import { lastGameResult } from '@/lib/standings'
+import type { Week } from '@/lib/types'
 
 /**
- * Compute the next match date for a league's home page card.
- * - If a scheduled (lineup-set) week exists, use its date.
- * - Otherwise, derive the recurring day-of-week from recent played weeks
- *   and find the next upcoming occurrence.
- * - Skip any cancelled dates, advancing by 7 days each time.
+ * The date on a league's card: the scheduled (line-up set) week if there is
+ * one, otherwise the next game day, skipping weeks already cancelled. Null
+ * while the league has neither a game day nor a played game to infer one from.
  */
-function computeNextMatchDate(
-  scheduledDate: string | null,
-  lastPlayedDate: string | null,
-  cancelledDates: Set<string>,
-): string | null {
-  let candidate: Date
-
-  if (scheduledDate) {
-    candidate = parseWeekDate(scheduledDate)
-  } else if (lastPlayedDate) {
-    const lastDate = parseWeekDate(lastPlayedDate)
-    const dow = lastDate.getDay()
-    const today = leagueNow()
-    today.setHours(0, 0, 0, 0)
-    let daysUntil = (dow - today.getDay() + 7) % 7
-    if (daysUntil === 0) daysUntil = 7
-    candidate = new Date(today)
-    candidate.setDate(today.getDate() + daysUntil)
-  } else {
-    return null
-  }
-
-  // Skip cancelled dates (up to 8 weeks ahead)
-  for (let i = 0; i < 8; i++) {
-    const dateStr = formatWeekDate(candidate)
-    if (!cancelledDates.has(dateStr)) break
+function nextMatchDate(weeks: Week[], scheduledDate: string | null, dayIndex?: number): string | null {
+  if (scheduledDate) return scheduledDate
+  if (dayIndex === undefined && !weeks.some((w) => w.status === 'played')) return null
+  const cancelled = new Set(weeks.filter((w) => w.status === 'cancelled').map((w) => w.date))
+  const candidate = parseWeekDate(getNextMatchDate(weeks, dayIndex))
+  for (let i = 0; i < 8 && cancelled.has(formatWeekDate(candidate)); i++) {
     candidate.setDate(candidate.getDate() + 7)
   }
-
   return formatWeekDate(candidate)
 }
 
@@ -83,157 +42,77 @@ export default async function HomePage() {
   const user = await getUser()
 
   if (user) {
-    const { data: memberships } = await supabase
-      .from('game_members')
-      .select('game_id, role, games(id, name, slug)')
-      .eq('user_id', user.id)
+    const [{ data: memberships }, { data: requests }] = await Promise.all([
+      supabase
+        .from('game_members')
+        .select('game_id, role, games(id, name, slug, location, day, kickoff_time)')
+        .eq('user_id', user.id),
+      // Leagues this user has asked to join. Service client, as in
+      // getJoinRequestStatus, so the league's name resolves for a non-member.
+      createServiceClient()
+        .from('game_join_requests')
+        .select('games(id, name, slug)')
+        .eq('user_id', user.id)
+        .eq('status', 'pending'),
+    ])
 
-    const leagues = (memberships ?? []).map((m) => {
-      const game = (m.games as unknown as { id: string; name: string; slug: string } | null)
-      return {
-        id: game?.id ?? '',
-        slug: game?.slug ?? '',
-        name: game?.name ?? '',
-        role: m.role,
-      }
+    type GameRow = { id: string; name: string; slug: string; location: string | null; day: string | null; kickoff_time: string | null }
+    const leagues = (memberships ?? []).flatMap((m) => {
+      const game = m.games as unknown as GameRow | null
+      return game ? [{ ...game, role: m.role }] : []
     })
 
     // Go straight to the league's landing tab rather than via /[slug], which
     // would cost another server redirect before the tab skeleton can show.
     const userAgent = (await headers()).get('user-agent')
     const viewport = (await cookies()).get(VIEWPORT_COOKIE)?.value
-    const validLeagues = leagues.filter((l) => l.id)
-    if (validLeagues.length === 1) {
-      redirect(leagueLandingPath(validLeagues[0].slug, userAgent, viewport))
+    if (leagues.length === 1) {
+      redirect(leagueLandingPath(leagues[0].slug, userAgent, viewport))
     }
 
-    const service = createServiceClient()
-    const gameIds = validLeagues.map((l) => l.id)
+    // The same cached reads the league's own Overview tab makes.
+    const cards = await Promise.all(leagues.map(async (league): Promise<LeagueCardData> => {
+      const [weeks, players, claim, pendingCount] = await Promise.all([
+        getWeeks(league.id),
+        getPlayerStats(league.id),
+        getMyClaimInfo(league.id),
+        getPendingBadgeCount(league.id), // 0 for non-admins, no query
+      ])
+      const dayIndex = dayNameToIndex(league.day) ?? undefined
+      const seed = getNextMatchSeed(weeks, league.kickoff_time)
+      const scheduled = seed?.status === 'scheduled' ? seed : null
+      const linked = claim.playerName ? players.find((p) => p.name === claim.playerName) ?? null : null
+      const table = computeQuarterlyTable(weeks, leagueNow(), dayIndex)
 
-    // Batch-fetch all relevant weeks for these leagues in 2 queries
-    const [scheduledRes, playedRes, cancelledRes] = await Promise.all([
-      service
-        .from('weeks')
-        .select('game_id, date, format')
-        .in('game_id', gameIds)
-        .eq('status', 'scheduled')
-        // Week numbers restart each season, so order by season first.
-        .order('season', { ascending: true })
-        .order('week', { ascending: true }),
-      service
-        .from('weeks')
-        .select('game_id, date')
-        .in('game_id', gameIds)
-        .eq('status', 'played')
-        .order('season', { ascending: false })
-        .order('week', { ascending: false }),
-      service
-        .from('weeks')
-        .select('game_id, date')
-        .in('game_id', gameIds)
-        .eq('status', 'cancelled'),
-    ])
-
-    // First scheduled date per league
-    const scheduledByLeague: Record<string, string> = {}
-    const scheduledFormatByLeague: Record<string, string | null> = {}
-    for (const row of scheduledRes.data ?? []) {
-      if (!scheduledByLeague[row.game_id]) {
-        scheduledByLeague[row.game_id] = row.date
-        scheduledFormatByLeague[row.game_id] = row.format ?? null
+      return {
+        id: league.id,
+        href: leagueLandingPath(league.slug, userAgent, viewport),
+        name: league.name,
+        meta: [formatKickoffTime(league.kickoff_time), league.location].filter(Boolean).join(' · ') || null,
+        nextDate: nextMatchDate(weeks, scheduled?.date ?? null, dayIndex),
+        lineupsSet: scheduled !== null,
+        team: !scheduled || !linked ? null
+          : scheduled.teamA.includes(linked.name) ? 'A'
+          : scheduled.teamB.includes(linked.name) ? 'B'
+          : null,
+        pendingCount,
+        hasResults: weeks.some((w) => w.status === 'played'),
+        isAdmin: league.role === 'admin' || league.role === 'creator',
+        you: linked && {
+          position: getQuarterStanding(table.allEntries, linked.name)?.position ?? null,
+          quarterLabel: `Q${table.displayQ}`,
+          form: linked.recentForm,
+          lastGame: lastGameResult(weeks, linked.name),
+        },
       }
-    }
+    }))
 
-    // Most recent played date per league
-    const lastPlayedByLeague: Record<string, string> = {}
-    for (const row of playedRes.data ?? []) {
-      if (!lastPlayedByLeague[row.game_id]) lastPlayedByLeague[row.game_id] = row.date
-    }
-
-    // Set of cancelled dates per league
-    const cancelledByLeague: Record<string, Set<string>> = {}
-    for (const row of cancelledRes.data ?? []) {
-      if (!cancelledByLeague[row.game_id]) cancelledByLeague[row.game_id] = new Set()
-      cancelledByLeague[row.game_id].add(row.date)
-    }
-
-    const leagueCards = leagues.map((league) => {
-      const nextDate = computeNextMatchDate(
-        scheduledByLeague[league.id] ?? null,
-        lastPlayedByLeague[league.id] ?? null,
-        cancelledByLeague[league.id] ?? new Set(),
-      )
-      // Format is only known when the next match is the scheduled (lineup-set) week
-      const format = nextDate && nextDate === scheduledByLeague[league.id]
-        ? scheduledFormatByLeague[league.id] ?? null
-        : null
-      return { league, nextDate, format }
+    const pending = (requests ?? []).flatMap((r): PendingLeague[] => {
+      const game = r.games as unknown as Pick<GameRow, 'id' | 'name' | 'slug'> | null
+      return game ? [{ id: game.id, name: game.name, href: leagueLandingPath(game.slug, userAgent, viewport) }] : []
     })
 
-    return (
-      <main className="px-4 sm:px-6 pt-5 pb-14">
-        <div className="mx-auto w-full max-w-xl pt-4">
-          <p className="inline-flex items-center gap-2 font-plex text-[9px] font-bold uppercase tracking-[.2em] text-[#bef264]">
-            <span className="h-0.5 w-[18px] bg-[#bef264]" />
-            {buildMatchdayEyebrow(leagueCards.map((c) => c.nextDate))}
-          </p>
-          <h1 className="mt-2.5 text-[26px] sm:text-[30px] leading-none font-bold tracking-[-.035em] text-[#f4f9ff]">
-            Your leagues
-          </h1>
-          {leagues.length === 0 ? (
-            <div className="mt-6">
-              <p className="font-inter-body text-[13px] text-[#6f88a8]">You&apos;re not in any leagues yet.</p>
-              <Button asChild className="mt-4 gap-2">
-                <Link href="/new">
-                  <Plus className="size-4" />
-                  Create a league
-                </Link>
-              </Button>
-            </div>
-          ) : (
-            <div className="mt-6 flex flex-col gap-2">
-              {leagueCards.map(({ league, nextDate, format }) => (
-                <Link
-                  key={league.id}
-                  href={leagueLandingPath(league.slug, userAgent, viewport)}
-                  className={cn(
-                    'flex items-center justify-between gap-4 px-[18px] py-4 rounded-xl border transition-colors hover:border-[#38bdf8]',
-                    nextDate
-                      ? 'border-[#1b2c46] bg-[#0a1421] shadow-[0_18px_44px_rgba(0,0,0,.42)]'
-                      : 'border-dashed border-[#223a5c]'
-                  )}
-                >
-                  <div>
-                    <p className={cn(
-                      'font-bold tracking-[-.02em]',
-                      nextDate ? 'text-base text-[#f4f9ff]' : 'text-[15px] text-[#cfe0f4]'
-                    )}>
-                      {league.name}
-                    </p>
-                    {nextDate ? (
-                      <p className="mt-1.5 font-plex text-[9.5px] uppercase tracking-[.14em] text-[#8ba4c4] whitespace-nowrap">
-                        Next match <span className="text-[#38bdf8]">{formatDisplayDate(nextDate)}</span>
-                        {format && ` · ${format}`}
-                      </p>
-                    ) : (
-                      <p className="mt-1.5 font-plex text-[9.5px] uppercase tracking-[.14em] text-[#6f88a8]">No upcoming match</p>
-                    )}
-                  </div>
-                  <ChevronRight className={cn('size-4 shrink-0', nextDate ? 'text-[#6f88a8]' : 'text-[#4f688a]')} />
-                </Link>
-              ))}
-              <Link
-                href="/new"
-                className="flex items-center justify-between gap-4 rounded-xl border border-dashed border-[#223a5c] px-[18px] py-4 text-[15px] font-bold text-[#8ba4c4] transition-colors hover:border-[#38bdf8] hover:text-[#f4f9ff]"
-              >
-                Create a league
-                <Plus className="size-4 shrink-0" />
-              </Link>
-            </div>
-          )}
-        </div>
-      </main>
-    )
+    return <LeagueList leagues={cards} pending={pending} />
   }
 
   // Unauthenticated: marketing landing page

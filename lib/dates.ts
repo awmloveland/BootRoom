@@ -182,6 +182,23 @@ export function parseKickoffTime(value: string | null | undefined): { hours: num
   return null
 }
 
+/** A kick-off time for display: '18:30' or '6:30pm' → '6:30pm', '19:00' → '7pm'. Null when unreadable. */
+export function formatKickoffTime(value: string | null | undefined): string | null {
+  const time = parseKickoffTime(value)
+  if (!time) return null
+  const minutes = time.minutes ? `:${String(time.minutes).padStart(2, '0')}` : ''
+  return `${time.hours % 12 || 12}${minutes}${time.hours < 12 ? 'am' : 'pm'}`
+}
+
+/** How far off a week date is on the league's clock: 'Today', 'Tomorrow', 'In 3 days'. Null once it has passed. */
+export function daysAwayLabel(date: string, now: Date = leagueNow()): string | null {
+  const today = new Date(now)
+  today.setHours(0, 0, 0, 0)
+  const days = Math.round((parseWeekDate(date).getTime() - today.getTime()) / 86_400_000)
+  if (days < 0) return null
+  return days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${days} days`
+}
+
 /**
  * A kick-off typed into the league setup stepper: '8', '8:15', '8.30',
  * '20:15', '8pm', '8.30pm', '8:30 pm'. `period` is the half of the day the
