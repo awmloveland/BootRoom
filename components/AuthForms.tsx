@@ -3,7 +3,7 @@
 // The three auth forms, in their own module so the Supabase browser client
 // they need is only downloaded when someone opens the sign-in dialog.
 import { useState } from 'react'
-import { NO_ACCOUNT, resendCode, sendSignInCode, sendSignUpCode, verifyCode } from '@/lib/supabase/otp'
+import { resendCode, sendSignInCode, sendSignUpCode, verifyCode } from '@/lib/supabase/otp'
 import { cn } from '@/lib/utils'
 
 const inputClass =
@@ -60,7 +60,7 @@ export function VerifyStep({
   return (
     <form onSubmit={handleVerify} className="space-y-4 mt-4">
       <p className="text-sm text-[#8ba4c4]">
-        We sent a 6-digit code to <span className="text-[#dff1ff]">{email}</span>
+        No code after a minute? Check <span className="text-[#dff1ff]">{email}</span> is right, then resend.
       </p>
       <div>
         <label htmlFor="otp-code" className="block text-sm text-[#8ba4c4] mb-1">
@@ -132,13 +132,7 @@ export function SignInForm({
     setError(null)
     const error = await sendSignInCode(email.trim().toLowerCase())
     if (error) {
-      setError(
-        NO_ACCOUNT.test(error)
-          ? signinOnly
-            ? "No account found for this email. Ask your admin for an invite."
-            : "No account found for this email. Use 'Create account' to get started."
-          : error
-      )
+      setError(error)
       setLoading(false)
       return
     }
