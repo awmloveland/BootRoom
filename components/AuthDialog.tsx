@@ -30,7 +30,7 @@ const VerifyStep = dynamic(() => import('./AuthForms').then((m) => m.VerifyStep)
 const preloadAuthForms = () => { import('./AuthForms').catch(() => {}) }
 
 type AuthMode = 'signin' | 'signup'
-type AuthStep = 'details' | 'verify' | 'redirecting'
+type AuthStep = 'details' | 'verify'
 
 interface AuthDialogProps {
   /** Where to redirect after successful sign-in */
@@ -77,6 +77,7 @@ export function AuthDialog({
   const [internalOpen, setInternalOpen] = useState(false)
   const [mode, setMode] = useState<AuthMode>(initialMode)
   const [step, setStep] = useState<AuthStep>('details')
+  const [redirecting, setRedirecting] = useState(false)
   const [email, setEmail] = useState('')
 
   const isControlled = controlledOpen !== undefined && controlledOnOpenChange !== undefined
@@ -91,7 +92,8 @@ export function AuthDialog({
   }
 
   function handleOpenChange(next: boolean) {
-    if (step === 'redirecting') return
+    // The code is accepted and the next page is loading: hold the dialog as it is.
+    if (redirecting) return
     if (!next) {
       setStep('details')
       setEmail('')
@@ -117,15 +119,13 @@ export function AuthDialog({
   }
 
   const dialogTitle =
-    step === 'redirecting' ? 'Signing you in' : step === 'verify' ? 'Check your email' : TITLES[mode]
+    step === 'verify' ? 'Check your email' : TITLES[mode]
   const dialogDescription =
-    step === 'redirecting'
-      ? 'Taking you to your league.'
-      : step === 'verify'
-        ? mode === 'signin'
-          ? `If ${email} has an account, we've sent it a 6-digit code.`
-          : `Enter the 6-digit code we sent to ${email}`
-        : getDescription(mode, leagueName)
+    step === 'verify'
+      ? mode === 'signin'
+        ? `If ${email} has an account, we've sent it a 6-digit code.`
+        : `Enter the 6-digit code we sent to ${email}`
+      : getDescription(mode, leagueName)
 
   return (
     <>
@@ -159,15 +159,11 @@ export function AuthDialog({
               </p>
             }
           >
-            {step === 'redirecting' ? (
-              <div className="flex justify-center py-6">
-                <Spinner className="size-6" label="Signing you in" />
-              </div>
-            ) : step === 'verify' ? (
+            {step === 'verify' ? (
               <VerifyStep
                 email={email}
                 onBack={handleBack}
-                onVerified={() => setStep('redirecting')}
+                onVerified={() => setRedirecting(true)}
                 redirect={redirect}
               />
             ) : mode === 'signin' ? (

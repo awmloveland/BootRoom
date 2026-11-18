@@ -89,7 +89,7 @@ describe('NextMatchCard on Results', () => {
 })
 
 describe('AuthDialog after a verified code', () => {
-  it('stays open in a signing-in state until the page navigates away', async () => {
+  it('stays open on the code screen, signing in, until the page navigates away', async () => {
     const auth = {
       signInWithOtp: jest.fn().mockResolvedValue({ error: null }),
       verifyOtp: jest.fn().mockResolvedValue({ error: null }),
@@ -104,8 +104,10 @@ describe('AuthDialog after a verified code', () => {
     fireEvent.change(await screen.findByLabelText('Code'), { target: { value: '123456' } })
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Verify' })) })
 
-    expect(screen.getByRole('heading', { name: 'Signing you in' })).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('Signing you in')
+    expect(screen.getByRole('heading', { name: 'Check your email' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Signing in…' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Back/ })).toBeDisabled()
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
     expect(onOpenChange).not.toHaveBeenCalledWith(false)
   })
 })

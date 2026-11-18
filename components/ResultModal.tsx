@@ -3,7 +3,7 @@
 
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { cn, buildResultShareText, buildDnfShareText, buildResultHeadline, enrichPlayersForRating, fetchShareLink, resolveTeamRatingForResult, withShareLink } from '@/lib/utils'
+import { cn, buildResultShareText, buildDnfShareText, enrichPlayersForRating, fetchShareLink, resolveTeamRatingForResult, withShareLink } from '@/lib/utils'
 import type { FinalGameShare } from '@/lib/utils'
 import { recordResult } from '@/lib/leagueApi'
 import type { Winner, ScheduledWeek, LineupMetadata, Player, Mentality, Week, Strength } from '@/lib/types'
@@ -14,7 +14,8 @@ import { QuarterCelebration } from '@/components/QuarterCelebration'
 import { strengthToRating } from '@/lib/strength'
 import { StrengthPills } from '@/components/ui/StrengthPills'
 import { Toggle } from '@/components/ui/toggle'
-import { X, Share2 } from 'lucide-react'
+import { FaceOffLineup } from '@/components/TeamList'
+import { Check, X, Share2 } from 'lucide-react'
 
 interface Props {
   scheduledWeek: ScheduledWeek
@@ -383,13 +384,7 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           <div className="px-5 pt-4 pb-3.5 border-b border-[#1b2c46] bg-[#0c1728] flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <Dialog.Title className="text-base font-bold tracking-[-.02em] text-[#f4f9ff]">
-                {step === 'share' && shareData
-                  ? `Week ${scheduledWeek.week} · ${buildResultHeadline(
-                      shareData.dnf ? null : shareData.winner,
-                      shareData.dnf ? 0 : shareData.goalDifference,
-                      shareData.dnf
-                    )}`
-                  : `Result · Week ${scheduledWeek.week}`}
+                Result · Week {scheduledWeek.week}
               </Dialog.Title>
               <Dialog.Description className="mt-1 font-plex text-[9.5px] uppercase tracking-[.14em] text-[#7f97b5]">
                 {scheduledWeek.date}
@@ -683,18 +678,26 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
           {/* ── Step: share ── */}
           {step === 'share' && shareData && (
             <>
-              <div className="px-5 py-[18px] flex flex-col gap-2 max-h-[70vh] overflow-y-auto">
-                {/* Team A */}
-                <div className="bg-[#0c1728] border border-[#38bdf8]/30 rounded-lg p-3">
-                  <p className="font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#7dd3fc] mb-2">Team A</p>
-                  <p className="font-inter-body text-xs text-[#cfe0f4] leading-relaxed">{savedTeamA.join(', ')}</p>
+              <div className="px-5 py-[18px] flex flex-col gap-4 max-h-[70vh] overflow-y-auto">
+                {/* The result, said once and large */}
+                <div className="flex flex-col items-center gap-1.5 text-center">
+                  <span className="inline-flex items-center gap-1.5 font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#bef264]">
+                    <Check className="size-3" strokeWidth={3} aria-hidden />
+                    Result saved
+                  </span>
+                  <p className="text-xl font-bold leading-tight tracking-[-.03em] text-[#f4f9ff]">
+                    {shareData.dnf ? 'Did not finish' : shareData.winner === 'draw' ? 'Draw' : (
+                      <>
+                        <span className={shareData.winner === 'teamA' ? 'text-[#7dd3fc]' : 'text-[#c4b5fd]'}>
+                          {shareData.winner === 'teamA' ? 'Team A' : 'Team B'}
+                        </span>
+                        {` won by ${shareData.goalDifference} ${shareData.goalDifference === 1 ? 'goal' : 'goals'}`}
+                      </>
+                    )}
+                  </p>
                 </div>
 
-                {/* Team B */}
-                <div className="bg-[#0c1728] border border-[#a78bfa]/30 rounded-lg p-3">
-                  <p className="font-plex text-[8.5px] font-bold uppercase tracking-[.16em] text-[#c4b5fd] mb-2">Team B</p>
-                  <p className="font-inter-body text-xs text-[#cfe0f4] leading-relaxed">{savedTeamB.join(', ')}</p>
-                </div>
+                <FaceOffLineup teamA={savedTeamA} teamB={savedTeamB} winner={shareData.dnf ? null : shareData.winner} />
 
                 {/* Highlights — non-DNF only, when text non-empty */}
                 {!shareData.dnf && shareData.highlightsText.trim().length > 0 && (
@@ -721,19 +724,19 @@ export function ResultModal({ scheduledWeek, lineupMetadata, allPlayers, gameId,
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-2 px-5 pb-[18px]">
+              <div className="flex gap-2 px-5 py-3.5 border-t border-[#1b2c46] bg-[#0c1728]">
                 <button
                   type="button"
                   onClick={handleShareClick}
-                  className="flex items-center justify-center gap-2 h-[38px] px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-[13px] font-bold transition-colors"
+                  className="flex flex-1 items-center justify-center gap-2 h-9 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] text-[13px] font-bold transition-colors"
                 >
                   <Share2 className="size-[15px]" />
-                  {shareCopied ? 'Result copied!' : 'Share Result'}
+                  {shareCopied ? 'Result copied' : 'Share result'}
                 </button>
                 <button
                   type="button"
                   onClick={onSaved}
-                  className="h-[38px] px-4 rounded border border-[#223a5c] text-[#cfe0f4] text-[13px] font-semibold hover:border-[#38bdf8] hover:text-white transition-colors"
+                  className="h-9 px-3.5 rounded border border-[#223a5c] text-[#cfe0f4] text-[13px] font-semibold hover:border-[#38bdf8] hover:text-white transition-colors"
                 >
                   Done
                 </button>
