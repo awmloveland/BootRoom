@@ -1,6 +1,9 @@
+import fs from 'fs'
+import path from 'path'
 import { render } from '@react-email/render'
 import { JoinRequestAdminEmail } from '@/lib/email/templates/JoinRequestAdminEmail'
 import { JoinRequestStatusEmail } from '@/lib/email/templates/JoinRequestStatusEmail'
+import { SignInCodeEmail } from '@/lib/email/templates/SignInCodeEmail'
 
 const baseAdminProps = {
   leagueName: 'Sunday 5s',
@@ -79,5 +82,19 @@ describe('JoinRequestStatusEmail', () => {
       })
     )
     expect(html).toContain('Sunday 5s')
+  })
+})
+
+describe('SignInCodeEmail', () => {
+  // The committed HTML is what gets pasted into Supabase, so it must match the
+  // component. Regenerate with UPDATE_EMAIL_TEMPLATES=1 npm test -- email.templates
+  it('matches supabase/templates/sign-in-code.html', async () => {
+    // Supabase's editor mangles the invisible preview padding, so write every
+    // non-ASCII character as an HTML entity.
+    const html = (await render(SignInCodeEmail())).replace(/[^\x00-\x7f]/g, c => `&#${c.codePointAt(0)};`)
+    expect(html).toContain('{{ .Token }}')
+    const file = path.join(__dirname, '../../supabase/templates/sign-in-code.html')
+    if (process.env.UPDATE_EMAIL_TEMPLATES) fs.writeFileSync(file, html)
+    expect(fs.readFileSync(file, 'utf8')).toBe(html)
   })
 })

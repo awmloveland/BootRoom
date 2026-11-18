@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { after, NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/apiAuth'
 import { notifyAdminsOfJoinRequest } from '@/lib/email/send-join-request-notifications'
@@ -73,11 +73,14 @@ export async function POST(
   }
 
   const origin = request.headers.get('origin') ?? 'https://craft-football.com'
-  notifyAdminsOfJoinRequest(
-    id,
-    { userId: gate.user.id, email: gate.user.email ?? '', message },
-    origin
-  ).catch(err => console.error('[email:notifyAdminsOfJoinRequest]', err))
+  // after() keeps the function alive until the email is sent; Vercel may stop it once the response is out.
+  after(() =>
+    notifyAdminsOfJoinRequest(
+      id,
+      { userId: gate.user.id, email: gate.user.email ?? '', message },
+      origin
+    ).catch(err => console.error('[email:notifyAdminsOfJoinRequest]', err))
+  )
 
   return NextResponse.json({ ok: true }, { status: 201 })
 }

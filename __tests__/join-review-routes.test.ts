@@ -6,6 +6,8 @@ import {
 } from '@/lib/email/send-join-request-notifications'
 
 jest.mock('next/cache', () => ({ revalidateTag: jest.fn() }))
+// No request scope in Jest, so run after() callbacks straight away.
+jest.mock('next/server', () => ({ ...jest.requireActual('next/server'), after: (fn: () => unknown) => fn() }))
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }))
 jest.mock('@/lib/email/send-join-request-notifications', () => ({
   notifyAdminsOfJoinRequest: jest.fn().mockResolvedValue(undefined),
