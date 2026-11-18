@@ -33,14 +33,14 @@ export function JoinRequestStatusEmail({
       leagueName={leagueName}
       reason={`You requested to join ${leagueName}.`}
     >
-      <Text style={isApproved ? approvedBadgeStyle : declinedBadgeStyle}>
+      <Text className={isApproved ? 'em-ok' : 'em-no'} style={isApproved ? approvedBadgeStyle : declinedBadgeStyle}>
         {isApproved ? 'Approved' : 'Not accepted'}
       </Text>
-      <Heading style={headingStyle}>
+      <Heading className="em-ink" style={headingStyle}>
         {isApproved ? `You're in, ${requesterName}` : 'Request not accepted'}
       </Heading>
-      <Text style={isApproved ? bodyTextStyle : { ...bodyTextStyle, margin: '0' }}>
-        Your request to join <span style={strongStyle}>{leagueName}</span>
+      <Text className="em-muted" style={isApproved ? bodyTextStyle : { ...bodyTextStyle, margin: '0' }}>
+        Your request to join <span className="em-ink" style={strongStyle}>{leagueName}</span>
         {isApproved
           ? ' has been approved. You now have access to the league.'
           : ' was not accepted at this time.'}
@@ -58,16 +58,8 @@ const badgeStyle: CSSProperties = {
   padding: '5px 10px',
   margin: '0 0 16px',
 }
-// Lime for positive status and red for destructive, as in the app.
-const approvedBadgeStyle: CSSProperties = {
-  ...badgeStyle,
-  backgroundColor: 'rgba(190,242,100,0.12)',
-  color: '#bef264',
-  border: '1px solid rgba(190,242,100,0.4)',
-}
-const declinedBadgeStyle: CSSProperties = {
-  ...badgeStyle,
-  backgroundColor: 'rgba(226,104,111,0.12)',
-  color: '#e2686f',
-  border: '1px solid rgba(226,104,111,0.4)',
-}
+// Lime for positive status and red for destructive, as in the app, darkened
+// here to read on a light background. Outlined, not filled, so there is no
+// tint for a mail app to recolour.
+const approvedBadgeStyle: CSSProperties = { ...badgeStyle, color: '#3f6212', border: '1px solid #84cc16' }
+const declinedBadgeStyle: CSSProperties = { ...badgeStyle, color: '#b4232c', border: '1px solid #e2686f' }

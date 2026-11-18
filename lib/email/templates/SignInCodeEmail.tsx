@@ -4,7 +4,15 @@
 // placeholder for the 6-digit code.
 import type { CSSProperties } from 'react'
 import { Heading, Text } from '@react-email/components'
-import { bodyTextStyle, EmailLayout, eyebrowStyle, headingStyle, PLEX } from '@/lib/email/templates/EmailLayout'
+import {
+  bodyTextStyle,
+  EmailLayout,
+  eyebrowStyle,
+  hairline,
+  headingStyle,
+  inkStyle,
+  PLEX,
+} from '@/lib/email/templates/EmailLayout'
 
 export function SignInCodeEmail() {
   return (
@@ -13,23 +21,24 @@ export function SignInCodeEmail() {
       leagueName="Sign in"
       reason="Someone asked to sign in with this email. If it wasn't you, you can ignore it."
     >
-      <Text style={eyebrowStyle}>Sign-in code</Text>
-      <Heading style={headingStyle}>Your Craft Football code</Heading>
-      <Text style={bodyTextStyle}>Enter it on Craft Football to finish signing in. It works once and expires soon.</Text>
-      <Text style={codeStyle}>{'{{ .Token }}'}</Text>
+      <Text className="em-accent" style={eyebrowStyle}>Sign-in code</Text>
+      <Heading className="em-ink" style={headingStyle}>Your Craft Football code</Heading>
+      <Text className="em-muted" style={bodyTextStyle}>
+        Enter it on Craft Football to finish signing in. It works once and expires soon.
+      </Text>
+      <Text className="em-ink em-line" style={codeStyle}>{'{{ .Token }}'}</Text>
     </EmailLayout>
   )
 }
 
 const codeStyle: CSSProperties = {
   fontFamily: PLEX,
-  color: '#f4f9ff',
+  ...inkStyle,
   fontSize: '32px',
   fontWeight: 700,
   letterSpacing: '10px',
   textAlign: 'center',
-  backgroundColor: '#0c1728',
-  border: '1px solid #223a5c',
+  border: hairline,
   borderRadius: '4px',
   padding: '16px 12px',
   margin: '0',
