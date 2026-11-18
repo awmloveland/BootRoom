@@ -156,7 +156,7 @@ export function Hero() {
             your group plays and turns it into results history, player records, honours boards and
             auto-picked teams.
           </p>
-          <div className="flex flex-col md:flex-row items-stretch gap-3.5 mt-[30px]">
+          <div className="flex flex-col md:flex-row items-stretch gap-2.5 mt-[30px]">
             <Link
               href="/new"
               className="inline-flex items-center justify-center w-full md:w-auto box-border h-[52px] px-[26px] bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] rounded text-[15px] font-bold transition-colors"
