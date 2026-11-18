@@ -55,15 +55,17 @@ export function LandingHeader() {
               {link.label}
             </a>
           ))}
-          <Link
-            href="/new"
-            className="hidden sm:inline-flex items-center h-10 px-5 bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] rounded text-[13px] font-bold whitespace-nowrap transition-colors"
-          >
-            Start your league
-          </Link>
-          <LoginLink className="inline-flex items-center h-10 px-4 sm:px-[18px] border border-[#223a5c] hover:border-[#38bdf8] rounded text-[#cfe0f4] hover:text-white text-[13px] font-bold whitespace-nowrap transition-colors cursor-pointer">
-            Log in
-          </LoginLink>
+          <div className="flex items-center gap-2.5">
+            <Link
+              href="/new"
+              className="hidden sm:inline-flex items-center h-10 px-5 bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] rounded text-[13px] font-bold whitespace-nowrap transition-colors"
+            >
+              Start your league
+            </Link>
+            <LoginLink className="inline-flex items-center h-10 px-4 sm:px-[18px] border border-[#223a5c] hover:border-[#38bdf8] rounded text-[#cfe0f4] hover:text-white text-[13px] font-bold whitespace-nowrap transition-colors cursor-pointer">
+              Log in
+            </LoginLink>
+          </div>
         </nav>
       </div>
     </header>
