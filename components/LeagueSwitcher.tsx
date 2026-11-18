@@ -134,7 +134,7 @@ export function NavLeagueSwitcher({ leagues, current }: SwitcherProps) {
   )
 }
 
-/** Mobile navbar: the current league in place of the wordmark, opening a bottom sheet. */
+/** Mobile navbar: the current league beside the logo, opening a bottom sheet. */
 export function MobileLeagueSwitcher({ leagues, current }: SwitcherProps) {
   const [open, setOpen] = useState(false)
   const close = () => setOpen(false)
@@ -144,8 +144,9 @@ export function MobileLeagueSwitcher({ leagues, current }: SwitcherProps) {
         <button
           type="button"
           aria-label={`Switch league, currently ${current.name}`}
-          className="flex min-w-0 items-center gap-1.5 text-[#f4f9ff]"
+          className="flex min-w-0 items-center gap-2 text-[#f4f9ff]"
         >
+          <LeagueCrest name={current.name} active />
           <span className="truncate text-[15px] font-bold tracking-[-.02em]">{current.name}</span>
           <ChevronDown aria-hidden className="size-4 shrink-0 text-[#6f88a8]" />
         </button>

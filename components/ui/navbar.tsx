@@ -279,7 +279,12 @@ export function Navbar({
               <img src="/logo.png" alt="Craft Football" className="block h-[30px] w-[30px]" />
               {!switchFrom && <span className="text-[15px] font-bold tracking-[-.02em]">Craft Football</span>}
             </Link>
-            {switchFrom && <MobileLeagueSwitcher leagues={leagues} current={switchFrom} />}
+            {switchFrom && (
+              <>
+                <span aria-hidden className="h-5 w-px shrink-0 bg-[#223a5c]" />
+                <MobileLeagueSwitcher leagues={leagues} current={switchFrom} />
+              </>
+            )}
           </div>
           {showNav && !pending && !user && (
             <AuthDialog redirect={slug ? `/${slug}` : '/'} size="xs" signinOnly />
