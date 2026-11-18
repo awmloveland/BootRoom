@@ -39,13 +39,13 @@ export function AccountStep() {
     if (!canSend || busy) return
     setBusy(true)
     setMessage(null)
-    const { NO_ACCOUNT, sendSignInCode, sendSignUpCode } = await otp()
+    const { sendSignInCode, sendSignUpCode } = await otp()
     const err = stage === 'signin'
       ? await sendSignInCode(cleanEmail)
       : await sendSignUpCode(first.trim(), last.trim(), cleanEmail)
     setBusy(false)
     if (err) {
-      setMessage({ error: true, text: NO_ACCOUNT.test(err) ? 'No account found for this email. Create one instead.' : err })
+      setMessage({ error: true, text: err })
       return
     }
     setFrom(stage === 'signin' ? 'signin' : 'signup')
@@ -90,7 +90,9 @@ export function AccountStep() {
         <StepShell
           eyebrow={<StepEyebrow n={0} offset={1} />}
           title="Check your email"
-          sub={<>Enter the 6-digit code we sent to <span className="text-[#dff1ff]">{cleanEmail}</span></>}
+          sub={from === 'signin'
+            ? <>If <span className="text-[#dff1ff]">{cleanEmail}</span> has an account, we&apos;ve sent it a 6-digit code.</>
+            : <>Enter the 6-digit code we sent to <span className="text-[#dff1ff]">{cleanEmail}</span></>}
           action={
             <>
               <button type="submit" className={PRIMARY_BUTTON} disabled={code.length !== 6 || busy}>

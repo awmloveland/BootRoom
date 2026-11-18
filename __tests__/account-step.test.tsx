@@ -7,7 +7,6 @@ import { sendSignInCode, sendSignUpCode } from '@/lib/supabase/otp'
 import { StepEyebrow } from '@/components/new-league/StepShell'
 
 jest.mock('@/lib/supabase/otp', () => ({
-  NO_ACCOUNT: /no user/i,
   sendSignInCode: jest.fn(),
   sendSignUpCode: jest.fn(),
   resendCode: jest.fn(),
@@ -55,14 +54,14 @@ describe('AccountStep', () => {
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
   })
 
-  it('explains a sign-in for an unknown email and re-enables Send code', async () => {
-    ;(sendSignInCode as jest.Mock).mockResolvedValue('No user found')
+  it('words the sign-in code stage so it never confirms the email has an account', async () => {
+    ;(sendSignInCode as jest.Mock).mockResolvedValue(null)
     render(<AccountStep />)
     fireEvent.click(screen.getByRole('button', { name: 'I already have an account' }))
     fill('Email', 'new@example.com')
     fireEvent.click(screen.getByRole('button', { name: 'Send code' }))
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('No account found for this email. Create one instead.'))
-    expect(screen.getByRole('button', { name: 'Send code' })).toBeEnabled()
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Check your email' })).toBeInTheDocument())
+    expect(screen.getByText(/has an account, we.ve sent it a 6-digit code/)).toBeInTheDocument()
   })
 })
 

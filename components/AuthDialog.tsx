@@ -122,7 +122,9 @@ export function AuthDialog({
     step === 'redirecting'
       ? 'Taking you to your league.'
       : step === 'verify'
-        ? `Enter the 6-digit code we sent to ${email}`
+        ? mode === 'signin'
+          ? `If ${email} has an account, we've sent it a 6-digit code.`
+          : `Enter the 6-digit code we sent to ${email}`
         : getDescription(mode, leagueName)
 
   return (
