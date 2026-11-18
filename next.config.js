@@ -10,6 +10,20 @@ const nextConfig = {
     '/api/og/invite': ['./assets/fonts/**/*'],
     '/api/og/default': ['./assets/fonts/**/*'],
   },
+  // No site may frame the app (clickjacking). Vercel adds Strict-Transport-Security itself.
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+        ],
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig
