@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import { render, screen, within } from '@testing-library/react'
-import { StatsSidebar, InFormWidget, TeamABWidget, MarginsWidget } from '@/components/StatsSidebar'
+import { StatsSidebar, InFormWidget, TeamABWidget, MarginsWidget, MoreStatsCard } from '@/components/StatsSidebar'
 import { QuarterTableRows, ChampionBox } from '@/components/QuarterTable'
 import type { Player, Week } from '@/lib/types'
 
@@ -27,6 +27,9 @@ const WEEKS: Week[] = [
   { id: 'q2', season: '2026', week: 18, date: '07 May 2026', status: 'played', teamA: ['Alice', 'Bob'], teamB: ['Charlie', 'Dave'], winner: 'teamB' },
 ]
 
+// Head to head and Winning margins need three played games.
+const THREE_GAMES: Week[] = [...WEEKS, { ...WEEKS[1], id: 'q2b', week: 19, date: '14 May 2026' }]
+
 function marginWeeks(results: (number | 'draw')[]): Week[] {
   return results.map((r, i) => ({
     id: `m${i}`, season: '2026', week: i + 1, date: '08 Jan 2026', status: 'played',
@@ -36,7 +39,7 @@ function marginWeeks(results: (number | 'draw')[]): Week[] {
   }))
 }
 
-// 10 wins (avg 3.2, biggest 9, most common 1) and a draw. Close games 4/11 = 36%.
+// Wins: avg 3.2, biggest 9, most common 1. With the draw, close games are 4/11 = 36%.
 const TEN_WINS = marginWeeks([1, 1, 1, 2, 2, 3, 3, 4, 6, 9, 'draw'])
 
 // Friday 15 May 2026: mid Q2.
@@ -89,7 +92,7 @@ describe('StatsSidebar', () => {
   })
 
   it('shows most in form and head to head without the Overview extras', () => {
-    const { container } = render(<StatsSidebar players={PLAYERS} weeks={WEEKS} leagueDayIndex={4} />)
+    const { container } = render(<StatsSidebar players={PLAYERS} weeks={THREE_GAMES} leagueDayIndex={4} />)
     expect(screen.getByText('Most In Form')).toBeInTheDocument()
     expect(screen.getByText("The Gaffer's Pick")).toBeInTheDocument()
     expect(screen.queryByText('Last 5 games')).not.toBeInTheDocument()
@@ -104,19 +107,50 @@ describe('StatsSidebar', () => {
     expect(screen.getByText('Your Stats')).toBeInTheDocument()
   })
 
-  it('shows Winning Margins once the league has 10 wins', () => {
-    const { rerender } = render(<StatsSidebar players={PLAYERS} weeks={WEEKS} leagueDayIndex={4} />)
+  it('shows Head to Head and Winning Margins from the third game', () => {
+    const { rerender } = render(<StatsSidebar players={PLAYERS} weeks={marginWeeks([1, 2])} leagueDayIndex={4} />)
+    expect(screen.queryByText('Head to Head')).not.toBeInTheDocument()
     expect(screen.queryByText('Winning Margins')).not.toBeInTheDocument()
-    rerender(<StatsSidebar players={PLAYERS} weeks={TEN_WINS} leagueDayIndex={4} />)
+    rerender(<StatsSidebar players={PLAYERS} weeks={marginWeeks([1, 2, 3])} leagueDayIndex={4} />)
+    expect(screen.getByText('Head to Head')).toBeInTheDocument()
     expect(screen.getByText('Winning Margins')).toBeInTheDocument()
   })
 
-  it('passes admin status through to Winning Margins', () => {
-    const nine = TEN_WINS.slice(1)
-    const { rerender } = render(<StatsSidebar players={PLAYERS} weeks={nine} leagueDayIndex={4} />)
+  it('lists the roster at zero before the first game, with no leader', () => {
+    const roster = ['Dave', 'Alice', 'Charlie', 'Bob'].map((n) => makePlayer(n, { played: 0, won: 0, drew: 0, lost: 0, points: 0, recentForm: '' }))
+    const { container } = render(<StatsSidebar players={roster} weeks={[]} leagueDayIndex={4} />)
+    expect(screen.getByText('Q2 26')).toBeInTheDocument()
+    const names = screen.getAllByText(/^(Alice|Bob|Charlie|Dave)$/).map((el) => el.textContent)
+    expect(names).toEqual(['Alice', 'Bob', 'Charlie', 'Dave'])
+    expect(container.querySelectorAll('[class*="bg-[#38bdf8]/7"]')).toHaveLength(0)
+    expect(screen.getByText(/^0 of \d+ played$/)).toBeInTheDocument()
+  })
+
+  it('shows only the table and the more stats card before the first game', () => {
+    const roster = PLAYERS.map((p) => ({ ...p, played: 0, recentForm: '' }))
+    render(<StatsSidebar players={roster} weeks={[]} leagueDayIndex={4} />)
+    expect(screen.getByText('More stats on the way')).toBeInTheDocument()
+    expect(screen.queryByText('Most In Form')).not.toBeInTheDocument()
+    expect(screen.queryByText('Head to Head')).not.toBeInTheDocument()
     expect(screen.queryByText('Winning Margins')).not.toBeInTheDocument()
-    rerender(<StatsSidebar players={PLAYERS} weeks={nine} leagueDayIndex={4} isAdmin />)
-    expect(screen.getByText('Winning Margins')).toBeInTheDocument()
+  })
+
+  it('drops the more stats card once Most In Form has arrived', () => {
+    render(<StatsSidebar players={PLAYERS} weeks={THREE_GAMES} leagueDayIndex={4} />)
+    expect(screen.queryByText('More stats on the way')).not.toBeInTheDocument()
+  })
+})
+
+describe('MoreStatsCard', () => {
+  it('shows while nobody has five games', () => {
+    render(<MoreStatsCard players={[makePlayer('Alice', { played: 4 }), makePlayer('Bob', { played: 0 })]} />)
+    expect(screen.getByText('More stats on the way')).toBeInTheDocument()
+    expect(screen.getByText('They appear here as more games are played.')).toBeInTheDocument()
+  })
+
+  it('renders nothing once a player has five games', () => {
+    const { container } = render(<MoreStatsCard players={[makePlayer('Alice', { played: 5 }), makePlayer('Bob', { played: 0 })]} />)
+    expect(container).toBeEmptyDOMElement()
   })
 })
 
@@ -125,17 +159,28 @@ describe('InFormWidget', () => {
     render(<InFormWidget players={PLAYERS} weeks={WEEKS} size="page" showWindowTag />)
     expect(screen.getByText('Last 5 games')).toBeInTheDocument()
   })
+
+  it('renders nothing while nobody has five games', () => {
+    const { container } = render(<InFormWidget players={PLAYERS.map((p) => ({ ...p, played: 4 }))} weeks={WEEKS} />)
+    expect(container).toBeEmptyDOMElement()
+  })
 })
 
 describe('TeamABWidget', () => {
   it('adds the linked player team counts', () => {
-    const { container } = render(<TeamABWidget weeks={WEEKS} size="page" linkedPlayer={makePlayer('Alice')} />)
+    const { container } = render(<TeamABWidget weeks={THREE_GAMES} size="page" linkedPlayer={makePlayer('Alice')} />)
     expect(container).toHaveTextContent('You have played 6 for A · 4 for B')
   })
 
   it('omits the line with no linked player', () => {
-    const { container } = render(<TeamABWidget weeks={WEEKS} size="page" linkedPlayer={null} />)
+    const { container } = render(<TeamABWidget weeks={THREE_GAMES} size="page" linkedPlayer={null} />)
+    expect(container).toHaveTextContent('Head to Head')
     expect(container).not.toHaveTextContent('You have played')
+  })
+
+  it('renders nothing before the third game', () => {
+    const { container } = render(<TeamABWidget weeks={WEEKS} />)
+    expect(container).toBeEmptyDOMElement()
   })
 })
 
@@ -153,7 +198,6 @@ describe('MarginsWidget', () => {
       expect(within(labelRow).getByText(label)).toBeInTheDocument()
     }
     expect(container).toHaveTextContent('Close games · 36% · 1 goal or a draw')
-    expect(container).not.toHaveTextContent('Visible to non-admins')
   })
 
   it('highlights the most common margin and skips empty buckets', () => {
@@ -171,31 +215,24 @@ describe('MarginsWidget', () => {
     )
   })
 
-  it('renders nothing for a non-admin below 10 wins', () => {
-    const { container } = render(<MarginsWidget weeks={TEN_WINS.slice(1)} />)
+  it('renders nothing before the third game', () => {
+    const { container } = render(<MarginsWidget weeks={marginWeeks([1, 2])} />)
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('shows an admin no hint once the league has 10 wins', () => {
-    const { container } = render(<MarginsWidget weeks={TEN_WINS} isAdmin />)
+  it('shows from the third game', () => {
+    render(<MarginsWidget weeks={marginWeeks([1, 2, 'draw'])} />)
     expect(screen.getByText('Winning Margins')).toBeInTheDocument()
-    expect(container).not.toHaveTextContent('Visible to non-admins')
+    expect(screen.getByText('1.5')).toBeInTheDocument()
   })
 
-  it('shows an admin the card with a progress hint below 10 wins', () => {
-    const { container } = render(<MarginsWidget weeks={TEN_WINS.slice(1)} isAdmin />)
-    expect(screen.getByText('Winning Margins')).toBeInTheDocument()
-    expect(container).toHaveTextContent('Visible to non-admins after 10 wins · 9 so far')
+  it('renders nothing when no game has a recorded margin', () => {
+    const { container } = render(<MarginsWidget weeks={THREE_GAMES} />)
+    expect(container).toBeEmptyDOMElement()
   })
 
-  it('shows an admin only the hint when nothing is counted yet', () => {
-    const { container } = render(<MarginsWidget weeks={[]} isAdmin />)
-    expect(container).toHaveTextContent('Visible to non-admins after 10 wins · 0 so far')
-    expect(container).not.toHaveTextContent('Avg goals per win')
-  })
-
-  it('shows a dash and no biggest win when an admin has only draws', () => {
-    render(<MarginsWidget weeks={marginWeeks(['draw', 'draw'])} isAdmin />)
+  it('shows a dash and no biggest win when every game was a draw', () => {
+    render(<MarginsWidget weeks={marginWeeks(['draw', 'draw', 'draw'])} />)
     expect(screen.getByText('-')).toBeInTheDocument()
     expect(screen.queryByText('Biggest')).not.toBeInTheDocument()
   })

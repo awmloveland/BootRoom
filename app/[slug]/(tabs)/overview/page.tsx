@@ -10,7 +10,7 @@ import { getGameBySlug, getAuthAndRole, getPlayerStats, getWeeks, getMyClaimInfo
 import { computeQuarterlyTable, getQuarterStanding, getLastResult } from '@/lib/sidebar-stats'
 import { LeagueTabSkeleton } from '@/components/LeagueTabSkeleton'
 import { BfcacheRefresh } from '@/components/BfcacheRefresh'
-import { InFormWidget, MarginsWidget, TeamABWidget } from '@/components/StatsSidebar'
+import { InFormWidget, MarginsWidget, MoreStatsCard, TeamABWidget } from '@/components/StatsSidebar'
 import { OverviewDesktopRedirect } from '@/components/overview/OverviewDesktopRedirect'
 import { OverviewNextGame } from '@/components/overview/OverviewNextGame'
 import { OverviewYourStats } from '@/components/overview/OverviewYourStats'
@@ -67,7 +67,7 @@ export default async function LeagueOverviewPage({ params }: Props) {
     hasLinkedPlayer: linkedPlayer !== null,
   })
 
-  const table = computeQuarterlyTable(weeks, leagueNow(), leagueDayIndex)
+  const table = computeQuarterlyTable(weeks, leagueNow(), leagueDayIndex, players.map((p) => p.name))
   const standing = getQuarterStanding(table.allEntries, linkedPlayer?.name)
   const lastResult = getLastResult(weeks)
 
@@ -112,7 +112,8 @@ export default async function LeagueOverviewPage({ params }: Props) {
         <OverviewTableCard table={table} standing={standing} lastResult={lastResult} />
         <InFormWidget players={players} weeks={weeks} size="page" showWindowTag />
         <TeamABWidget weeks={weeks} size="page" linkedPlayer={linkedPlayer} />
-        <MarginsWidget weeks={weeks} size="page" isAdmin={isAdmin} />
+        <MarginsWidget weeks={weeks} size="page" />
+        <MoreStatsCard players={players} />
       </div>
     </>
   )

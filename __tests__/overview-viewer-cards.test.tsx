@@ -69,6 +69,12 @@ describe('OverviewYourStats', () => {
     expect(screen.queryByText(/Q2 2026/)).not.toBeInTheDocument()
   })
 
+  it('omits the position block before the quarter has a game', () => {
+    const unplayed: QuarterStanding = { ...TOP, entry: { ...TOP.entry, played: 0, won: 0, points: 0, goalDiff: 0 } }
+    render(<OverviewYourStats player={JAMIE} standing={unplayed} quarterLabel="Q2 2026" weeks={[]} />)
+    expect(screen.queryByText(/Q2 2026/)).not.toBeInTheDocument()
+  })
+
   it('shows 0.0 points per game for a player with no games', () => {
     render(<OverviewYourStats player={{ ...JAMIE, played: 0, won: 0, drew: 0, lost: 0, points: 0, winRate: 0, recentForm: '-----' }} standing={null} quarterLabel="Q2 2026" weeks={[]} />)
     expect(screen.getByText('0.0')).toBeInTheDocument()

@@ -59,6 +59,9 @@ export interface InFormEntry {
   ppg: number
 }
 
+/** Games a player needs before Most In Form counts them. */
+export const MIN_FORM_GAMES = 5
+
 export function computeInForm(players: Player[], weeks: Week[], now: Date = leagueNow()): InFormEntry[] {
   const cutoff = new Date(now)
   cutoff.setDate(cutoff.getDate() - 56) // 8 weeks = 56 days
@@ -75,7 +78,7 @@ export function computeInForm(players: Player[], weeks: Week[], now: Date = leag
 
   return players
     .filter(p => {
-      if (p.played < 5) return false
+      if (p.played < MIN_FORM_GAMES) return false
       const last = lastPlayed.get(p.name)
       return last !== undefined && last >= cutoff
     })
@@ -279,20 +282,30 @@ function buildQuarterAwards(entries: QuarterlyEntry[], weekSlice: Week[]): Quart
   return awards
 }
 
-export function computeQuarterlyTable(weeks: Week[], now: Date = leagueNow(), gameDay?: number): QuarterlyTableResult {
+/**
+ * `roster` is every player's name. A quarter with no games yet lists them in
+ * name order with every column at zero, so a new league's table is never blank.
+ */
+export function computeQuarterlyTable(weeks: Week[], now: Date = leagueNow(), gameDay?: number, roster: string[] = []): QuarterlyTableResult {
   const { q, year } = quarterOf(now)
+  const prevQ = q === 1 ? 4 : q - 1
+  const prevYear = q === 1 ? year - 1 : year
+  const playedIn = (pq: number, py: number) => weeks.filter(w => weekInQuarter(w, pq, py) && w.status === 'played').length
 
-  // Holdover: if no played games in the current calendar quarter, show the previous quarter
-  const currentPlayedCount = weeks.filter(w => weekInQuarter(w, q, year) && w.status === 'played').length
-  const isHoldover = currentPlayedCount === 0
+  // Holdover: with no played games in the current calendar quarter, keep showing
+  // the previous one, as long as it had games to show.
+  const isHoldover = playedIn(q, year) === 0 && playedIn(prevQ, prevYear) > 0
 
-  const displayQ = isHoldover ? (q === 1 ? 4 : q - 1) : q
-  const displayYear = isHoldover ? (q === 1 ? year - 1 : year) : year
+  const displayQ = isHoldover ? prevQ : q
+  const displayYear = isHoldover ? prevYear : year
   const yy = String(displayYear).slice(-2)
   const quarterLabel = `Q${displayQ} ${yy}`
 
   const displayWeeks = weeks.filter(w => weekInQuarter(w, displayQ, displayYear))
-  const allEntries = computeStandings(displayWeeks)
+  const gamesPlayed = displayWeeks.filter(w => w.status === 'played').length
+  const allEntries = gamesPlayed > 0
+    ? computeStandings(displayWeeks)
+    : [...roster].sort((a, b) => a.localeCompare(b)).map(name => ({ name, played: 0, won: 0, drew: 0, lost: 0, points: 0, goalDiff: 0 }))
   const entries = allEntries.slice(0, 10)
 
   // gamesLeft is 0 during holdover (the displayed quarter is complete)
@@ -301,12 +314,9 @@ export function computeQuarterlyTable(weeks: Week[], now: Date = leagueNow(), ga
     ? gamesLeftInQuarter(q, year, resolvedGameDay, now, weeks)
     : 0
 
-  const gamesPlayed = displayWeeks.filter(w => w.status === 'played').length
   const gamesTotal = gamesPlayed + gamesLeft
 
   // Champion banner: always based on the calendar previous quarter (not the displayed quarter)
-  const prevQ = q === 1 ? 4 : q - 1
-  const prevYear = q === 1 ? year - 1 : year
   const prevYY = String(prevYear).slice(-2)
   const prevWeeks = weeks.filter(w => weekInQuarter(w, prevQ, prevYear))
   const prevEntries = computeStandings(prevWeeks)
@@ -638,8 +648,8 @@ export function computeTeamAB(weeks: Week[]): TeamABResult {
 
 // ─── computeMargins ───────────────────────────────────────────────────────────
 
-/** Wins a league needs before non-admins see the Winning Margins card. */
-export const MIN_MARGIN_WINS = 10
+/** Played games a league needs before Head to Head and Winning Margins show. */
+export const MIN_STATS_GAMES = 3
 
 /**
  * All-time winning margins from played weeks. A draw always counts as margin 0;
