@@ -7,7 +7,7 @@ import { TeammatesChart } from '@/components/TeammatesChart'
 
 interface OverviewYourStatsProps {
   player: Player
-  /** The player's place in the displayed quarter, or null when they have no games in it. */
+  /** The player's place in the displayed quarter, or null when they are not in its table. */
   standing: QuarterStanding | null
   /** e.g. 'Q2 2026' */
   quarterLabel: string
@@ -50,7 +50,8 @@ export function OverviewYourStats({ player, standing, quarterLabel, weeks }: Ove
               <p className="truncate text-xl font-bold leading-none tracking-[-.025em] text-[#f4f9ff]">{player.name}</p>
               <p className="mt-[5px] font-plex text-[9.5px] uppercase tracking-[.12em] text-[#8ba4c4]">{record}</p>
             </div>
-            {standing && (
+            {/* Before the quarter's first game the table is the roster at zero: no place to show */}
+            {standing && standing.entry.played > 0 && (
               <div className="shrink-0 text-right">
                 <p className="font-plex text-[32px] font-bold leading-none tracking-[-.04em] text-[#38bdf8]">
                   {standing.position}

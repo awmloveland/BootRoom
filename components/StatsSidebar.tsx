@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
-import { computeInForm, computeMargins, computeQuarterlyTable, computeTeamAB, computeTeammates, MIN_MARGIN_WINS } from '@/lib/sidebar-stats'
+import { ChartNoAxesColumn, TrendingUp, Users } from 'lucide-react'
+import { computeInForm, computeMargins, computeQuarterlyTable, computeTeamAB, computeTeammates, MIN_FORM_GAMES, MIN_STATS_GAMES } from '@/lib/sidebar-stats'
 import { FormDots } from '@/components/FormDots'
 import { TeammatesChart } from '@/components/TeammatesChart'
 import {
@@ -16,7 +17,6 @@ interface StatsSidebarProps {
   weeks: Week[]
   leagueDayIndex?: number
   linkedPlayerName?: string | null
-  isAdmin?: boolean
 }
 
 export const WIDGET_CLASS = 'rounded-xl border border-[#1b2c46] bg-[#0a1421] overflow-hidden shadow-[0_18px_44px_rgba(0,0,0,.42)]'
@@ -144,6 +144,7 @@ export function InFormWidget({
   showWindowTag?: boolean
 }) {
   const entries = computeInForm(players, weeks)
+  if (entries.length === 0) return null
   return (
     <WidgetShell
       title="Most In Form"
@@ -154,45 +155,39 @@ export function InFormWidget({
         </span>
       ) : undefined}
     >
-      {entries.length === 0 ? (
-        <EmptyState message="Not enough data yet" />
-      ) : (
-        <>
-          {/* Hero: rank 1 */}
-          <div className={cn(entries.length > 1 && 'border-b border-[#17263c] pb-3 mb-3')}>
-            <p className="font-plex text-[8.5px] font-bold uppercase tracking-[.18em] text-[#38bdf8]">
-              The Gaffer&apos;s Pick
+      {/* Hero: rank 1 */}
+      <div className={cn(entries.length > 1 && 'border-b border-[#17263c] pb-3 mb-3')}>
+        <p className="font-plex text-[8.5px] font-bold uppercase tracking-[.18em] text-[#38bdf8]">
+          The Gaffer&apos;s Pick
+        </p>
+        <p className="mt-1.5 text-base font-bold tracking-[-.02em] text-[#f4f9ff]">{entries[0].name}</p>
+        <div className="mt-1.5 flex items-end justify-between">
+          <FormDots form={entries[0].recentForm} />
+          <div className="text-right">
+            <p className="font-plex text-[22px] font-bold leading-none tracking-[-.03em] text-[#38bdf8]">
+              {entries[0].ppg.toFixed(1)}
             </p>
-            <p className="mt-1.5 text-base font-bold tracking-[-.02em] text-[#f4f9ff]">{entries[0].name}</p>
-            <div className="mt-1.5 flex items-end justify-between">
-              <FormDots form={entries[0].recentForm} />
-              <div className="text-right">
-                <p className="font-plex text-[22px] font-bold leading-none tracking-[-.03em] text-[#38bdf8]">
-                  {entries[0].ppg.toFixed(1)}
-                </p>
-                <p className="mt-1 font-plex text-[8px] font-bold uppercase tracking-[.16em] text-[#6f88a8]">pts / game</p>
-              </div>
-            </div>
+            <p className="mt-1 font-plex text-[8px] font-bold uppercase tracking-[.16em] text-[#6f88a8]">pts / game</p>
           </div>
+        </div>
+      </div>
 
-          {/* Ranked list: ranks 2–5 */}
-          {entries.length > 1 && (
-            <div className="flex flex-col gap-2.5">
-              {entries.slice(1).map((e, i) => (
-                <div key={e.name} className="flex items-center gap-2">
-                  <span className="font-plex text-[10px] text-[#4f688a] w-3.5 text-left shrink-0">
-                    {i + 2}
-                  </span>
-                  <span className="font-inter-body text-[12.5px] text-[#cfe0f4] flex-1 truncate">{e.name}</span>
-                  <FormDots form={e.recentForm} className="gap-1 text-[10px]" />
-                  <span className="font-plex text-[9.5px] font-bold px-[7px] py-0.5 rounded-[3px] border border-[#1b2c46] text-[#8ba4c4] shrink-0">
-                    {e.ppg.toFixed(1)}
-                  </span>
-                </div>
-              ))}
+      {/* Ranked list: ranks 2–5 */}
+      {entries.length > 1 && (
+        <div className="flex flex-col gap-2.5">
+          {entries.slice(1).map((e, i) => (
+            <div key={e.name} className="flex items-center gap-2">
+              <span className="font-plex text-[10px] text-[#4f688a] w-3.5 text-left shrink-0">
+                {i + 2}
+              </span>
+              <span className="font-inter-body text-[12.5px] text-[#cfe0f4] flex-1 truncate">{e.name}</span>
+              <FormDots form={e.recentForm} className="gap-1 text-[10px]" />
+              <span className="font-plex text-[9.5px] font-bold px-[7px] py-0.5 rounded-[3px] border border-[#1b2c46] text-[#8ba4c4] shrink-0">
+                {e.ppg.toFixed(1)}
+              </span>
             </div>
-          )}
-        </>
+          ))}
+        </div>
       )}
     </WidgetShell>
   )
@@ -200,8 +195,8 @@ export function InFormWidget({
 
 // ─── Widget 2: Quarterly Table ────────────────────────────────────────────────
 
-function QuarterlyTableWidget({ weeks, leagueDayIndex }: { weeks: Week[]; leagueDayIndex?: number }) {
-  const { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft, gamesTotal, isHoldover } = computeQuarterlyTable(weeks, new Date(), leagueDayIndex)
+function QuarterlyTableWidget({ players, weeks, leagueDayIndex }: { players: Player[]; weeks: Week[]; leagueDayIndex?: number }) {
+  const { quarterLabel, entries, lastChampion, lastQuarterLabel, gamesLeft, gamesTotal, isHoldover } = computeQuarterlyTable(weeks, new Date(), leagueDayIndex, players.map(p => p.name))
   // Footer line replaces the old header pills: games left, or Final once the quarter is complete
   const showProgress = entries.length > 0 && (gamesLeft > 0 || isHoldover)
 
@@ -217,11 +212,12 @@ function QuarterlyTableWidget({ weeks, leagueDayIndex }: { weeks: Week[]; league
 
       <div className="px-3.5 py-3">
         {entries.length === 0 ? (
-          <EmptyState message={isHoldover ? 'No data yet' : 'Quarter just started'} />
+          <EmptyState message="No games played yet" />
         ) : (
           <QuarterTableRows
             rows={entries.map((entry, i) => ({ entry, rank: i + 1 }))}
-            highlightName={entries[0].name}
+            // Before the first game the rows are the roster in name order: nobody leads
+            highlightName={entries[0].played > 0 ? entries[0].name : null}
           />
         )}
 
@@ -253,45 +249,40 @@ export function TeamABWidget({
   linkedPlayer?: Player | null
 }) {
   const { teamAWins, draws, teamBWins, total } = computeTeamAB(weeks)
+  if (total < MIN_STATS_GAMES) return null
 
   return (
     <WidgetShell title="Head to Head" size={size} headerRight={<AllTimeChip />}>
-      {total === 0 ? (
-        <EmptyState message="No results yet" />
-      ) : (
-        <>
-          {/* Scoreline */}
-          <div className="flex items-baseline mb-2 font-plex">
-            <span className="flex-1 text-[9px] font-bold uppercase tracking-[.16em] text-[#7dd3fc]">Team A</span>
-            <span className="text-lg font-bold text-[#7dd3fc]">{teamAWins}</span>
-            <span className="mx-2.5 text-[11px] text-[#4f688a]">{draws}D</span>
-            <span className="text-lg font-bold text-[#c4b5fd]">{teamBWins}</span>
-            <span className="flex-1 text-right text-[9px] font-bold uppercase tracking-[.16em] text-[#c4b5fd]">Team B</span>
-          </div>
+      {/* Scoreline */}
+      <div className="flex items-baseline mb-2 font-plex">
+        <span className="flex-1 text-[9px] font-bold uppercase tracking-[.16em] text-[#7dd3fc]">Team A</span>
+        <span className="text-lg font-bold text-[#7dd3fc]">{teamAWins}</span>
+        <span className="mx-2.5 text-[11px] text-[#4f688a]">{draws}D</span>
+        <span className="text-lg font-bold text-[#c4b5fd]">{teamBWins}</span>
+        <span className="flex-1 text-right text-[9px] font-bold uppercase tracking-[.16em] text-[#c4b5fd]">Team B</span>
+      </div>
 
-          {/* Split bar */}
-          <div className="flex gap-0.5 rounded-[3px] overflow-hidden h-2.5">
-            {teamAWins > 0 && (
-              <div className="bg-[#38bdf8]" style={{ flex: teamAWins }} />
-            )}
-            {draws > 0 && (
-              <div className="bg-[#1b2c46]" style={{ flex: draws }} />
-            )}
-            {teamBWins > 0 && (
-              <div className="bg-[#a78bfa]" style={{ flex: teamBWins }} />
-            )}
-          </div>
+      {/* Split bar */}
+      <div className="flex gap-0.5 rounded-[3px] overflow-hidden h-2.5">
+        {teamAWins > 0 && (
+          <div className="bg-[#38bdf8]" style={{ flex: teamAWins }} />
+        )}
+        {draws > 0 && (
+          <div className="bg-[#1b2c46]" style={{ flex: draws }} />
+        )}
+        {teamBWins > 0 && (
+          <div className="bg-[#a78bfa]" style={{ flex: teamBWins }} />
+        )}
+      </div>
 
-          {linkedPlayer && (
-            <p className="mt-2.5 font-plex text-[8.5px] uppercase tracking-[.14em] text-[#6f88a8]">
-              You have played{' '}
-              <span className="font-bold text-[#7dd3fc]">{linkedPlayer.timesTeamA}</span>
-              {' '}for A ·{' '}
-              <span className="font-bold text-[#c4b5fd]">{linkedPlayer.timesTeamB}</span>
-              {' '}for B
-            </p>
-          )}
-        </>
+      {linkedPlayer && (
+        <p className="mt-2.5 font-plex text-[8.5px] uppercase tracking-[.14em] text-[#6f88a8]">
+          You have played{' '}
+          <span className="font-bold text-[#7dd3fc]">{linkedPlayer.timesTeamA}</span>
+          {' '}for A ·{' '}
+          <span className="font-bold text-[#c4b5fd]">{linkedPlayer.timesTeamB}</span>
+          {' '}for B
+        </p>
       )}
     </WidgetShell>
   )
@@ -310,93 +301,105 @@ function marginBucketName(index: number): string {
 export function MarginsWidget({
   weeks,
   size = 'sidebar',
-  isAdmin = false,
 }: {
   weeks: Week[]
   size?: WidgetSize
-  /** Admins see the card before the league reaches MIN_MARGIN_WINS, with a hint. */
-  isAdmin?: boolean
 }) {
-  const { avgWinMargin, biggestWin, buckets, modeMargin, closeGamePct, counted, winCount } = computeMargins(weeks)
-  const belowThreshold = winCount < MIN_MARGIN_WINS
-  if (belowThreshold && !isAdmin) return null
+  const { avgWinMargin, biggestWin, buckets, modeMargin, closeGamePct, counted } = computeMargins(weeks)
+  if (counted === 0 || weeks.filter(w => w.status === 'played').length < MIN_STATS_GAMES) return null
 
   const maxCount = Math.max(...buckets)
-  const hint = belowThreshold && (
-    <p className={cn(MARGIN_META_CLASS, 'text-[#4f688a]', counted > 0 && 'mt-2')}>
-      Visible to non-admins after {MIN_MARGIN_WINS} wins ·{' '}
-      <span className="font-bold text-[#8ba4c4]">{winCount}</span> so far
-    </p>
-  )
 
   return (
     <WidgetShell title="Winning Margins" size={size} headerRight={<AllTimeChip />}>
-      {counted === 0 ? hint : (
-        <>
-          <div className="flex items-end justify-between mb-3.5">
-            <div>
-              <div className="font-grotesk text-[34px] font-bold leading-none text-[#f4f9ff]">
-                {avgWinMargin === null ? '-' : avgWinMargin.toFixed(1)}
-              </div>
-              <div className={cn(MARGIN_META_CLASS, 'mt-1.5')}>Avg goals per win</div>
-            </div>
-            {biggestWin !== null && (
-              <div className="text-right">
-                <div className="font-grotesk text-[15px] font-bold text-[#bef264]">+{biggestWin}</div>
-                <div className={cn(MARGIN_META_CLASS, 'mt-1')}>Biggest</div>
-              </div>
+      <div className="flex items-end justify-between mb-3.5">
+        <div>
+          <div className="font-grotesk text-[34px] font-bold leading-none text-[#f4f9ff]">
+            {avgWinMargin === null ? '-' : avgWinMargin.toFixed(1)}
+          </div>
+          <div className={cn(MARGIN_META_CLASS, 'mt-1.5')}>Avg goals per win</div>
+        </div>
+        {biggestWin !== null && (
+          <div className="text-right">
+            <div className="font-grotesk text-[15px] font-bold text-[#bef264]">+{biggestWin}</div>
+            <div className={cn(MARGIN_META_CLASS, 'mt-1')}>Biggest</div>
+          </div>
+        )}
+      </div>
+
+      {/* Margin chart: draws, then 1 to 7+ */}
+      <div
+        role="img"
+        aria-label={'Winning margins: ' + buckets.map((count, i) => `${marginBucketName(i)} ${count}`).join(', ')}
+        className="flex items-end gap-[5px] h-14"
+      >
+        {buckets.map((count, i) => (
+          <div key={MARGIN_LABELS[i]} className="flex-1 h-full flex items-end">
+            {count > 0 && (
+              <div
+                data-bucket={MARGIN_LABELS[i]}
+                className={cn(
+                  'w-full min-h-[2px] rounded-t-[2px]',
+                  i === 0 ? 'bg-[#2c4a72]' : i === modeMargin ? 'bg-[#38bdf8]' : 'bg-[#223a5c]',
+                )}
+                style={{ height: `${(count / maxCount) * 100}%` }}
+              />
             )}
           </div>
+        ))}
+      </div>
+      <div className="flex gap-[5px] mt-[5px]" aria-hidden="true">
+        {MARGIN_LABELS.map((label) => (
+          <span key={label} className="flex-1 text-center font-plex text-[8.5px] text-[#4f688a]">{label}</span>
+        ))}
+      </div>
 
-          {/* Margin chart: draws, then 1 to 7+ */}
-          <div
-            role="img"
-            aria-label={'Winning margins: ' + buckets.map((count, i) => `${marginBucketName(i)} ${count}`).join(', ')}
-            className="flex items-end gap-[5px] h-14"
-          >
-            {buckets.map((count, i) => (
-              <div key={MARGIN_LABELS[i]} className="flex-1 h-full flex items-end">
-                {count > 0 && (
-                  <div
-                    data-bucket={MARGIN_LABELS[i]}
-                    className={cn(
-                      'w-full min-h-[2px] rounded-t-[2px]',
-                      i === 0 ? 'bg-[#2c4a72]' : i === modeMargin ? 'bg-[#38bdf8]' : 'bg-[#223a5c]',
-                    )}
-                    style={{ height: `${(count / maxCount) * 100}%` }}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-[5px] mt-[5px]" aria-hidden="true">
-            {MARGIN_LABELS.map((label) => (
-              <span key={label} className="flex-1 text-center font-plex text-[8.5px] text-[#4f688a]">{label}</span>
-            ))}
-          </div>
-
-          <div className="h-px bg-[#17263c] mt-3 mb-2.5" />
-          <p className={MARGIN_META_CLASS}>
-            Close games · <span className="font-bold text-[#f4f9ff]">{closeGamePct}%</span> · 1 goal or a draw
-          </p>
-          {hint}
-        </>
-      )}
+      <div className="h-px bg-[#17263c] mt-3 mb-2.5" />
+      <p className={MARGIN_META_CLASS}>
+        Close games · <span className="font-bold text-[#f4f9ff]">{closeGamePct}%</span> · 1 goal or a draw
+      </p>
     </WidgetShell>
+  )
+}
+
+// ─── More stats on the way ────────────────────────────────────────────────────
+
+const ICON_TILE = 'flex size-9 items-center justify-center rounded-lg border border-[#223a5c] bg-[#0c1728] shadow-[0_6px_14px_rgba(0,0,0,.4)]'
+
+/**
+ * Stands in for the panels a new league has not earned yet. Goes once a player
+ * has enough games for Most In Form.
+ */
+export function MoreStatsCard({ players }: { players: Player[] }) {
+  if (players.some(p => p.played >= MIN_FORM_GAMES)) return null
+
+  return (
+    <div className="flex items-center gap-4 rounded-xl border border-dashed border-[#223a5c] bg-[#0a1421]/60 px-4 py-3.5">
+      <div aria-hidden className="flex shrink-0 items-center">
+        <span className={cn(ICON_TILE, '-rotate-6 text-[#38bdf8]')}><ChartNoAxesColumn className="size-4" strokeWidth={2.2} /></span>
+        <span className={cn(ICON_TILE, 'z-10 -ml-2 -translate-y-1 text-[#c4b5fd]')}><TrendingUp className="size-4" strokeWidth={2.2} /></span>
+        <span className={cn(ICON_TILE, '-ml-2 rotate-6 text-[#8ba4c4]')}><Users className="size-4" strokeWidth={2.2} /></span>
+      </div>
+      <div className="min-w-0">
+        <p className="text-[13px] font-bold tracking-[-.02em] text-[#f4f9ff]">More stats on the way</p>
+        <p className="mt-1 font-inter-body text-xs leading-relaxed text-[#8ba4c4]">They appear here as more games are played.</p>
+      </div>
+    </div>
   )
 }
 
 // ─── StatsSidebar ─────────────────────────────────────────────────────────────
 
-export function StatsSidebar({ players, weeks, leagueDayIndex, linkedPlayerName, isAdmin = false }: StatsSidebarProps) {
+export function StatsSidebar({ players, weeks, leagueDayIndex, linkedPlayerName }: StatsSidebarProps) {
   return (
     <div className="flex flex-col gap-3">
       <YourStatsWidget players={players} linkedPlayerName={linkedPlayerName} />
       <TeammatesWidget players={players} weeks={weeks} linkedPlayerName={linkedPlayerName} />
-      <QuarterlyTableWidget weeks={weeks} leagueDayIndex={leagueDayIndex} />
+      <QuarterlyTableWidget players={players} weeks={weeks} leagueDayIndex={leagueDayIndex} />
       <InFormWidget    players={players} weeks={weeks} />
       <TeamABWidget    weeks={weeks} />
-      <MarginsWidget   weeks={weeks} isAdmin={isAdmin} />
+      <MarginsWidget   weeks={weeks} />
+      <MoreStatsCard   players={players} />
     </div>
   )
 }

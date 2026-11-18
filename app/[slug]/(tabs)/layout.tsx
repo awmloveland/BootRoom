@@ -104,14 +104,11 @@ async function LeagueSidebar({ slug }: { slug: string }) {
   if (!game) notFound()
   const leagueId = game.id
 
-  const [{ userRole }, players, weeks, claim] = await Promise.all([
-    getAuthAndRole(leagueId),
+  const [players, weeks, claim] = await Promise.all([
     getPlayerStats(leagueId),
     getWeeks(leagueId),
     getMyClaimInfo(leagueId), // 'none' for non-members, no query
   ])
-
-  const tier = resolveVisibilityTier(userRole)
 
   // Large screens only. Below lg these stats live on the Overview tab.
   return (
@@ -121,7 +118,6 @@ async function LeagueSidebar({ slug }: { slug: string }) {
         weeks={weeks}
         leagueDayIndex={dayNameToIndex(game.day ?? null) ?? undefined}
         linkedPlayerName={claim.playerName}
-        isAdmin={tier === 'admin'}
       />
     </SidebarSticky>
   )

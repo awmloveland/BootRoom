@@ -106,7 +106,7 @@ export interface MarginStats {
   closeGamePct: number | null;
   /** Draws plus wins with a recorded margin. */
   counted: number;
-  /** Wins with a recorded margin. Compared against MIN_MARGIN_WINS. */
+  /** Wins with a recorded margin. */
   winCount: number;
 }
 

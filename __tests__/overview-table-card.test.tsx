@@ -98,9 +98,9 @@ describe('OverviewTableCard: table', () => {
     expect(screen.queryByText(/Champion$/)).not.toBeInTheDocument()
   })
 
-  it('shows the empty state for a quarter with no games', () => {
+  it('shows the empty state for a league with no games and no players', () => {
     render(<OverviewTableCard table={makeTable({ entries: [], allEntries: [], gamesLeft: 13 })} standing={null} lastResult={null} />)
-    expect(screen.getByText('Quarter just started')).toBeInTheDocument()
+    expect(screen.getByText('No games played yet')).toBeInTheDocument()
     expect(screen.queryByText(/played$/)).not.toBeInTheDocument()
   })
 })

@@ -94,7 +94,7 @@ export function OverviewTableCard({ table, standing, lastResult }: OverviewTable
 
       <div className="px-4 py-3">
         {rows.length === 0 ? (
-          <EmptyState message={table.isHoldover ? 'No data yet' : 'Quarter just started'} />
+          <EmptyState message="No games played yet" />
         ) : (
           <QuarterTableRows rows={rows} highlightName={standing ? standing.entry.name : null} size="page" />
         )}
