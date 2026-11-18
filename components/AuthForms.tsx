@@ -169,22 +169,29 @@ export function SignInForm({
           Don&apos;t have an account? Ask your admin for an invite or hit &apos;Join League&apos; to request access.
         </p>
       ) : (
-        <>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-[#1b2c46]" />
-            <span className="text-xs text-[#6f88a8]">or</span>
-            <div className="flex-1 h-px bg-[#1b2c46]" />
-          </div>
-          <button
-            type="button"
-            onClick={onSwitchMode}
-            className="w-full py-2 px-4 rounded-lg bg-[#1b2c46] border border-[#223a5c] text-[#dff1ff] font-medium hover:bg-[#223a5c] transition-colors"
-          >
-            Create account
-          </button>
-        </>
+        <OrSwitchMode label="Create account" onClick={onSwitchMode} />
       )}
     </form>
+  )
+}
+
+/** The "or" rule and secondary button that swaps between signing in and creating an account. */
+function OrSwitchMode({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <>
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-[#1b2c46]" />
+        <span className="text-xs text-[#6f88a8]">or</span>
+        <div className="flex-1 h-px bg-[#1b2c46]" />
+      </div>
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full py-2 px-4 rounded-lg bg-[#1b2c46] border border-[#223a5c] text-[#dff1ff] font-medium hover:bg-[#223a5c] transition-colors"
+      >
+        {label}
+      </button>
+    </>
   )
 }
 
@@ -276,12 +283,7 @@ export function SignUpForm({
       >
         {loading ? 'Sending…' : 'Send code'}
       </button>
-      <p className="text-xs text-[#6f88a8] text-center pt-1">
-        Already have an account?{' '}
-        <button type="button" onClick={onSwitchMode} className="text-[#8ba4c4] hover:text-[#dff1ff] underline">
-          Sign in
-        </button>
-      </p>
+      <OrSwitchMode label="I already have an account" onClick={onSwitchMode} />
     </form>
   )
 }

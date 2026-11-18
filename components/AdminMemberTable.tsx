@@ -108,7 +108,7 @@ export function AdminMemberTable({ leagueId, members, onChanged }: AdminMemberTa
                 className={cn(i > 0 && 'border-t border-[#17263c]')}
               >
                 <div className="flex flex-wrap items-center justify-between px-[18px] py-3 gap-x-3 gap-y-2">
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-[9rem] flex-1">
                     <p className="font-inter-body text-[13px] font-semibold text-[#f4f9ff] truncate">
                       {member.display_name || member.email}
                     </p>

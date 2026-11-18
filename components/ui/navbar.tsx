@@ -235,7 +235,7 @@ export function Navbar({
                     {displayName && (
                       <p className="font-inter-body text-[13px] font-semibold text-[#f4f9ff]">{displayName}</p>
                     )}
-                    {slug && (
+                    {currentLeague && (
                       <p className="font-plex text-[9px] font-bold uppercase tracking-[.16em] text-[#6f88a8] mt-1">
                         {isLeagueAdmin ? 'Admin' : 'Member'}
                       </p>
@@ -327,7 +327,7 @@ export function Navbar({
                       {displayName && (
                         <p className="font-inter-body text-[13px] font-semibold text-[#f4f9ff]">{displayName}</p>
                       )}
-                      {slug && (
+                      {currentLeague && (
                         <p className="font-plex text-[9px] font-bold uppercase tracking-[.16em] text-[#6f88a8] mt-1">
                           {isLeagueAdmin ? 'Admin' : 'Member'}
                         </p>

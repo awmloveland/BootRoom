@@ -271,13 +271,16 @@ export function JoinRequestDialog({
                 <p role="alert" className="text-sm text-[#e2686f]">{error}</p>
               )}
 
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] font-bold transition-colors"
-              >
-                {loading ? 'Sending\u2026' : 'Send request'}
-              </Button>
+              {/* Pinned to the bottom of the dialog, so Send stays in reach when the name list makes the form scroll. */}
+              <div className="sticky bottom-0 -mx-6 -mb-6 -mt-3 bg-[#0a1421] px-6 pb-6 pt-3">
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] font-bold transition-colors"
+                >
+                  {loading ? 'Sending\u2026' : 'Send request'}
+                </Button>
+              </div>
             </form>
           </>
         )}
