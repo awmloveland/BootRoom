@@ -3,6 +3,7 @@
 // The three auth forms, in their own module so the Supabase browser client
 // they need is only downloaded when someone opens the sign-in dialog.
 import { useState } from 'react'
+import { ArrowLeft } from 'lucide-react'
 import { resendCode, sendSignInCode, sendSignUpCode, verifyCode } from '@/lib/supabase/otp'
 import { cn } from '@/lib/utils'
 
@@ -39,8 +40,8 @@ export function VerifyStep({
       setLoading(false)
       return
     }
-    // Keep the dialog up in its redirecting state until the browser unloads
-    // the page, so nothing underneath changes while the next page loads.
+    // Leave the button on "Signing in…" and the dialog up until the browser
+    // unloads the page, so nothing underneath changes while the next page loads.
     onVerified()
     window.location.href = redirect
   }
@@ -89,24 +90,26 @@ export function VerifyStep({
         disabled={loading || code.length !== 6}
         className="w-full py-2 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {loading ? 'Verifying…' : 'Verify'}
+        {loading ? 'Signing in…' : 'Verify'}
       </button>
-      <div className="flex items-center gap-3 text-sm">
-        <button
-          type="button"
-          onClick={handleResend}
-          disabled={resending}
-          className="text-[#38bdf8] hover:text-[#7dd3fc] disabled:opacity-50"
-        >
-          {resending ? 'Sending…' : 'Resend code'}
-        </button>
-        <span className="text-[#4f688a]">&middot;</span>
+      {/* Back on the left where a back control is expected, the resend link on the right. */}
+      <div className="flex items-center justify-between text-sm">
         <button
           type="button"
           onClick={onBack}
-          className="text-[#8ba4c4] hover:text-[#cfe0f4]"
+          disabled={loading}
+          className="inline-flex items-center gap-1.5 font-medium text-[#cfe0f4] transition-colors hover:text-white disabled:opacity-50"
         >
-          ← Back
+          <ArrowLeft className="size-4" aria-hidden />
+          Back
+        </button>
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={resending || loading}
+          className="font-medium text-[#38bdf8] transition-colors hover:text-[#7dd3fc] disabled:opacity-50"
+        >
+          {resending ? 'Sending…' : 'Resend code'}
         </button>
       </div>
     </form>

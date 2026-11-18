@@ -72,7 +72,8 @@ describe('ResultModal, guest added to the roster', () => {
     renderModal()
     await saveWithGuestAddedAs('Tom')
 
-    expect(await screen.findByText('Tom, Jaff')).toBeInTheDocument()
+    expect(await screen.findByText('Tom')).toBeInTheDocument()
+    expect(screen.queryByText('Jaff +1')).not.toBeInTheDocument()
   })
 
   it('renames the guest on a DNF too', async () => {

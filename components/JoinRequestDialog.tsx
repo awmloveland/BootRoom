@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2 } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import PlayerClaimPicker from '@/components/PlayerClaimPicker'
@@ -13,6 +13,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+
+const RECAP_LABEL = 'shrink-0 font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#6f88a8]'
 
 interface JoinRequestDialogProps {
   leagueId: string
@@ -98,29 +100,50 @@ export function JoinRequestDialog({
     onSuccess()
   }
 
+  // What they sent, played back on the confirmation.
+  const note = message.trim()
+  const playingAs =
+    claimChoice === 'yes' ? (selectedPlayer ?? 'The admin will match you')
+    : claimChoice === 'no' ? 'New player'
+    : null
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         {submitted ? (
           <>
-            <DialogHeader>
-              <div className="flex items-center gap-3 mb-1">
-                <CheckCircle2 className="h-6 w-6 text-[#38bdf8] shrink-0" />
-                <DialogTitle>Request sent!</DialogTitle>
-              </div>
+            <DialogHeader className="items-center pt-2 sm:text-center">
+              <span className="mb-2 flex size-12 items-center justify-center rounded-full border border-[#bef264]/40 bg-[#bef264]/12">
+                <Check className="size-6 text-[#bef264]" strokeWidth={2.5} aria-hidden />
+              </span>
+              <DialogTitle>Request sent</DialogTitle>
               <DialogDescription>
-                We&apos;ve notified the league admin. You&apos;ll get access once they approve your request.
+                The admins of {leagueName} have been told. We&apos;ll email you as soon as they decide.
               </DialogDescription>
             </DialogHeader>
-            <div className="mt-2">
-              <Button
-                type="button"
-                onClick={handleDone}
-                className="w-full py-2 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] font-bold transition-colors"
-              >
-                Done
-              </Button>
-            </div>
+            {(playingAs || note) && (
+              <dl className="divide-y divide-[#17263c] rounded-lg border border-[#1b2c46] bg-[#0c1728] px-3">
+                {playingAs && (
+                  <div className="flex items-baseline justify-between gap-4 py-2.5">
+                    <dt className={RECAP_LABEL}>Playing as</dt>
+                    <dd className="font-inter-body text-[13px] font-semibold text-[#f4f9ff]">{playingAs}</dd>
+                  </div>
+                )}
+                {note && (
+                  <div className="py-2.5">
+                    <dt className={RECAP_LABEL}>Your note</dt>
+                    <dd className="mt-1 break-words font-inter-body text-[13px] leading-[1.55] text-[#cfe0f4]">{note}</dd>
+                  </div>
+                )}
+              </dl>
+            )}
+            <Button
+              type="button"
+              onClick={handleDone}
+              className="w-full py-2 px-4 rounded bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#05101d] font-bold transition-colors"
+            >
+              Done
+            </Button>
           </>
         ) : (
           <>
@@ -267,12 +290,12 @@ export function JoinRequestDialog({
                 )}
               </div>
 
-              {error && (
-                <p role="alert" className="text-sm text-[#e2686f]">{error}</p>
-              )}
-
               {/* Pinned to the bottom of the dialog, so Send stays in reach when the name list makes the form scroll. */}
-              <div className="sticky bottom-0 -mx-6 -mb-6 -mt-3 bg-[#0a1421] px-6 pb-6 pt-3">
+              {/* -bottom-6, not bottom-0: sticky measures from inside the dialog's padding, which this bar covers. */}
+              <div className="sticky -bottom-6 -mx-6 -mb-6 -mt-3 bg-[#0a1421] px-6 pb-6 pt-3">
+                {error && (
+                  <p role="alert" className="mb-3 text-sm text-[#e2686f]">{error}</p>
+                )}
                 <Button
                   type="submit"
                   disabled={loading}
