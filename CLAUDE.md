@@ -153,6 +153,10 @@ established in `components/` when adding new components.
 use `style` props with the palette's hex values. The same goes for the
 email templates in `lib/email/templates/`, since email clients only reliably
 honour inline styles; they share a frame and type styles via `EmailLayout.tsx`.
+The emails are also the one place with a light background: mail apps in dark
+mode recolour an email themselves and mangle an always-navy one, so the
+templates are light and flat, with the navy palette as a
+`prefers-color-scheme: dark` variant.
 Keep `style` out of every other component.
 
 ---
@@ -227,7 +231,7 @@ components.
 
 The app shares the landing page's look: a deep navy base with sky, violet and
 lime accents. Colours are written as Tailwind arbitrary hex values
-(`bg-[#0a1421]`), matching `components/landing/`. Never use light backgrounds.
+(`bg-[#0a1421]`), matching `components/landing/`. Never use light backgrounds (emails aside, see above).
 
 | Role | Value |
 |---|---|
