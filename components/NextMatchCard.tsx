@@ -105,6 +105,7 @@ export function NextMatchCard({
   // the card is in the first paint and never re-reads weeks from the browser.
   useEffect(() => {
     if (initialScheduledWeek) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- resyncs local edits when the server seed changes
       setScheduledWeek(initialScheduledWeek)
       setCardState(initialScheduledWeek.status === 'cancelled' ? 'cancelled' : 'lineup')
     } else {

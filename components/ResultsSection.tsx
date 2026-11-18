@@ -65,6 +65,7 @@ export function ResultsSection({
     const [, season, weekNum] = match
     if (!weeks.some((w) => w.season === season && w.week === Number(weekNum))) return
     if (season !== year) selectYear(season)
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL hash can only be read after hydration
     setOpenWeek(Number(weekNum))
     // Wait a frame so the card is rendered/expanded before scrolling to it.
     requestAnimationFrame(() => {
