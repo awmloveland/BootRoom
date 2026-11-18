@@ -3,6 +3,7 @@ import { requireLeagueAdmin, rpcErrorResponse } from '@/lib/apiAuth'
 import { revalidateLeague } from '@/lib/leagueCache'
 import { NextResponse } from 'next/server'
 import { strengthToRating } from '@/lib/strength'
+import { parseRenameName } from '@/lib/playerUtils'
 import type { Mentality, Strength } from '@/lib/types'
 
 interface Body {
@@ -31,13 +32,13 @@ export async function POST(
 
   const weekId = typeof body.weekId === 'string' ? body.weekId : ''
   const oldName = typeof body.oldName === 'string' ? body.oldName : ''
-  const newName = typeof body.newName === 'string' ? body.newName.trim() : ''
+  const newName = parseRenameName(body.newName)
   const mentality = body.mentality
   // Accept canonical `strength` key with legacy `strengthHint` fallback.
   const strength = body.strength ?? body.strengthHint
 
   if (!weekId || !oldName || !newName) {
-    return NextResponse.json({ error: 'weekId, oldName and newName are required' }, { status: 400 })
+    return NextResponse.json({ error: 'weekId, oldName and newName (up to 50 characters) are required' }, { status: 400 })
   }
   if (!mentality || !VALID_MENTALITIES.includes(mentality)) {
     return NextResponse.json({ error: 'invalid_mentality' }, { status: 400 })

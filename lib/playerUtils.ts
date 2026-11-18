@@ -95,8 +95,7 @@ export interface ApproveInput {
 export function parseApproveBody(body: unknown): ApproveInput | null {
   if (body === null || typeof body !== 'object' || Array.isArray(body)) return null
   const b = body as Record<string, unknown>
-  if (typeof b.player_name !== 'string') return null
-  const player_name = b.player_name.trim()
+  const player_name = parseRenameName(b.player_name)
   if (!player_name) return null
   if (b.create_player !== undefined && typeof b.create_player !== 'boolean') return null
   return { player_name, create_player: b.create_player === true }

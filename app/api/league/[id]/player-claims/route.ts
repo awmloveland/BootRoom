@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/apiAuth'
+import { parseRenameName } from '@/lib/playerUtils'
 
 /** GET — return unclaimed player names for the league. Member only. */
 export async function GET(
@@ -37,7 +38,7 @@ export async function POST(
   const supabase = await createClient()
 
   const body = await request.json().catch(() => ({}))
-  const player_name = typeof body?.player_name === 'string' ? body.player_name.trim() : ''
+  const player_name = parseRenameName(body?.player_name)
 
   if (!player_name) {
     return NextResponse.json({ error: 'player_name is required' }, { status: 400 })

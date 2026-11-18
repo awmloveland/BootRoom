@@ -1,4 +1,4 @@
-import { approveErrorResponse, parseApproveBody } from '@/lib/playerUtils'
+import { approveErrorResponse, MAX_PLAYER_NAME, parseApproveBody } from '@/lib/playerUtils'
 
 describe('parseApproveBody', () => {
   it('trims the name and reads create_player', () => {
@@ -13,6 +13,10 @@ describe('parseApproveBody', () => {
     expect(parseApproveBody({ player_name: '   ' })).toBeNull()
     expect(parseApproveBody(null)).toBeNull()
     expect(parseApproveBody({ player_name: 'Sam', create_player: 'yes' })).toBeNull()
+  })
+  it('caps the name at MAX_PLAYER_NAME characters', () => {
+    expect(parseApproveBody({ player_name: 'a'.repeat(MAX_PLAYER_NAME) })).not.toBeNull()
+    expect(parseApproveBody({ player_name: 'a'.repeat(MAX_PLAYER_NAME + 1) })).toBeNull()
   })
 })
 

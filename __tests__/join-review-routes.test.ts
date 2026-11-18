@@ -48,6 +48,13 @@ beforeEach(() => {
 })
 
 describe('POST join-requests', () => {
+  it('rejects a player name over 50 characters without calling the RPC', async () => {
+    setup()
+    const res = await submitRequest(post({ player_name: 'a'.repeat(51) }) as never, { params: Promise.resolve({ id: 'g1' }) })
+    expect(res.status).toBe(400)
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
   it('passes played_before to submit_join_request', async () => {
     setup()
     const res = await submitRequest(
