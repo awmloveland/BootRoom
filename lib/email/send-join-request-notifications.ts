@@ -3,13 +3,13 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getResendClient } from '@/lib/email/resend'
 import { JoinRequestAdminEmail } from '@/lib/email/templates/JoinRequestAdminEmail'
 import { JoinRequestStatusEmail } from '@/lib/email/templates/JoinRequestStatusEmail'
+import { SITE } from '@/lib/shareLinks'
 
 const FROM_ADDRESS = 'notifications@craft-football.com'
 
 export async function notifyAdminsOfJoinRequest(
   gameId: string,
-  requester: { userId: string; email: string; message: string | null },
-  origin: string
+  requester: { userId: string; email: string; message: string | null }
 ): Promise<void> {
   const db = createServiceClient()
 
@@ -59,7 +59,7 @@ export async function notifyAdminsOfJoinRequest(
       requesterName,
       requesterEmail: requester.email,
       message: requester.message,
-      membersPageUrl: `${origin}/${slug}/settings`,
+      membersPageUrl: `${SITE}/${slug}/settings`,
     })
   )
 
@@ -78,8 +78,7 @@ export async function notifyAdminsOfJoinRequest(
 
 export async function notifyRequesterOfReview(
   requestId: string,
-  action: 'approved' | 'declined',
-  origin: string
+  action: 'approved' | 'declined'
 ): Promise<void> {
   const db = createServiceClient()
 
@@ -108,7 +107,7 @@ export async function notifyRequesterOfReview(
       leagueName: league.name,
       requesterName: req.display_name,
       action,
-      leagueUrl: action === 'approved' ? `${origin}/${league.slug}` : null,
+      leagueUrl: action === 'approved' ? `${SITE}/${league.slug}` : null,
     })
   )
 

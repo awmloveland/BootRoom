@@ -47,8 +47,7 @@ describe('notifyAdminsOfJoinRequest', () => {
 
     await notifyAdminsOfJoinRequest(
       'game-id',
-      { userId: 'user-id', email: 'marcus@test.com', message: null },
-      'https://craft-football.com'
+      { userId: 'user-id', email: 'marcus@test.com', message: null }
     )
 
     expect(mockEmailSend).toHaveBeenCalledTimes(1)
@@ -85,8 +84,7 @@ describe('notifyAdminsOfJoinRequest', () => {
 
     await notifyAdminsOfJoinRequest(
       'game-id',
-      { userId: 'user-id', email: 'marcus@test.com', message: null },
-      'https://craft-football.com'
+      { userId: 'user-id', email: 'marcus@test.com', message: null }
     )
 
     expect(mockEmailSend).toHaveBeenCalledTimes(2)
@@ -104,8 +102,7 @@ describe('notifyAdminsOfJoinRequest', () => {
 
     await notifyAdminsOfJoinRequest(
       'game-id',
-      { userId: 'user-id', email: 'marcus@test.com', message: null },
-      'https://craft-football.com'
+      { userId: 'user-id', email: 'marcus@test.com', message: null }
     )
 
     expect(mockEmailSend).not.toHaveBeenCalled()
@@ -124,7 +121,7 @@ describe('notifyRequesterOfReview', () => {
       ),
     })
 
-    await notifyRequesterOfReview('request-id', 'approved', 'https://craft-football.com')
+    await notifyRequesterOfReview('request-id', 'approved')
 
     expect(mockEmailSend).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -148,7 +145,7 @@ describe('notifyRequesterOfReview', () => {
       ),
     })
 
-    await notifyRequesterOfReview('request-id', 'declined', 'https://craft-football.com')
+    await notifyRequesterOfReview('request-id', 'declined')
 
     expect(mockEmailSend).toHaveBeenCalledWith(
       expect.objectContaining({

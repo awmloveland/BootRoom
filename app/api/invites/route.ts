@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireLeagueAdmin, requireUser } from '@/lib/apiAuth'
 import { NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
+import { SITE } from '@/lib/shareLinks'
 
 const TOKEN_BYTES = 32
 const EXPIRY_DAYS = 7
@@ -45,8 +46,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const origin = request.headers.get('origin') || 'https://m.craft-football.com'
-  const link = `${origin}/invite?token=${token}`
+  const link = `${SITE}/invite?token=${token}`
 
   return NextResponse.json({ link, expiresAt: expiresAt.toISOString() })
 }

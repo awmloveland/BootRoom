@@ -39,10 +39,9 @@ export async function POST(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 
-  const origin = request.headers.get('origin') ?? 'https://craft-football.com'
   // after() keeps the function alive until the email is sent; Vercel may stop it once the response is out.
   after(() =>
-    notifyRequesterOfReview(requestId, action as 'approved' | 'declined', origin)
+    notifyRequesterOfReview(requestId, action as 'approved' | 'declined')
       .catch(err => console.error('[email:notifyRequesterOfReview]', err))
   )
 
