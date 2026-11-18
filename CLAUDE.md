@@ -25,7 +25,7 @@ Deployed on a single domain: `craft-football.com` — public marketing pages, pu
 | Class utility | `clsx` + `tailwind-merge` via `cn()` in `lib/utils.ts` |
 | Auth + DB | Supabase (Auth + PostgreSQL + RLS) |
 | Package manager | npm |
-| Node version | v20 |
+| Node version | v24 (what Vercel runs) |
 
 No new UI libraries, CSS-in-JS, or state management libraries should be added
 without discussion. Do not install Redux, Zustand, styled-components, Framer
