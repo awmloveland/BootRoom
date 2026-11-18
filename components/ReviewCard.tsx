@@ -131,17 +131,20 @@ export function ReviewCard({ leagueId, item, roster, onDone, onRosterStale }: Re
           const rosterPlayer = roster.find((p) => p.name === playsAs.name)
           return (
             <>
-              <p className={LABEL}>Plays as</p>
-              <div className="mt-1 flex items-baseline gap-2">
-                <p className="font-inter-body text-sm">
-                  <span className={cn('font-medium', warn ? 'text-[#fbbf24]' : 'text-[#f4f9ff]')}>{playsAs.name}</span>
-                  {rosterPlayer && <span className="text-[#6f88a8]"> {`· ${gamesLabel(rosterPlayer.played ?? 0)}`}</span>}
-                </p>
+              {/* The tag sits by the label, not the name: beside the name it wrapped on a phone. */}
+              <div className="flex items-center gap-2">
+                <p className={LABEL}>Plays as</p>
                 {playsAs.name === person.pick && (
                   <span className="rounded border border-[#223a5c] px-1.5 font-plex text-[9px] uppercase tracking-[.12em] text-[#8ba4c4]">
                     Their pick
                   </span>
                 )}
+              </div>
+              <div className="mt-1 flex items-baseline gap-2">
+                <p className="font-inter-body text-sm">
+                  <span className={cn('font-medium', warn ? 'text-[#fbbf24]' : 'text-[#f4f9ff]')}>{playsAs.name}</span>
+                  {rosterPlayer && <span className="text-[#6f88a8]"> {`· ${gamesLabel(rosterPlayer.played ?? 0)}`}</span>}
+                </p>
                 <button type="button" onClick={() => { setSearch(''); choose({ mode: 'list' }) }} className={cn(LINK, 'ml-auto')}>
                   Change
                 </button>
