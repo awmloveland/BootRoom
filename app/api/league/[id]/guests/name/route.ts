@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { requireLeagueAdmin } from '@/lib/apiAuth'
+import { requireLeagueAdmin, rpcErrorResponse } from '@/lib/apiAuth'
 import { revalidateLeague } from '@/lib/leagueCache'
 import { NextResponse } from 'next/server'
 import { strengthToRating } from '@/lib/strength'
@@ -64,7 +64,7 @@ export async function POST(
     if (error.message.includes('guest_not_found')) {
       return NextResponse.json({ error: 'guest_not_found' }, { status: 404 })
     }
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return rpcErrorResponse(error, 'Could not name the guest. Try again.')
   }
 
   revalidateLeague(id)

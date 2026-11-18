@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireLeagueAdmin } from '@/lib/apiAuth'
+import { dbErrorResponse, requireLeagueAdmin } from '@/lib/apiAuth'
 import { revalidateLeague } from '@/lib/leagueCache'
 import { NextResponse } from 'next/server'
 import { HH_MM, LEAGUE_DAYS, parseLeagueText } from '@/lib/leagueDetails'
@@ -17,7 +17,7 @@ export async function GET(
     .eq('id', id)
     .maybeSingle()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return dbErrorResponse(error, 'Could not load the league details. Try again.')
   if (!game) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const { data: playersData } = await supabase.rpc('get_player_stats_public', { p_game_id: id })
@@ -61,7 +61,7 @@ export async function PATCH(
     .update({ name, location, day, kickoff_time, bio })
     .eq('id', id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return dbErrorResponse(error, 'Could not save the league details. Try again.')
   revalidateLeague(id, slug ? [slug] : [])
   return NextResponse.json({ ok: true, slug })
 }

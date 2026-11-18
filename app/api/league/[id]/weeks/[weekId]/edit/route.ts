@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { requireLeagueAdmin } from '@/lib/apiAuth'
+import { requireLeagueAdmin, rpcErrorResponse } from '@/lib/apiAuth'
 import { revalidateLeague } from '@/lib/leagueCache'
 import { NextResponse } from 'next/server'
 
@@ -71,7 +71,7 @@ export async function PATCH(
     p_team_b: teamB,
   })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return rpcErrorResponse(error, 'Could not save the changes. Try again.')
   revalidateLeague(id)
   return NextResponse.json({ ok: true })
 }

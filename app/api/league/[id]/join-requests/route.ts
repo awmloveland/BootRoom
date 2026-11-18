@@ -1,6 +1,6 @@
 import { after, NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { requireUser } from '@/lib/apiAuth'
+import { requireUser, rpcErrorResponse } from '@/lib/apiAuth'
 import { notifyAdminsOfJoinRequest } from '@/lib/email/send-join-request-notifications'
 
 /** GET — return pending join requests for a league. Admin/creator only. */
@@ -21,7 +21,7 @@ export async function GET(
     if (error.message.includes('Access denied')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return rpcErrorResponse(error, 'Could not load join requests. Try again.')
   }
 
   return NextResponse.json(data ?? [])

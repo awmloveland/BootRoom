@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextResponse } from 'next/server'
+import { dbErrorResponse } from '@/lib/apiAuth'
 
 /** GET — returns the first scheduled week for the league, or null. No auth required (service role read). */
 export async function GET(
@@ -19,6 +20,6 @@ export async function GET(
     .limit(1)
     .maybeSingle()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return dbErrorResponse(error, 'Could not load the next game. Try again.')
   return NextResponse.json({ week: data ?? null })
 }

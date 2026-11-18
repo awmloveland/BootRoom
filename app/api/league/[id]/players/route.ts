@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { requireLeagueAdmin } from '@/lib/apiAuth'
+import { dbErrorResponse, requireLeagueAdmin, rpcErrorResponse } from '@/lib/apiAuth'
 import { revalidateLeague } from '@/lib/leagueCache'
 import { ratingToStrength, strengthToRating } from '@/lib/strength'
 import { parseAddPlayerBody } from '@/lib/playerUtils'
@@ -26,7 +26,7 @@ export async function GET(
   ])
 
   if (playersResult.error) {
-    return NextResponse.json({ error: playersResult.error.message }, { status: 500 })
+    return dbErrorResponse(playersResult.error, 'Could not load the players. Try again.')
   }
 
   // Build map: player_name -> { linked_user_id, linked_display_name }
@@ -92,7 +92,7 @@ export async function POST(
     .maybeSingle()
 
   if (existingErr) {
-    return NextResponse.json({ error: existingErr.message }, { status: 500 })
+    return dbErrorResponse(existingErr, 'Could not add the player. Try again.')
   }
   if (existing) {
     return NextResponse.json(
@@ -115,7 +115,7 @@ export async function POST(
   })
 
   if (rpcErr) {
-    return NextResponse.json({ error: rpcErr.message }, { status: 500 })
+    return rpcErrorResponse(rpcErr, 'Could not add the player. Try again.')
   }
 
   revalidateLeague(id)

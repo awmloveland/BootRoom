@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { requireLeagueAdmin } from '@/lib/apiAuth'
+import { requireLeagueAdmin, rpcErrorResponse } from '@/lib/apiAuth'
 import { revalidateLeague } from '@/lib/leagueCache'
 import { NextResponse } from 'next/server'
 import { parseRenameName } from '@/lib/playerUtils'
@@ -29,7 +29,7 @@ export async function PATCH(
     if (error.message.includes('name_already_exists')) {
       return NextResponse.json({ error: 'Name already exists in this league' }, { status: 409 })
     }
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return rpcErrorResponse(error, 'Could not rename the player. Try again.')
   }
 
   revalidateLeague(id)

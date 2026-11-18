@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { requireLeagueAdmin, requireUser } from '@/lib/apiAuth'
+import { dbErrorResponse, requireLeagueAdmin, requireUser } from '@/lib/apiAuth'
 import { NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { SITE } from '@/lib/shareLinks'
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   )
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return dbErrorResponse(error, 'Could not create the invite. Try again.')
   }
 
   const link = `${SITE}/invite?token=${token}`

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { requireUser } from '@/lib/apiAuth'
+import { dbErrorResponse, requireUser } from '@/lib/apiAuth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextResponse } from 'next/server'
 
@@ -15,7 +15,7 @@ export async function DELETE() {
     .eq('id', gate.user.id)
 
   if (profileErr) {
-    return NextResponse.json({ error: profileErr.message }, { status: 500 })
+    return dbErrorResponse(profileErr, 'Could not delete your account. Try again.')
   }
 
   // Delete the auth user using the service-role client
@@ -23,7 +23,7 @@ export async function DELETE() {
   const { error: authErr } = await service.auth.admin.deleteUser(gate.user.id)
 
   if (authErr) {
-    return NextResponse.json({ error: authErr.message }, { status: 500 })
+    return dbErrorResponse(authErr, 'Could not delete your account. Try again.')
   }
 
   return NextResponse.json({ ok: true })

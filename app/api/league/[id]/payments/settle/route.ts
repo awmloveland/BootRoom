@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { dbErrorResponse } from '@/lib/apiAuth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getWeeks } from '@/lib/fetchers'
 import { feeEntryKey, settlePayers } from '@/lib/fees'
@@ -62,6 +63,6 @@ export async function POST(
     { onConflict: 'week_id,payer' }
   )
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return dbErrorResponse(error, 'Could not mark those as paid. Try again.')
   return NextResponse.json({ ok: true, settled: rows.length })
 }
