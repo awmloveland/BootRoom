@@ -3,6 +3,9 @@
 
 import type { PendingJoinRequest, PendingRequestSummary, PlaysAs, PlayerAttribute, PlayerClaim, ReviewItem, ReviewProblem } from './types'
 
+/** Longest note a join request may carry; it is copied into the admins' email. */
+export const MAX_JOIN_MESSAGE = 500
+
 /** Up to three names, then a count: "A, B, C and 2 more". */
 function listNames(names: string[]): string {
   const shown = names.slice(0, 3).join(', ')
