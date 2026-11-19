@@ -48,12 +48,20 @@ afterEach(() => { jest.useRealTimers() })
 
 describe('StatsSidebar', () => {
   it('shows the current quarter table and highlights first place only', () => {
-    const { container } = render(<StatsSidebar players={PLAYERS} weeks={WEEKS} leagueDayIndex={4} />)
+    // A second Q2 game that Charlie wins and Dave loses puts Charlie clear at the top.
+    const weeks: Week[] = [...WEEKS, { id: 'q2c', season: '2026', week: 19, date: '14 May 2026', status: 'played', teamA: ['Charlie', 'Alice'], teamB: ['Dave', 'Bob'], winner: 'teamA' }]
+    const { container } = render(<StatsSidebar players={PLAYERS} weeks={weeks} leagueDayIndex={4} />)
     expect(screen.getByText('Q2 26')).toBeInTheDocument()
     const highlighted = container.querySelectorAll('[class*="bg-[#38bdf8]/7"]')
     expect(highlighted).toHaveLength(1)
     expect(highlighted[0]).toHaveTextContent('Charlie')
     expect(screen.queryByText('You')).not.toBeInTheDocument()
+  })
+
+  it('highlights nobody while the top two are level on every count', () => {
+    // After one Q2 game Charlie and Dave are level; name order alone puts Charlie first.
+    const { container } = render(<StatsSidebar players={PLAYERS} weeks={WEEKS} leagueDayIndex={4} />)
+    expect(container.querySelectorAll('[class*="bg-[#38bdf8]/7"]')).toHaveLength(0)
   })
 
   it('shows the goal difference column', () => {
