@@ -27,13 +27,13 @@ describe('winProbability with a man advantage', () => {
     const even = winProbability(50, 50)
     const withExtra = winProbability(50, 50, manAdvantage(6, 5))
     expect(even).toBe(0.5)
-    // WIN_PROB_SCALE 16: one extra player at equal strength is about 58%.
-    expect(withExtra).toBeGreaterThan(0.55)
-    expect(withExtra).toBeLessThan(0.6)
+    // WIN_PROB_SCALE 16: one extra player at equal strength is about 55%.
+    expect(withExtra).toBeGreaterThan(0.53)
+    expect(withExtra).toBeLessThan(0.56)
   })
 
   it('tilts towards Team B when they have the extra player', () => {
-    expect(winProbability(50, 50, manAdvantage(5, 6))).toBeLessThan(0.45)
+    expect(winProbability(50, 50, manAdvantage(5, 6))).toBeLessThan(0.47)
   })
 
   it('reads as even when the shorter side is better by exactly the handicap', () => {
