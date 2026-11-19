@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
-import { requireLeagueAdmin, rpcErrorResponse } from '@/lib/apiAuth'
+import { createServiceClient } from '@/lib/supabase/service'
+import { dbErrorResponse, requireLeagueAdmin, rpcErrorResponse } from '@/lib/apiAuth'
 import { revalidateLeague } from '@/lib/leagueCache'
+import { moveWeekToSeasonOfDate } from '@/lib/recordedWeek'
 import { NextResponse } from 'next/server'
 
 const VALID_STATUSES = ['played', 'cancelled', 'unrecorded', 'dnf'] as const
@@ -72,6 +74,9 @@ export async function PATCH(
   })
 
   if (error) return rpcErrorResponse(error, 'Could not save the changes. Try again.')
+  // edit_week keeps the week's season; the helper only touches a week of this league.
+  const moveError = await moveWeekToSeasonOfDate(createServiceClient(), id, weekId, date)
   revalidateLeague(id)
+  if (moveError) return dbErrorResponse(moveError, 'Could not save the changes. Try again.')
   return NextResponse.json({ ok: true })
 }

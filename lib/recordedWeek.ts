@@ -2,6 +2,8 @@
 // Guard for the routes that upsert a week by (season, week).
 import { NextResponse } from 'next/server'
 import type { createClient } from '@/lib/supabase/server'
+import type { createServiceClient } from '@/lib/supabase/service'
+import { seasonOfDate } from '@/lib/utils'
 
 type ServerClient = Awaited<ReturnType<typeof createClient>>
 
@@ -31,4 +33,34 @@ export async function recordedWeekConflict(
   }
   if (data?.status !== 'played' && data?.status !== 'dnf') return null
   return NextResponse.json({ error: 'This week already has a result' }, { status: 409 })
+}
+
+/**
+ * Once a week's date has been changed to `date`, move its (season, week) key
+ * to that date's year if it crossed one, so the week shows under the right
+ * Results year. Returns the query error, or null.
+ */
+export async function moveWeekToSeasonOfDate(
+  service: ReturnType<typeof createServiceClient>,
+  leagueId: string,
+  weekId: string,
+  date: string,
+) {
+  const season = seasonOfDate(date)
+  const own = await service.from('weeks').select('season, date').eq('id', weekId).eq('game_id', leagueId).maybeSingle()
+  if (own.error) return own.error
+  // A different stored date means the date change did not apply to this week.
+  if (!own.data || own.data.date !== date || own.data.season === season) return null
+
+  // shortcut: numbered after the season's last week, not slotted in by date;
+  // renumber by date (as import_weeks does) if moving old results between years becomes common.
+  const last = await service
+    .from('weeks').select('week').eq('game_id', leagueId).eq('season', season)
+    .order('week', { ascending: false }).limit(1).maybeSingle()
+  if (last.error) return last.error
+
+  const { error } = await service
+    .from('weeks').update({ season, week: (last.data?.week ?? 0) + 1 })
+    .eq('id', weekId).eq('game_id', leagueId)
+  return error
 }
