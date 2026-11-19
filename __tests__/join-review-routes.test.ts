@@ -55,6 +55,13 @@ describe('POST join-requests', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
+  it('rejects a note over 500 characters without calling the RPC', async () => {
+    setup()
+    const res = await submitRequest(post({ message: 'a'.repeat(501) }) as never, { params: Promise.resolve({ id: 'g1' }) })
+    expect(res.status).toBe(400)
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
   it('passes played_before to submit_join_request', async () => {
     setup()
     const res = await submitRequest(

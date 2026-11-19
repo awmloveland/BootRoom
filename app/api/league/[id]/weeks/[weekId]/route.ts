@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { dbErrorResponse, requireLeagueAdmin } from '@/lib/apiAuth'
 import { revalidateLeague } from '@/lib/leagueCache'
+import { moveWeekToSeasonOfDate } from '@/lib/recordedWeek'
 import { NextResponse } from 'next/server'
 
 /** PATCH — admin-only, updates the date on a scheduled week. Body: { date: "DD MMM YYYY" } */
@@ -33,7 +34,8 @@ export async function PATCH(
     .eq('game_id', id)
     .eq('status', 'scheduled')
 
-  if (error) return dbErrorResponse(error, 'Could not change the date. Try again.')
+  const failed = error ?? (await moveWeekToSeasonOfDate(service, id, weekId, date))
+  if (failed) return dbErrorResponse(failed, 'Could not change the date. Try again.')
   revalidateLeague(id)
   return NextResponse.json({ ok: true })
 }

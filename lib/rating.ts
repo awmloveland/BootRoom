@@ -29,8 +29,12 @@ const DEPTH_MAX_BONUS = 3              // cap on cumulative depth bonus
 // Over the first 50 games the fitted slope was indistinguishable from zero, so
 // the bar is deliberately cautious: a 10-point gap is about 65%.
 const WIN_PROB_SCALE = 16              // logistic scale: diff / SCALE drives the sigmoid
-/** Rating points an extra player is worth when teams are uneven (5 ≈ a 58% win chance at equal strength). */
-export const MAN_ADVANTAGE_PER_PLAYER = 5
+/**
+ * Rating points an extra player is worth when teams are uneven (3 ≈ a 55% win
+ * chance at equal strength). It was 5 on the v1 scale; v2 spreads regulars'
+ * ratings about 40% less widely (SD 4.5 against 7.2), so 5 × 4.5 / 7.2 ≈ 3.
+ */
+export const MAN_ADVANTAGE_PER_PLAYER = 3
 
 /**
  * Weighted Performance Rating (WPR, v2) for a player.

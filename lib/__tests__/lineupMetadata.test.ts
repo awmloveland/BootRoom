@@ -108,8 +108,8 @@ describe('buildLineupAudit', () => {
     })
     expect(autoPick).toEqual({
       algorithm: TEAM_BUILDER_VERSION, suggestionIndex: 2, suggestionCount: 5, edited: true,
-      // 1 v 2, so savedDiff includes the man advantage: |41.3514 - 5 - 33.0001|.
-      bestDiff: 0.012, savedDiff: 3.351, builtAt: '2026-10-05T17:02:11.000Z',
+      // 1 v 2, so savedDiff includes the man advantage: |41.3514 - 3 - 33.0001|.
+      bestDiff: 0.012, savedDiff: 5.351, builtAt: '2026-10-05T17:02:11.000Z',
     })
     expect(TEAM_BUILDER_VERSION).toBe(2)
     expect(ratings).toEqual([

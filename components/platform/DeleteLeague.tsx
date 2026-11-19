@@ -46,7 +46,7 @@ export function DeleteLeague({ id, name, slug, members, players, results }: Prop
         <div>
           <p className="text-[15px] font-bold tracking-[-.02em] text-[#f4f9ff]">Delete this league</p>
           <p className="mt-1 font-inter-body text-xs leading-[1.55] text-[#8ba4c4]">
-            Removes the league and everything in it. A copy is kept in the audit log.
+            Removes the league and everything in it. A copy is kept in the audit log for 30 days.
           </p>
         </div>
         <Button variant="destructive" size="sm" className="shrink-0 gap-2" onClick={() => setOpen(true)}>

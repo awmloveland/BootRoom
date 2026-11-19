@@ -4,6 +4,13 @@ import { createClient } from '@/lib/supabase/server'
 
 jest.mock('next/cache', () => ({ revalidateTag: jest.fn() }))
 jest.mock('@/lib/supabase/server')
+// The route checks the week's season after saving; finding no row leaves it alone.
+jest.mock('@/lib/supabase/service', () => ({
+  createServiceClient: () => {
+    const query = { select: () => query, eq: () => query, maybeSingle: async () => ({ data: null, error: null }) }
+    return { from: () => query }
+  },
+}))
 
 // goal_difference is an unsigned win margin (the winner is stored separately),
 // so the edit route must reject negative or fractional values.

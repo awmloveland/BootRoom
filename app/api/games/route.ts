@@ -49,6 +49,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'You have created five leagues in the last day. Try again tomorrow.' }, { status: 429 })
     }
     if (error.code !== PG_UNIQUE_VIOLATION) return rpcErrorResponse(error, 'Could not create the league. Try again.')
+    // The address is taken. If the caller's own league holds it, this is a
+    // repeat of a create whose response never arrived: answer with that league.
+    const { data: held } = await supabase.from('games').select('id').eq('slug', slug).maybeSingle()
+    const { data: mine } = held
+      ? await supabase.from('game_members').select('role').eq('game_id', held.id).eq('user_id', gate.user.id).eq('role', 'creator').maybeSingle()
+      : { data: null }
+    if (held && mine) return NextResponse.json({ id: held.id, slug })
   }
   return NextResponse.json({ error: 'slug_taken' }, { status: 409 })
 }

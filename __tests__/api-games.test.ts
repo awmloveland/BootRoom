@@ -15,8 +15,13 @@ const VALID = { name: 'Hackney Thursdays', day: 'Thursday', kickoff_time: '20:00
 const TAKEN = { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint "games_slug_unique"' } }
 const rpc = jest.fn()
 
-function setup(user: typeof USER | null) {
-  ;(createClient as jest.Mock).mockResolvedValue({ auth: mockAuthNamespace(user), rpc })
+/** `own` is what the caller's look-ups find at a taken address: nothing unless it is their own league. */
+function setup(user: typeof USER | null, own: Record<string, unknown> = {}) {
+  const from = (table: string) => {
+    const query = { select: () => query, eq: () => query, maybeSingle: async () => ({ data: own[table] ?? null, error: null }) }
+    return query
+  }
+  ;(createClient as jest.Mock).mockResolvedValue({ auth: mockAuthNamespace(user), rpc, from })
 }
 
 function post(body: unknown) {
@@ -107,6 +112,16 @@ describe('POST /api/games', () => {
     expect(res.status).toBe(200)
     await expect(res.json()).resolves.toEqual({ id: 'game-1', slug: 'hackney-thursdays-zzz' })
     expect(rpc).toHaveBeenCalledTimes(2)
+  })
+
+  it('answers a repeated create with the league the caller already made at that address', async () => {
+    // The first response was lost, so the wizard sends the same name and code again.
+    setup(USER, { games: { id: 'game-1' }, game_members: { role: 'creator' } })
+    rpc.mockResolvedValueOnce(TAKEN)
+    const res = await post(VALID)
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toEqual({ id: 'game-1', slug: 'hackney-thursdays-k7x' })
+    expect(rpc).toHaveBeenCalledTimes(1)
   })
 
   it('returns 409 slug_taken when the retry is taken too', async () => {

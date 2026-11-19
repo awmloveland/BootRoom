@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { MAX_JOIN_MESSAGE } from '@/lib/review'
 import PlayerClaimPicker from '@/components/PlayerClaimPicker'
 import {
   Dialog,
@@ -167,7 +168,7 @@ export function JoinRequestDialog({
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="e.g. I play on Tuesdays with the 5-a-side crew"
                   rows={3}
-                  maxLength={500}
+                  maxLength={MAX_JOIN_MESSAGE}
                   className={cn(
                     'w-full px-4 py-2 rounded-lg resize-none',
                     'bg-[#0a1421] border border-[#1b2c46]',

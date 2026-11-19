@@ -34,9 +34,17 @@ describe('PlayerCard edit button', () => {
     expect(onToggle).not.toHaveBeenCalled()
   })
 
+  it('puts Edit player in a strip labelled Admin, not a full-width button', () => {
+    render(<PlayerCard player={player} isOpen onToggle={() => {}} sortBy="won" onEdit={() => {}} />)
+    const strip = screen.getByText('Admin').parentElement!
+    expect(strip).toContainElement(screen.getByRole('button', { name: 'Edit player' }))
+    expect(screen.getByRole('button', { name: 'Edit player' })).not.toHaveClass('w-full')
+  })
+
   it('has no Edit player button without onEdit', () => {
     render(<PlayerCard player={player} isOpen onToggle={() => {}} sortBy="won" />)
     expect(screen.queryByRole('button', { name: 'Edit player' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Admin')).not.toBeInTheDocument()
   })
 
   it('has no Edit player button while the card is closed', () => {

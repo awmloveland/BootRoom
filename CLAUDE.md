@@ -25,7 +25,7 @@ Deployed on a single domain: `craft-football.com` — public marketing pages, pu
 | Class utility | `clsx` + `tailwind-merge` via `cn()` in `lib/utils.ts` |
 | Auth + DB | Supabase (Auth + PostgreSQL + RLS) |
 | Package manager | npm |
-| Node version | v24 (what Vercel runs) |
+| Node version | v24 (what Vercel runs; pinned in `.nvmrc` and `engines`) |
 
 No new UI libraries, CSS-in-JS, or state management libraries should be added
 without discussion. Do not install Redux, Zustand, styled-components, Framer
@@ -45,11 +45,13 @@ BootRoom/
 │   ├── results/[id]/         # Legacy UUID URLs, redirect to /[slug]
 │   ├── settings/             # Account settings
 │   ├── invite/               # Invite accept page (consumes ?token=)
+│   ├── new/                  # League creation wizard: /new, then /new/[slug]/players, results, live (one catch-all page)
 │   ├── platform/             # Platform admin portal: every league, usage, delete (PLATFORM_ADMIN_IDS only)
 │   ├── api/                  # API routes
 │   └── globals.css           # Tailwind import, theme tokens, font utilities
 ├── components/
 │   ├── ui/                   # Base UI primitives (button, input, navbar…)
+│   ├── new-league/           # League creation steps and the Live screen
 │   ├── FeaturePanel.tsx      # Feature flag management UI (admin only, hidden when no flags)
 │   ├── AdminMemberTable.tsx  # Member management UI (admin only)
 │   ├── MatchCard.tsx         # Collapsible match result card
@@ -69,6 +71,7 @@ BootRoom/
 │   └── supabase/             # Supabase client helpers (client, server, service)
 ├── supabase/migrations/      # SQL migrations — run in order via Supabase SQL Editor
 ├── scripts/                  # Data migration and automation scripts
+├── .github/workflows/        # ci.yml (type check, lint, tests on every PR) and the manual production deploy
 ├── assets/fonts/             # TTFs for next/og generated images (see its README)
 ├── docs/
 │   └── FEATURE_FLAGS.md      # Feature flag development standard
@@ -281,8 +284,8 @@ reserved for champion treatments and positive status (e.g. a linked player).
 
 ### Copy
 
-All copy in British English. Never use em dashes in UI copy; use commas,
-colons, full stops, or the `·` dot separator.
+All copy in British English. Never use em dashes in UI copy or share
+messages; use commas, colons, full stops, or the `·` dot separator.
 
 ---
 
@@ -326,7 +329,7 @@ colons, full stops, or the `·` dot separator.
 - **`next.config.js` not `.ts`** — chosen when the app was on Next.js 14.2.x,
   which did not support a TypeScript config file. Next 16 does, but keep the
   `.js` file with its JSDoc `@type` annotation; there is no need to convert it.
-- **Feature flags** — optional; ask before adding one. Flagged features start at `admin_only` and are promoted via the UI, not code.
+- **Feature flags** — optional; ask before adding one. Flagged features start off for members and the public (admins always see them) and are promoted via the UI, not code.
 - **No player profile pages** — player detail views are not in scope yet.
 - **Max-width `max-w-2xl`** — do not widen the content column.
 - **Single domain** — everything runs on `craft-football.com`. `m.craft-football.com` permanently redirects there via `vercel.json`.

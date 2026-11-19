@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import type { Mentality, Strength } from '@/lib/types'
-import { rosterRenames } from '@/lib/playerUtils'
+import { renameSteps, rosterRenames } from '@/lib/playerUtils'
 import { PlayersStep } from './PlayersStep'
 import { MentalityStep } from './MentalityStep'
 import { StrengthStep } from './StrengthStep'
@@ -95,16 +95,15 @@ export function RosterWizard({ leagueId, slug, initial, stepOffset }: Props) {
         // Done: a retry must not delete whoever holds this name next.
         setRoster((r) => ({ ...r, removed: r.removed.filter((n) => n !== name) }))
       }
-      for (const p of renames) {
-        const name = p.name.trim()
-        const res = await fetch(`${api}/players/${encodeURIComponent(p.id)}/rename`, {
+      for (const { from, to } of renameSteps(renames.map((p) => ({ from: p.id, to: p.name.trim() })))) {
+        const res = await fetch(`${api}/players/${encodeURIComponent(from)}/rename`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ new_name: name }),
+          body: JSON.stringify({ new_name: to }),
         })
-        if (!res.ok) return fail(res.status === 409 ? `${name} is already on the list` : GENERIC)
+        if (!res.ok) return fail(res.status === 409 ? `${to} is already on the list` : GENERIC)
         // The row now stands for the renamed player, so a retry does not rename again.
-        patch(p.id, { id: name })
+        patch(from, { id: to })
       }
       const res = await fetch(`${api}/roster`, {
         method: 'PUT',

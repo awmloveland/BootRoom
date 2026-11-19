@@ -137,7 +137,7 @@ describe('buildShareText', () => {
     expect(text).not.toContain('📊')
     expect(text).toBe(
       [
-        '⚽ The Boot Room — Week 23',
+        '⚽ The Boot Room · Week 23',
         '📅 Fri 10 Apr · 6-a-side',
         '',
         '🔵 Team A',
@@ -491,7 +491,7 @@ describe('buildResultShareText', () => {
       ...BASE_PARAMS, teamA: ['Zed'], teamB: ['Opp2'], goalDifference: 4, weeks,
     })
     // Quarter comes from the result's date, not today's
-    expect(shareText).toContain('📊 Q2 2026 standings\n1. Zed — 3pts\n2. Alice — 3pts')
+    expect(shareText).toContain('📊 Q2 2026 standings\n1. Zed · 3pts\n2. Alice · 3pts')
   })
 
   // ── highlightsText ──
@@ -551,10 +551,10 @@ describe('buildDnfShareText', () => {
     const text = buildDnfShareText(baseParams)
     expect(text).toBe(
       [
-        '⚽ Test League — Week 5',
+        '⚽ Test League · Week 5',
         '📅 Mon 27 Apr · 6-a-side',
         '',
-        '⚠️ Game called off — DNF',
+        '⚠️ Game called off · DNF',
         '',
         '🔵 Team A (3.4)',
         'Alice, Bob, Carol',
@@ -574,10 +574,10 @@ describe('buildDnfShareText', () => {
     expect(text).not.toContain('Pitch flooded')
     expect(text).toBe(
       [
-        '⚽ Test League — Week 5',
+        '⚽ Test League · Week 5',
         '📅 Mon 27 Apr · 6-a-side',
         '',
-        '⚠️ Game called off — DNF',
+        '⚠️ Game called off · DNF',
         '',
         '🔵 Team A (3.4)',
         'Alice, Bob, Carol',
@@ -598,7 +598,7 @@ describe('buildDnfShareText', () => {
   it('omits format segment when format is empty string', () => {
     const text = buildDnfShareText({ ...baseParams, format: '' })
     expect(text).toContain('📅 Mon 27 Apr\n')
-    expect(text).not.toContain(' · ')
+    expect(text).not.toContain('Apr · ')
   })
 
   it('omits team rating parentheticals when ratings are null', () => {
@@ -618,6 +618,6 @@ describe('buildDnfShareText', () => {
 
   it('places a blank line between the date/format line and the DNF headline', () => {
     const text = buildDnfShareText(baseParams)
-    expect(text).toContain('📅 Mon 27 Apr · 6-a-side\n\n⚠️ Game called off — DNF')
+    expect(text).toContain('📅 Mon 27 Apr · 6-a-side\n\n⚠️ Game called off · DNF')
   })
 })

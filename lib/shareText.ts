@@ -31,7 +31,7 @@ export function buildShareText(params: {
   const shortDate = `${DAY_SHORT[parsed.getDay()]} ${dd} ${mmm}`
   const rated = teamARating !== null && teamBRating !== null
   const lines = [
-    `⚽ ${leagueName} — Week ${week}`,
+    `⚽ ${leagueName} · Week ${week}`,
     `📅 ${shortDate} · ${format}`,
     '',
     rated ? `🔵 Team A (${teamARating.toFixed(1)})` : '🔵 Team A',
@@ -81,10 +81,10 @@ export function buildDnfShareText(params: {
   const trimmedNotes = notes.trim()
 
   const lines: string[] = [
-    `⚽ ${leagueName} — Week ${week}`,
+    `⚽ ${leagueName} · Week ${week}`,
     dateLine,
     '',
-    '⚠️ Game called off — DNF',
+    '⚠️ Game called off · DNF',
     '',
     teamAHeader,
     teamA.join(', '),
@@ -284,7 +284,7 @@ export function buildResultShareText(params: {
   })
   const highlights = [...recordLines, ...items.map(highlightLine)]
   const tableLines = table
-    ? [`📊 Q${table.q} ${table.year} standings`, ...table.entries.map((e, i) => `${i + 1}. ${e.name} — ${e.points}pts`)]
+    ? [`📊 Q${table.q} ${table.year} standings`, ...table.entries.map((e, i) => `${i + 1}. ${e.name} · ${e.points}pts`)]
     : []
   const inFormLines = inForm ? [`⚡ In form: ${inForm.name} (${inForm.ppg.toFixed(1)} PPG)`] : []
 
@@ -300,7 +300,7 @@ export function buildResultShareText(params: {
 
   // ── Assemble full shareText ──────────────────────────────────────────────
   const parts: string[] = [
-    `⚽ ${leagueName} — Week ${week}`,
+    `⚽ ${leagueName} · Week ${week}`,
     `📅 ${shortDate}${format ? ` · ${format}` : ''}`,
     '',
     ...resultLines,
@@ -578,7 +578,7 @@ export function buildQuarterShareText(params: {
 
   const parts: string[] = [
     `🏁 That's a wrap on Q${q} ${year}!`,
-    `⚽ ${leagueName} — ${seasonName} quarter`,
+    `⚽ ${leagueName} · ${seasonName} quarter`,
     `📅 ${quarterRangeLabel(dateRange, gamesPlayed)}`,
   ]
 
@@ -598,7 +598,7 @@ export function buildQuarterShareText(params: {
     parts.push('')
     parts.push('🎖️ Quarter honours')
     for (const a of honours) {
-      parts.push(`${a.icon} ${a.nickname} — ${a.player} (${a.stat})`)
+      parts.push(`${a.icon} ${a.nickname}: ${a.player} (${a.stat})`)
     }
   }
 
@@ -606,7 +606,7 @@ export function buildQuarterShareText(params: {
     parts.push('')
     parts.push('📊 Final standings')
     entries.slice(0, 10).forEach((e, i) => {
-      parts.push(`${i + 1}. ${e.name} — ${e.points}pts (P${e.played} W${e.won} D${e.drew} L${e.lost})`)
+      parts.push(`${i + 1}. ${e.name} · ${e.points}pts (P${e.played} W${e.won} D${e.drew} L${e.lost})`)
     })
   }
 

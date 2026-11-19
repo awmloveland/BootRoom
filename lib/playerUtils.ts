@@ -141,3 +141,26 @@ export function splitPastedNames(text: string): string[] {
 export function rosterRenames<T extends { id: string; name: string }>(saved: string[], players: T[]): T[] {
   return players.filter((p) => saved.includes(p.id) && p.name.trim() !== p.id)
 }
+
+/**
+ * Orders renames so each one lands on a free name: a player moves off a name
+ * before another takes it. Names that trade places (Bob ↔ Carl) form a loop,
+ * which is opened by parking one player under a spare name first.
+ */
+export function renameSteps(renames: { from: string; to: string }[]): { from: string; to: string }[] {
+  const steps: { from: string; to: string }[] = []
+  let pending = [...renames]
+  while (pending.length > 0) {
+    const free = pending.find((r) => !pending.some((other) => other.from === r.to))
+    if (free) {
+      steps.push(free)
+      pending = pending.filter((r) => r !== free)
+      continue
+    }
+    const [first, ...rest] = pending
+    const spare = `~${first.from}`.slice(0, MAX_PLAYER_NAME)
+    steps.push({ from: first.from, to: spare })
+    pending = [...rest, { from: spare, to: first.to }]
+  }
+  return steps
+}

@@ -10,6 +10,7 @@ import {
   QuarterTableRows,
   type WidgetSize,
 } from '@/components/QuarterTable'
+import { compareStandings } from '@/lib/standings'
 import type { Player, Week } from '@/lib/types'
 
 interface StatsSidebarProps {
@@ -216,8 +217,9 @@ function QuarterlyTableWidget({ players, weeks, leagueDayIndex }: { players: Pla
         ) : (
           <QuarterTableRows
             rows={entries.map((entry, i) => ({ entry, rank: i + 1 }))}
-            // Before the first game the rows are the roster in name order: nobody leads
-            highlightName={entries[0].played > 0 ? entries[0].name : null}
+            // Nobody leads while name order is all that separates the top two:
+            // before the first game, or when they are level on every count
+            highlightName={entries[0].played > 0 && !(entries[1] && compareStandings(entries[0], entries[1]) === 0) ? entries[0].name : null}
           />
         )}
 
