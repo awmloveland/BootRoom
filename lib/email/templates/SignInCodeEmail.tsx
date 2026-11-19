@@ -24,7 +24,7 @@ export function SignInCodeEmail() {
       <Text className="em-accent" style={eyebrowStyle}>Sign-in code</Text>
       <Heading className="em-ink" style={headingStyle}>Your Craft Football code</Heading>
       <Text className="em-muted" style={bodyTextStyle}>
-        Enter it on Craft Football to finish signing in. It works once and expires soon.
+        Enter it on Craft Football to finish signing in. It works once and expires in 10 minutes.
       </Text>
       <Text className="em-ink em-line" style={codeStyle}>{'{{ .Token }}'}</Text>
     </EmailLayout>
