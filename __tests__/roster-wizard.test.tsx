@@ -85,6 +85,24 @@ describe('RosterWizard', () => {
     await waitFor(() => expect(JSON.parse(sessionStorage.getItem(rosterKey('hackney'))!).removed).toEqual(['Carl']))
   })
 
+  it('swaps two saved players by renaming one out of the way first', async () => {
+    sessionStorage.setItem(
+      rosterKey('hackney'),
+      JSON.stringify({ players: [INITIAL[0], { ...INITIAL[1], name: 'Carl' }, { ...INITIAL[2], name: 'Bob' }], removed: [] }),
+    )
+    mount()
+    await screen.findByText('Will L')
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/new/hackney/results'))
+
+    const renames = fetchMock.mock.calls.filter(([, init]) => init.method === 'PATCH').map(([url, init]) => [decodeURIComponent(url.split('/players/')[1].replace('/rename', '')), JSON.parse(init.body).new_name])
+    expect(renames).toHaveLength(3)
+    const [[first, spare], second, third] = renames
+    expect(first).toBe('Bob')
+    expect(second).toEqual(['Carl', 'Bob'])
+    expect(third).toEqual([spare, 'Carl'])
+  })
+
   it('forgets a delete and a rename that landed, so a retry cannot repeat them', async () => {
     sessionStorage.setItem(
       rosterKey('hackney'),
