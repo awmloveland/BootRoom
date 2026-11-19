@@ -15,7 +15,7 @@ interface PlayerCardProps {
   onToggle: () => void
   sortBy: SortKey
   weeks?: Week[]  // needed for year-filtered stats; undefined = no year toggle
-  /** Admin only: shows an Edit player button at the foot of the open card */
+  /** Admin only: closes the open card with an Admin strip holding Edit player */
   onEdit?: () => void
 }
 
@@ -334,21 +334,22 @@ export function PlayerCard({
               </div>
             )}
 
-            {/* ── Admin: edit player ── */}
-            {onEdit && (
-              <div className="border-t border-[#1b2c46] pt-3.5">
-                <button
-                  type="button"
-                  onClick={onEdit}
-                  className="h-9 w-full inline-flex items-center justify-center gap-2 rounded border border-[#223a5c] text-[13px] font-bold text-[#cfe0f4] hover:border-[#38bdf8] hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38bdf8]"
-                >
-                  <Pencil className="size-3.5" aria-hidden="true" />
-                  Edit player
-                </button>
-              </div>
-            )}
-
           </div>
+
+          {/* ── Admin: edit player, a strip that closes the card ── */}
+          {onEdit && (
+            <div className="flex items-center justify-between gap-3 border-t border-[#1b2c46] bg-[#0c1728] px-[18px] py-2.5 rounded-b-[11px]">
+              <span className="font-plex text-[9px] font-bold uppercase tracking-[.18em] text-[#4f688a]">Admin</span>
+              <button
+                type="button"
+                onClick={onEdit}
+                className="inline-flex items-center gap-1.5 rounded text-[13px] font-bold text-[#38bdf8] hover:text-[#7dd3fc] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38bdf8]"
+              >
+                <Pencil className="size-3.5" aria-hidden="true" />
+                Edit player
+              </button>
+            </div>
+          )}
         </Collapsible.Content>
       </div>
     </Collapsible.Root>
