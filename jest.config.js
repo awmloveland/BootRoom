@@ -1,3 +1,7 @@
+// Tests build their clocks with new Date(y, m, d, h), meaning league time.
+// Pin the zone so they pass on any machine (CI runs in UTC).
+process.env.TZ = 'Europe/London'
+
 /** @type {import('jest').Config} */
 const config = {
   preset: 'ts-jest',
