@@ -8,6 +8,7 @@ import { revalidateLeague } from '@/lib/leagueCache'
  * DELETE — platform admins only. Body: { confirm: "<the league's address>" }.
  * platform_delete_league saves the league's rows to platform_audit_log and
  * deletes the league in one transaction; every child table cascades.
+ * A daily database job clears that saved copy after 30 days.
  */
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const gate = await requirePlatformAdmin()

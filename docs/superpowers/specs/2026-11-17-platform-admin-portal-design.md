@@ -113,7 +113,9 @@ That is accurate enough to tell a live league from a dead one.
    `/platform`.
 
 Members keep their accounts. Nobody is emailed. There is no restore screen: a
-snapshot is restored by hand with SQL if ever needed.
+snapshot is restored by hand with SQL if ever needed. A daily job clears the
+snapshot 30 days after the delete (migration `20261119000004`); the log line
+stays.
 
 ## Database
 
